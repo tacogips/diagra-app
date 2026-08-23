@@ -57,6 +57,13 @@ const DEFAULT_AUTOSAVE_DELAY_MS = 1000;
 const UNTITLED_FILE_NAME = "untitled.jsonl";
 
 /**
+ * How the backend reports a file that is not there. Must match
+ * `MISSING_FILE_MESSAGE` in `apps/desktop/src-tauri/src/fs.rs`; both sides
+ * carry a comment saying so, and both sides have a test pinning it.
+ */
+const MISSING_FILE_MARKER = "file not found";
+
+/**
  * The document a new file starts from: one empty freeform page, matching
  * what `Editor` builds for itself when constructed without a document.
  */
@@ -78,6 +85,11 @@ export function baseName(path: string): string {
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** True when a read failed because the file does not exist. */
+function isMissingFile(error: unknown): boolean {
+  return describe(error).startsWith(MISSING_FILE_MARKER);
 }
 
 export class DocumentSession {
@@ -106,6 +118,8 @@ export class DocumentSession {
 
   /** The bytes on disk as of our last read or write. */
   private lastSavedText: string | null = null;
+  /** Bumped by every document load; see `write` and `performWrite`. */
+  private documentGeneration = 0;
   private loading = false;
   private autosaveHandle: TimerHandle | null = null;
   /** Serializes writes, so two saves can never interleave on one file. */
@@ -194,8 +208,12 @@ export class DocumentSession {
     try {
       diskText = await this.backend.readDocument(path);
     } catch (error) {
-      // The file is gone or unreadable, so it is no longer worth offering.
-      await this.forgetRecent(path);
+      // Only a file that is genuinely gone leaves the recent list. A
+      // document on a share that happens to be offline is still the user's
+      // document, and pruning it would make them hunt for it again.
+      if (isMissingFile(error)) {
+        await this.forgetRecent(path);
+      }
       this.fail(`could not open ${baseName(path)}: ${describe(error)}`);
       return false;
     }
@@ -320,6 +338,9 @@ export class DocumentSession {
   }
 
   private load(document: Document): void {
+    // Every load retires the writes queued for the outgoing document; see
+    // `performWrite`.
+    this.documentGeneration += 1;
     this.loading = true;
     try {
       this.editor.loadDocument(document);
@@ -332,7 +353,11 @@ export class DocumentSession {
     if (!this.current.dirty) {
       this.patch({ dirty: true });
     }
-    if (this.current.filePath !== null) {
+    // An unresolved conflict suspends autosave. The banner exists to ask
+    // which version wins; writing while it is up would answer that question
+    // for the user and destroy the other writer's work. Explicit saves are
+    // still allowed - those are the user answering "keep mine" themselves.
+    if (this.current.filePath !== null && this.current.conflict === null) {
       this.scheduleAutosave();
     }
   }
@@ -355,17 +380,36 @@ export class DocumentSession {
   /**
    * Queue one write behind any write already running. Serializing them
    * keeps `lastSavedText` describing the bytes that actually landed last.
+   *
+   * The generation is captured here, at queue time, and checked again when
+   * the write runs: the target path is fixed now but the document is only
+   * serialized later, so without it a write queued for one document would
+   * write whatever document the session held by the time its turn came.
    */
   private write(path: string): Promise<boolean> {
+    const generation = this.documentGeneration;
+    // Which banner, if any, this write is an answer to.
+    const answering = this.current.conflict;
     const queued = this.writes.then(
-      () => this.performWrite(path),
-      () => this.performWrite(path),
+      () => this.performWrite(path, generation, answering),
+      () => this.performWrite(path, generation, answering),
     );
     this.writes = queued;
     return queued;
   }
 
-  private async performWrite(path: string): Promise<boolean> {
+  private async performWrite(
+    path: string,
+    generation: number,
+    answering: SessionConflict | null,
+  ): Promise<boolean> {
+    if (generation !== this.documentGeneration) {
+      // The session opened another document while this write waited its
+      // turn. Writing now would put the new document into the old
+      // document's file.
+      return false;
+    }
+
     let text: string;
     try {
       text = serializeDocument(this.editor.getSnapshot());
@@ -382,11 +426,25 @@ export class DocumentSession {
       return false;
     }
 
+    if (generation !== this.documentGeneration) {
+      // The bytes were correct for the file they landed in, but the session
+      // has moved on: adopting this path would name the file the user left
+      // while the canvas shows the one they opened, and `lastSavedText`
+      // would then describe the wrong file.
+      return false;
+    }
+
     this.lastSavedText = text;
     this.patch({
       filePath: path,
       fileName: baseName(path),
       dirty: false,
+      // Saving with a banner up is the user choosing "keep mine", and disk
+      // now holds their document, so that banner is answered. A banner
+      // raised *during* this write is a different question about a change
+      // these bytes just overwrote - it stays up, because reloading it is
+      // the only way back to what the other writer had.
+      ...(this.current.conflict === answering ? { conflict: null } : {}),
       status: "idle",
       error: null,
     });
@@ -408,6 +466,10 @@ export class DocumentSession {
     if (diskText === this.lastSavedText) {
       return;
     }
+    // An autosave armed before the event arrived would otherwise land after
+    // the banner is up, overwriting the change the user is being asked
+    // about. `resolveConflict` re-arms it once the question is answered.
+    this.cancelAutosave();
     this.patch({ conflict: { diskText } });
   }
 

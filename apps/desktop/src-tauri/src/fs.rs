@@ -60,9 +60,18 @@ pub fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
     }
 }
 
+/// Marks "this file is not there" in a read error, so the frontend can drop
+/// a dead recent-files entry without also dropping one that merely lives on
+/// a share that happens to be offline. The wording is a contract: it is
+/// matched in `apps/desktop/src/file/session.ts`.
+pub const MISSING_FILE_MESSAGE: &str = "file not found";
+
 #[tauri::command]
 pub fn read_document(path: String) -> Result<String, String> {
-    fs::read_to_string(&path).map_err(|error| format!("failed to read {path}: {error}"))
+    fs::read_to_string(&path).map_err(|error| match error.kind() {
+        io::ErrorKind::NotFound => format!("{MISSING_FILE_MESSAGE}: {path}"),
+        _ => format!("failed to read {path}: {error}"),
+    })
 }
 
 #[tauri::command]
@@ -168,6 +177,27 @@ mod tests {
         let error = read_document(missing.to_string_lossy().into_owned())
             .expect_err("reading a missing file fails");
 
+        // The frontend matches this wording to tell a dead recent-files
+        // entry from a temporarily unreachable one.
+        assert!(
+            error.starts_with(MISSING_FILE_MESSAGE),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn read_document_reports_other_failures_differently() {
+        let directory = tempdir().expect("temp dir");
+
+        // A directory exists but is not readable as a document; that is not
+        // a missing file and must not be reported as one.
+        let error = read_document(directory.path().to_string_lossy().into_owned())
+            .expect_err("reading a directory fails");
+
+        assert!(
+            !error.starts_with(MISSING_FILE_MESSAGE),
+            "unexpected error: {error}"
+        );
         assert!(
             error.contains("failed to read"),
             "unexpected error: {error}"

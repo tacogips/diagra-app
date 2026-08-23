@@ -25,7 +25,17 @@ interface MockBackend extends FileBackend {
   emitFileChanged(path: string): void;
   failNextRead(message: string): void;
   failNextWrite(message: string): void;
+  /** Hold every subsequent write until `releaseWrites`. */
+  blockWrites(): void;
+  releaseWrites(): void;
 }
+
+/**
+ * How the Rust `read_document` command reports a missing file; the session
+ * matches this prefix to decide whether a recent entry is dead. Pinned on
+ * the Rust side by `read_document_reports_a_missing_file`.
+ */
+const MISSING_FILE_ERROR = "file not found";
 
 function createMockBackend(): MockBackend {
   const files = new Map<string, string>();
@@ -34,6 +44,8 @@ function createMockBackend(): MockBackend {
   let clock = 0;
   let readFailure: string | null = null;
   let writeFailure: string | null = null;
+  let writeGate: Promise<void> | null = null;
+  let openWriteGate: (() => void) | null = null;
 
   const backend: MockBackend = {
     available: true,
@@ -53,6 +65,16 @@ function createMockBackend(): MockBackend {
     failNextWrite(message: string) {
       writeFailure = message;
     },
+    blockWrites() {
+      writeGate = new Promise((resolve) => {
+        openWriteGate = resolve;
+      });
+    },
+    releaseWrites() {
+      openWriteGate?.();
+      writeGate = null;
+      openWriteGate = null;
+    },
     pickOpenPath() {
       return Promise.resolve(backend.openAnswers.shift() ?? null);
     },
@@ -67,7 +89,7 @@ function createMockBackend(): MockBackend {
       }
       const contents = files.get(path);
       return contents === undefined
-        ? Promise.reject(new Error(`no such file: ${path}`))
+        ? Promise.reject(new Error(`${MISSING_FILE_ERROR}: ${path}`))
         : Promise.resolve(contents);
     },
     writeDocument(path: string, contents: string) {
@@ -76,9 +98,12 @@ function createMockBackend(): MockBackend {
         writeFailure = null;
         return Promise.reject(new Error(message));
       }
-      files.set(path, contents);
-      backend.writes.push({ path, contents });
-      return Promise.resolve();
+      // Captured now: a write already waiting must not be freed by a gate
+      // opened for a later one.
+      return (writeGate ?? Promise.resolve()).then(() => {
+        files.set(path, contents);
+        backend.writes.push({ path, contents });
+      });
     },
     listRecent() {
       return Promise.resolve(recent);
@@ -409,6 +434,25 @@ describe("opening", () => {
     expect(session.state().error).toContain("could not parse");
   });
 
+  test("a recent entry that is only unreachable stays in the list", async () => {
+    const source = await savedFile("from disk");
+    const harness = createHarness();
+    harness.backend.files.set(source.path, source.text);
+    harness.backend.openAnswers.push(source.path);
+    await harness.session.open();
+
+    // The file is still there; the read failed for another reason (an
+    // offline share, a lock). Pruning it would make the user hunt for it.
+    harness.backend.failNextRead("resource temporarily unavailable");
+    const reopened = await harness.session.openPath(source.path);
+
+    expect(reopened).toBe(false);
+    expect(harness.session.state().recent.map((entry) => entry.path)).toEqual([
+      source.path,
+    ]);
+    expect(harness.session.state().error).toContain("could not open");
+  });
+
   test("a recent entry that no longer opens is dropped from the list", async () => {
     const source = await savedFile("from disk");
     const harness = createHarness();
@@ -516,6 +560,89 @@ describe("external changes", () => {
     expect(harness.backend.files.get("/docs/a.jsonl")).toBe(mine);
   });
 
+  test("an edit made while the banner is up is not written to disk", async () => {
+    const harness = await openedHarness();
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
+    harness.backend.files.set("/docs/a.jsonl", external);
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+    expect(harness.session.state().conflict).not.toBeNull();
+
+    addShape(harness.editor, "while deciding");
+    harness.timers.fire();
+    await harness.settle();
+
+    // The banner is the question "which version wins?". Autosaving over the
+    // external change would answer it for the user.
+    expect(harness.session.state().dirty).toBe(true);
+    expect(harness.backend.files.get("/docs/a.jsonl")).toBe(external);
+  });
+
+  test("an autosave armed before the event does not land once the banner is up", async () => {
+    const harness = await openedHarness();
+    addShape(harness.editor, "edited just before");
+    expect(harness.timers.pendingCount).toBe(1);
+
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
+    harness.backend.files.set("/docs/a.jsonl", external);
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict).not.toBeNull();
+    expect(harness.timers.pendingCount).toBe(0);
+    harness.timers.fire();
+    await harness.settle();
+    expect(harness.backend.files.get("/docs/a.jsonl")).toBe(external);
+  });
+
+  test("an explicit save while the banner is up keeps mine and clears it", async () => {
+    const harness = await openedHarness();
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
+    harness.backend.files.set("/docs/a.jsonl", external);
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+
+    const saved = await harness.session.save();
+
+    expect(saved).toBe(true);
+    expect(harness.backend.files.get("/docs/a.jsonl")).toBe(
+      serializeDocument(harness.editor.getSnapshot()),
+    );
+    // Disk now holds our document, so the banner's `diskText` is stale and
+    // the question it asked is answered.
+    expect(harness.session.state().conflict).toBeNull();
+  });
+
+  test("a conflict raised during a write survives that write", async () => {
+    const harness = await openedHarness();
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
+
+    harness.backend.blockWrites();
+    addShape(harness.editor, "one");
+    harness.timers.fire();
+    await harness.settle();
+
+    // The external change lands while our bytes are still in flight; our
+    // write will overwrite it, so the banner is the only way back to it.
+    harness.backend.files.set("/docs/a.jsonl", external);
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+    expect(harness.session.state().conflict?.diskText).toBe(external);
+
+    harness.backend.releaseWrites();
+    await harness.settle();
+
+    expect(harness.session.state().conflict?.diskText).toBe(external);
+    // Still actionable: reloading is how the user gets the overwritten
+    // version back.
+    expect(await harness.session.resolveConflict("reload")).toBe(true);
+    expect(harness.editor.store.getMeta().title).toBe("Elsewhere");
+  });
+
   test("an unparseable file on disk keeps the banner up", async () => {
     const harness = await openedHarness();
     harness.backend.files.set("/docs/a.jsonl", "garbage\n");
@@ -538,6 +665,79 @@ describe("external changes", () => {
     await harness.settle();
 
     expect(harness.session.state().conflict).toBeNull();
+  });
+});
+
+describe("a write that outlives its document", () => {
+  /** A document written by an unrelated session, ready to be opened. */
+  async function foreignDocument(label: string): Promise<string> {
+    const other = createHarness({ seeded: false });
+    addShape(other.editor, label);
+    other.backend.saveAnswers.push("/docs/b.jsonl");
+    await other.session.save();
+    const text = other.backend.files.get("/docs/b.jsonl");
+    if (text === undefined) {
+      throw new Error("the fixture failed to save");
+    }
+    return text;
+  }
+
+  test("a queued write is dropped when the document is replaced", async () => {
+    const harness = createHarness();
+    harness.backend.saveAnswers.push("/docs/a.jsonl");
+    await harness.session.save();
+    const documentB = await foreignDocument("belongs to b");
+    harness.backend.files.set("/docs/b.jsonl", documentB);
+
+    harness.backend.blockWrites();
+    addShape(harness.editor, "one");
+    harness.timers.fire();
+    await harness.settle();
+    addShape(harness.editor, "two");
+    harness.timers.fire();
+    await harness.settle();
+
+    // One write is stalled in the backend and a second is queued behind it.
+    const opened = await harness.session.openPath("/docs/b.jsonl");
+    expect(opened).toBe(true);
+
+    harness.backend.releaseWrites();
+    await harness.settle();
+
+    const fileA = harness.backend.files.get("/docs/a.jsonl") as string;
+    // The queued write would have serialized document B into file A.
+    expect(fileA).not.toBe(documentB);
+    expect(fileA).not.toContain("belongs to b");
+    expect(harness.backend.files.get("/docs/b.jsonl")).toBe(documentB);
+    // And the write that was already in flight must not drag the session
+    // back to the file the user left.
+    expect(harness.session.state().filePath).toBe("/docs/b.jsonl");
+    expect(harness.session.state().fileName).toBe("b.jsonl");
+  });
+
+  test("a queued write is dropped when the document is emptied", async () => {
+    const harness = createHarness();
+    harness.backend.saveAnswers.push("/docs/a.jsonl");
+    await harness.session.save();
+    const saved = harness.backend.files.get("/docs/a.jsonl") as string;
+
+    harness.backend.blockWrites();
+    addShape(harness.editor, "one");
+    harness.timers.fire();
+    await harness.settle();
+    addShape(harness.editor, "two");
+    harness.timers.fire();
+    await harness.settle();
+
+    await harness.session.newDocument();
+    harness.backend.releaseWrites();
+    await harness.settle();
+
+    // The empty document must not be written into the user's file.
+    const fileA = harness.backend.files.get("/docs/a.jsonl") as string;
+    expect(fileA).not.toBe(serializeDocument(harness.editor.getSnapshot()));
+    expect(fileA.length).toBeGreaterThanOrEqual(saved.length);
+    expect(harness.session.state().filePath).toBeNull();
   });
 });
 
