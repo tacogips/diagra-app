@@ -5,5 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@diagra/core": "workspace:*",
+    "@diagra/ir": "workspace:*",
+    "solid-js": "^1.9.0"
   }
 }
