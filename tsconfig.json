@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@diagra/ir": ["./packages/ir/src/index.ts"],
+      "@diagra/core": ["./packages/core/src/index.ts"],
+      "@diagra/io": ["./packages/io/src/index.ts"],
+      "@diagra/collab": ["./packages/collab/src/index.ts"],
+      "@diagra/ui-solid": ["./packages/ui-solid/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src",
+    "apps/desktop/src",
+    "apps/desktop/vite.config.ts"
+  ]
+}

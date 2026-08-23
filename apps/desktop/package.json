@@ -1,0 +1,25 @@
+{
+  "name": "@diagra/desktop",
+  "version": "0.1.0",
+  "description": "diagra desktop client (Tauri 2): local JSONL files and cloud documents",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@diagra/collab": "workspace:*",
+    "@diagra/core": "workspace:*",
+    "@diagra/io": "workspace:*",
+    "@diagra/ir": "workspace:*",
+    "@diagra/ui-solid": "workspace:*",
+    "@tauri-apps/api": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "vite": "^6.0.3"
+  }
+}

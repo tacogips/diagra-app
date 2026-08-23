@@ -1,0 +1,51 @@
+# This .gitignore file is expanded to the directory where `ign checkout` is executed.
+# It is NOT for the ign-template repository itself.
+
+# Dependencies
+/node_modules/
+
+# Frontend build output
+dist/
+*.tsbuildinfo
+
+# Rust and Tauri build artifacts
+/target/
+apps/desktop/src-tauri/target/
+**/*.rs.bk
+*.pdb
+
+# Bun binary lockfile; prefer text bun.lock when generated.
+bun.lockb
+
+# Environment files
+.env
+.env.local
+.env.*.local
+**/*.private*
+.private*/
+
+
+# IDE and OS metadata
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+logs/
+*.log
+npm-debug.log*
+tmp/
+temp/
+.cache/
+
+# Test coverage
+coverage/
+
+# Implementation progress lock file
+impl-plans/.progress.lock
+
+mise.local.toml

@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "local": {
+      "source": {
+        "source": "directory",
+        "path": ".agents/marketplace"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "rust-lsp@local": true,
+    "ts-lsp@local": true
+  }
+}

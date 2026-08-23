@@ -1,0 +1,25 @@
+{
+  "name": "diagra-app",
+  "version": "0.1.0",
+  "description": "diagra standalone diagram editor and shared editor packages",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "bun --cwd apps/desktop run dev",
+    "build": "bun run typecheck && bun --cwd apps/desktop run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "bun run lint:ts",
+    "lint:biome": "biome check . --diagnostic-level=warn",
+    "lint:ts": "bun run lint:biome && bun run typecheck",
+    "format": "biome format --write packages apps",
+    "format:check": "biome format --check packages apps",
+    "tauri": "bun --cwd apps/desktop run tauri"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.1.14",
+    "typescript": "~5.6.2"
+  }
+}

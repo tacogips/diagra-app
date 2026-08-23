@@ -1,0 +1,107 @@
+min_version = "2026.8.3"
+
+[[hooks.enter]]
+shell = "bash"
+script = '''
+if command -v kinko >/dev/null 2>&1 && kinko hook --help >/dev/null 2>&1; then
+  eval "$(kinko --path "$MISE_PROJECT_ROOT" hook enter bash)"
+fi
+'''
+
+[[hooks.leave]]
+shell = "bash"
+script = '''
+if command -v kinko >/dev/null 2>&1 && kinko hook --help >/dev/null 2>&1; then
+  eval "$(kinko hook leave bash)"
+fi
+'''
+
+[tools]
+bun = "latest"
+gitleaks = "latest"
+pre-commit = "latest"
+rust = "1.98"
+rust-analyzer = "latest"
+
+[tasks.default]
+description = "Show available tasks"
+run = "mise tasks ls"
+
+[tasks.install]
+description = "Install frontend dependencies"
+run = "bun install"
+
+[tasks.dev]
+description = "Run the Tauri app in development mode"
+run = "bun --cwd apps/desktop run tauri dev"
+
+[tasks.build]
+description = "Build frontend assets and the Tauri desktop binary"
+run = "bun run build && CARGO_TERM_QUIET=true cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml"
+
+[tasks.tauri-build]
+description = "Build the app through the Tauri CLI"
+run = "CARGO_TERM_QUIET=true bun --cwd apps/desktop run tauri build"
+
+[tasks.test]
+description = "Run frontend and backend tests"
+run = "bun run typecheck && CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml"
+
+[tasks.check]
+description = "Run frontend typecheck and backend cargo check"
+run = "bun run typecheck && CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml"
+
+[tasks.clippy]
+description = "Run clippy for the Tauri backend"
+run = "mise run lint-rust"
+
+[tasks.lint-ts]
+description = "Run TypeScript lint checks"
+run = "bash .agents/scripts/lint-ts.sh"
+
+[tasks.lint-rust]
+description = "Run Rust lint checks"
+run = "bash .agents/scripts/lint-rust.sh"
+
+[tasks.fmt]
+description = "Format frontend and backend sources"
+run = "bash .agents/scripts/format-ts.sh && CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml"
+
+[tasks.fmt-check]
+description = "Check backend formatting"
+run = "CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check"
+
+[tasks.lint]
+description = "Run all lints"
+run = "mise run lint-ts && mise run fmt-check && mise run lint-rust"
+
+[tasks.verify]
+description = "Run the full local verification suite"
+run = "mise run check && mise run lint && mise run test"
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "rm -rf node_modules apps/desktop/dist target"
+
+[tasks.ci]
+description = "Run all CI checks"
+run = "mise run verify && mise run build"
+
+[tasks.install-git-hooks]
+description = "Install mise tools and the repository pre-commit hook"
+run = '''
+mise install
+
+hooks_path=$(git config --local --get core.hooksPath || true)
+if [ "$hooks_path" = ".git/hooks" ]; then
+  git config --local --unset-all core.hooksPath
+  hooks_path=""
+fi
+
+if [ -z "$hooks_path" ]; then
+  mise exec -- pre-commit install
+else
+  mise exec -- pre-commit validate-config .pre-commit-config.yaml
+  echo "Using existing custom Git hooks path: $hooks_path"
+fi
+'''
