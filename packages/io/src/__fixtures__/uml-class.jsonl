@@ -1,0 +1,7 @@
+{"kind":"document","schemaVersion":1,"id":"01JUML00000000000000000000","title":"Billing model"}
+{"kind":"page","id":"p1","name":"Classes","pageKind":"uml"}
+{"kind":"element","id":"a-inherit","page":"p1","type":"uml.association","index":"a3","semantic":{"from":"c-invoice","to":"c-entity","kind":"inherit"}}
+{"kind":"element","id":"a-lines","page":"p1","type":"uml.association","index":"a4","semantic":{"from":"c-invoice","to":"c-line","kind":"compose","cardinalities":{"from":"1","to":"0..*"},"label":"lines"}}
+{"kind":"element","id":"c-entity","page":"p1","type":"uml.class","index":"a0","semantic":{"name":"Entity","stereotype":"abstract","attributes":[{"id":"at-id","name":"id","type":"UUID","visibility":"#"}],"methods":[]},"visual":{"x":40,"y":40,"width":220,"height":90}}
+{"kind":"element","id":"c-invoice","page":"p1","type":"uml.class","index":"a1","semantic":{"name":"Invoice","attributes":[{"id":"at-total","name":"total","type":"Money","visibility":"-"}],"methods":[{"id":"m-add","name":"addLine","parameters":[{"name":"line","type":"InvoiceLine"}],"returnType":"void","visibility":"+"}]},"visual":{"x":40,"y":200,"width":240,"height":140}}
+{"kind":"element","id":"c-line","page":"p1","type":"uml.class","index":"a2","semantic":{"name":"InvoiceLine","attributes":[{"id":"at-qty","name":"quantity","type":"int","visibility":"-"}],"methods":[{"id":"m-subtotal","name":"subtotal","returnType":"Money","visibility":"+","static":false}]},"visual":{"x":360,"y":200,"width":240,"height":120}}

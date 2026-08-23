@@ -1,4 +1,117 @@
 // Diagram IR: canonical semantic + visual data model.
 // See the product design (diagra-cloud repo), section 5.
+//
+// Runtime-agnostic by contract: this package must run in a browser, the
+// Tauri webview, Node/Bun, and Cloudflare Workers. No DOM, no framework.
 
-export const SCHEMA_VERSION = 1;
+export {
+  checkArray,
+  checkBoolean,
+  checkEnum,
+  checkFractionalIndex,
+  checkNumber,
+  checkObject,
+  checkString,
+} from "./checks.ts";
+export {
+  DocumentValidationError,
+  error,
+  formatIssue,
+  hasErrors,
+  type IssueSeverity,
+  type ValidationIssue,
+  warning,
+} from "./issues.ts";
+export {
+  COORDINATE_PRECISION,
+  type KeyOrder,
+  VISUAL_KEY_ORDER,
+  VISUAL_STYLE_KEY_ORDER,
+} from "./keyOrder.ts";
+export {
+  type DocumentSnapshot,
+  type MigrateOptions,
+  type Migration,
+  MIGRATIONS,
+  migrateSnapshot,
+  needsMigration,
+  SCHEMA_VERSION,
+  SchemaMigrationError,
+} from "./migrations.ts";
+export {
+  ELEMENT_TYPES,
+  type ElementCategory,
+  type ElementReference,
+  type ElementTypeDefinition,
+  getElementTypeDefinition,
+  isKnownElementType,
+  listElementTypeDefinitions,
+  type ReferencePolicy,
+} from "./registry.ts";
+export {
+  ARROWHEADS,
+  type Arrowhead,
+  type Arrowheads,
+  CARDINALITIES,
+  type Cardinality,
+  type ElementType,
+  type ErdColumn,
+  type ErdEndpoint,
+  type ErdRelationSemantic,
+  type ErdTableSemantic,
+  type FrameSemantic,
+  type FreehandPoint,
+  type FreehandSemantic,
+  GEO_KINDS,
+  type GenericEdgeSemantic,
+  type GenericNodeSemantic,
+  type GeoKind,
+  type GeoShapeSemantic,
+  type GroupSemantic,
+  MESSAGE_KINDS,
+  type MessageKind,
+  PARTICIPANT_KINDS,
+  type ParticipantKind,
+  type SemanticByType,
+  type SequenceActivationSemantic,
+  type SequenceMessageSemantic,
+  type SequenceParticipantSemantic,
+  TEXT_MARK_KINDS,
+  type TextMark,
+  type TextMarkKind,
+  type TextNoteSemantic,
+  UML_ASSOCIATION_KINDS,
+  UML_VISIBILITIES,
+  type UmlAssociationKind,
+  type UmlAssociationSemantic,
+  type UmlAttribute,
+  type UmlCardinalities,
+  type UmlClassSemantic,
+  type UmlMethod,
+  type UmlParameter,
+  type UmlVisibility,
+} from "./semantics.ts";
+export {
+  type DocId,
+  type Document,
+  type Element,
+  type ElementId,
+  elementsByPage,
+  type Extensions,
+  type FractionalIndex,
+  isPageKind,
+  isPlainObject,
+  PAGE_KINDS,
+  type Page,
+  type PageId,
+  type PageKind,
+  type UnknownRecord,
+  type Visual,
+  type VisualStyle,
+} from "./types.ts";
+export {
+  assertValidDocument,
+  isValidDocument,
+  type ValidateOptions,
+  validateDocument,
+} from "./validate.ts";

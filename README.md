@@ -23,7 +23,7 @@ The full product design lives in the private `diagra-cloud` repository (`design-
 
 ```text
 packages/
-  ir/        Diagram IR: types, schema, migrations
+  ir/        Diagram IR: types, element type registry, validation, migrations
   core/      Editor core (no framework dependencies)
   io/        JSONL persistence, SVG/Mermaid/D2 adapters
   collab/    Yjs client binding (sync server is private)
@@ -31,6 +31,11 @@ packages/
 apps/
   desktop/   Tauri 2 desktop client
 ```
+
+`ir` and `io` implement the Diagram IR and the deterministic JSONL file
+format; see [`packages/ir/README.md`](packages/ir/README.md) and
+[`packages/io/README.md`](packages/io/README.md). The other packages are
+still scaffolds.
 
 ## Development
 
@@ -44,11 +49,14 @@ mise run dev
 
 ```bash
 mise run check
-mise run test
+mise run test        # typecheck + bun test + cargo test
 mise run build
 mise run tauri-build
 mise run lint
 ```
+
+Frontend unit tests run under `bun test` and live next to their sources as
+`packages/*/src/**/*.test.ts`.
 
 mise installs Bun, Rust, and rust-analyzer. Install the native Tauri system
 libraries required by your operating system separately.

@@ -1,0 +1,6 @@
+{"kind":"document","schemaVersion":1,"id":"01JFWD00000000000000000000","title":"Written by a newer build","__proto__":{"injected":true},"constructor":{"at":"document"},"futureFlag":true}
+{"kind":"page","id":"p1","name":"Main","pageKind":"erd","__proto__":{"injected":true},"constructor":{"at":"page"},"layout":{"mode":"auto"}}
+{"kind":"element","id":"n-known","page":"p1","type":"node.generic","index":"a0","semantic":{"label":"Node","__proto__":{"injected":true},"constructor":{"at":"semantic"},"futureSemantic":{"z":1}},"visual":{"x":10,"y":20,"style":{"fill":"#ffffff","__proto__":{"injected":true},"constructor":{"at":"style"},"futureStyle":"neon"},"__proto__":{"injected":true},"constructor":{"at":"visual"},"futureVisual":7,"valueOf":{"at":"visual"}},"__proto__":{"injected":true},"constructor":{"at":"element"},"valueOf":{"at":"element"}}
+{"kind":"element","id":"z-future","page":"p1","type":"future.widget","index":"a1","semantic":{"__proto__":{"injected":true},"anything":[1,2,3],"constructor":{"at":"unknownSemantic"},"nested":{"a":1,"b":2}},"visual":{"x":5,"y":5,"constructor":[{"at":"arrayValued"}]}}
+{"kind":"annotation","author":"someone","body":"added in v2","id":"an-1"}
+{"kind":"comment","__proto__":{"injected":true},"body":"looks good","constructor":{"at":"unknownRecord"},"id":"cm-1","target":"n-known"}

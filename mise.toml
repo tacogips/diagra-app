@@ -45,7 +45,7 @@ run = "CARGO_TERM_QUIET=true bun --cwd apps/desktop run tauri build"
 
 [tasks.test]
 description = "Run frontend and backend tests"
-run = "bun run typecheck && CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml"
+run = "bun run typecheck && bun test && CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml"
 
 [tasks.check]
 description = "Run frontend typecheck and backend cargo check"

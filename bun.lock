@@ -37,6 +37,9 @@
     "packages/io": {
       "name": "@diagra/io",
       "version": "0.1.0",
+      "dependencies": {
+        "@diagra/ir": "workspace:*",
+      },
     },
     "packages/ir": {
       "name": "@diagra/ir",

@@ -1,0 +1,9 @@
+{"kind":"document","schemaVersion":1,"id":"01JFRE00000000000000000000","title":"Whiteboard"}
+{"kind":"page","id":"p1","name":"Sketch","pageKind":"freeform"}
+{"kind":"element","id":"d-stroke","page":"p1","type":"draw.freehand","index":"a2","semantic":{"points":[{"x":10,"y":10,"pressure":0.5},{"x":12.35,"y":14.5,"pressure":0.625},{"x":18,"y":22.25}]},"visual":{"style":{"stroke":"#111827","strokeWidth":2}}}
+{"kind":"element","id":"e-maybe","page":"p1","type":"edge.generic","index":"a6","semantic":{"from":"n-idea","to":"s-maybe","label":"maybe","arrowheads":{"start":"none","end":"arrow"}}}
+{"kind":"element","id":"f-ideas","page":"p1","type":"frame","index":"a0","semantic":{"name":"Ideas"},"visual":{"x":0,"y":0,"width":600,"height":400}}
+{"kind":"element","id":"g-cluster","page":"p1","type":"group","index":"a4","semantic":{"memberIds":["n-idea","s-maybe"]}}
+{"kind":"element","id":"n-idea","page":"p1","type":"node.generic","index":"a1","semantic":{"label":"Idea"},"visual":{"x":40,"y":60,"width":160,"height":48}}
+{"kind":"element","id":"s-maybe","page":"p1","type":"shape.geo","index":"a3","semantic":{"geo":"ellipse","label":"maybe"},"visual":{"x":240,"y":60,"width":140,"height":90,"rotation":15,"style":{"fill":"#fef3c7","stroke":"#f59e0b","dash":"dashed","opacity":0.9}}}
+{"kind":"element","id":"t-note","page":"p1","type":"text.note","index":"a5","semantic":{"text":"ship it","marks":[{"start":0,"end":4,"kind":"bold"}]},"visual":{"x":40,"y":320}}

@@ -1,8 +1,8 @@
 # This .gitignore file is expanded to the directory where `ign checkout` is executed.
 # It is NOT for the ign-template repository itself.
 
-# Dependencies
-/node_modules/
+# Dependencies (bun workspaces also link into packages/*/node_modules)
+node_modules/
 
 # Frontend build output
 dist/
@@ -49,3 +49,6 @@ coverage/
 impl-plans/.progress.lock
 
 mise.local.toml
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -9,6 +9,7 @@
     "dev": "bun --cwd apps/desktop run dev",
     "build": "bun run typecheck && bun --cwd apps/desktop run build",
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "lint": "bun run lint:ts",
     "lint:biome": "biome check . --diagnostic-level=warn",
     "lint:ts": "bun run lint:biome && bun run typecheck",

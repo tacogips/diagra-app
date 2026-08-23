@@ -1,0 +1,5 @@
+{"kind":"document","schemaVersion":1,"id":"01JERD00000000000000000000","title":"Shop domain"}
+{"kind":"page","id":"p1","name":"Domain model","pageKind":"erd"}
+{"kind":"element","id":"e-rel-1","page":"p1","type":"erd.relation","index":"a2","semantic":{"from":{"table":"t-orders","column":"c-user-id"},"to":{"table":"t-users","column":"c-id"},"cardinality":"*:1","label":"placed by"}}
+{"kind":"element","id":"t-orders","page":"p1","type":"erd.table","index":"a1","semantic":{"tableName":"orders","columns":[{"id":"c-id","name":"id","dataType":"uuid","pk":true},{"id":"c-user-id","name":"user_id","dataType":"uuid","nullable":false}]},"visual":{"x":460,"y":100,"width":280}}
+{"kind":"element","id":"t-users","page":"p1","type":"erd.table","index":"a0","semantic":{"tableName":"users","columns":[{"id":"c-id","name":"id","dataType":"uuid","pk":true},{"id":"c-email","name":"email","dataType":"text","nullable":false}]},"visual":{"x":100,"y":100,"width":280}}

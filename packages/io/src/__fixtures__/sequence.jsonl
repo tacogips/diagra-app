@@ -1,0 +1,9 @@
+{"kind":"document","schemaVersion":1,"id":"01JSEQ00000000000000000000","title":"Checkout flow"}
+{"kind":"page","id":"p1","name":"Checkout","pageKind":"sequence"}
+{"kind":"element","id":"act-api","page":"p1","type":"sequence.activation","index":"a5","semantic":{"participant":"p-api","fromOrder":"a1","toOrder":"a3"}}
+{"kind":"element","id":"m-checkout","page":"p1","type":"sequence.message","index":"a3","semantic":{"from":"p-user","to":"p-api","order":"a1","label":"POST /checkout","kind":"sync"}}
+{"kind":"element","id":"m-created","page":"p1","type":"sequence.message","index":"a6","semantic":{"from":"p-api","to":"p-user","order":"a3","label":"201 Created","kind":"return"}}
+{"kind":"element","id":"m-insert","page":"p1","type":"sequence.message","index":"a4","semantic":{"from":"p-api","to":"p-db","order":"a2","label":"INSERT order","kind":"async"}}
+{"kind":"element","id":"p-api","page":"p1","type":"sequence.participant","index":"a1","semantic":{"name":"API","kind":"service","order":"a1"},"visual":{"x":260}}
+{"kind":"element","id":"p-db","page":"p1","type":"sequence.participant","index":"a2","semantic":{"name":"Postgres","kind":"db","order":"a2"}}
+{"kind":"element","id":"p-user","page":"p1","type":"sequence.participant","index":"a0","semantic":{"name":"Shopper","kind":"actor","order":"a0"}}
