@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "checklist": "bun scripts/canvas-checklist.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

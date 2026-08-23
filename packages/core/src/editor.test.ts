@@ -85,6 +85,89 @@ describe("setCurrentPage", () => {
   });
 });
 
+// A toolbar reads `canUndo()` when the editor tells it something changed. If
+// the history stack can move without a notification, the Undo button renders
+// the *previous* edit's state and only catches up on the edit after — which
+// is exactly what an unwatched `endBatch` produces.
+describe("undo availability is announced when it changes", () => {
+  /** What a toolbar would render, sampled on every editor notification. */
+  function trackButtons(editor: Editor): () => {
+    undo: boolean;
+    redo: boolean;
+  } {
+    let latest = { undo: editor.canUndo(), redo: editor.canRedo() };
+    editor.subscribe(() => {
+      latest = { undo: editor.canUndo(), redo: editor.canRedo() };
+    });
+    return () => latest;
+  }
+
+  test("the first edit enables undo without waiting for a second", () => {
+    const editor = makeEditor();
+    const rendered = trackButtons(editor);
+    expect(rendered()).toEqual({ undo: false, redo: false });
+
+    editor.createElement("shape.geo");
+
+    expect(editor.canUndo()).toBe(true);
+    expect(rendered()).toEqual({ undo: true, redo: false });
+  });
+
+  test("closing a batch enables undo even though no element changed then", () => {
+    const editor = makeEditor({
+      document: document([
+        element({
+          id: "n1",
+          type: "node.generic",
+          semantic: { label: "a" },
+          visual: { x: 0, y: 0 },
+        }),
+      ]),
+    });
+    const rendered = trackButtons(editor);
+
+    editor.beginBatch();
+    editor.apply([{ type: "updateVisual", id: "n1", visual: { x: 10 } }]);
+    // Mid-drag the entry is still pending, so undo is genuinely unavailable.
+    expect(rendered()).toEqual({ undo: false, redo: false });
+
+    editor.endBatch();
+
+    expect(rendered()).toEqual({ undo: true, redo: false });
+  });
+
+  test("undo and redo announce the other direction becoming available", () => {
+    const editor = makeEditor();
+    const rendered = trackButtons(editor);
+    editor.createElement("shape.geo");
+
+    editor.undo();
+    expect(rendered()).toEqual({ undo: false, redo: true });
+    editor.redo();
+    expect(rendered()).toEqual({ undo: true, redo: false });
+  });
+
+  test("an aborted batch leaves undo where it was", () => {
+    const editor = makeEditor();
+    const rendered = trackButtons(editor);
+    editor.beginBatch();
+    editor.createElement("shape.geo");
+    editor.abortBatch();
+    expect(rendered()).toEqual({ undo: false, redo: false });
+  });
+
+  test("loading a document announces that the stacks were dropped", () => {
+    const editor = makeEditor();
+    editor.createElement("shape.geo");
+    const rendered = trackButtons(editor);
+    expect(rendered()).toEqual({ undo: true, redo: false });
+
+    editor.loadDocument(document([], [SECOND_PAGE]));
+
+    expect(rendered()).toEqual({ undo: false, redo: false });
+  });
+});
+
 describe("loadDocument", () => {
   test("subscribers observe the new document's page, not the old one", () => {
     const editor = makeEditor();

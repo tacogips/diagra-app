@@ -226,6 +226,99 @@ describe("batching", () => {
   });
 });
 
+describe("aborting a batch", () => {
+  test("reverts every apply in it and records no entry", () => {
+    const editor = makeEditor({
+      document: document([
+        element({
+          id: "n1",
+          type: "node.generic",
+          semantic: { label: "a" },
+          visual: { x: 0, y: 0 },
+        }),
+      ]),
+    });
+    editor.beginBatch();
+    for (let step = 1; step <= 10; step += 1) {
+      editor.apply([
+        { type: "updateVisual", id: "n1", visual: { x: step * 10 } },
+      ]);
+    }
+    expect(editor.store.get("n1")?.visual).toMatchObject({ x: 100 });
+
+    editor.abortBatch();
+
+    expect(editor.store.get("n1")?.visual).toEqual({ x: 0, y: 0 });
+    expect(editor.canUndo()).toBe(false);
+    expect(editor.canRedo()).toBe(false);
+    expect(editor.history.batching).toBe(false);
+  });
+
+  test("undoes creations made inside it", () => {
+    const editor = makeEditor();
+    editor.beginBatch();
+    const id = editor.createElement("shape.geo");
+    expect(editor.store.has(id)).toBe(true);
+    editor.abortBatch();
+    expect(editor.store.has(id)).toBe(false);
+    expect(editor.canUndo()).toBe(false);
+  });
+
+  test("leaves earlier history untouched", () => {
+    const editor = makeEditor({
+      document: document([
+        element({
+          id: "n1",
+          type: "node.generic",
+          semantic: { label: "a" },
+          visual: { x: 0, y: 0 },
+        }),
+      ]),
+    });
+    editor.apply([{ type: "updateVisual", id: "n1", visual: { x: 5 } }]);
+    editor.beginBatch();
+    editor.apply([{ type: "updateVisual", id: "n1", visual: { x: 999 } }]);
+    editor.abortBatch();
+
+    expect(editor.store.get("n1")?.visual).toMatchObject({ x: 5 });
+    expect(editor.history.undoSize).toBe(1);
+    editor.undo();
+    expect(editor.store.get("n1")?.visual).toMatchObject({ x: 0 });
+  });
+
+  test("an empty batch aborts cleanly", () => {
+    const editor = makeEditor();
+    editor.beginBatch();
+    editor.abortBatch();
+    expect(editor.history.batching).toBe(false);
+    expect(editor.canUndo()).toBe(false);
+  });
+
+  test("aborting with no batch open is a no-op", () => {
+    const editor = makeEditor();
+    editor.createElement("shape.geo");
+    editor.abortBatch();
+    expect(editor.history.undoSize).toBe(1);
+    expect(editor.store.size).toBe(1);
+  });
+
+  test("only the outermost close decides, as with endBatch", () => {
+    const editor = makeEditor();
+    editor.beginBatch();
+    const kept = editor.createElement("shape.geo");
+    editor.beginBatch();
+    editor.createElement("shape.geo");
+    // The inner abort closes its level; the outer batch still owns the entry.
+    editor.abortBatch();
+    expect(editor.store.size).toBe(2);
+    editor.endBatch();
+    expect(editor.history.undoSize).toBe(1);
+    editor.undo();
+    expect(editor.store.has(kept)).toBe(false);
+    expect(editor.store.size).toBe(0);
+  });
+});
+
 describe("stack behaviour", () => {
   test("a new edit clears the redo branch", () => {
     const editor = makeEditor();

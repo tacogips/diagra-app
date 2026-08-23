@@ -46,6 +46,7 @@ export {
   History,
   type HistoryEntry,
   HISTORY_LIMIT,
+  type HistoryListener,
   type HistoryRunner,
 } from "./history.ts";
 export {

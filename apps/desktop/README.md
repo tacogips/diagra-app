@@ -50,7 +50,29 @@ machine, or a ShapeUtil.
 | 17 | Ctrl/Cmd + Z | Undoes the last edit. A drag or resize undoes in one step, not pixel by pixel. |
 | 18 | Ctrl/Cmd + Shift + Z, and Ctrl/Cmd + Y | Redo. |
 | 19 | Undo/Redo toolbar buttons | Enabled exactly when the keyboard shortcuts would do something; the seeded document is not undoable. |
-| 20 | Escape mid-gesture | Cancels the gesture, clears the selection, returns to the Select tool. |
+| 20 | Escape while dragging or resizing | The shape snaps back to where the gesture started. Nothing is added to the undo stack (the Undo button does not light up for the abandoned gesture), the selection is cleared, and the tool returns to Select. |
+| 21 | Middle-click, or put a second finger down, in the middle of a drag | The drag is unaffected by the stray contact. Afterwards Ctrl/Cmd + Z still works — a leaked history batch silently kills undo for the rest of the session, and this step is how a human catches it. |
 
 Recorded results live with the change that required them; a run is only
 meaningful for the build it was performed against.
+
+### Running it
+
+Every step above is automated against a real headless Chrome, driven with
+real mouse and keyboard input over the DevTools Protocol, with the
+assertions read back out of the rendered DOM:
+
+```bash
+bun --cwd=apps/desktop run dev        # in another shell
+bun --cwd=apps/desktop run checklist  # prints one line per step, exits non-zero on failure
+```
+
+It needs Chrome (set `CHROME_BIN` for a different binary) and is therefore
+not part of `bun test` or the default gate — run it before shipping a change
+to the canvas. `packages/ui-solid/src/interaction.test.ts` covers the same
+state machine without a browser and *does* run in `bun test`; the browser
+pass is what confirms the parts only a browser supplies — real hit areas,
+pointer capture, focus, layout and the CSS transform.
+
+Reading the steps by hand is still worthwhile when the question is how
+something *looks* rather than whether it happened.

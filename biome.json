@@ -13,6 +13,7 @@
       "apps/*/src/**/*.ts",
       "apps/*/src/**/*.tsx",
       "apps/*/src/**/*.css",
+      "apps/*/scripts/**/*.mjs",
       "apps/*/vite.config.ts"
     ]
   },

@@ -65,6 +65,18 @@ const PAGE_SWITCH_DIFF: StoreDiff = {
   pagesChanged: true,
 };
 
+/**
+ * Announced when undo/redo availability changes on its own — closing a batch
+ * adds a history entry without touching an element, so a toolbar watching
+ * only the store would show the previous edit's state.
+ */
+const HISTORY_DIFF: StoreDiff = {
+  added: [],
+  updated: [],
+  removed: [],
+  pagesChanged: false,
+};
+
 function emptyDocument(id: string, pageId: string): Document {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -105,6 +117,9 @@ export class Editor {
     this.store.subscribe((diff) => {
       this.selection.prune(diff);
       this.notify(diff);
+    });
+    this.history.subscribe(() => {
+      this.notify(HISTORY_DIFF);
     });
   }
 
@@ -189,6 +204,14 @@ export class Editor {
 
   endBatch(): void {
     this.history.endBatch();
+  }
+
+  /**
+   * Close the batch by undoing it. A gesture the user abandoned should leave
+   * the document exactly as it found it, and cost no undo step.
+   */
+  abortBatch(): void {
+    this.history.abortBatch();
   }
 
   getShapeUtil(type: string): ShapeUtil {

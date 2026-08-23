@@ -5,6 +5,13 @@
 // every drag is wrapped in `beginBatch`/`endBatch` so a hundred pointer
 // moves undo as one step.
 //
+// That pairing is the invariant this file exists to protect. `beginBatch`
+// without its `endBatch` does not fail loudly: history simply keeps folding
+// every later edit into a batch that is never committed, so undo goes dead
+// for the rest of the session. One pointer therefore owns the canvas at a
+// time — `activePointerId` — and every event from any other pointer is
+// dropped before it can reach a gesture transition.
+//
 // Camera changes deliberately do not touch history: panning and zooming are
 // not edits.
 
@@ -110,6 +117,8 @@ export function createInteraction(
   options: InteractionOptions,
 ): Interaction {
   let gesture: Gesture = { kind: "idle" };
+  /** The pointer that owns the canvas, or `null` when none does. */
+  let activePointerId: number | null = null;
   const [pending, setPending] = createSignal<PendingConnection | null>(null);
 
   const screenPoint = (event: { clientX: number; clientY: number }): Vec => {
@@ -141,6 +150,7 @@ export function createInteraction(
     }
   };
 
+  /** Commit whatever the gesture did and return to idle. */
   const finishGesture = (): void => {
     if (gesture.kind === "translating" || gesture.kind === "resizing") {
       editor.endBatch();
@@ -148,6 +158,33 @@ export function createInteraction(
     gesture = { kind: "idle" };
     setPending(null);
   };
+
+  /**
+   * Return to idle discarding whatever the gesture did, so a half-finished
+   * move or resize leaves no trace — not even an undo step.
+   */
+  const cancelGesture = (): void => {
+    if (gesture.kind === "translating" || gesture.kind === "resizing") {
+      editor.abortBatch();
+    }
+    gesture = { kind: "idle" };
+    setPending(null);
+  };
+
+  /**
+   * True when `event` may start a gesture: nothing owns the canvas, this is
+   * the pointer that does, or the owner has finished what it was doing.
+   *
+   * That last case matters because ownership outlives the gesture — Escape
+   * ends a drag while the button is still held. Handing the canvas to
+   * another pointer then is safe precisely because there is no open batch
+   * left to leak, and refusing would wedge a touch device whose next
+   * contact always arrives with a fresh pointer id.
+   */
+  const owns = (event: PointerEvent): boolean =>
+    activePointerId === null ||
+    activePointerId === event.pointerId ||
+    gesture.kind === "idle";
 
   const beginTranslate = (startPage: Vec): boolean => {
     const origins = new Map<ElementId, Vec>();
@@ -195,6 +232,17 @@ export function createInteraction(
     if (event.button !== 0 && event.button !== 1) {
       return;
     }
+    // A second contact while a gesture is running — a middle click during a
+    // drag, a second finger, a pen alongside a touch — is not a new gesture.
+    // Starting one would open a second history batch and close only one.
+    if (!owns(event)) {
+      return;
+    }
+    // The owning pointer pressing again means its release went missing (it
+    // happens when the window loses the pointer). Close the stale gesture so
+    // the batch it opened is accounted for before this one opens another.
+    finishGesture();
+    activePointerId = event.pointerId;
     options.container()?.focus();
     const tool = options.tool();
     const point = pagePoint(event);
@@ -238,6 +286,9 @@ export function createInteraction(
   };
 
   const onPointerMove = (event: PointerEvent): void => {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
     switch (gesture.kind) {
       case "panning": {
         const now = screenPoint(event);
@@ -291,6 +342,9 @@ export function createInteraction(
   };
 
   const onPointerUp = (event: PointerEvent): void => {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
     if (gesture.kind === "connecting") {
       const target = editor.hitTest(pagePoint(event));
       if (target) {
@@ -301,12 +355,22 @@ export function createInteraction(
       }
     }
     release(event);
+    activePointerId = null;
     finishGesture();
   };
 
+  /**
+   * The system took the pointer away mid-gesture (a palm rejection, a
+   * system gesture). Treat it as a cancellation rather than a commit: the
+   * user never chose where to drop what they were dragging.
+   */
   const onPointerCancel = (event: PointerEvent): void => {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
     release(event);
-    finishGesture();
+    activePointerId = null;
+    cancelGesture();
   };
 
   const onWheel = (event: WheelEvent): void => {
@@ -346,7 +410,10 @@ export function createInteraction(
     }
     if (key === "escape") {
       event.preventDefault();
-      finishGesture();
+      // Escape abandons the gesture: a half-dragged shape goes back where it
+      // started rather than being committed wherever the pointer happens to
+      // be. The pointer is still down, so it keeps ownership until it lifts.
+      cancelGesture();
       editor.selection.clear();
       options.setTool("select");
     }
@@ -357,11 +424,17 @@ export function createInteraction(
     handle: ResizeHandle,
     event: PointerEvent,
   ): void => {
+    if (!owns(event)) {
+      return;
+    }
     const startBox = editor.getBounds(id);
     if (!startBox) {
       return;
     }
     event.stopPropagation();
+    // Same recovery as `onPointerDown`: never open a batch over an open one.
+    finishGesture();
+    activePointerId = event.pointerId;
     capture(event);
     editor.beginBatch();
     gesture = {
