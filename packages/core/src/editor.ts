@@ -101,6 +101,8 @@ export class Editor {
   private readonly pendingTop = new Map<PageId, FractionalIndex>();
   private pageId: PageId;
   private revisionCount = 0;
+  /** Set while a reset is mid-flight and the editor is not yet consistent. */
+  private silenceHistory = false;
 
   constructor(options: EditorOptions = {}) {
     this.idSource = options.idSource ?? (() => newElementId());
@@ -119,7 +121,9 @@ export class Editor {
       this.notify(diff);
     });
     this.history.subscribe(() => {
-      this.notify(HISTORY_DIFF);
+      if (!this.silenceHistory) {
+        this.notify(HISTORY_DIFF);
+      }
     });
   }
 
@@ -154,12 +158,22 @@ export class Editor {
   }
 
   /**
-   * Replace the open document. The editor's own state is reset *before* the
-   * store is loaded, so the diff that load emits is observed with the new
-   * page already current rather than with the outgoing document's.
+   * Replace the open document.
+   *
+   * A load is announced exactly once, by the store, and every other piece of
+   * editor state is already describing the new document by the time that
+   * happens. Dropping the undo stack is the one reset that would otherwise
+   * announce itself — on its own, while the page and the store still belong
+   * to the outgoing document — so its notification is held back and the
+   * store's diff speaks for the whole load.
    */
   loadDocument(document: Document): void {
-    this.history.clear();
+    this.silenceHistory = true;
+    try {
+      this.history.clear();
+    } finally {
+      this.silenceHistory = false;
+    }
     this.selection.clear();
     this.pendingTop.clear();
     this.pageId = document.pages[0]?.id ?? "";

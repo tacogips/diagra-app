@@ -196,6 +196,49 @@ describe("loadDocument", () => {
     expect(counts).toEqual([1]);
   });
 
+  test("loading over a non-empty undo stack still announces the load once", () => {
+    const editor = twoPageEditor();
+    editor.selection.set(["on-one"]);
+    editor.createElement("shape.geo");
+    expect(editor.canUndo()).toBe(true);
+
+    // Dropping that stack is a notifiable event in its own right, so a load
+    // must not let it out while the page and store still describe the
+    // document being replaced.
+    const observed: {
+      page: string;
+      undo: boolean;
+      selection: number;
+      elements: number;
+    }[] = [];
+    editor.subscribe(() => {
+      observed.push({
+        page: editor.currentPageId,
+        undo: editor.canUndo(),
+        selection: editor.selection.size,
+        elements: editor.store.getPageElements(editor.currentPageId).length,
+      });
+    });
+
+    editor.loadDocument(
+      document(
+        [
+          element({
+            id: "fresh",
+            type: "shape.geo",
+            semantic: { geo: "rect", label: "" },
+            page: SECOND_PAGE.id,
+          }),
+        ],
+        [SECOND_PAGE],
+      ),
+    );
+
+    expect(observed).toEqual([
+      { page: SECOND_PAGE.id, undo: false, selection: 0, elements: 1 },
+    ]);
+  });
+
   test("resets history, selection and the z-order cursor", () => {
     const editor = twoPageEditor();
     editor.selection.set(["on-one"]);
