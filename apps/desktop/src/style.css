@@ -37,19 +37,112 @@ input {
   height: 100vh;
 }
 
+/*
+ * A column rather than fixed grid rows: the notice, the error and the
+ * conflict banner each appear only when they have something to say, and the
+ * canvas takes whatever is left.
+ */
 .app-shell {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100%;
+}
+
+.app-shell > .diagra-canvas {
+  flex: 1;
+  min-height: 0;
 }
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   align-items: baseline;
   padding: 10px 16px;
   border-bottom: 1px solid var(--diagra-line);
   background: var(--diagra-surface);
+}
+
+/* File controls */
+
+.app-file-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.app-file-button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.app-file-button:hover:not(:disabled) {
+  background: var(--diagra-accent-soft);
+}
+
+.app-file-button:disabled {
+  color: #a8a8a8;
+  cursor: default;
+}
+
+.app-recent-select {
+  max-width: 220px;
+  min-height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font-size: 0.78rem;
+}
+
+.app-file-name {
+  color: var(--diagra-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.app-dirty-marker {
+  color: var(--diagra-accent);
+}
+
+.app-file-status,
+.app-notice {
+  color: var(--diagra-muted);
+  font-size: 0.8rem;
+}
+
+.app-notice {
+  margin: 0;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--diagra-line);
+  background: var(--diagra-surface);
+}
+
+.app-error {
+  margin: 0;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--diagra-line);
+  color: #8c2f26;
+  background: #fdf1ef;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
+
+.app-conflict {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--diagra-line);
+  background: var(--diagra-accent-soft);
+  font-size: 0.8rem;
 }
 
 .app-title {
