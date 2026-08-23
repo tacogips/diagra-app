@@ -53,15 +53,21 @@ loads the external content.
 ### 3. Keep mine wins the next write
 
 1. Edit the open file externally again and wait for the banner.
-2. Click `Keep mine`. The banner disappears and the file name is marked
+2. While the banner is still up, move a shape and wait more than one second.
+   The dirty marker (`*`) appears but the file on disk must NOT change:
+   autosave is suspended until the banner is answered, so the app cannot
+   decide the question for you. (Pressing `Cmd/Ctrl + S` here is a
+   deliberate "keep mine" and does write - that is the next step.)
+3. Click `Keep mine`. The banner disappears and the file name stays marked
    dirty (`*`).
-3. Wait more than one second without touching anything (the autosave
+4. Wait more than one second without touching anything (the autosave
    debounce), or press `Cmd/Ctrl + S`.
-4. Re-read the file on disk: it must hold the app's document, not the
+5. Re-read the file on disk: it must hold the app's document, not the
    external edit.
 
-Pass criterion: the app's version overwrites the external edit, and no
-banner loop follows the write.
+Pass criterion: nothing is written while the banner is up; after `Keep
+mine`, the app's version overwrites the external edit and no banner loop
+follows the write.
 
 ### 4. Autosave does not prompt itself
 
@@ -79,10 +85,12 @@ Pass criterion: the file updates silently.
 3. The `Recent` dropdown lists both, most recently opened first.
 4. Pick one: it opens.
 5. Move one of the files away (`mv`), relaunch, and pick its entry: an error
-   is shown and the entry disappears from the list.
+   is shown and the entry disappears from the list. Only a file that is
+   genuinely gone is pruned - a read that fails for another reason (an
+   offline share, a lock) reports the error and keeps the entry.
 
-Pass criterion: the list survives the restart and self-heals on a dead
-entry.
+Pass criterion: the list survives the restart and drops an entry whose file
+no longer exists.
 
 ### 6. Unsaved-changes guard
 
@@ -91,18 +99,45 @@ entry.
 
 Pass criterion: no silent loss of unsaved work.
 
+### 7. The Content Security Policy does not break the app
+
+`app.security.csp` (and `devCsp`) in `src-tauri/tauri.conf.json` were
+tightened when the filesystem commands landed, and a CSP that is too strict
+fails at runtime rather than at build time.
+
+1. `mise run dev`: the canvas renders, shapes drag (they are positioned with
+   inline `style` attributes, which `style-src 'unsafe-inline'` allows), and
+   the file controls work.
+2. `mise run build` and launch the built binary: same check, this time under
+   the production `csp`.
+3. Open the webview devtools console: no `Content Security Policy` violation
+   messages.
+
+Pass criterion: both builds render and save normally with no CSP violations
+reported. If a violation appears, widen the offending directive in
+`tauri.conf.json` rather than removing the policy.
+
 ## Results log
 
-| Date | Platform | App version | 1 | 2 | 3 | 4 | 5 | 6 | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2026-08-24 | macOS (darwin 25.5.0) | 0.1.0 | pending | pending | pending | pending | pending | pending | Pending operator run: the implementation session had no interactive desktop session to drive the GUI. The io-level round-trip that item 1 checks by eye is asserted headlessly by `apps/desktop/src/file/session.test.ts` ("reopening a saved document reproduces the file byte for byte") and by the `packages/io` round-trip and golden suites. |
+| Date | Platform | App version | 1 | 2 | 3 | 4 | 5 | 6 | 7 | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-08-24 | macOS (darwin 25.5.0) | 0.1.0 | pending | pending | pending | pending | pending | pending | pending | Pending operator run: the implementation session had no interactive desktop session to drive the GUI. The io-level round-trip that item 1 checks by eye is asserted headlessly by `apps/desktop/src/file/session.test.ts` ("reopening a saved document reproduces the file byte for byte") and by the `packages/io` round-trip and golden suites. Items 2, 3 and 5 also have headless coverage of the underlying session logic; item 7 has none, because a CSP is only enforced by a real webview. |
 
 Record one row per run. `pending` is only acceptable when the run could not
 be executed at all; note why in the last column.
 
-## Known limitation
+## Known limitations
 
 Quitting inside the one-second autosave debounce can lose the last edit. The
 window's `beforeunload` handler flushes a pending autosave on a best-effort
 basis, but the OS can terminate the process before the write completes. Save
 explicitly (`Cmd/Ctrl + S`) before quitting if the last edit matters.
+
+`read_document` and `write_document_atomic` accept any path the frontend
+sends: the user picks files through a native dialog anywhere on disk, so
+there is no meaningful directory to scope them to, and Tauri's ACL does not
+gate app-defined commands. The webview only ever loads bundled local assets,
+and the Content Security Policy above is what keeps foreign script out of
+it. Anything that later loads remote content into this webview has to
+revisit that trade, because these two commands are what a compromised page
+would reach for.
