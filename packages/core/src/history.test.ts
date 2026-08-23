@@ -216,6 +216,14 @@ describe("batching", () => {
     editor.endBatch();
     expect(editor.canUndo()).toBe(false);
   });
+
+  test("a batch of no-ops records nothing", () => {
+    const editor = makeEditor();
+    editor.beginBatch();
+    editor.apply([{ type: "deleteElements", ids: ["nope"] }]);
+    editor.endBatch();
+    expect(editor.canUndo()).toBe(false);
+  });
 });
 
 describe("stack behaviour", () => {
@@ -240,6 +248,16 @@ describe("stack behaviour", () => {
     const editor = makeEditor();
     expect(editor.undo()).toBe(false);
     expect(editor.redo()).toBe(false);
+  });
+
+  test("a command batch that changes nothing costs no undo step", () => {
+    const editor = makeEditor();
+    editor.createElement("shape.geo");
+    editor.apply([{ type: "deleteElements", ids: ["never-existed"] }]);
+    expect(editor.history.undoSize).toBe(1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.store.size).toBe(0);
+    expect(editor.canUndo()).toBe(false);
   });
 
   test("drops the oldest entry past the limit", () => {

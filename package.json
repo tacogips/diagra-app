@@ -6,8 +6,8 @@
   "type": "module",
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
-    "dev": "bun --cwd apps/desktop run dev",
-    "build": "bun run typecheck && bun --cwd apps/desktop run build",
+    "dev": "bun --cwd=apps/desktop run dev",
+    "build": "bun run typecheck && bun --cwd=apps/desktop run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "bun run lint:ts",
@@ -15,7 +15,7 @@
     "lint:ts": "bun run lint:biome && bun run typecheck",
     "format": "biome format --write packages apps",
     "format:check": "biome format --check packages apps",
-    "tauri": "bun --cwd apps/desktop run tauri"
+    "tauri": "bun --cwd=apps/desktop run tauri"
   },
   "license": "MIT",
   "devDependencies": {

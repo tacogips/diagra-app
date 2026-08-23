@@ -54,6 +54,17 @@ export interface CreateElementOptions {
 
 export type EditorListener = (diff: StoreDiff) => void;
 
+/**
+ * Announced when the visible page changes. No element changed, but which
+ * elements a renderer should be drawing did.
+ */
+const PAGE_SWITCH_DIFF: StoreDiff = {
+  added: [],
+  updated: [],
+  removed: [],
+  pagesChanged: true,
+};
+
 function emptyDocument(id: string, pageId: string): Document {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -93,10 +104,7 @@ export class Editor {
     this.pageId = document.pages[0]?.id ?? "";
     this.store.subscribe((diff) => {
       this.selection.prune(diff);
-      this.revisionCount += 1;
-      for (const listener of [...this.listeners]) {
-        listener(diff);
-      }
+      this.notify(diff);
     });
   }
 
@@ -116,19 +124,31 @@ export class Editor {
     return this.pageId;
   }
 
+  /**
+   * Switch the visible page. Unknown ids are ignored. The change is
+   * announced like a store change, because a renderer that only listens for
+   * document edits would otherwise keep drawing the previous page.
+   */
   setCurrentPage(pageId: PageId): void {
-    if (this.store.getPage(pageId)) {
-      this.pageId = pageId;
-      this.selection.clear();
+    if (pageId === this.pageId || !this.store.getPage(pageId)) {
+      return;
     }
+    this.pageId = pageId;
+    this.selection.clear();
+    this.notify(PAGE_SWITCH_DIFF);
   }
 
+  /**
+   * Replace the open document. The editor's own state is reset *before* the
+   * store is loaded, so the diff that load emits is observed with the new
+   * page already current rather than with the outgoing document's.
+   */
   loadDocument(document: Document): void {
-    this.store.loadDocument(document);
     this.history.clear();
     this.selection.clear();
     this.pendingTop.clear();
     this.pageId = document.pages[0]?.id ?? "";
+    this.store.loadDocument(document);
   }
 
   getSnapshot(): Document {
@@ -322,5 +342,12 @@ export class Editor {
 
   deleteSelection(applyOptions: ApplyOptions = {}): void {
     this.deleteElements([...this.selection.ids()], applyOptions);
+  }
+
+  private notify(diff: StoreDiff): void {
+    this.revisionCount += 1;
+    for (const listener of [...this.listeners]) {
+      listener(diff);
+    }
   }
 }

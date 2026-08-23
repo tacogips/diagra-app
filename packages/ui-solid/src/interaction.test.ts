@@ -1,6 +1,6 @@
 // DOM-free unit tests for the geometry and tool mapping the interaction
 // layer is built on. The gestures themselves need a real pointer and are
-// covered by the manual canvas checklist instead.
+// covered by the manual canvas checklist in `apps/desktop/README.md`.
 
 import { describe, expect, test } from "bun:test";
 import { MIN_SHAPE_SIZE, resizeBox } from "./interaction.ts";

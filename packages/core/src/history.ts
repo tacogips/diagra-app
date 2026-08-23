@@ -53,9 +53,17 @@ export class History {
     return this.batchDepth > 0;
   }
 
-  /** Record one applied batch. No-ops (empty inverses) are ignored. */
+  /**
+   * Record one applied batch.
+   *
+   * An empty inverse means the batch changed nothing — `applyCommands` emits
+   * an undo command for every mutation it makes — so the entry is dropped
+   * rather than stacked. Keeping it would cost the user a press of Ctrl+Z
+   * that visibly does nothing (deleting an id that is already gone is the
+   * usual way to produce one).
+   */
   push(entry: HistoryEntry): void {
-    if (entry.undo.length === 0 && entry.redo.length === 0) {
+    if (entry.undo.length === 0) {
       return;
     }
     if (this.batchDepth > 0) {

@@ -1,0 +1,145 @@
+// The editor facade's own contract: what subscribers see, and when.
+//
+// A renderer re-reads the document whenever the editor notifies it, so every
+// change to *what should be on screen* has to arrive as a notification with
+// the editor already in its new state. Page switches and document loads are
+// the two cases that are not plain store commits.
+
+import { describe, expect, test } from "bun:test";
+import type { Page } from "@diagra/ir";
+import { Editor } from "./editor.ts";
+import {
+  counterIds,
+  document,
+  element,
+  makeEditor,
+  seededRng,
+  TEST_PAGE,
+} from "./test-helpers.ts";
+
+const SECOND_PAGE: Page = { id: "page-2", name: "Page 2", kind: "freeform" };
+
+function twoPageEditor(): Editor {
+  return makeEditor({
+    document: document(
+      [
+        element({
+          id: "on-one",
+          type: "node.generic",
+          semantic: { label: "one" },
+          page: TEST_PAGE.id,
+        }),
+        element({
+          id: "on-two",
+          type: "node.generic",
+          semantic: { label: "two" },
+          page: SECOND_PAGE.id,
+        }),
+      ],
+      [TEST_PAGE, SECOND_PAGE],
+    ),
+  });
+}
+
+describe("setCurrentPage", () => {
+  test("notifies subscribers so a renderer re-reads the page", () => {
+    const editor = twoPageEditor();
+    const seen: string[] = [];
+    editor.subscribe(() => {
+      seen.push(editor.currentPageId);
+    });
+
+    const before = editor.revision;
+    editor.setCurrentPage(SECOND_PAGE.id);
+
+    expect(editor.currentPageId).toBe(SECOND_PAGE.id);
+    expect(editor.revision).toBeGreaterThan(before);
+    // The notification arrives with the new page already current.
+    expect(seen).toEqual([SECOND_PAGE.id]);
+    expect(
+      editor.store.getPageElements(editor.currentPageId).map((el) => el.id),
+    ).toEqual(["on-two"]);
+  });
+
+  test("clears the selection, which belonged to the page being left", () => {
+    const editor = twoPageEditor();
+    editor.selection.set(["on-one"]);
+    editor.setCurrentPage(SECOND_PAGE.id);
+    expect(editor.selection.size).toBe(0);
+  });
+
+  test("ignores an unknown page and re-selecting the current one", () => {
+    const editor = twoPageEditor();
+    editor.selection.set(["on-one"]);
+    let notifications = 0;
+    editor.subscribe(() => {
+      notifications += 1;
+    });
+
+    editor.setCurrentPage("no-such-page");
+    editor.setCurrentPage(TEST_PAGE.id);
+
+    expect(editor.currentPageId).toBe(TEST_PAGE.id);
+    expect(notifications).toBe(0);
+    expect(editor.selection.has("on-one")).toBe(true);
+  });
+});
+
+describe("loadDocument", () => {
+  test("subscribers observe the new document's page, not the old one", () => {
+    const editor = makeEditor();
+    const pages: string[] = [];
+    const counts: number[] = [];
+    editor.subscribe(() => {
+      pages.push(editor.currentPageId);
+      counts.push(editor.store.getPageElements(editor.currentPageId).length);
+    });
+
+    editor.loadDocument(
+      document(
+        [
+          element({
+            id: "fresh",
+            type: "shape.geo",
+            semantic: { geo: "rect", label: "" },
+            page: SECOND_PAGE.id,
+          }),
+        ],
+        [SECOND_PAGE],
+      ),
+    );
+
+    expect(pages).toEqual([SECOND_PAGE.id]);
+    expect(counts).toEqual([1]);
+  });
+
+  test("resets history, selection and the z-order cursor", () => {
+    const editor = twoPageEditor();
+    editor.selection.set(["on-one"]);
+    editor.createElement("shape.geo");
+    expect(editor.canUndo()).toBe(true);
+
+    editor.loadDocument(document([], [SECOND_PAGE]));
+
+    expect(editor.canUndo()).toBe(false);
+    expect(editor.canRedo()).toBe(false);
+    expect(editor.selection.size).toBe(0);
+    expect(editor.currentPageId).toBe(SECOND_PAGE.id);
+    expect(editor.store.size).toBe(0);
+  });
+
+  test("elements created after a load still stack in creation order", () => {
+    const editor = new Editor({
+      document: document([], [TEST_PAGE]),
+      idSource: counterIds(),
+      rng: seededRng(7),
+    });
+    editor.createElement("shape.geo");
+    editor.loadDocument(document([], [TEST_PAGE]));
+    const first = editor.createElement("shape.geo");
+    const second = editor.createElement("shape.geo");
+    expect(
+      editor.store.getPageElements(TEST_PAGE.id).map((el) => el.id),
+    ).toEqual([first, second]);
+  });
+});

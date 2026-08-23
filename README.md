@@ -34,8 +34,12 @@ apps/
 
 `ir` and `io` implement the Diagram IR and the deterministic JSONL file
 format; see [`packages/ir/README.md`](packages/ir/README.md) and
-[`packages/io/README.md`](packages/io/README.md). The other packages are
-still scaffolds.
+[`packages/io/README.md`](packages/io/README.md). `core` implements the
+editor engine — store, commands, camera, selection, history, ShapeUtil
+registry and hit testing — and `ui-solid` renders it to SVG and DOM; the
+desktop client wires the two together, see
+[`apps/desktop/README.md`](apps/desktop/README.md) for the canvas layout and
+the manual gesture checklist. `collab` is still a scaffold.
 
 ## Development
 
@@ -56,7 +60,9 @@ mise run lint
 ```
 
 Frontend unit tests run under `bun test` and live next to their sources as
-`packages/*/src/**/*.test.ts`.
+`packages/*/src/**/*.test.ts`. Pointer and keyboard gestures need a real
+pointer, so they are covered by the manual checklist in
+[`apps/desktop/README.md`](apps/desktop/README.md) instead.
 
 mise installs Bun, Rust, and rust-analyzer. Install the native Tauri system
 libraries required by your operating system separately.
