@@ -12,6 +12,9 @@ restart. That is what this page is for. Run it after any change to
 `apps/desktop/src-tauri/src/{dialogs,fs,recent,watch}.rs` or to
 `apps/desktop/src/file/`.
 
+Cloud documents are the other half of the app's document modes and have their
+own page: `cloud-manual-check.md`.
+
 ## Setup
 
 ```bash

@@ -48,7 +48,12 @@ input {
   height: 100%;
 }
 
-.app-shell > .diagra-canvas {
+/*
+ * The canvas sits in a positioned host so the presence overlay can be laid
+ * over it without becoming part of the transformed viewport.
+ */
+.app-canvas-host {
+  position: relative;
   flex: 1;
   min-height: 0;
 }
@@ -461,4 +466,161 @@ input {
   stroke: var(--diagra-accent);
   stroke-width: 1.5;
   pointer-events: all;
+}
+
+/* Cloud mode */
+
+.app-cloud-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--diagra-line);
+  background: var(--diagra-surface);
+  font-size: 0.8rem;
+}
+
+.app-cloud-summary,
+.app-cloud-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.app-cloud-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.app-cloud-field {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--diagra-muted);
+}
+
+.app-cloud-field input {
+  min-height: 26px;
+  min-width: 160px;
+  padding: 0 8px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font-size: 0.78rem;
+}
+
+.app-cloud-field-narrow input {
+  min-width: 48px;
+  padding: 0 2px;
+}
+
+.app-cloud-status,
+.app-cloud-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--diagra-accent-soft);
+  color: var(--diagra-accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-cloud-status[data-status="error"],
+.app-cloud-badge[data-status="error"] {
+  color: #8c2f26;
+  background: #fdf1ef;
+}
+
+.app-cloud-status[data-status="reconnecting"],
+.app-cloud-badge[data-status="reconnecting"],
+.app-cloud-status[data-status="syncing"],
+.app-cloud-badge[data-status="syncing"] {
+  color: #7a5a12;
+  background: #fdf3dc;
+}
+
+.app-cloud-notice {
+  margin: 0;
+  color: var(--diagra-muted);
+}
+
+.app-cloud-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.app-cloud-list li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.app-cloud-doc-title {
+  font-weight: 600;
+}
+
+.app-cloud-doc-id {
+  color: var(--diagra-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+}
+
+/*
+ * The toolbar's own undo/redo pair drives the core History, which is not the
+ * undo stack a cloud document uses (design 5). In cloud mode the header
+ * carries the buttons that route to the Y.UndoManager, and this pair is
+ * removed rather than left showing a stack nobody is reading.
+ */
+.app-cloud-mode .diagra-toolbar > .diagra-tool-group:last-child {
+  display: none;
+}
+
+/* Presence */
+
+.app-presence-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--diagra-muted);
+  font-size: 0.75rem;
+}
+
+.app-presence-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.app-presence-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.app-presence-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  gap: 2px;
+  align-items: flex-start;
+  will-change: transform;
+}
+
+.app-presence-name {
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #fffdf8;
+  font-size: 0.68rem;
+  white-space: nowrap;
 }

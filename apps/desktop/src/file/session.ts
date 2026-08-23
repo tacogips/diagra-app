@@ -121,6 +121,8 @@ export class DocumentSession {
   /** Bumped by every document load; see `write` and `performWrite`. */
   private documentGeneration = 0;
   private loading = false;
+  /** True while another mode owns the editor; see `suspend`. */
+  private suspended = false;
   private autosaveHandle: TimerHandle | null = null;
   /** Serializes writes, so two saves can never interleave on one file. */
   private writes: Promise<unknown> = Promise.resolve();
@@ -147,7 +149,7 @@ export class DocumentSession {
         diff.added.length > 0 ||
         diff.updated.length > 0 ||
         diff.removed.length > 0;
-      if (changed && !this.loading) {
+      if (changed && !this.loading && !this.suspended) {
         this.markDirty();
       }
     });
@@ -323,6 +325,41 @@ export class DocumentSession {
       return false;
     }
     return this.save();
+  }
+
+  /**
+   * Let go of the editor because another document mode is taking it over.
+   *
+   * A cloud room writes other people's edits straight into the store, and
+   * every one of them would otherwise look like the user editing the open
+   * file — the debounced autosave would then copy a completely different
+   * document over it. Suspending closes the file rather than merely pausing:
+   * once the editor holds something else, this session has no claim on that
+   * path any more, and the next explicit save has to ask where to write.
+   */
+  suspend(): void {
+    if (this.suspended) {
+      return;
+    }
+    this.suspended = true;
+    this.cancelAutosave();
+    // Retire anything already queued for the document being handed over.
+    this.documentGeneration += 1;
+    void this.stopWatching();
+    this.lastSavedText = null;
+    this.patch({
+      filePath: null,
+      fileName: null,
+      dirty: false,
+      conflict: null,
+      status: "idle",
+      error: null,
+    });
+  }
+
+  /** Take the editor back. The file controls are live again. */
+  resume(): void {
+    this.suspended = false;
   }
 
   dispose(): void {

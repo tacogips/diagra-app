@@ -766,3 +766,53 @@ describe("the save/open round trip", () => {
     );
   });
 });
+
+describe("handing the editor to another document mode", () => {
+  test("a suspended session closes the file and stops autosaving", async () => {
+    const harness = createHarness();
+    harness.backend.saveAnswers.push("/docs/a.jsonl");
+    await harness.session.save();
+    const saved = harness.backend.files.get("/docs/a.jsonl");
+    expect(harness.session.state().filePath).toBe("/docs/a.jsonl");
+
+    harness.session.suspend();
+    expect(harness.session.state().filePath).toBeNull();
+    expect(harness.session.state().fileName).toBeNull();
+    expect(harness.backend.watched.at(-1)).toBeNull();
+
+    // Everything a cloud room writes into the store arrives as an ordinary
+    // store diff. None of it may reach the file the user had open.
+    addShape(harness.editor, "written by a peer");
+    expect(harness.timers.pendingCount).toBe(0);
+    harness.timers.fire();
+    await harness.settle();
+
+    expect(harness.session.state().dirty).toBe(false);
+    expect(harness.backend.files.get("/docs/a.jsonl")).toBe(saved as string);
+  });
+
+  test("resuming tracks edits again, and saving asks for a path", async () => {
+    const harness = createHarness();
+    harness.backend.saveAnswers.push("/docs/a.jsonl");
+    await harness.session.save();
+    harness.session.suspend();
+    harness.session.resume();
+
+    addShape(harness.editor, "back in file mode");
+    await harness.settle();
+    expect(harness.session.state().dirty).toBe(true);
+
+    // The editor no longer holds the document that file contained, so the
+    // save has to ask rather than overwrite it.
+    harness.backend.saveAnswers.push("/docs/b.jsonl");
+    expect(await harness.session.save()).toBe(true);
+    expect(harness.session.state().filePath).toBe("/docs/b.jsonl");
+  });
+
+  test("suspending twice is harmless", () => {
+    const harness = createHarness();
+    harness.session.suspend();
+    harness.session.suspend();
+    expect(harness.session.state().filePath).toBeNull();
+  });
+});
