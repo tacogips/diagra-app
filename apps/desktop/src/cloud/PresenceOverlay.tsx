@@ -15,6 +15,11 @@ import type { PresencePeer } from "@diagra/collab";
 import { createEditorSignals } from "@diagra/ui-solid";
 import { For, type JSX, Show } from "solid-js";
 
+import {
+  type PeerSelectionBox,
+  peerSelectionBoxes,
+} from "./presence-geometry.ts";
+
 export interface PresenceOverlayProps {
   readonly editor: Editor;
   readonly peers: readonly PresencePeer[];
@@ -34,8 +39,42 @@ export function PresenceOverlay(props: PresenceOverlayProps): JSX.Element {
     );
   };
 
+  /** Outlines for the elements each visible peer is manipulating. */
+  const selections = (): readonly PeerSelectionBox[] => {
+    // `rev` is read so element moves and edits re-run the projection.
+    signals.rev();
+    return peerSelectionBoxes(
+      props.peers,
+      props.editor.currentPageId,
+      (id) => props.editor.getBounds(id),
+      signals.camera(),
+    );
+  };
+
   return (
     <div class="app-presence-layer">
+      <For each={selections()}>
+        {(sel) => (
+          <div
+            class="app-presence-selection"
+            style={{
+              transform: `translate(${sel.rect.x}px, ${sel.rect.y}px)`,
+              width: `${sel.rect.width}px`,
+              height: `${sel.rect.height}px`,
+              color: sel.color,
+            }}
+          >
+            <Show when={sel.labeled}>
+              <span
+                class="app-presence-selection-name"
+                style={{ background: sel.color }}
+              >
+                {sel.name}
+              </span>
+            </Show>
+          </div>
+        )}
+      </For>
       <For each={visible()}>
         {(peer) => {
           const at = (): { x: number; y: number } => {

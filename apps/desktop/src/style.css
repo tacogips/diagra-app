@@ -607,6 +607,26 @@ input {
   pointer-events: none;
 }
 
+.app-presence-selection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  will-change: transform;
+}
+
+.app-presence-selection-name {
+  position: absolute;
+  top: -1.4rem;
+  left: -1.5px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #fffdf8;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
 .app-presence-cursor {
   position: absolute;
   top: 0;
