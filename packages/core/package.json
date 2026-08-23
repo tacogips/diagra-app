@@ -5,5 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@diagra/ir": "workspace:*"
+  },
+  "devDependencies": {
+    "@diagra/io": "workspace:*"
   }
 }
