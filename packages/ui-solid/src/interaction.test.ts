@@ -627,6 +627,47 @@ describe("marquee selection", () => {
     expect(editor.selection.size).toBe(0);
   });
 
+  test("escape on a shift-marquee keeps the base selection alive", () => {
+    const { editor, shape, interaction } = harness();
+    editor.selection.set([shape]);
+
+    interaction.onPointerDown(
+      pointer({ clientX: 300, clientY: 300, shiftKey: true }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 350, clientY: 350 }));
+    interaction.onKeyDown(keyboard("Escape"));
+
+    expect(interaction.marquee()).toBeNull();
+    expect(editor.selection.has(shape)).toBe(true);
+  });
+
+  test("live selection notifies only when membership changes", () => {
+    const { editor, shape, interaction } = harness();
+    editor.selection.clear();
+    let notifications = 0;
+    const unsubscribe = editor.selection.subscribe(() => {
+      notifications += 1;
+    });
+
+    interaction.onPointerDown(pointer({ clientX: 300, clientY: 300 }));
+    // Many moves inside empty space: membership never changes, so the
+    // selection must stay quiet — in cloud mode every notification becomes
+    // an awareness publish.
+    for (let i = 0; i < 10; i += 1) {
+      interaction.onPointerMove(
+        pointer({ clientX: 300 - i, clientY: 300 - i }),
+      );
+    }
+    expect(notifications).toBe(0);
+
+    interaction.onPointerMove(pointer({ clientX: 50, clientY: 50 }));
+    expect(editor.selection.has(shape)).toBe(true);
+    expect(notifications).toBe(1);
+
+    interaction.onPointerUp(pointer({ clientX: 50, clientY: 50 }));
+    unsubscribe();
+  });
+
   test("reports the rectangle through onMarquee, ending with null", () => {
     const editor = new Editor();
     const seen: (unknown | null)[] = [];

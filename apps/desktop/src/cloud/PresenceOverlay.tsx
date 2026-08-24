@@ -36,9 +36,17 @@ export function PresenceOverlay(props: PresenceOverlayProps): JSX.Element {
     // signal of its own.
     signals.rev();
     const page = props.editor.currentPageId;
-    return props.peers.filter(
-      (peer) => peer.state.page === page && peer.state.cursor !== null,
-    );
+    return props.peers.filter((peer) => {
+      const cursor = peer.state.cursor;
+      // Cursor positions come from other clients: drop anything that would
+      // not project to finite screen coordinates.
+      return (
+        peer.state.page === page &&
+        cursor !== null &&
+        Number.isFinite(cursor.x) &&
+        Number.isFinite(cursor.y)
+      );
+    });
   };
 
   /** Outlines for the elements each visible peer is manipulating. */
@@ -56,11 +64,11 @@ export function PresenceOverlay(props: PresenceOverlayProps): JSX.Element {
   /** The marquee each peer is dragging, projected like everything else. */
   const brushes = (): readonly PeerBrush[] => {
     signals.rev();
-    return peerBrushes(props.peers, props.editor.currentPageId, {
-      x: signals.camera().x,
-      y: signals.camera().y,
-      z: signals.camera().z,
-    });
+    return peerBrushes(
+      props.peers,
+      props.editor.currentPageId,
+      signals.camera(),
+    );
   };
 
   return (

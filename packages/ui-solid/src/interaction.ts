@@ -155,8 +155,10 @@ export function createInteraction(
   /** Elements on the current page whose bounds overlap `rect`. */
   const elementsIn = (rect: Box): ElementId[] => {
     const out: ElementId[] = [];
+    // One context for the whole scan: bounds lookups share the store view.
+    const context = editor.createShapeContext();
     for (const element of editor.store.getPageElements(editor.currentPageId)) {
-      const bounds = editor.getBounds(element.id);
+      const bounds = editor.getBounds(element.id, context);
       if (bounds && boxesOverlap(bounds, rect)) {
         out.push(element.id);
       }
@@ -398,12 +400,21 @@ export function createInteraction(
         const rect = normalizeBox(gesture.startPage, point);
         setMarquee(rect);
         // Selection updates live so both this window and every remote peer
-        // watch it grow, not just see the result on release.
+        // watch it grow, not just see the result on release. Only when the
+        // membership actually changed, though: Selection.set notifies
+        // unconditionally, and in cloud mode every notification becomes an
+        // awareness publish — per-pointermove would flood the socket.
         const ids = new Set(gesture.base);
         for (const id of elementsIn(rect)) {
           ids.add(id);
         }
-        editor.selection.set([...ids]);
+        const current = editor.selection.ids();
+        const unchanged =
+          editor.selection.size === ids.size &&
+          [...current].every((id) => ids.has(id));
+        if (!unchanged) {
+          editor.selection.set([...ids]);
+        }
         return;
       }
       default:
@@ -483,8 +494,14 @@ export function createInteraction(
       // Escape abandons the gesture: a half-dragged shape goes back where it
       // started rather than being committed wherever the pointer happens to
       // be. The pointer is still down, so it keeps ownership until it lifts.
+      // A cancelled marquee is the one case where "abandon" already names
+      // the right selection — the base the drag started from — so the
+      // deselect-everything that follows would undo the restore.
+      const wasMarquee = gesture.kind === "marquee";
       cancelGesture();
-      editor.selection.clear();
+      if (!wasMarquee) {
+        editor.selection.clear();
+      }
       options.setTool("select");
     }
   };

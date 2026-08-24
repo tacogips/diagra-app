@@ -138,3 +138,27 @@ describe("projectRect", () => {
     ).toEqual({ x: 30, y: 30, width: 30, height: 60 });
   });
 });
+
+describe("peerBrushes hardening", () => {
+  test("drops malformed or non-finite brushes from the wire", () => {
+    const bad = [
+      { x: Number.NaN, y: 0, width: 10, height: 10 },
+      { x: 0, y: 0, width: Number.POSITIVE_INFINITY, height: 10 },
+      { x: 0, y: 0, width: -5, height: 10 },
+      { x: "0", y: 0, width: 10, height: 10 },
+      { x: 0, y: 0, height: 10 },
+    ];
+    const peers = bad.map((brush, i) =>
+      peer(i, {
+        selection: [],
+        brush: brush as unknown as {
+          x: number;
+          y: number;
+          width: number;
+          height: number;
+        },
+      }),
+    );
+    expect(peerBrushes(peers, PAGE, { x: 0, y: 0, z: 1 })).toHaveLength(0);
+  });
+});

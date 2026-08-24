@@ -52,6 +52,18 @@ export interface PeerBrush {
   readonly rect: ScreenRect;
 }
 
+/** A rectangle from the wire this overlay is willing to draw. */
+function isDrawableBox(value: unknown): value is Box {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const box = value as Record<string, unknown>;
+  return (["x", "y", "width", "height"] as const).every((key) => {
+    const n = box[key];
+    return typeof n === "number" && Number.isFinite(n);
+  });
+}
+
 /** The marquee each peer on this page is dragging right now. */
 export function peerBrushes(
   peers: readonly PresencePeer[],
@@ -60,8 +72,16 @@ export function peerBrushes(
 ): readonly PeerBrush[] {
   const out: PeerBrush[] = [];
   for (const peer of peers) {
+    // Awareness payloads come from other clients: a malformed or hostile
+    // brush must degrade to "no brush", not to NaN geometry in the DOM.
     const brush = peer.state.brush ?? null;
-    if (peer.state.page !== page || brush === null) {
+    if (
+      peer.state.page !== page ||
+      brush === null ||
+      !isDrawableBox(brush) ||
+      brush.width < 0 ||
+      brush.height < 0
+    ) {
       continue;
     }
     out.push({
