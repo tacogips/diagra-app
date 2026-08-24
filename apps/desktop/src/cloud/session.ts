@@ -259,8 +259,16 @@ export class CloudSession {
     return this.binding?.canRedo() ?? false;
   }
 
-  /** Publish this client's cursor/selection. No-op while disconnected. */
-  publishPresence(cursor: { x: number; y: number } | null): void {
+  /** Publish this client's cursor/selection/brush. No-op while disconnected. */
+  publishPresence(
+    cursor: { x: number; y: number } | null,
+    brush: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null = null,
+  ): void {
     const awareness = this.provider?.awareness;
     if (!awareness || this.binding === null) {
       return;
@@ -271,6 +279,7 @@ export class CloudSession {
       cursor,
       selection: [...this.editor.selection.ids()] as readonly ElementId[],
       page: this.editor.currentPageId,
+      brush,
     });
   }
 

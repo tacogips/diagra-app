@@ -19,6 +19,17 @@ export interface PresenceState {
   readonly cursor: { readonly x: number; readonly y: number } | null;
   readonly selection: readonly ElementId[];
   readonly page: PageId;
+  /**
+   * Page-space marquee rectangle while this user is brush-selecting, or
+   * `null`/absent otherwise. Ephemeral like the cursor: it exists only for
+   * the duration of the drag.
+   */
+  readonly brush?: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  } | null;
 }
 
 export interface PresencePeer {

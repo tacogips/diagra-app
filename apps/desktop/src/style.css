@@ -454,6 +454,13 @@ input {
 
 /* Selection overlay */
 
+.diagra-marquee {
+  fill: color-mix(in srgb, var(--diagra-accent) 10%, transparent);
+  stroke: var(--diagra-accent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
 .diagra-selection-outline {
   fill: none;
   stroke: var(--diagra-accent);
@@ -605,6 +612,16 @@ input {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+}
+
+.app-presence-brush {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px dashed currentColor;
+  border-radius: 2px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  will-change: transform;
 }
 
 .app-presence-selection {

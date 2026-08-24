@@ -60,12 +60,20 @@ type Gesture =
       readonly startPage: Vec;
       readonly startBox: Box;
     }
-  | { readonly kind: "connecting"; readonly from: ElementId };
+  | { readonly kind: "connecting"; readonly from: ElementId }
+  | {
+      readonly kind: "marquee";
+      readonly startPage: Vec;
+      /** Selection to keep underneath the brush (shift-drag adds). */
+      readonly base: readonly ElementId[];
+    };
 
 export interface InteractionOptions {
   readonly tool: Accessor<ToolKind>;
   readonly setTool: (tool: ToolKind) => void;
   readonly container: () => HTMLElement | undefined;
+  /** Fires as the marquee rectangle changes; `null` when the drag ends. */
+  readonly onMarquee?: (rect: Box | null) => void;
 }
 
 export interface Interaction {
@@ -77,6 +85,18 @@ export interface Interaction {
   onKeyDown(event: KeyboardEvent): void;
   startResize(id: ElementId, handle: ResizeHandle, event: PointerEvent): void;
   readonly pending: Accessor<PendingConnection | null>;
+  /** The marquee rectangle while brush-selecting, in page space. */
+  readonly marquee: Accessor<Box | null>;
+}
+
+/** True when two boxes overlap at all (touching edges count). */
+export function boxesOverlap(a: Box, b: Box): boolean {
+  return (
+    a.x <= b.x + b.width &&
+    b.x <= a.x + a.width &&
+    a.y <= b.y + b.height &&
+    b.y <= a.y + a.height
+  );
 }
 
 function wheelPixels(delta: number, mode: number): number {
@@ -120,6 +140,29 @@ export function createInteraction(
   /** The pointer that owns the canvas, or `null` when none does. */
   let activePointerId: number | null = null;
   const [pending, setPending] = createSignal<PendingConnection | null>(null);
+  const [marquee, setMarqueeSignal] = createSignal<Box | null>(null);
+
+  const setMarquee = (rect: Box | null): void => {
+    if (rect === null && marquee() === null) {
+      // Clearing an already-clear marquee is a no-op; without this guard
+      // every pointer-down would report a phantom `null` to `onMarquee`.
+      return;
+    }
+    setMarqueeSignal(rect);
+    options.onMarquee?.(rect);
+  };
+
+  /** Elements on the current page whose bounds overlap `rect`. */
+  const elementsIn = (rect: Box): ElementId[] => {
+    const out: ElementId[] = [];
+    for (const element of editor.store.getPageElements(editor.currentPageId)) {
+      const bounds = editor.getBounds(element.id);
+      if (bounds && boxesOverlap(bounds, rect)) {
+        out.push(element.id);
+      }
+    }
+    return out;
+  };
 
   const screenPoint = (event: { clientX: number; clientY: number }): Vec => {
     const container = options.container();
@@ -157,6 +200,7 @@ export function createInteraction(
     }
     gesture = { kind: "idle" };
     setPending(null);
+    setMarquee(null);
   };
 
   /**
@@ -167,8 +211,14 @@ export function createInteraction(
     if (gesture.kind === "translating" || gesture.kind === "resizing") {
       editor.abortBatch();
     }
+    if (gesture.kind === "marquee") {
+      // A cancelled brush never happened: the selection it was building goes
+      // back to whatever the drag started from.
+      editor.selection.set(gesture.base);
+    }
     gesture = { kind: "idle" };
     setPending(null);
+    setMarquee(null);
   };
 
   /**
@@ -270,8 +320,15 @@ export function createInteraction(
     }
 
     if (!hit) {
-      editor.selection.clear();
-      gesture = { kind: "panning", lastScreen: screenPoint(event) };
+      // Empty canvas with the select tool starts a marquee; shift keeps the
+      // existing selection as the base the brush adds to. Panning stays on
+      // the hand tool and the middle button, handled above.
+      const base = event.shiftKey ? [...editor.selection.ids()] : [];
+      if (!event.shiftKey) {
+        editor.selection.clear();
+      }
+      gesture = { kind: "marquee", startPage: point, base };
+      setMarquee({ x: point.x, y: point.y, width: 0, height: 0 });
       return;
     }
 
@@ -334,6 +391,19 @@ export function createInteraction(
             : point,
           to: point,
         });
+        return;
+      }
+      case "marquee": {
+        const point = pagePoint(event);
+        const rect = normalizeBox(gesture.startPage, point);
+        setMarquee(rect);
+        // Selection updates live so both this window and every remote peer
+        // watch it grow, not just see the result on release.
+        const ids = new Set(gesture.base);
+        for (const id of elementsIn(rect)) {
+          ids.add(id);
+        }
+        editor.selection.set([...ids]);
         return;
       }
       default:
@@ -455,5 +525,6 @@ export function createInteraction(
     onKeyDown,
     startResize,
     pending,
+    marquee,
   };
 }

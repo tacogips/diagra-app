@@ -16,6 +16,8 @@ import { createEditorSignals } from "@diagra/ui-solid";
 import { For, type JSX, Show } from "solid-js";
 
 import {
+  type PeerBrush,
+  peerBrushes,
   type PeerSelectionBox,
   peerSelectionBoxes,
 } from "./presence-geometry.ts";
@@ -51,8 +53,31 @@ export function PresenceOverlay(props: PresenceOverlayProps): JSX.Element {
     );
   };
 
+  /** The marquee each peer is dragging, projected like everything else. */
+  const brushes = (): readonly PeerBrush[] => {
+    signals.rev();
+    return peerBrushes(props.peers, props.editor.currentPageId, {
+      x: signals.camera().x,
+      y: signals.camera().y,
+      z: signals.camera().z,
+    });
+  };
+
   return (
     <div class="app-presence-layer">
+      <For each={brushes()}>
+        {(peerBrush) => (
+          <div
+            class="app-presence-brush"
+            style={{
+              transform: `translate(${peerBrush.rect.x}px, ${peerBrush.rect.y}px)`,
+              width: `${peerBrush.rect.width}px`,
+              height: `${peerBrush.rect.height}px`,
+              color: peerBrush.color,
+            }}
+          />
+        )}
+      </For>
       <For each={selections()}>
         {(sel) => (
           <div

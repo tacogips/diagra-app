@@ -354,14 +354,21 @@ function shortcut(key: string, shiftKey = false): KeyboardEvent {
 // browser. What is left there is what only a browser can supply: real hit
 // areas, cursors, pointer capture and focus.
 describe("checklist behaviour, driven headlessly", () => {
-  test("step 2/5: dragging empty canvas, and the hand tool, pan", () => {
+  test("step 2/5: empty-canvas drags brush; the hand tool pans", () => {
     const empty = new Editor();
     const { interaction } = interactionFor(empty, "select");
 
+    // With the select tool, dragging empty canvas is a marquee, not a pan.
     interaction.onPointerDown(pointer({ clientX: 0, clientY: 0 }));
     interaction.onPointerMove(pointer({ clientX: 40, clientY: 25 }));
+    expect(interaction.marquee()).toEqual({
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 25,
+    });
     interaction.onPointerUp(pointer({ clientX: 40, clientY: 25 }));
-    expect(empty.camera.get()).toMatchObject({ x: 40, y: 25 });
+    expect(empty.camera.get()).toMatchObject({ x: 0, y: 0 });
 
     // The hand tool pans even when the drag starts over a shape.
     const held = harness();
@@ -556,5 +563,86 @@ describe("pointer ownership is released with the gesture, not the button", () =>
 
     expect(editor.history.batching).toBe(false);
     expect(visualOf(editor, shape)).toMatchObject({ x: 40, y: 0 });
+  });
+});
+
+describe("marquee selection", () => {
+  test("dragging on empty canvas brushes over elements and selects them", () => {
+    const { editor, shape, interaction } = harness();
+    editor.selection.clear();
+
+    // Down well away from the shape, drag until the rect covers it.
+    interaction.onPointerDown(pointer({ clientX: 300, clientY: 300 }));
+    expect(interaction.marquee()).toEqual({
+      x: 300,
+      y: 300,
+      width: 0,
+      height: 0,
+    });
+    interaction.onPointerMove(pointer({ clientX: 320, clientY: 320 }));
+    expect(editor.selection.has(shape)).toBe(false);
+
+    interaction.onPointerMove(pointer({ clientX: 50, clientY: 50 }));
+    // Live selection: the shape is picked up before the pointer lifts.
+    expect(editor.selection.has(shape)).toBe(true);
+    expect(interaction.marquee()).toEqual({
+      x: 50,
+      y: 50,
+      width: 250,
+      height: 250,
+    });
+
+    interaction.onPointerUp(pointer({ clientX: 50, clientY: 50 }));
+    expect(editor.selection.has(shape)).toBe(true);
+    expect(interaction.marquee()).toBeNull();
+  });
+
+  test("shift keeps the existing selection as the base", () => {
+    const { editor, shape, interaction } = harness();
+    const other = editor.createElement("shape.geo", {
+      visual: { x: 500, y: 500, width: 40, height: 40 },
+    });
+    editor.selection.set([shape]);
+
+    interaction.onPointerDown(
+      pointer({ clientX: 480, clientY: 480, shiftKey: true }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 560, clientY: 560 }));
+    interaction.onPointerUp(pointer({ clientX: 560, clientY: 560 }));
+
+    expect(editor.selection.has(shape)).toBe(true);
+    expect(editor.selection.has(other)).toBe(true);
+  });
+
+  test("escape cancels the brush and restores the base selection", () => {
+    const { editor, shape, interaction } = harness();
+    editor.selection.clear();
+
+    interaction.onPointerDown(pointer({ clientX: 300, clientY: 300 }));
+    interaction.onPointerMove(pointer({ clientX: 50, clientY: 50 }));
+    expect(editor.selection.has(shape)).toBe(true);
+
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(interaction.marquee()).toBeNull();
+    expect(editor.selection.size).toBe(0);
+  });
+
+  test("reports the rectangle through onMarquee, ending with null", () => {
+    const editor = new Editor();
+    const seen: (unknown | null)[] = [];
+    const interaction = createInteraction(editor, {
+      tool: () => "select",
+      setTool: () => {},
+      container: () => undefined,
+      onMarquee: (rect) => {
+        seen.push(rect);
+      },
+    });
+    interaction.onPointerDown(pointer({ clientX: 10, clientY: 10 }));
+    interaction.onPointerMove(pointer({ clientX: 30, clientY: 40 }));
+    interaction.onPointerUp(pointer({ clientX: 30, clientY: 40 }));
+    expect(seen[0]).toEqual({ x: 10, y: 10, width: 0, height: 0 });
+    expect(seen[1]).toEqual({ x: 10, y: 10, width: 20, height: 30 });
+    expect(seen.at(-1)).toBeNull();
   });
 });

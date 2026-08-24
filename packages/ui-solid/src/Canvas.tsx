@@ -37,6 +37,8 @@ export interface DiagraCanvasProps {
   readonly editor: Editor;
   readonly tool: ToolKind;
   readonly onToolChange?: (tool: ToolKind) => void;
+  /** Fires as the marquee rectangle changes; `null` when the drag ends. */
+  readonly onMarquee?: (rect: Box | null) => void;
 }
 
 interface Placed {
@@ -89,6 +91,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
     tool: () => props.tool,
     setTool: (tool) => props.onToolChange?.(tool),
     container: () => container,
+    onMarquee: (rect) => props.onMarquee?.(rect),
   });
 
   onMount(() => container?.focus());
@@ -231,6 +234,18 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
 
         <svg class="diagra-layer diagra-overlay-layer">
           <title>Selection</title>
+          <Show when={interaction.marquee()}>
+            {(rect) => (
+              <rect
+                class="diagra-marquee"
+                x={rect().x}
+                y={rect().y}
+                width={rect().width}
+                height={rect().height}
+                vector-effect="non-scaling-stroke"
+              />
+            )}
+          </Show>
           <For each={selectionBoxes()}>
             {(box) => (
               <rect

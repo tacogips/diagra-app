@@ -6,7 +6,9 @@ import type { PresencePeer, PresenceState } from "@diagra/collab";
 
 import {
   MAX_LABELED_PER_PEER,
+  peerBrushes,
   peerSelectionBoxes,
+  projectRect,
 } from "./presence-geometry.ts";
 
 const PAGE = "p1" as PageId;
@@ -91,5 +93,48 @@ describe("peerSelectionBoxes", () => {
     );
     expect(out).toHaveLength(6);
     expect(out.filter((s) => s.labeled)).toHaveLength(MAX_LABELED_PER_PEER);
+  });
+});
+
+describe("peerBrushes", () => {
+  test("projects a brush and drops peers without one", () => {
+    const out = peerBrushes(
+      [
+        peer(1, {
+          selection: [],
+          brush: { x: 10, y: 20, width: 40, height: 30 },
+        }),
+        peer(2, { selection: [] }),
+        peer(3, { selection: [], brush: null }),
+      ],
+      PAGE,
+      { x: 100, y: -10, z: 2 },
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]?.clientId).toBe(1);
+    expect(out[0]?.rect).toEqual({ x: 220, y: 20, width: 80, height: 60 });
+  });
+
+  test("ignores brushes on another page", () => {
+    const out = peerBrushes(
+      [
+        peer(1, {
+          page: "p2" as PageId,
+          selection: [],
+          brush: { x: 0, y: 0, width: 5, height: 5 },
+        }),
+      ],
+      PAGE,
+      { x: 0, y: 0, z: 1 },
+    );
+    expect(out).toHaveLength(0);
+  });
+});
+
+describe("projectRect", () => {
+  test("matches the cursor projection equation", () => {
+    expect(
+      projectRect({ x: 3, y: 4, width: 10, height: 20 }, { x: 7, y: 6, z: 3 }),
+    ).toEqual({ x: 30, y: 30, width: 30, height: 60 });
   });
 });

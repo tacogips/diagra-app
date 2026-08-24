@@ -11,7 +11,7 @@
 // everything that has two implementations (undo, the title, which controls
 // are live) is routed through that discriminator rather than guessed at.
 
-import type { Editor } from "@diagra/core";
+import type { Box, Editor } from "@diagra/core";
 import { DiagraCanvas, Toolbar, type ToolKind } from "@diagra/ui-solid";
 import {
   createEffect,
@@ -157,6 +157,26 @@ export function App(props: AppProps): JSX.Element {
   let lastCursorAt = 0;
   /** Where this user's pointer was, so a republish does not lose it. */
   let cursor: { x: number; y: number } | null = null;
+  let lastBrushAt = 0;
+  /** The marquee this user is dragging, so a republish does not lose it. */
+  let brush: Box | null = null;
+
+  const onMarquee = (rect: Box | null): void => {
+    const ended = rect === null && brush !== null;
+    const started = rect !== null && brush === null;
+    brush = rect;
+    if (!isCloud()) {
+      return;
+    }
+    // Start and end publish immediately so the remote brush never lingers;
+    // growth in between is throttled like the cursor.
+    const now = Date.now();
+    if (!started && !ended && now - lastBrushAt < CURSOR_THROTTLE_MS) {
+      return;
+    }
+    lastBrushAt = now;
+    props.cloud.publishPresence(cursor, brush);
+  };
 
   const onCanvasPointerMove = (event: PointerEvent): void => {
     if (!isCloud() || !canvasHost) {
@@ -172,13 +192,13 @@ export function App(props: AppProps): JSX.Element {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
     });
-    props.cloud.publishPresence(cursor);
+    props.cloud.publishPresence(cursor, brush);
   };
 
   const onCanvasPointerLeave = (): void => {
     cursor = null;
     if (isCloud()) {
-      props.cloud.publishPresence(null);
+      props.cloud.publishPresence(null, brush);
     }
   };
 
@@ -187,14 +207,14 @@ export function App(props: AppProps): JSX.Element {
   onCleanup(
     props.editor.selection.subscribe(() => {
       if (isCloud()) {
-        props.cloud.publishPresence(cursor);
+        props.cloud.publishPresence(cursor, brush);
       }
     }),
   );
   onCleanup(
     props.editor.subscribe((diff) => {
       if (isCloud() && diff.pagesChanged) {
-        props.cloud.publishPresence(cursor);
+        props.cloud.publishPresence(cursor, brush);
       }
     }),
   );
@@ -351,6 +371,7 @@ export function App(props: AppProps): JSX.Element {
           editor={props.editor}
           tool={tool()}
           onToolChange={setTool}
+          onMarquee={onMarquee}
         />
         <Show when={isCloud()}>
           <PresenceOverlay editor={props.editor} peers={cloud().peers} />

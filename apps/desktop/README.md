@@ -32,7 +32,7 @@ machine, or a ShapeUtil.
 | # | Step | Expected |
 | - | ---- | -------- |
 | 1 | Launch | Two ERD tables joined by a relation, two UML classes joined by an inheritance arrow, three geo shapes, and two nodes joined by a labelled arrow. |
-| 2 | Drag empty canvas | The view pans and the dot grid tracks it. |
+| 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the hand tool or middle-drag, and the dot grid tracks it. |
 | 3 | Ctrl/Cmd + wheel | Zooms about the pointer; the page point under the cursor stays put. Stops at 0.1x and 8x. |
 | 4 | Wheel / shift-wheel | Pans vertically / horizontally without zooming. |
 | 5 | Middle-drag, and the Hand tool | Pan, whatever tool is active. |

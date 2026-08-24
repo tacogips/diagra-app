@@ -58,14 +58,17 @@ Pass criterion: window B shows the same diagram, and the file controls
 1. Move a shape in window A while window B watches.
 2. Move the pointer around window B's canvas.
 3. Select a shape in window B (click it) while window A watches.
+4. In window B, drag a marquee over empty canvas while window A watches.
 
 Pass criterion: the move appears in B within a moment; A shows B's cursor,
 coloured and labelled with B's name, and the header shows "1 other here".
 The cursor stays put when you pan or zoom (it is projected through the
 camera, not pinned to the screen). The shape B selected shows an outline in
 B's colour in window A, with B's name tag on it, and the outline follows the
-shape while B drags it (`presence-geometry.test.ts` covers the projection
-and the tag cap of 4 per peer headlessly).
+shape while B drags it. While B drags a marquee, window A shows the growing
+dashed rectangle in B's colour, and it disappears the moment B releases
+(`presence-geometry.test.ts` covers both projections and the tag cap of 4
+per peer headlessly).
 
 ### 4. Undo is per user
 
