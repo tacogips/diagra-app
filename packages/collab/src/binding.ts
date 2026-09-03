@@ -7,6 +7,12 @@
 //   store diff  -> one Y transaction tagged with `localOrigin` (design 4.1)
 //   Y events    -> one `store.commit` under `applyingRemote` (design 4.3)
 //
+// Page commands (editor-ux 8, 11) ride the same local transaction: a diff
+// with `pagesChanged` reconciles the store's page list against the `pages`
+// map next to its element writes, so a peer sees "page deleted with its
+// elements" as one atomic step and the UndoManager reverts it as one too.
+// Remote page changes still take the coarse reload path of design 4.3.
+//
 // Two guards keep that from looping: local writes carry `localOrigin` and are
 // skipped by the observers, and the commit a remote event produces is applied
 // with `applyingRemote` set so the store listener ignores its own echo.
@@ -17,9 +23,9 @@
 // Durable Object in the cloud repo's `collab-binding.test.ts`.
 
 import type { Editor, StoreCommit, StoreDiff } from "@diagra/core";
-import type { Element, ElementId } from "@diagra/ir";
+import type { Element, ElementId, Page, PageId } from "@diagra/ir";
 import * as Y from "yjs";
-import { syncElementToY } from "./diff.ts";
+import { syncElementToY, syncPageToY } from "./diff.ts";
 import {
   applyIrToDoc,
   ELEMENTS_KEY,
@@ -27,6 +33,8 @@ import {
   elementToY,
   META_KEY,
   PAGES_KEY,
+  pageFromY,
+  pageToY,
   ydocToIr,
 } from "./ydoc.ts";
 
@@ -53,6 +61,11 @@ export class CollabBinding {
 
   /** The elements as this binding last synchronized them, either direction. */
   private readonly shadow = new Map<ElementId, Element>();
+  /**
+   * The pages likewise. Store pages are immutable values, so an entry that is
+   * still the same object as the store's is known unchanged without a diff.
+   */
+  private readonly pageShadow = new Map<PageId, Page>();
   private readonly undoListeners = new Set<() => void>();
 
   private unsubscribeStore: (() => void) | null = null;
@@ -158,6 +171,7 @@ export class CollabBinding {
       this.undoManager = null;
     }
     this.shadow.clear();
+    this.pageShadow.clear();
   }
 
   undo(): boolean {
@@ -189,6 +203,10 @@ export class CollabBinding {
     for (const element of this.editor.store.listElements()) {
       this.shadow.set(element.id, element);
     }
+    this.pageShadow.clear();
+    for (const page of this.editor.store.listPages()) {
+      this.pageShadow.set(page.id, page);
+    }
   }
 
   /** Local edits -> one transaction (design 4.1). */
@@ -197,6 +215,7 @@ export class CollabBinding {
       return;
     }
     if (
+      !diff.pagesChanged &&
       diff.added.length === 0 &&
       diff.updated.length === 0 &&
       diff.removed.length === 0
@@ -208,6 +227,11 @@ export class CollabBinding {
     Y.transact(
       this.doc,
       () => {
+        if (diff.pagesChanged) {
+          // Pages first: a peer integrates a transaction's structs in write
+          // order, so a new page lands before the first element placed on it.
+          this.syncPages();
+        }
         for (const id of diff.added) {
           const element = this.editor.store.get(id);
           if (element) {
@@ -241,6 +265,44 @@ export class CollabBinding {
       },
       this.localOrigin,
     );
+  }
+
+  /**
+   * Reconcile the store's page list against the `pages` map, inside the
+   * caller's transaction.
+   *
+   * `StoreDiff` only says that pages changed, not which, so every store page
+   * is visited; the page shadow makes an untouched page a pointer compare.
+   * A page the store holds but the map lacks is re-added whole (add-wins,
+   * as for elements), and a map entry the store no longer has is deleted.
+   */
+  private syncPages(): void {
+    const kept = new Set<PageId>();
+    for (const page of this.editor.store.listPages()) {
+      kept.add(page.id);
+      const previous = this.pageShadow.get(page.id);
+      const existing = this.pages.get(page.id);
+      if (!(existing instanceof Y.Map)) {
+        this.pages.set(page.id, pageToY(page));
+      } else if (previous !== page) {
+        syncPageToY(
+          previous ?? pageFromY(page.id, existing),
+          page,
+          existing as Y.Map<unknown>,
+        );
+      }
+      this.pageShadow.set(page.id, page);
+    }
+    for (const id of [...this.pages.keys()]) {
+      if (!kept.has(id)) {
+        this.pages.delete(id);
+      }
+    }
+    for (const id of [...this.pageShadow.keys()]) {
+      if (!kept.has(id)) {
+        this.pageShadow.delete(id);
+      }
+    }
   }
 
   /** Remote element edits -> one commit (design 4.3). */

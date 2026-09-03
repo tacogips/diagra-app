@@ -114,3 +114,49 @@ export function createUnavailableBackend(): FileBackend {
 export function createFileBackend(): FileBackend {
   return isTauri() ? createTauriBackend() : createUnavailableBackend();
 }
+
+// ------------------------------------------------------------------ export
+
+/**
+ * The host side of "Export SVG" (design editor-ux 10). Kept apart from
+ * `FileBackend` so the document session's contract does not grow a method it
+ * never calls; the desktop implementation shares the same Rust commands.
+ */
+export interface ExportBackend {
+  /** False outside Tauri: the shell falls back to a browser download. */
+  readonly available: boolean;
+  /**
+   * Native save dialog filtered to `extension` (no leading dot). The chosen
+   * path always carries the extension; `null` when the dialog was cancelled.
+   */
+  pickExportPath(
+    defaultName: string,
+    extension: string,
+  ): Promise<string | null>;
+  /** Writes text atomically, like `writeDocument`, for any file type. */
+  writeText(path: string, contents: string): Promise<void>;
+}
+
+export function createTauriExportBackend(): ExportBackend {
+  return {
+    available: true,
+    pickExportPath: (defaultName: string, extension: string) =>
+      invoke<string | null>("pick_export_path", { defaultName, extension }),
+    writeText: (path: string, contents: string) =>
+      invoke<void>("write_document_atomic", { path, contents }),
+  };
+}
+
+export function createUnavailableExportBackend(): ExportBackend {
+  return {
+    available: false,
+    pickExportPath: () => Promise.resolve(null),
+    writeText: unavailable,
+  };
+}
+
+export function createExportBackend(): ExportBackend {
+  return isTauri()
+    ? createTauriExportBackend()
+    : createUnavailableExportBackend();
+}

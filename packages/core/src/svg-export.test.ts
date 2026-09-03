@@ -16,6 +16,7 @@ import {
   renderElementsSvg,
   renderPageSvg,
   renderSelectionSvg,
+  wrapTextLines,
 } from "./svg-export.ts";
 import {
   document,
@@ -222,6 +223,110 @@ describe("elements", () => {
     expect(svg).toContain(">1:*</text>");
   });
 
+  test("a text note draws its lines from the top, left aligned", () => {
+    const svg = pageSvg([
+      element({
+        id: "t",
+        type: "text.note",
+        semantic: { text: "hello world\nsecond" },
+        visual: { x: 0, y: 0, width: 200, height: 60 },
+      }),
+    ]);
+    expect(svg).toContain('<g data-id="t" data-type="text.note">');
+    expect(svg).toContain(">hello world</text>");
+    expect(svg).toContain(">second</text>");
+    expect(svg).toContain('x="8"');
+    expect(svg).toContain('text-anchor="start"');
+    // Line height is 1.2 times the 13 unit theme font: first line centred
+    // at 6 + 7.8, the second one line further down.
+    expect(svg).toContain('y="13.8"');
+    expect(svg).toContain('y="29.4"');
+    expect(svg).not.toContain("<rect");
+  });
+
+  test("a text note wraps long text to its width", () => {
+    const svg = pageSvg([
+      element({
+        id: "t",
+        type: "text.note",
+        semantic: { text: "one two three four five six seven eight nine" },
+        visual: { x: 0, y: 0, width: 100, height: 100 },
+      }),
+    ]);
+    // 84 units of text width at 13 * 0.55 per glyph is 11 characters.
+    expect(svg).toContain(">one two</text>");
+    expect(svg).toContain(">three four</text>");
+    expect(svg).toContain(">five six</text>");
+    expect(svg).not.toContain(">one two three</text>");
+  });
+
+  test("a text note clips lines that do not fit its height", () => {
+    const svg = pageSvg([
+      element({
+        id: "t",
+        type: "text.note",
+        semantic: { text: "a\nb\nc\nd" },
+        visual: { x: 0, y: 0, width: 200, height: 40 },
+      }),
+    ]);
+    // Two lines of 15.6 after the 6 unit inset fit in 40; a third would not.
+    expect(svg).toContain(">a</text>");
+    expect(svg).toContain(">b</text>");
+    expect(svg).not.toContain(">c</text>");
+  });
+
+  test("a text note paints a fill rect only when it has a fill", () => {
+    const svg = pageSvg([
+      element({
+        id: "t",
+        type: "text.note",
+        semantic: { text: "x" },
+        visual: {
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 60,
+          style: { fill: "#fff1c9", color: "#123456", textAlign: "end" },
+        },
+      }),
+    ]);
+    expect(svg).toContain(
+      '<rect x="0" y="0" width="200" height="60" fill="#fff1c9" stroke="none" />',
+    );
+    expect(svg).toContain('text-anchor="end"');
+    expect(svg).toContain('x="192"');
+    expect(svg).toContain('fill="#123456"');
+  });
+
+  test("an empty text note still occupies its bounds", () => {
+    const svg = pageSvg([
+      element({
+        id: "t",
+        type: "text.note",
+        semantic: { text: "" },
+        visual: { x: 10, y: 10, width: 100, height: 40 },
+      }),
+    ]);
+    expect(svg).toContain('viewBox="-6 -6 132 72"');
+    expect(svg).not.toContain("<text");
+  });
+
+  test("a group draws nothing; its members export on their own", () => {
+    const svg = pageSvg([
+      geo("a", "rect"),
+      element({
+        id: "grp",
+        type: "group",
+        index: "b2",
+        semantic: { memberIds: ["a"] },
+        visual: {},
+      }),
+    ]);
+    expect(svg).toContain('data-id="a"');
+    expect(svg).not.toContain('data-id="grp"');
+    expect(svg).not.toContain("unsupported: group");
+  });
+
   test("an unmodelled type becomes a labelled dashed placeholder", () => {
     const svg = pageSvg([
       element({
@@ -307,6 +412,35 @@ describe("visual styling", () => {
   test("a zero rotation adds no transform", () => {
     const svg = pageSvg([geo("g", "rect", { rotation: 0 })]);
     expect(svg).toContain('<g data-id="g" data-type="shape.geo">');
+  });
+});
+
+describe("wrapTextLines", () => {
+  test("keeps short text on one line", () => {
+    expect(wrapTextLines("hello", 200, 13)).toEqual(["hello"]);
+  });
+
+  test("breaks at explicit newlines, keeping blank lines", () => {
+    expect(wrapTextLines("a\n\nb", 200, 13)).toEqual(["a", "", "b"]);
+  });
+
+  test("wraps greedily at word boundaries", () => {
+    // 10 characters per line at 13 * 0.55 = 7.15 units each: 71.5 wide.
+    expect(wrapTextLines("aaa bbb ccc ddd", 72, 13)).toEqual([
+      "aaa bbb",
+      "ccc ddd",
+    ]);
+  });
+
+  test("splits a word longer than a line", () => {
+    expect(wrapTextLines("abcdefghijklmnop", 72, 13)).toEqual([
+      "abcdefghij",
+      "klmnop",
+    ]);
+  });
+
+  test("never divides by a zero width", () => {
+    expect(wrapTextLines("ab cd", 0, 13)).toEqual(["a", "b", "c", "d"]);
   });
 });
 

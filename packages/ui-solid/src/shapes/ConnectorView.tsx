@@ -5,17 +5,13 @@
 // endpoint renders nothing at all rather than a line to the origin.
 
 import {
-  readDirectEndpoints,
-  readTableEndpoints,
+  connectorDecoration,
+  endpointReaderFor,
+  type MarkerKind,
   resolveConnector,
   type ShapeContext,
 } from "@diagra/core";
-import type {
-  Element,
-  ErdRelationSemantic,
-  GenericEdgeSemantic,
-  UmlAssociationSemantic,
-} from "@diagra/ir";
+import type { Element } from "@diagra/ir";
 import { type JSX, Show } from "solid-js";
 import { svgStyle } from "./visual.ts";
 
@@ -31,76 +27,17 @@ export interface ConnectorViewProps {
   readonly selected: boolean;
 }
 
-function markerUrl(id: string | null): string | undefined {
-  return id === null ? undefined : `url(#${id})`;
-}
+/** The core's notation vocabulary, mapped onto this layer's marker ids. */
+const MARKER_ELEMENTS: Record<MarkerKind, string> = {
+  arrow: MARKER_ARROW,
+  triangle: MARKER_TRIANGLE,
+  diamondOpen: MARKER_DIAMOND_OPEN,
+  diamondFilled: MARKER_DIAMOND_FILLED,
+  dot: MARKER_DOT,
+};
 
-function arrowheadMarker(head: string | undefined): string | null {
-  switch (head) {
-    case "arrow":
-      return MARKER_ARROW;
-    case "triangle":
-      return MARKER_TRIANGLE;
-    case "dot":
-      return MARKER_DOT;
-    default:
-      return null;
-  }
-}
-
-interface Decoration {
-  readonly start: string | null;
-  readonly end: string | null;
-  readonly label: string;
-  readonly dashed: boolean;
-}
-
-function decorate(element: Element): Decoration {
-  const semantic = element.semantic as Record<string, unknown> | null;
-  if (element.type === "erd.relation") {
-    const relation = semantic as Partial<ErdRelationSemantic> | null;
-    return {
-      start: MARKER_DOT,
-      end: MARKER_DOT,
-      label: relation?.label ?? relation?.cardinality ?? "",
-      dashed: false,
-    };
-  }
-  if (element.type === "uml.association") {
-    const association = semantic as Partial<UmlAssociationSemantic> | null;
-    switch (association?.kind) {
-      case "inherit":
-        return { start: null, end: MARKER_TRIANGLE, label: "", dashed: false };
-      case "aggregate":
-        return {
-          start: MARKER_DIAMOND_OPEN,
-          end: null,
-          label: association.label ?? "",
-          dashed: false,
-        };
-      case "compose":
-        return {
-          start: MARKER_DIAMOND_FILLED,
-          end: null,
-          label: association.label ?? "",
-          dashed: false,
-        };
-      default:
-        return {
-          start: null,
-          end: null,
-          label: association?.label ?? "",
-          dashed: false,
-        };
-    }
-  }
-  const edge = semantic as Partial<GenericEdgeSemantic> | null;
-  return {
-    start: arrowheadMarker(edge?.arrowheads?.start),
-    end: arrowheadMarker(edge?.arrowheads?.end ?? "arrow"),
-    label: edge?.label ?? "",
-    dashed: false,
-  };
+function markerUrl(kind: MarkerKind | null): string | undefined {
+  return kind === null ? undefined : `url(#${MARKER_ELEMENTS[kind]})`;
 }
 
 export function ConnectorView(props: ConnectorViewProps): JSX.Element {
@@ -108,11 +45,9 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
     resolveConnector(
       props.element,
       props.context,
-      props.element.type === "erd.relation"
-        ? readTableEndpoints
-        : readDirectEndpoints,
+      endpointReaderFor(props.element.type),
     );
-  const decoration = () => decorate(props.element);
+  const decoration = () => connectorDecoration(props.element);
 
   return (
     <Show when={geometry()}>

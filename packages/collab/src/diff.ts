@@ -20,9 +20,9 @@
 // (design 7.1), and introducing it here would change the document shape the
 // server and every other client agree on.
 
-import { type Element, isPlainObject } from "@diagra/ir";
+import { type Element, isPlainObject, type Page } from "@diagra/ir";
 import * as Y from "yjs";
-import { toY } from "./ydoc.ts";
+import { pageFields, toY } from "./ydoc.ts";
 
 /** Structural equality over the JSON subset the IR is made of. */
 function jsonEqual(left: unknown, right: unknown): boolean {
@@ -257,4 +257,25 @@ export function syncElementToY(
   diffValue(map, "semantic", previous.semantic ?? {}, next.semantic ?? {});
   diffValue(map, "visual", previous.visual ?? {}, next.visual ?? {});
   diffValue(map, "extensions", previous.extensions, next.extensions);
+}
+
+/**
+ * Write the difference between `previous` and `next` into `map`, the `pages`
+ * entry for that page. Same contract as {@link syncElementToY}: `previous` is
+ * the page as this client last synchronized it, and only the keys that moved
+ * are written, so a rename here and a kind change on a peer both survive.
+ *
+ * Only the keys {@link pageFields} knows are visited. A key some newer client
+ * wrote is left alone rather than deleted for being unfamiliar.
+ */
+export function syncPageToY(
+  previous: Page,
+  next: Page,
+  map: Y.Map<unknown>,
+): void {
+  const before = pageFields(previous);
+  const after = pageFields(next);
+  for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    diffValue(map, key, before[key], after[key]);
+  }
 }

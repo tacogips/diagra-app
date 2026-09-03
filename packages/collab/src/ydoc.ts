@@ -74,12 +74,29 @@ function setOptional(map: Y.Map<unknown>, key: string, value: unknown): void {
   }
 }
 
+/**
+ * The keys a `pages` entry holds, read off the IR page.
+ *
+ * This is the one place the page shape is spelled out: {@link pageToY} builds
+ * a fresh entry from it and `syncPageToY` (diff.ts) diffs two of them, so a
+ * new page field is added here and nowhere else. `extensions` is omitted
+ * rather than set to `undefined` so the key is absent, as {@link pageFromY}
+ * expects.
+ */
+export function pageFields(page: Page): Record<string, unknown> {
+  return {
+    name: page.name,
+    kind: page.kind,
+    ...(page.extensions === undefined ? {} : { extensions: page.extensions }),
+  };
+}
+
 /** One page as the Y.Map that lives under `pages`. */
 export function pageToY(page: Page): Y.Map<unknown> {
   const map = new Y.Map<unknown>();
-  map.set("name", page.name);
-  map.set("kind", page.kind);
-  setOptional(map, "extensions", page.extensions);
+  for (const [key, value] of Object.entries(pageFields(page))) {
+    setOptional(map, key, value);
+  }
   return map;
 }
 

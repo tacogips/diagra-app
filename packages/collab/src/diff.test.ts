@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import type { Element } from "@diagra/ir";
+import type { Document, Element, Page } from "@diagra/ir";
 import * as Y from "yjs";
-import { syncElementToY } from "./diff.ts";
+import { syncElementToY, syncPageToY } from "./diff.ts";
 import {
   elementOf,
   erdDocument,
   freeformDocument,
   umlDocument,
 } from "./test-fixtures.ts";
-import { ELEMENTS_KEY, fromY, irToYDoc } from "./ydoc.ts";
+import { ELEMENTS_KEY, fromY, irToYDoc, PAGES_KEY, pageFromY } from "./ydoc.ts";
 
 interface Fixture {
   readonly doc: Y.Doc;
@@ -19,15 +19,11 @@ interface Fixture {
 }
 
 /**
- * Observe one element's subtree and report each write as `path:action`, so a
+ * Observe one entry's subtree and report each write as `path:action`, so a
  * test can assert not just the resulting value but how much was rewritten to
  * get there.
  */
-function open(document: ReturnType<typeof erdDocument>, id: string): Fixture {
-  const doc = irToYDoc(document);
-  const map = doc
-    .getMap<Y.Map<unknown>>(ELEMENTS_KEY)
-    .get(id) as Y.Map<unknown>;
+function recordWrites(map: Y.Map<unknown>): string[] {
   const writes: string[] = [];
   map.observeDeep((events) => {
     for (const event of events) {
@@ -50,7 +46,20 @@ function open(document: ReturnType<typeof erdDocument>, id: string): Fixture {
       }
     }
   });
-  return { doc, map, previous: elementOf(document, id), writes };
+  return writes;
+}
+
+function open(document: Document, id: string): Fixture {
+  const doc = irToYDoc(document);
+  const map = doc
+    .getMap<Y.Map<unknown>>(ELEMENTS_KEY)
+    .get(id) as Y.Map<unknown>;
+  return {
+    doc,
+    map,
+    previous: elementOf(document, id),
+    writes: recordWrites(map),
+  };
 }
 
 /** Apply one element edit the way the binding does: inside one transaction. */
@@ -250,5 +259,80 @@ describe("syncElementToY", () => {
     fixture.writes.length = 0;
     sync(fixture, { ...fixture.previous });
     expect(fixture.writes).toEqual(["visual.x:add"]);
+  });
+});
+
+interface PageFixture {
+  readonly doc: Y.Doc;
+  readonly map: Y.Map<unknown>;
+  readonly previous: Page;
+  readonly writes: string[];
+}
+
+function openPage(document: Document, id: string): PageFixture {
+  const doc = irToYDoc(document);
+  const map = doc.getMap<Y.Map<unknown>>(PAGES_KEY).get(id) as Y.Map<unknown>;
+  const previous = document.pages.find((page) => page.id === id);
+  if (!previous) {
+    throw new Error(`fixture ${document.id} has no page ${id}`);
+  }
+  return { doc, map, previous, writes: recordWrites(map) };
+}
+
+function syncPage(fixture: PageFixture, next: Page): void {
+  Y.transact(fixture.doc, () => {
+    syncPageToY(fixture.previous, next, fixture.map);
+  });
+}
+
+describe("syncPageToY", () => {
+  test("writes nothing when nothing changed", () => {
+    const fixture = openPage(freeformDocument(), "p1");
+    syncPage(fixture, { ...fixture.previous });
+    expect(fixture.writes).toEqual([]);
+  });
+
+  test("a rename writes only the name and keeps the extension bag", () => {
+    const fixture = openPage(freeformDocument(), "p1");
+    syncPage(fixture, { ...fixture.previous, name: "Board" });
+    expect(fixture.writes).toEqual(["name:update"]);
+    expect(pageFromY("p1", fixture.map)).toEqual({
+      id: "p1",
+      name: "Board",
+      kind: "freeform",
+      extensions: { lock: true },
+    });
+  });
+
+  test("a kind change is one key and lands where pageFromY reads it", () => {
+    const fixture = openPage(erdDocument(), "p1");
+    syncPage(fixture, { ...fixture.previous, kind: "freeform" });
+    expect(fixture.writes).toEqual(["kind:update"]);
+    expect(pageFromY("p1", fixture.map).kind).toBe("freeform");
+  });
+
+  test("extensions come and go as one key, edited in place when nested", () => {
+    const fixture = openPage(freeformDocument(), "p1");
+    syncPage(fixture, { ...fixture.previous, extensions: { lock: false } });
+    expect(fixture.writes).toEqual(["extensions.lock:update"]);
+
+    const dropped = openPage(freeformDocument(), "p1");
+    const { extensions: _extensions, ...bare } = dropped.previous;
+    syncPage(dropped, bare);
+    expect(dropped.writes).toEqual(["extensions:delete"]);
+    expect(pageFromY("p1", dropped.map)).toEqual(bare);
+
+    const added = openPage(erdDocument(), "p1");
+    syncPage(added, { ...added.previous, extensions: { lock: true } });
+    expect(added.writes).toEqual(["extensions:add"]);
+  });
+
+  test("leaves keys it does not know about alone", () => {
+    const fixture = openPage(erdDocument(), "p1");
+    fixture.map.set("future", 1);
+    fixture.writes.length = 0;
+    syncPage(fixture, { ...fixture.previous, name: "Entities" });
+    expect(fixture.writes).toEqual(["name:update"]);
+    expect(fixture.map.get("future")).toBe(1);
   });
 });

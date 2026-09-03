@@ -1,0 +1,415 @@
+/*
+ * Inspector panel, inline text editor and text notes.
+ *
+ * Everything here belongs to the components in @diagra/ui-solid's
+ * Inspector.tsx, TextEditor.tsx and shapes/TextNoteView.tsx. Colours come
+ * from the --diagra-* custom properties defined in style.css.
+ */
+
+/* Inspector */
+
+.diagra-inspector {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  min-width: 300px;
+  height: 100%;
+  border-left: 1px solid var(--diagra-line);
+  background: var(--diagra-surface);
+  color: var(--diagra-ink);
+  font-size: 0.78rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.diagra-inspector-section {
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--diagra-line);
+}
+
+.diagra-inspector-title {
+  margin: 0 0 8px;
+  color: var(--diagra-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diagra-inspector-subtitle {
+  margin: 12px 0 6px;
+  color: var(--diagra-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.diagra-inspector-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diagra-inspector-summary,
+.diagra-inspector-note {
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--diagra-muted);
+}
+
+.diagra-inspector-section .diagra-inspector-note {
+  padding: 0;
+}
+
+.diagra-inspector-button {
+  align-self: flex-start;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+.diagra-inspector-button:hover:not(:disabled) {
+  background: var(--diagra-accent-soft);
+}
+
+/* Fields */
+
+.diagra-field {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.diagra-field-label {
+  color: var(--diagra-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagra-field-control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.diagra-field-control > * {
+  min-width: 0;
+  flex: 1;
+}
+
+.diagra-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+}
+
+.diagra-field-grid .diagra-field {
+  grid-template-columns: 52px minmax(0, 1fr);
+}
+
+.diagra-input,
+.diagra-select {
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font: inherit;
+}
+
+.diagra-input:focus,
+.diagra-select:focus,
+.diagra-textarea:focus {
+  outline: none;
+  border-color: var(--diagra-accent);
+  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+}
+
+.diagra-input:disabled,
+.diagra-select:disabled {
+  color: #a8a8a8;
+  background: var(--diagra-canvas);
+}
+
+.diagra-textarea {
+  width: 100%;
+  padding: 4px 6px;
+  resize: vertical;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.diagra-number {
+  width: 100%;
+}
+
+.diagra-check {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  color: var(--diagra-muted);
+  cursor: pointer;
+}
+
+.diagra-check input {
+  margin: 0;
+  accent-color: var(--diagra-accent);
+}
+
+/* Style controls */
+
+.diagra-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.diagra-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--diagra-line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.diagra-swatch[aria-pressed="true"] {
+  border-color: var(--diagra-accent);
+  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+}
+
+.diagra-swatch-none {
+  position: relative;
+  background: var(--diagra-surface);
+  overflow: hidden;
+}
+
+.diagra-swatch-none::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -3px;
+  right: -3px;
+  border-top: 1.5px solid #c0392b;
+  transform: rotate(-45deg);
+}
+
+.diagra-color {
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--diagra-line);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.diagra-opacity {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.diagra-range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--diagra-accent);
+}
+
+.diagra-opacity-value {
+  min-width: 36px;
+  color: var(--diagra-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.diagra-segmented {
+  display: inline-flex;
+  border: 1px solid var(--diagra-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.diagra-segment {
+  flex: 1;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--diagra-line);
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font: inherit;
+  cursor: pointer;
+}
+
+.diagra-segment:last-child {
+  border-right: 0;
+}
+
+.diagra-segment[aria-pressed="true"] {
+  color: var(--diagra-surface);
+  background: var(--diagra-accent);
+}
+
+/* Row editors */
+
+.diagra-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diagra-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 22px 22px auto;
+  gap: 4px;
+  align-items: center;
+}
+
+.diagra-row-uml {
+  grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1fr) 22px auto;
+}
+
+.diagra-row-head {
+  color: var(--diagra-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.diagra-row-head span {
+  padding: 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagra-row .diagra-input,
+.diagra-row .diagra-select {
+  width: 100%;
+  min-height: 24px;
+  padding: 0 4px;
+}
+
+.diagra-row .diagra-check {
+  justify-content: center;
+}
+
+.diagra-row-tools {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.diagra-row-button {
+  width: 20px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--diagra-line);
+  border-radius: 4px;
+  color: var(--diagra-ink);
+  background: var(--diagra-surface);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.diagra-row-button:hover:not(:disabled) {
+  background: var(--diagra-accent-soft);
+}
+
+.diagra-row-button:disabled {
+  color: #c4c4c4;
+  cursor: default;
+}
+
+.diagra-row-remove:hover:not(:disabled) {
+  color: #8c2f26;
+  background: #fdf1ef;
+}
+
+.diagra-method {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--diagra-line);
+}
+
+.diagra-method:last-child {
+  border-bottom: 0;
+}
+
+.diagra-method-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  padding-left: 48px;
+}
+
+.diagra-endpoint {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.diagra-endpoint-table {
+  color: var(--diagra-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Inline text editor (page space, inside the canvas viewport) */
+
+.diagra-text-editor {
+  position: absolute;
+  z-index: 2;
+  display: block;
+  margin: 0;
+  border: 1px solid var(--diagra-accent);
+  border-radius: 3px;
+  color: var(--diagra-ink);
+  background: color-mix(in srgb, var(--diagra-surface) 92%, transparent);
+  font-family: inherit;
+  outline: none;
+  overflow: hidden;
+  resize: none;
+  white-space: pre;
+  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+  pointer-events: auto;
+}
+
+.diagra-text-editor-multiline {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+/* Text note */
+
+.diagra-text-note {
+  height: 100%;
+  padding: 6px 8px;
+  color: var(--diagra-ink);
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow: hidden;
+}
+
+.diagra-text-note-empty {
+  border: 1px dashed var(--diagra-line);
+  border-radius: 3px;
+}

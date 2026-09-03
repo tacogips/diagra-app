@@ -33,6 +33,7 @@ import {
   ERD_TABLE_ROW_HEIGHT,
 } from "./shapes/erdTable.ts";
 import { geoOutline } from "./shapes/geo-outline.ts";
+import { textNoteText } from "./shapes/textNote.ts";
 import {
   UML_CLASS_NAME_HEIGHT,
   UML_CLASS_ROW_HEIGHT,
@@ -632,6 +633,123 @@ function renderUmlClass(element: Element, box: Box, theme: SvgTheme): string {
   return parts.join("");
 }
 
+/** Approximate average glyph width as a fraction of the font size. */
+const AVERAGE_GLYPH_WIDTH = 0.55;
+/** Line height as a multiple of the font size, matching the stylesheet. */
+const LINE_HEIGHT = 1.2;
+/** Vertical inset of a text note's first line, matching the note view. */
+const NOTE_PADDING_Y = 6;
+
+/**
+ * Greedy word wrap for `text` into lines of at most `maxWidth` units, using
+ * the average glyph width above. Explicit newlines always break; a word too
+ * long for a line is split at the width. Never returns an empty line for an
+ * empty paragraph other than the blank line itself, so `"a\n\nb"` is three
+ * lines.
+ */
+export function wrapTextLines(
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+): readonly string[] {
+  const maxChars = Math.max(
+    1,
+    Math.floor(maxWidth / (fontSize * AVERAGE_GLYPH_WIDTH)),
+  );
+  const lines: string[] = [];
+  for (const paragraph of text.split(/\r?\n/)) {
+    let line = "";
+    for (const word of paragraph.split(" ")) {
+      const pieces: string[] = [];
+      for (let at = 0; at < word.length; at += maxChars) {
+        pieces.push(word.slice(at, at + maxChars));
+      }
+      if (pieces.length === 0) {
+        pieces.push("");
+      }
+      for (const piece of pieces) {
+        if (line === "") {
+          line = piece;
+        } else if (line.length + 1 + piece.length <= maxChars) {
+          line = `${line} ${piece}`;
+        } else {
+          lines.push(line);
+          line = piece;
+        }
+      }
+    }
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * A text note: optional fill, then the wrapped lines from the top of the
+ * box, clipped to the lines that fit entirely, the way the canvas clips.
+ */
+function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
+  const style = element.visual.style;
+  const parts: string[] = [];
+  if (style?.fill !== undefined) {
+    parts.push(
+      tag(
+        "rect",
+        styled(
+          {
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+            fill: style.fill,
+            stroke: "none",
+          },
+          element.visual,
+        ),
+      ),
+    );
+  }
+  const fontSize = style?.fontSize ?? theme.fontSize;
+  const lineHeight = fontSize * LINE_HEIGHT;
+  const anchor = style?.textAlign ?? "start";
+  const x =
+    anchor === "start"
+      ? box.x + TEXT_PADDING
+      : anchor === "end"
+        ? box.x + box.width - TEXT_PADDING
+        : box.x + box.width / 2;
+  const lines = wrapTextLines(
+    textNoteText(element.semantic),
+    Math.max(1, box.width - TEXT_PADDING * 2),
+    fontSize,
+  );
+  for (const [at, line] of lines.entries()) {
+    const top = box.y + NOTE_PADDING_Y + at * lineHeight;
+    if (top + lineHeight > box.y + box.height + 0.01) {
+      break;
+    }
+    if (line === "") {
+      continue;
+    }
+    parts.push(
+      text(
+        textStyled(
+          {
+            x,
+            y: top + lineHeight / 2,
+            "text-anchor": anchor,
+            "dominant-baseline": "central",
+            fill: theme.ink,
+            "font-size": fontSize,
+          },
+          element.visual,
+        ),
+        line,
+      ),
+    );
+  }
+  return parts.join("");
+}
+
 /**
  * Anything this build does not draw, drawn anyway: a dashed placeholder at
  * the element's own bounds, so an export of a newer document shows that
@@ -678,6 +796,8 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
       return renderErdTable(element, box, theme);
     case "uml.class":
       return renderUmlClass(element, box, theme);
+    case "text.note":
+      return renderTextNote(element, box, theme);
     default:
       return renderUnsupported(element, box, theme);
   }
@@ -775,6 +895,11 @@ export function renderElementsSvg(
   const shapes: string[] = [];
   const boxes: Box[] = [];
   for (const element of elements) {
+    // A group has no drawing of its own and its bounds are its members',
+    // which are exported in their own right (design editor-ux.md section 7).
+    if (element.type === "group") {
+      continue;
+    }
     const box = registry
       .getOrFallback(element.type)
       .getBounds(element, context);

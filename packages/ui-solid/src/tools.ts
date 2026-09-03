@@ -22,6 +22,7 @@ export const TOOLS = [
   "hand",
   "edge",
   "node.generic",
+  "text.note",
   "erd.table",
   "uml.class",
   ...GEO_TOOLS,
@@ -43,7 +44,12 @@ export function creationFor(tool: ToolKind): CreationTool | null {
       semantic: { geo: tool.slice("geo:".length) as GeoKind, label: "" },
     };
   }
-  if (tool === "node.generic" || tool === "erd.table" || tool === "uml.class") {
+  if (
+    tool === "node.generic" ||
+    tool === "text.note" ||
+    tool === "erd.table" ||
+    tool === "uml.class"
+  ) {
     return { type: tool };
   }
   return null;

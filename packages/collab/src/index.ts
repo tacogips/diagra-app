@@ -2,7 +2,7 @@
 // Client side only; the sync server lives in the private diagra-cloud repo.
 
 export { CollabBinding, type CollabBindingOptions } from "./binding.ts";
-export { syncElementToY } from "./diff.ts";
+export { syncElementToY, syncPageToY } from "./diff.ts";
 export {
   clearPresence,
   observePresence,
@@ -33,6 +33,7 @@ export {
   irToYDoc,
   META_KEY,
   PAGES_KEY,
+  pageFields,
   pageFromY,
   pageToY,
   toY,

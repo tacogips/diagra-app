@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Editor } from "@diagra/core";
-import type { Document, Element } from "@diagra/ir";
+import type { Document, Element, Page } from "@diagra/ir";
 import * as Y from "yjs";
 import { CollabBinding } from "./binding.ts";
 import { erdDocument, freeformDocument } from "./test-fixtures.ts";
-import { ELEMENTS_KEY, applyIrToDoc, ydocToIr } from "./ydoc.ts";
+import { ELEMENTS_KEY, PAGES_KEY, applyIrToDoc, ydocToIr } from "./ydoc.ts";
 
 /** Origin every relayed update carries; never any binding's local origin. */
 const WIRE = Symbol("wire");
@@ -100,6 +100,29 @@ function elementIn(peer: Peer, id: string): Element {
     throw new Error(`element ${id} missing from the store`);
   }
   return element;
+}
+
+function pageIn(peer: Peer, id: string): Page | undefined {
+  return peer.editor.store.getPage(id);
+}
+
+/**
+ * Transactions `doc` ran that did not come off the wire. A receiving peer
+ * that echoes a remote change shows up here, whatever origin it used.
+ */
+function countOwnTransactions(doc: Y.Doc): () => number {
+  let count = 0;
+  doc.on("afterTransaction", (transaction: Y.Transaction) => {
+    if (transaction.origin !== WIRE) {
+      count += 1;
+    }
+  });
+  return () => count;
+}
+
+/** How much of the doc's history this client itself wrote. */
+function ownClock(doc: Y.Doc): number {
+  return Y.decodeStateVector(Y.encodeStateVector(doc)).get(doc.clientID) ?? 0;
 }
 
 function columnNames(peer: Peer, id: string): string[] {
@@ -322,6 +345,146 @@ describe("CollabBinding", () => {
     a.editor.moveElements([{ id: "n-idea", x: 11, y: 12 }]);
     wire.flush();
     expect(elementIn(b, "n-idea").visual.x).toBe(11);
+    expectConverged(a, b, wire);
+  });
+
+  test("propagates a created page with its name and kind", () => {
+    const id = a.editor.createPage({
+      id: "p2",
+      name: "Flows",
+      kind: "sequence",
+    });
+    expect(a.editor.currentPageId).toBe(id);
+    wire.flush();
+
+    expect(pageIn(b, id)).toEqual({ id, name: "Flows", kind: "sequence" });
+    expect(b.editor.store.listPages().map((page) => page.id)).toEqual([
+      "p1",
+      "p2",
+    ]);
+    expectConverged(a, b, wire);
+  });
+
+  test("propagates renames and kind changes as single-key writes", () => {
+    const keys: string[] = [];
+    b.doc.getMap<unknown>(PAGES_KEY).observeDeep((events) => {
+      for (const event of events) {
+        for (const key of event.changes.keys.keys()) {
+          keys.push(`${event.path.join(".")}:${key}`);
+        }
+      }
+    });
+
+    expect(a.editor.renamePage("p1", "Entities")).toBe(true);
+    wire.flush();
+    expect(pageIn(b, "p1")?.name).toBe("Entities");
+
+    expect(b.editor.setPageKind("p1", "freeform")).toBe(true);
+    wire.flush();
+    expect(pageIn(a, "p1")).toEqual({
+      id: "p1",
+      name: "Entities",
+      kind: "freeform",
+    });
+
+    // One key per command, on both the receiving and the writing side.
+    expect(keys).toEqual(["p1:name", "p1:kind"]);
+    expectConverged(a, b, wire);
+  });
+
+  test("deletes a page together with its elements on the peer", () => {
+    a.editor.createPage({ id: "p2", name: "Scratch" });
+    const id = a.editor.createElement("node.generic", {
+      page: "p2",
+      semantic: { label: "Draft" },
+      visual: { x: 1, y: 1 },
+    });
+    wire.flush();
+    expect(pageIn(b, "p2")?.name).toBe("Scratch");
+    expect(elementIn(b, id).page).toBe("p2");
+
+    const ownTransactions = countOwnTransactions(b.doc);
+    expect(a.editor.deletePage("p2")).toBe(true);
+    wire.flush();
+
+    expect(pageIn(b, "p2")).toBeUndefined();
+    expect(b.editor.store.has(id)).toBe(false);
+    expect(b.editor.currentPageId).toBe("p1");
+    // The page and element removals arrive as one transaction, and the
+    // receiving side writes nothing back for either half.
+    expect(ownTransactions()).toBe(0);
+    expectConverged(a, b, wire);
+  });
+
+  test("undoing a page create removes it from the peer", () => {
+    a.editor.createPage({ id: "p2", name: "Scratch" });
+    wire.flush();
+    expect(pageIn(b, "p2")).toBeDefined();
+
+    expect(a.binding.undo()).toBe(true);
+    wire.flush();
+    expect(pageIn(a, "p2")).toBeUndefined();
+    expect(pageIn(b, "p2")).toBeUndefined();
+    expect(a.editor.currentPageId).toBe("p1");
+    expectConverged(a, b, wire);
+
+    expect(a.binding.redo()).toBe(true);
+    wire.flush();
+    expect(pageIn(b, "p2")?.name).toBe("Scratch");
+    expectConverged(a, b, wire);
+  });
+
+  test("undoes a duplicated page and its copies as one step", () => {
+    const copy = a.editor.duplicatePage("p1");
+    if (copy === null) {
+      throw new Error("duplicatePage returned null");
+    }
+    wire.flush();
+    expect(pageIn(b, copy)?.name).toBe("Domain model copy");
+    expect(b.editor.store.getPageElements(copy)).toHaveLength(3);
+    expect(b.editor.store.size).toBe(6);
+
+    expect(a.binding.undo()).toBe(true);
+    wire.flush();
+    expect(pageIn(b, copy)).toBeUndefined();
+    expect(b.editor.store.size).toBe(3);
+    expectConverged(a, b, wire);
+  });
+
+  test("does not echo a remote page change back onto the wire", () => {
+    const clockBefore = ownClock(b.doc);
+    const ownTransactions = countOwnTransactions(b.doc);
+
+    a.editor.createPage({ id: "p2", name: "Scratch" });
+    wire.flush();
+    expect(a.editor.renamePage("p2", "Notes")).toBe(true);
+    wire.flush();
+    expect(a.editor.deletePage("p2")).toBe(true);
+    wire.flush();
+
+    expect(pageIn(b, "p2")).toBeUndefined();
+    expect(ownTransactions()).toBe(0);
+    expect(ownClock(b.doc)).toBe(clockBefore);
+    expectConverged(a, b, wire);
+  });
+
+  test("re-inserts a page the local user is still editing", () => {
+    // The page-level twin of the element add-wins case: the Y entry is gone
+    // while the store still holds the page.
+    Y.transact(
+      a.doc,
+      () => {
+        a.doc.getMap<unknown>(PAGES_KEY).delete("p1");
+      },
+      a.binding.origin,
+    );
+    wire.flush();
+    expect(pageIn(b, "p1")).toBeUndefined();
+
+    expect(a.editor.renamePage("p1", "Back")).toBe(true);
+    wire.flush();
+
+    expect(pageIn(b, "p1")).toEqual({ id: "p1", name: "Back", kind: "erd" });
     expectConverged(a, b, wire);
   });
 

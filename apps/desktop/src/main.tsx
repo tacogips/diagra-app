@@ -18,10 +18,11 @@ import {
   saveCloudSettings,
 } from "./cloud/settings.ts";
 import { CloudSession } from "./cloud/session.ts";
-import { createFileBackend } from "./file/backend.ts";
+import { createExportBackend, createFileBackend } from "./file/backend.ts";
 import { DocumentSession } from "./file/session.ts";
 import { seed } from "./seed.ts";
 import "./style.css";
+import "./inspector.css";
 
 const root = document.querySelector<HTMLElement>("#app");
 if (!root) {
@@ -33,6 +34,9 @@ seed(editor);
 
 const backend = createFileBackend();
 const session = new DocumentSession({ editor, backend });
+// Exports share the dialog and atomic-write commands but not the session:
+// an export never changes which file is open.
+const exportBackend = createExportBackend();
 
 // The session reads these on every connect, so an endpoint edited mid-run
 // applies to the next open without a restart.
@@ -54,6 +58,7 @@ render(
       session={session}
       cloud={cloud}
       filesAvailable={backend.available}
+      exportBackend={exportBackend}
       cloudSettings={cloudSettings}
       onCloudSettingsChange={(next) => {
         cloudSettings = next;

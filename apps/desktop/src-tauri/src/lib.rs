@@ -18,6 +18,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             dialogs::pick_open_path,
             dialogs::pick_save_path,
+            dialogs::pick_export_path,
             fs::read_document,
             fs::write_document_atomic,
             recent::recent_files_list,
