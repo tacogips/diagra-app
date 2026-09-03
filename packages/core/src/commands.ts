@@ -14,15 +14,19 @@
 import {
   type Element,
   type ElementId,
-  type ElementReference,
   error,
   type FractionalIndex,
   getElementTypeDefinition,
   hasErrors,
+  isPageKind,
   isPlainObject,
+  type Page,
+  type PageId,
+  type PageKind,
   type ValidationIssue,
   type Visual,
 } from "@diagra/ir";
+import { detachReference, isEmptyGroup, referencesOf } from "./references.ts";
 import type { Store } from "./store.ts";
 
 export type Command =
@@ -52,7 +56,19 @@ export type Command =
       readonly type: "reorder";
       readonly id: ElementId;
       readonly index: FractionalIndex;
-    };
+    }
+  | { readonly type: "createPage"; readonly page: Page }
+  | {
+      readonly type: "updatePage";
+      readonly id: PageId;
+      readonly page: { readonly name?: string; readonly kind?: PageKind };
+    }
+  /**
+   * Remove a page and everything on it (with the same cascade/detach
+   * expansion a delete gets). The last page cannot be deleted: a document
+   * always has somewhere to draw.
+   */
+  | { readonly type: "deletePage"; readonly id: PageId };
 
 export class CommandError extends Error {
   readonly issues: readonly ValidationIssue[];
@@ -68,76 +84,6 @@ export class CommandError extends Error {
 export interface CommandResult {
   readonly undo: readonly Command[];
   readonly redo: readonly Command[];
-}
-
-const ARRAY_SEGMENT = /^(.+)\[(\d+)\]$/;
-
-function referencesOf(element: Element): readonly ElementReference[] {
-  const definition = getElementTypeDefinition(element.type);
-  return definition ? definition.references(element.semantic) : [];
-}
-
-function omitKey(
-  source: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [name, value] of Object.entries(source)) {
-    if (name !== key) {
-      out[name] = value;
-    }
-  }
-  return out;
-}
-
-/**
- * Remove one reference to `targetId` at the registry-declared dotted path.
- * Array slots (`memberIds[2]`) drop the matching entry; scalar fields drop
- * the key entirely.
- */
-function removeAtPath(
-  value: unknown,
-  segments: readonly string[],
-  targetId: ElementId,
-): unknown {
-  const [head, ...rest] = segments;
-  if (head === undefined || !isPlainObject(value)) {
-    return value;
-  }
-  const match = ARRAY_SEGMENT.exec(head);
-  const key = match ? (match[1] as string) : head;
-  if (rest.length > 0) {
-    const child = removeAtPath(value[key], rest, targetId);
-    return { ...value, [key]: child };
-  }
-  if (match) {
-    const list = value[key];
-    if (!Array.isArray(list)) {
-      return value;
-    }
-    return { ...value, [key]: list.filter((entry) => entry !== targetId) };
-  }
-  return omitKey(value, key);
-}
-
-function detachReference(
-  semantic: unknown,
-  reference: ElementReference,
-  targetId: ElementId,
-): unknown {
-  if (!isPlainObject(semantic)) {
-    return semantic;
-  }
-  return removeAtPath(semantic, reference.field.split("."), targetId);
-}
-
-/** True once a group has lost every member and has nothing left to hold. */
-function isEmptyGroup(element: Element): boolean {
-  if (element.type !== "group" || !isPlainObject(element.semantic)) {
-    return false;
-  }
-  const members = element.semantic["memberIds"];
-  return Array.isArray(members) && members.length === 0;
 }
 
 interface DeleteExpansion {
@@ -234,7 +180,7 @@ function validateSemanticPayload(
 
 function validateNewElement(
   working: ReadonlyMap<ElementId, Element>,
-  store: Store,
+  pages: ReadonlyMap<PageId, Page>,
   element: Element,
 ): ValidationIssue[] {
   const out: ValidationIssue[] = [];
@@ -257,7 +203,7 @@ function validateNewElement(
   if (typeof element.index !== "string" || element.index.length === 0) {
     out.push(error("value.empty", "element.index", "must not be empty"));
   }
-  if (!store.getPage(element.page)) {
+  if (!pages.has(element.page)) {
     out.push(
       error(
         "reference.missingPage",
@@ -276,6 +222,29 @@ function validateNewElement(
       "element.semantic",
     ),
   );
+  return out;
+}
+
+function validateNewPage(
+  pages: ReadonlyMap<PageId, Page>,
+  page: Page,
+): ValidationIssue[] {
+  const out: ValidationIssue[] = [];
+  if (typeof page.id !== "string" || page.id.length === 0) {
+    out.push(error("value.empty", "page.id", "must not be empty"));
+    return out;
+  }
+  if (pages.has(page.id)) {
+    out.push(
+      error("id.duplicate", "page.id", `page "${page.id}" already exists`),
+    );
+  }
+  if (typeof page.name !== "string") {
+    out.push(error("type.string", "page.name", "expected a string"));
+  }
+  if (!isPageKind(page.kind)) {
+    out.push(error("value.enum", "page.kind", "unknown page kind"));
+  }
   return out;
 }
 
@@ -307,10 +276,17 @@ export function applyCommands(
   for (const element of store.listElements()) {
     working.set(element.id, element);
   }
+  const pages = new Map<PageId, Page>();
+  for (const page of store.listPages()) {
+    pages.set(page.id, page);
+  }
 
   const created = new Set<ElementId>();
   const updated = new Set<ElementId>();
   const removed = new Set<ElementId>();
+  const createdPages = new Set<PageId>();
+  const updatedPages = new Set<PageId>();
+  const removedPages = new Set<PageId>();
   const undo: Command[] = [];
 
   const markCreate = (id: ElementId): void => {
@@ -332,6 +308,47 @@ export function applyCommands(
   const fail = (issues: readonly ValidationIssue[], message: string): never => {
     throw new CommandError(issues, message);
   };
+  const mustGetPage = (id: PageId, what: string): Page => {
+    const page = pages.get(id);
+    if (!page) {
+      fail(
+        [error("reference.missingPage", `${what}.id`, `unknown page "${id}"`)],
+        `${what}: unknown page "${id}"`,
+      );
+    }
+    return page as Page;
+  };
+
+  /**
+   * Remove `seeds` and whatever must go with them, recording the inverse.
+   * Shared by `deleteElements` and `deletePage`.
+   */
+  const removeElements = (seeds: readonly ElementId[]): Command[] => {
+    const before = new Map(working);
+    const expansion = expandDeletes(working, seeds);
+    const restores: Command[] = [];
+    for (const id of sortedIds(expansion.removed)) {
+      const element = before.get(id);
+      if (element) {
+        restores.push({ type: "createElement", element });
+      }
+      working.delete(id);
+      markRemove(id);
+    }
+    for (const id of sortedIds(expansion.detached.keys())) {
+      const element = before.get(id);
+      if (element) {
+        restores.push({
+          type: "updateSemantic",
+          id,
+          semantic: element.semantic,
+        });
+      }
+      markUpdate(id);
+    }
+    return restores;
+  };
+
   const mustGet = (id: ElementId, what: string): Element => {
     const element = working.get(id);
     if (!element) {
@@ -346,7 +363,7 @@ export function applyCommands(
   for (const command of commands) {
     switch (command.type) {
       case "createElement": {
-        const issues = validateNewElement(working, store, command.element);
+        const issues = validateNewElement(working, pages, command.element);
         if (hasErrors(issues)) {
           fail(
             issues,
@@ -362,32 +379,7 @@ export function applyCommands(
         break;
       }
       case "deleteElements": {
-        const before = new Map(working);
-        const expansion = expandDeletes(working, command.ids);
-        if (expansion.removed.size === 0 && expansion.detached.size === 0) {
-          break;
-        }
-        const restores: Command[] = [];
-        for (const id of sortedIds(expansion.removed)) {
-          const element = before.get(id);
-          if (element) {
-            restores.push({ type: "createElement", element });
-          }
-          working.delete(id);
-          markRemove(id);
-        }
-        for (const id of sortedIds(expansion.detached.keys())) {
-          const element = before.get(id);
-          if (element) {
-            restores.push({
-              type: "updateSemantic",
-              id,
-              semantic: element.semantic,
-            });
-          }
-          markUpdate(id);
-        }
-        undo.unshift(...restores);
+        undo.unshift(...removeElements(command.ids));
         break;
       }
       case "updateVisual": {
@@ -446,6 +438,70 @@ export function applyCommands(
         });
         break;
       }
+      case "createPage": {
+        const issues = validateNewPage(pages, command.page);
+        if (hasErrors(issues)) {
+          fail(issues, `createPage: invalid page "${command.page.id}"`);
+        }
+        pages.set(command.page.id, command.page);
+        removedPages.delete(command.page.id);
+        createdPages.add(command.page.id);
+        undo.unshift({ type: "deletePage", id: command.page.id });
+        break;
+      }
+      case "updatePage": {
+        const previous = mustGetPage(command.id, "updatePage");
+        const patch = command.page;
+        if (patch.name !== undefined && typeof patch.name !== "string") {
+          fail(
+            [error("type.string", "page.name", "expected a string")],
+            "updatePage: name must be a string",
+          );
+        }
+        if (patch.kind !== undefined && !isPageKind(patch.kind)) {
+          fail(
+            [error("value.enum", "page.kind", "unknown page kind")],
+            "updatePage: unknown page kind",
+          );
+        }
+        pages.set(command.id, {
+          ...previous,
+          ...(patch.name === undefined ? {} : { name: patch.name }),
+          ...(patch.kind === undefined ? {} : { kind: patch.kind }),
+        });
+        if (!createdPages.has(command.id)) {
+          updatedPages.add(command.id);
+        }
+        undo.unshift({
+          type: "updatePage",
+          id: command.id,
+          page: { name: previous.name, kind: previous.kind },
+        });
+        break;
+      }
+      case "deletePage": {
+        const previous = mustGetPage(command.id, "deletePage");
+        if (pages.size <= 1) {
+          fail(
+            [error("value.lastPage", "page.id", "cannot delete the last page")],
+            "deletePage: cannot delete the last page",
+          );
+        }
+        const onPage: ElementId[] = [];
+        for (const element of working.values()) {
+          if (element.page === command.id) {
+            onPage.push(element.id);
+          }
+        }
+        const restores = removeElements(onPage);
+        pages.delete(command.id);
+        updatedPages.delete(command.id);
+        if (!createdPages.delete(command.id)) {
+          removedPages.add(command.id);
+        }
+        undo.unshift({ type: "createPage", page: previous }, ...restores);
+        break;
+      }
       case "reorder": {
         const previous = mustGet(command.id, "reorder");
         if (typeof command.index !== "string" || command.index.length === 0) {
@@ -481,6 +537,28 @@ export function applyCommands(
     }
   }
 
-  store.commit({ insert, update, remove: [...removed] });
+  const insertPages: Page[] = [];
+  for (const id of createdPages) {
+    const page = pages.get(id);
+    if (page) {
+      insertPages.push(page);
+    }
+  }
+  const updatePages: Page[] = [];
+  for (const id of updatedPages) {
+    const page = pages.get(id);
+    if (page) {
+      updatePages.push(page);
+    }
+  }
+
+  store.commit({
+    insert,
+    update,
+    remove: [...removed],
+    insertPages,
+    updatePages,
+    removePages: [...removedPages],
+  });
   return { undo, redo: [...commands] };
 }

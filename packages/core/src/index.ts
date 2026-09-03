@@ -2,13 +2,35 @@
 // shape utils, and commands. Must not touch the DOM.
 
 export {
+  type AlignMode,
+  type DistributeAxis,
+  planAlign,
+  planDistribute,
+  planMatchSize,
+  selectionUnitsWithBounds,
+  type SizeDimension,
+} from "./align.ts";
+export {
   Camera,
   type CameraListener,
   type CameraState,
   clampZoom,
+  type FitOptions,
   MAX_ZOOM,
   MIN_ZOOM,
+  nextZoomStep,
+  type ViewportSize,
+  ZOOM_STEPS,
 } from "./camera.ts";
+export {
+  Clipboard,
+  type ClipboardPayload,
+  copyElements,
+  PASTE_OFFSET,
+  type PastePlan,
+  planPaste,
+  type PasteOptions,
+} from "./clipboard.ts";
 export {
   applyCommands,
   type Command,
@@ -18,9 +40,12 @@ export {
 export {
   type ApplyOptions,
   type CreateElementOptions,
+  type CreatePageOptions,
+  type EditableField,
   Editor,
   type EditorListener,
   type EditorOptions,
+  type StylePatch,
 } from "./editor.ts";
 export {
   compareFractional,
@@ -43,6 +68,23 @@ export {
   type Vec,
 } from "./geometry.ts";
 export {
+  ancestorChain,
+  expandGroups,
+  GROUP_TYPE,
+  type GroupPlan,
+  groupOf,
+  groupShapeUtil,
+  isGroup,
+  leafElements,
+  memberIdsOf,
+  outermostGroupOf,
+  planGroup,
+  planUngroup,
+  resolveSelectionTarget,
+  selectionUnits,
+  topLevelIds,
+} from "./group.ts";
+export {
   History,
   type HistoryEntry,
   HISTORY_LIMIT,
@@ -56,6 +98,14 @@ export {
 } from "./hit-test.ts";
 export { type IdSource, isElementIdFormat, newElementId } from "./ids.ts";
 export {
+  detachReference,
+  isEmptyGroup,
+  referencesOf,
+  remapReferences,
+  removeAtPath,
+  selfContained,
+} from "./references.ts";
+export {
   getSelectionBounds,
   Selection,
   type SelectionListener,
@@ -66,11 +116,31 @@ export {
   ShapeUtilRegistry,
 } from "./shape-util.ts";
 export {
+  TEXT_NOTE_DEFAULT_HEIGHT,
+  TEXT_NOTE_DEFAULT_WIDTH,
+  textNoteBounds,
+  textNoteShapeUtil,
+  textNoteText,
+} from "./shapes/textNote.ts";
+export {
+  NO_SNAP,
+  type ResizeEdges,
+  type SnapGuide,
+  type SnapOptions,
+  type SnapResult,
+  snapResize,
+  snapTranslate,
+} from "./snap.ts";
+export {
   CONNECTOR_HIT_TOLERANCE,
+  type ConnectorDecoration,
   type ConnectorEndpoints,
+  connectorDecoration,
   connectorEndpoints,
   createConnectorUtil,
   type EndpointReader,
+  endpointReaderFor,
+  type MarkerKind,
   readDirectEndpoints,
   readTableEndpoints,
   resolveConnector,
@@ -85,6 +155,10 @@ export {
   erdTableBounds,
   erdTableShapeUtil,
 } from "./shapes/erdTable.ts";
+export {
+  type GeoOutline,
+  geoOutline,
+} from "./shapes/geo-outline.ts";
 export {
   GEO_DEFAULT_HEIGHT,
   GEO_DEFAULT_WIDTH,
@@ -118,3 +192,18 @@ export {
   type StoreDiff,
   type StoreListener,
 } from "./store.ts";
+export {
+  DEFAULT_SVG_THEME,
+  escapeXml,
+  renderElementsSvg,
+  renderPageSvg,
+  renderSelectionSvg,
+  type SvgExportOptions,
+  type SvgTheme,
+} from "./svg-export.ts";
+export {
+  planZOrder,
+  reorderCommands,
+  targetOrder,
+  type ZOrderAction,
+} from "./z-order.ts";

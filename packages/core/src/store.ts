@@ -39,11 +39,14 @@ export interface DocumentMeta {
   readonly unknownRecords?: readonly UnknownRecord[];
 }
 
-/** One commit's worth of element changes, already validated. */
+/** One commit's worth of element and page changes, already validated. */
 export interface StoreCommit {
   readonly insert?: readonly Element[];
   readonly update?: readonly Element[];
   readonly remove?: readonly ElementId[];
+  readonly insertPages?: readonly Page[];
+  readonly updatePages?: readonly Page[];
+  readonly removePages?: readonly PageId[];
 }
 
 export type StoreListener = (diff: StoreDiff) => void;
@@ -103,9 +106,12 @@ export class Store {
     return this.pageMap.get(id);
   }
 
-  /** Pages in document order (insertion order of the loaded document). */
+  /**
+   * Pages by id, the same order the snapshot writes them in, so tabs and
+   * the file agree and an undone page delete comes back where it was.
+   */
   listPages(): readonly Page[] {
-    return [...this.pageMap.values()];
+    return [...this.pageMap.values()].sort(comparePageOrder);
   }
 
   /** Every element, unordered. Callers that care must sort. */
@@ -158,7 +164,7 @@ export class Store {
   }
 
   /**
-   * Apply one validated batch of element changes and announce a single diff.
+   * Apply one validated batch of changes and announce a single diff.
    *
    * @internal Called by the command layer. Bypassing it skips validation,
    * history, and change notification.
@@ -167,6 +173,15 @@ export class Store {
     const added: ElementId[] = [];
     const updated: ElementId[] = [];
     const removed: ElementId[] = [];
+    let pagesChanged = false;
+    for (const page of commit.insertPages ?? []) {
+      this.pageMap.set(page.id, page);
+      pagesChanged = true;
+    }
+    for (const page of commit.updatePages ?? []) {
+      this.pageMap.set(page.id, page);
+      pagesChanged = true;
+    }
     for (const element of commit.insert ?? []) {
       this.elementMap.set(element.id, element);
       added.push(element.id);
@@ -180,8 +195,18 @@ export class Store {
         removed.push(id);
       }
     }
-    const diff: StoreDiff = { added, updated, removed, pagesChanged: false };
-    if (added.length > 0 || updated.length > 0 || removed.length > 0) {
+    for (const id of commit.removePages ?? []) {
+      if (this.pageMap.delete(id)) {
+        pagesChanged = true;
+      }
+    }
+    const diff: StoreDiff = { added, updated, removed, pagesChanged };
+    if (
+      pagesChanged ||
+      added.length > 0 ||
+      updated.length > 0 ||
+      removed.length > 0
+    ) {
       this.emit(diff);
     }
     return diff;

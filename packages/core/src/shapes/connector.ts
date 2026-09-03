@@ -155,3 +155,89 @@ export const readTableEndpoints: EndpointReader = (semantic) => {
   }
   return { from: fromTable, to: toTable };
 };
+
+/** Which endpoint spelling an element type uses. */
+export function endpointReaderFor(type: string): EndpointReader {
+  return type === "erd.relation" ? readTableEndpoints : readDirectEndpoints;
+}
+
+/** The line ends a connector is drawn with, independent of the renderer. */
+export type MarkerKind =
+  | "arrow"
+  | "triangle"
+  | "diamondOpen"
+  | "diamondFilled"
+  | "dot";
+
+export interface ConnectorDecoration {
+  readonly start: MarkerKind | null;
+  readonly end: MarkerKind | null;
+  readonly label: string;
+}
+
+function arrowheadMarker(head: unknown): MarkerKind | null {
+  switch (head) {
+    case "arrow":
+      return "arrow";
+    case "triangle":
+      return "triangle";
+    case "dot":
+      return "dot";
+    default:
+      return null;
+  }
+}
+
+function readField(source: unknown, field: string): unknown {
+  if (typeof source !== "object" || source === null) {
+    return undefined;
+  }
+  return (source as Record<string, unknown>)[field];
+}
+
+function readString(source: unknown, field: string): string | undefined {
+  const value = readField(source, field);
+  return typeof value === "string" ? value : undefined;
+}
+
+/**
+ * Markers and label text for one connector.
+ *
+ * The notation is per element type: an ERD relation gets a dot at each end
+ * and shows its cardinality when it has no label of its own, a UML
+ * association's kind picks the classic inheritance triangle or aggregation
+ * diamond, and everything else reads `arrowheads` off the payload with a
+ * plain arrow at the far end as the default.
+ */
+export function connectorDecoration(element: Element): ConnectorDecoration {
+  const semantic = element.semantic;
+  if (element.type === "erd.relation") {
+    return {
+      start: "dot",
+      end: "dot",
+      label:
+        readString(semantic, "label") ??
+        readString(semantic, "cardinality") ??
+        "",
+    };
+  }
+  if (element.type === "uml.association") {
+    const label = readString(semantic, "label") ?? "";
+    switch (readString(semantic, "kind")) {
+      case "inherit":
+        return { start: null, end: "triangle", label: "" };
+      case "aggregate":
+        return { start: "diamondOpen", end: null, label };
+      case "compose":
+        return { start: "diamondFilled", end: null, label };
+      default:
+        return { start: null, end: null, label };
+    }
+  }
+  const arrowheads = readField(semantic, "arrowheads");
+  return {
+    start: arrowheadMarker(readField(arrowheads, "start")),
+    end: arrowheadMarker(readField(arrowheads, "end") ?? "arrow"),
+    label: readString(semantic, "label") ?? "",
+  };
+}
