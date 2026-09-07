@@ -14,7 +14,14 @@
 // everything that has two implementations (undo, the title, which controls
 // are live) is routed through that discriminator rather than guessed at.
 
-import type { Box, EditableField, Editor, Vec } from "@diagra/core";
+import {
+  type Box,
+  createReviewComment,
+  type EditableField,
+  type Editor,
+  type NewReviewMessage,
+  type Vec,
+} from "@diagra/core";
 import type { ElementId } from "@diagra/ir";
 import {
   type ActionContext,
@@ -22,7 +29,9 @@ import {
   DiagraCanvas,
   getAction,
   Inspector,
+  Layers,
   PageTabs,
+  ReviewCommentPins,
   runAction,
   SelectionToolbar,
   type SnapSettings,
@@ -111,6 +120,11 @@ function describe(error: unknown): string {
 
 export function App(props: AppProps): JSX.Element {
   const [tool, setTool] = createSignal<ToolKind>("select");
+  const [pendingComment, setPendingComment] = createSignal<{
+    readonly input: NewReviewMessage;
+    readonly target: ElementId | undefined;
+    readonly onPlaced: () => void;
+  } | null>(null);
   const [file, setFile] = createSignal<SessionState>(props.session.state());
   const [cloud, setCloud] = createSignal<CloudSessionState>(
     props.cloud.state(),
@@ -123,6 +137,7 @@ export function App(props: AppProps): JSX.Element {
   const [snap, setSnap] = createSignal<SnapSettings>({
     grid: true,
     objects: true,
+    guides: true,
   });
   const [showGrid, setShowGrid] = createSignal(true);
   const [viewport, setViewport] = createSignal({ width: 0, height: 0 });
@@ -136,6 +151,37 @@ export function App(props: AppProps): JSX.Element {
   const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
   let inspectorHost: HTMLElement | undefined;
+
+  const setActiveTool = (next: ToolKind): void => {
+    if (props.editor.readOnly && next !== "select" && next !== "hand") return;
+    if (next !== "comment") setPendingComment(null);
+    setTool(next);
+  };
+  const beginCommentPlacement = (
+    input: NewReviewMessage,
+    onPlaced: () => void,
+  ): void => {
+    const [selected] = props.editor.selection.ids();
+    setPendingComment({
+      input,
+      target: props.editor.selection.size === 1 ? selected : undefined,
+      onPlaced,
+    });
+    setEditing(null);
+    setContextMenu(null);
+    setTool("comment");
+  };
+  const placeComment = (point: Vec): void => {
+    const pending = pendingComment();
+    if (!pending) return;
+    const created = createReviewComment(
+      props.editor,
+      point,
+      pending.input,
+      pending.target,
+    );
+    if (created) pending.onPlaced();
+  };
 
   onCleanup(props.session.subscribe(setFile));
   onCleanup(props.cloud.subscribe(setCloud));
@@ -153,6 +199,16 @@ export function App(props: AppProps): JSX.Element {
       ? { kind: "cloud" }
       : { kind: "file" };
   const isCloud = (): boolean => mode().kind === "cloud";
+  let wasViewer = false;
+  createEffect(() => {
+    const viewer = cloud().role === "viewer";
+    if (viewer === wasViewer) return;
+    wasViewer = viewer;
+    if (!viewer) return;
+    setActiveTool("select");
+    setEditing(null);
+    setContextMenu(null);
+  });
 
   // Exactly one session may own the editor. Without this, every edit arriving
   // from a room would look to the file session like the user typing, and its
@@ -196,6 +252,7 @@ export function App(props: AppProps): JSX.Element {
 
   /** Start the inline editor on `id` when it has a text field. */
   const requestEdit = (id: ElementId): void => {
+    if (props.editor.readOnly) return;
     const field = props.editor.editableField(id);
     if (field !== null) {
       setContextMenu(null);
@@ -237,12 +294,23 @@ export function App(props: AppProps): JSX.Element {
   const exportSvg = async (): Promise<void> => {
     setExportError(null);
     const options = { background: CANVAS_BACKGROUND };
-    const svg =
-      props.editor.selection.size > 0
+    const selected = [...props.editor.selection.ids()];
+    const artboard =
+      selected.length === 1 &&
+      props.editor.store.get(selected[0] ?? "")?.type === "frame"
+        ? selected[0]
+        : undefined;
+    const svg = artboard
+      ? props.editor.exportArtboardSvg(artboard)
+      : props.editor.selection.size > 0
         ? props.editor.exportSelectionSvg(options)
         : props.editor.exportPageSvg(options);
     if (svg === null) {
-      setExportError("nothing to export: the page is empty");
+      setExportError(
+        artboard
+          ? "Cannot export this artboard: it is hidden, rotated or has invalid dimensions."
+          : "nothing to export: the page is empty",
+      );
       return;
     }
     const name = exportFileName();
@@ -465,6 +533,7 @@ export function App(props: AppProps): JSX.Element {
           <span class="app-file-name">{cloud().title ?? cloud().docId}</span>
           <span class="app-cloud-badge" data-status={cloud().status}>
             {cloud().status}
+            {cloud().role === "viewer" ? " · Viewer" : ""}
           </span>
           <PresenceChip peers={cloud().peers} />
           <div class="app-file-controls">
@@ -536,11 +605,21 @@ export function App(props: AppProps): JSX.Element {
       <Toolbar
         editor={props.editor}
         tool={tool()}
-        onToolChange={setTool}
+        onToolChange={setActiveTool}
         context={actionContext()}
       />
       <PageTabs editor={props.editor} />
       <div class="app-editor-body">
+        <Layers
+          editor={props.editor}
+          viewport={viewport()}
+          commentAuthor={settings().userName}
+          commentPlacementActive={
+            tool() === "comment" && pendingComment() !== null
+          }
+          onPlaceComment={beginCommentPlacement}
+          onCancelCommentPlacement={() => setActiveTool("select")}
+        />
         <div
           class="app-canvas-host"
           ref={setCanvasHost}
@@ -550,8 +629,9 @@ export function App(props: AppProps): JSX.Element {
           <DiagraCanvas
             editor={props.editor}
             tool={tool()}
-            onToolChange={setTool}
+            onToolChange={setActiveTool}
             onMarquee={onMarquee}
+            onCommentPlace={placeComment}
             snap={snap()}
             showGrid={showGrid()}
             onEditRequest={(id, region) => {
@@ -573,6 +653,10 @@ export function App(props: AppProps): JSX.Element {
             }}
             onViewportResize={setViewport}
           >
+            <ReviewCommentPins
+              editor={props.editor}
+              author={settings().userName}
+            />
             <Show when={editing()}>
               {(target) => (
                 <TextEditor

@@ -5,9 +5,16 @@
 // The geometry comes from the core (`geoOutline`) so the SVG exporter draws
 // the same shape this does; only the markup is decided here.
 
-import { type Box, type GeoOutline, geoOutline } from "@diagra/core";
+import {
+  type Box,
+  type GeoOutline,
+  geoOutline,
+  resolvedCornerRadii,
+  roundedRectPath,
+} from "@diagra/core";
 import type { Element, GeoKind, GeoShapeSemantic } from "@diagra/ir";
 import { type JSX, Match, Switch } from "solid-js";
+import { SvgFillGradient } from "./SvgFillGradient.tsx";
 import { labelStyle, svgStyle } from "./visual.ts";
 
 export interface GeoShapeViewProps {
@@ -38,7 +45,7 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
   const width = () => props.box.width;
   const height = () => props.box.height;
   const outline = () => geoOutline(semantic().geo, width(), height());
-  const attrs = () => svgStyle(props.element.visual);
+  const attrs = () => svgStyle(props.element.visual, props.element.id);
 
   return (
     <>
@@ -50,10 +57,16 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
         preserveAspectRatio="none"
       >
         <title>{semantic().label || semantic().geo}</title>
+        <SvgFillGradient
+          element={props.element}
+          width={width()}
+          height={height()}
+        />
         <Switch>
           <Match when={asKind(outline(), "ellipse")}>
             {(shape) => (
               <ellipse
+                data-smart-paint="svg"
                 cx={shape().cx}
                 cy={shape().cy}
                 rx={shape().rx}
@@ -63,13 +76,20 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
             )}
           </Match>
           <Match when={asKind(outline(), "polygon")}>
-            {(shape) => <polygon points={shape().points} {...attrs()} />}
+            {(shape) => (
+              <polygon
+                data-smart-paint="svg"
+                points={shape().points}
+                {...attrs()}
+              />
+            )}
           </Match>
           <Match when={asKind(outline(), "cylinder")}>
             {(shape) => (
               <g>
-                <path d={shape().path} {...attrs()} />
+                <path data-smart-paint="svg" d={shape().path} {...attrs()} />
                 <ellipse
+                  data-smart-paint="svg"
                   cx={shape().cap.cx}
                   cy={shape().cap.cy}
                   rx={shape().cap.rx}
@@ -81,19 +101,31 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
           </Match>
           <Match when={asKind(outline(), "rect")}>
             {(shape) => (
-              <rect
-                x={shape().x}
-                y={shape().y}
-                width={shape().width}
-                height={shape().height}
-                rx={shape().rx}
+              <path
+                data-smart-paint="svg"
+                data-smart-radius-path
+                data-smart-width={shape().width}
+                data-smart-height={shape().height}
+                d={roundedRectPath(
+                  {
+                    x: shape().x,
+                    y: shape().y,
+                    width: shape().width,
+                    height: shape().height,
+                  },
+                  resolvedCornerRadii(props.element.visual.style, shape().rx),
+                )}
                 {...attrs()}
               />
             )}
           </Match>
         </Switch>
       </svg>
-      <div class="diagra-label" style={labelStyle(props.element.visual)}>
+      <div
+        class="diagra-label"
+        data-smart-text
+        style={labelStyle(props.element.visual)}
+      >
         {semantic().label}
       </div>
     </>

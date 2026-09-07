@@ -2,9 +2,9 @@
 //
 // Shape:
 //   meta     Y.Map   { schemaVersion, id, title, extensions?, unknownRecords? }
-//   pages    Y.Map<PageId, Y.Map{ name, kind, extensions? }>
-//   elements Y.Map<ElementId, Y.Map{ type, page, index, semantic, visual,
-//                                    extensions? }>
+//   pages    Y.Map<PageId, Y.Map{ name, kind, order?, tokenMode?, extensions? }>
+//   elements Y.Map<ElementId, Y.Map{ type, page, index, semantic,
+//                                    accessibility?, visual, extensions? }>
 //
 // Nested objects become Y.Map and nested arrays become Y.Array of the same,
 // so `columns` / `attributes` merge per item and per field — the granularity
@@ -19,6 +19,7 @@
 
 import { compareFractional } from "@diagra/core";
 import {
+  comparePageOrder,
   type Document,
   type Element,
   type ElementId,
@@ -87,6 +88,8 @@ export function pageFields(page: Page): Record<string, unknown> {
   return {
     name: page.name,
     kind: page.kind,
+    ...(page.tokenMode === undefined ? {} : { tokenMode: page.tokenMode }),
+    ...(page.order === undefined ? {} : { order: page.order }),
     ...(page.extensions === undefined ? {} : { extensions: page.extensions }),
   };
 }
@@ -107,7 +110,16 @@ export function elementToY(element: Element): Y.Map<unknown> {
   map.set("page", element.page);
   map.set("index", element.index);
   map.set("semantic", toY(element.semantic ?? {}));
-  map.set("visual", toY(element.visual ?? {}));
+  // Keep a stable map so two peers can author the first independent
+  // accessibility fields concurrently without replacing one optional key.
+  map.set("accessibility", toY(element.accessibility ?? {}));
+  // Keep `style` as a stable Y.Map even while empty. Otherwise two peers
+  // making the first independent style edits concurrently replace the same
+  // optional key and one complete style object wins.
+  map.set(
+    "visual",
+    toY({ ...element.visual, style: element.visual.style ?? {} }),
+  );
   setOptional(map, "extensions", element.extensions);
   return map;
 }
@@ -191,6 +203,10 @@ export function pageFromY(id: PageId, value: unknown): Page {
     id,
     name: String(record.name ?? ""),
     kind: record.kind as Page["kind"],
+    ...(typeof record.tokenMode === "string"
+      ? { tokenMode: record.tokenMode }
+      : {}),
+    ...(typeof record.order === "string" ? { order: record.order } : {}),
     ...(record.extensions === undefined
       ? {}
       : { extensions: record.extensions as Page["extensions"] }),
@@ -200,13 +216,22 @@ export function pageFromY(id: PageId, value: unknown): Page {
 /** Materialize one element from its `elements` entry. See {@link pageFromY}. */
 export function elementFromY(id: ElementId, value: unknown): Element {
   const record = readRecord(value);
+  const rawVisual = isPlainObject(record.visual) ? record.visual : {};
+  const visual =
+    isPlainObject(rawVisual.style) && Object.keys(rawVisual.style).length === 0
+      ? (({ style: _style, ...rest }) => rest)(rawVisual)
+      : rawVisual;
   return {
     id,
     page: String(record.page ?? ""),
     type: String(record.type ?? ""),
     index: String(record.index ?? ""),
     semantic: record.semantic ?? {},
-    visual: (record.visual ?? {}) as Visual,
+    ...(isPlainObject(record.accessibility) &&
+    Object.keys(record.accessibility).length > 0
+      ? { accessibility: record.accessibility }
+      : {}),
+    visual: visual as Visual,
     ...(record.extensions === undefined
       ? {}
       : { extensions: record.extensions as Element["extensions"] }),
@@ -229,7 +254,7 @@ export function ydocToIr(doc: Y.Doc): Document {
   for (const [id, value] of pagesMap.entries()) {
     pages.push(pageFromY(id, value));
   }
-  pages.sort((left, right) => compareFractional(left.id, right.id));
+  pages.sort(comparePageOrder);
 
   const elements: Element[] = [];
   for (const [id, value] of elementsMap.entries()) {

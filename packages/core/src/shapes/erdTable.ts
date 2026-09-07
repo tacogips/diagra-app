@@ -9,6 +9,7 @@
 import type { Box } from "../geometry.ts";
 import { boxContains } from "../geometry.ts";
 import type { ShapeUtil } from "../shape-util.ts";
+import type { ErdColumn, ErdTableSemantic } from "@diagra/ir";
 
 export const ERD_TABLE_DEFAULT_WIDTH = 240;
 export const ERD_TABLE_HEADER_HEIGHT = 32;
@@ -20,6 +21,29 @@ export function erdColumnCount(semantic: unknown): number {
   }
   const columns = (semantic as Record<string, unknown>)["columns"];
   return Array.isArray(columns) ? columns.length : 0;
+}
+
+export function erdColumnKey(
+  semantic: Partial<ErdTableSemantic> | null | undefined,
+  column: Partial<ErdColumn>,
+): "PK" | "UQ" | "IX" | "" {
+  if (column.pk) return "PK";
+  const indexes = Array.isArray(semantic?.indexes) ? semantic.indexes : [];
+  if (
+    indexes.some(
+      (index) =>
+        index.unique &&
+        Array.isArray(index.columns) &&
+        index.columns.includes(column.id ?? ""),
+    )
+  )
+    return "UQ";
+  return indexes.some(
+    (index) =>
+      Array.isArray(index.columns) && index.columns.includes(column.id ?? ""),
+  )
+    ? "IX"
+    : "";
 }
 
 export function erdTableBounds(

@@ -46,10 +46,41 @@ function warningsOf(document: Document): ValidationIssue[] {
   );
 }
 
+test("reserves Default as the implicit page token mode", () => {
+  const doc = base();
+  const pages = [{ ...doc.pages[0], tokenMode: "Default" }];
+  expect(codes(errorsOf({ ...doc, pages }))).toContain(
+    "page.tokenModeReserved",
+  );
+});
+
 describe("valid documents", () => {
   test("a well-formed document has no issues", () => {
     expect(validateDocument(base())).toEqual([]);
     expect(isValidDocument(base())).toBe(true);
+  });
+
+  test("accepts portable accessibility metadata", () => {
+    const doc = base();
+    const element = doc.elements[0];
+    expect(
+      errorsOf({
+        ...doc,
+        elements: [
+          {
+            ...element,
+            accessibility: {
+              role: "heading",
+              label: "Users",
+              hint: "Account records",
+              value: "12 rows",
+              disabled: true,
+              headingLevel: 2,
+            },
+          },
+        ],
+      }),
+    ).toEqual([]);
   });
 
   test("an empty document is valid", () => {
@@ -66,6 +97,38 @@ describe("valid documents", () => {
 
   test("assertValidDocument returns the (warning-only) issues", () => {
     expect(assertValidDocument(base())).toEqual([]);
+  });
+});
+
+describe("accessibility errors", () => {
+  test("rejects invalid roles, empty labels, and invalid heading levels", () => {
+    const doc = base();
+    const element = doc.elements[0];
+    const invalid = {
+      ...element,
+      accessibility: {
+        role: "dialog",
+        label: "",
+        headingLevel: 7,
+      },
+    } as unknown as Document["elements"][number];
+    expect(codes(errorsOf(withElements([invalid])))).toEqual(
+      expect.arrayContaining([
+        "value.enum",
+        "value.empty",
+        "value.max",
+        "accessibility.headingRole",
+      ]),
+    );
+  });
+
+  test("requires a level for the heading role", () => {
+    const doc = base();
+    const invalid = {
+      ...doc.elements[0],
+      accessibility: { role: "heading" },
+    } as Document["elements"][number];
+    expect(codes(errorsOf(withElements([invalid])))).toContain("field.missing");
   });
 });
 
@@ -158,6 +221,57 @@ describe("element errors", () => {
     expect(codes(errorsOf(document))).toEqual(["value.min", "value.min"]);
   });
 
+  test("validates finite ordered auto-layout size limits", () => {
+    const element = base().elements[0] as Document["elements"][number];
+    expect(
+      errorsOf(
+        withElements([
+          {
+            ...element,
+            visual: {
+              ...element.visual,
+              minWidth: 120,
+              maxWidth: 100,
+              minHeight: 0,
+            },
+          },
+        ]),
+      ).map((issue) => [issue.code, issue.path]),
+    ).toEqual([
+      ["value.min", "elements[0].visual.minHeight"],
+      ["value.range", "elements[0].visual.minWidth"],
+    ]);
+  });
+
+  test("validates persistent aspect ratios against size limits", () => {
+    const source = base().elements[0] as Document["elements"][number];
+    const issues = errorsOf(
+      withElements([
+        {
+          ...source,
+          visual: {
+            ...source.visual,
+            aspectRatio: 2,
+            minWidth: 300,
+            maxHeight: 100,
+          },
+        },
+      ]),
+    );
+    expect(issues.map((issue) => [issue.code, issue.path])).toEqual([
+      ["value.range", "elements[0].visual.aspectRatio"],
+    ]);
+    expect(
+      codes(
+        errorsOf(
+          withElements([
+            { ...source, visual: { ...source.visual, aspectRatio: 0 } },
+          ]),
+        ),
+      ),
+    ).toEqual(["value.min"]);
+  });
+
   test("rejects a non-finite coordinate", () => {
     const document = withElements([
       {
@@ -212,6 +326,82 @@ describe("element errors", () => {
     ] as unknown as Document["elements"]);
     expect(codes(errorsOf(document))).toEqual(["value.enum"]);
   });
+
+  test("accepts portable blend modes and rejects unknown compositing values", () => {
+    const valid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: { style: { blendMode: "luminosity" } },
+      },
+    ]);
+    expect(errorsOf(valid)).toEqual([]);
+    const invalid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: { style: { blendMode: "pass-through" } },
+      },
+    ] as unknown as Document["elements"]);
+    expect(codes(errorsOf(invalid))).toEqual(["value.enum"]);
+  });
+
+  test("validates portable stroke caps, joins and miter limits", () => {
+    const valid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: {
+          style: {
+            strokeCap: "square",
+            strokeJoin: "bevel",
+            strokeMiterLimit: 8,
+          },
+        },
+      },
+    ]);
+    expect(errorsOf(valid)).toEqual([]);
+    const invalid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: {
+          style: {
+            strokeCap: "flat",
+            strokeJoin: "sharp",
+            strokeMiterLimit: 0.5,
+          },
+        },
+      },
+    ] as unknown as Document["elements"]);
+    expect(codes(errorsOf(invalid))).toEqual([
+      "value.enum",
+      "value.enum",
+      "value.min",
+    ]);
+  });
+
+  test("validates all four independent corner radii", () => {
+    const valid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: {
+          style: {
+            cornerRadii: {
+              topLeft: 1,
+              topRight: 2,
+              bottomRight: 3,
+              bottomLeft: 4,
+            },
+          },
+        },
+      },
+    ]);
+    expect(errorsOf(valid)).toEqual([]);
+    const invalid = structuredClone(valid) as unknown as {
+      elements: { visual: { style: { cornerRadii: { topLeft: number } } } }[];
+    };
+    invalid.elements[0]!.visual.style.cornerRadii.topLeft = -1;
+    expect(codes(errorsOf(invalid as unknown as Document))).toEqual([
+      "value.min",
+    ]);
+  });
 });
 
 describe("forward-compatible warnings", () => {
@@ -262,6 +452,28 @@ describe("forward-compatible warnings", () => {
     expect(
       warnAt({ x: 1, extensions: { a: 1 }, style: { extensions: { b: 2 } } }),
     ).toEqual([]);
+  });
+
+  test("prototype fixed position is a validated visual field", () => {
+    const valid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: { prototypeFixed: true },
+      },
+    ]);
+    expect(errorsOf(valid)).toEqual([]);
+    const invalid = structuredClone(valid) as unknown as {
+      elements: { visual: { prototypeFixed: string } }[];
+    };
+    invalid.elements[0]!.visual.prototypeFixed = "yes";
+    expect(
+      errorsOf(invalid as unknown as Document).map(({ code, path }) => ({
+        code,
+        path,
+      })),
+    ).toEqual([
+      { code: "type.boolean", path: "elements[0].visual.prototypeFixed" },
+    ]);
   });
 
   test("an unknown style field warns instead of failing", () => {

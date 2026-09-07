@@ -12,6 +12,7 @@
 // transitive, so cascades of cascades resolve in one pass.
 
 import {
+  type AccessibilityMetadata,
   type Element,
   type ElementId,
   error,
@@ -25,9 +26,16 @@ import {
   type PageKind,
   type ValidationIssue,
   type Visual,
+  validateAccessibilityMetadata,
 } from "@diagra/ir";
-import { detachReference, isEmptyGroup, referencesOf } from "./references.ts";
+import {
+  detachReference,
+  isEmptyGroup,
+  normalizeDetachedReferences,
+  referencesOf,
+} from "./references.ts";
 import type { Store } from "./store.ts";
+import { isFractionalKey } from "./fractional.ts";
 
 export type Command =
   | { readonly type: "createElement"; readonly element: Element }
@@ -53,6 +61,11 @@ export type Command =
       readonly semantic: unknown;
     }
   | {
+      readonly type: "replaceAccessibility";
+      readonly id: ElementId;
+      readonly accessibility?: AccessibilityMetadata;
+    }
+  | {
       readonly type: "reorder";
       readonly id: ElementId;
       readonly index: FractionalIndex;
@@ -61,7 +74,12 @@ export type Command =
   | {
       readonly type: "updatePage";
       readonly id: PageId;
-      readonly page: { readonly name?: string; readonly kind?: PageKind };
+      readonly page: {
+        readonly name?: string;
+        readonly kind?: PageKind;
+        readonly tokenMode?: string | null;
+        readonly order?: FractionalIndex | null;
+      };
     }
   /**
    * Remove a page and everything on it (with the same cascade/detach
@@ -146,7 +164,7 @@ function expandDeletes(
           semantic = detachReference(semantic, reference, id);
         }
       }
-      const rewritten: Element = { ...referrer, semantic };
+      const rewritten = normalizeDetachedReferences({ ...referrer, semantic });
       working.set(referrerId, rewritten);
       detached.set(referrerId, rewritten);
       if (isEmptyGroup(rewritten)) {
@@ -176,6 +194,97 @@ function validateSemanticPayload(
     out.push(...definition.validateSemantic(semantic, path));
   }
   return out;
+}
+
+function validateVisualFields(visual: Visual): ValidationIssue[] {
+  if (
+    visual.aspectRatio !== undefined &&
+    (typeof visual.aspectRatio !== "number" ||
+      !Number.isFinite(visual.aspectRatio) ||
+      visual.aspectRatio <= 0)
+  )
+    return [
+      error(
+        "value.range",
+        "visual.aspectRatio",
+        "aspect ratio must be finite and greater than zero",
+      ),
+    ];
+  const limits = ["minWidth", "maxWidth", "minHeight", "maxHeight"] as const;
+  for (const field of limits) {
+    const value = visual[field];
+    if (
+      value !== undefined &&
+      (typeof value !== "number" || !Number.isFinite(value) || value < 1)
+    )
+      return [
+        error(
+          "value.range",
+          `visual.${field}`,
+          "size limit must be finite and at least 1",
+        ),
+      ];
+  }
+  for (const axis of ["Width", "Height"] as const) {
+    const minimum = visual[`min${axis}`];
+    const maximum = visual[`max${axis}`];
+    if (minimum !== undefined && maximum !== undefined && minimum > maximum)
+      return [
+        error("value.range", `visual.min${axis}`, `must not exceed max${axis}`),
+      ];
+  }
+  if (visual.aspectRatio !== undefined) {
+    const minimum = Math.max(
+      visual.minWidth ?? 1,
+      (visual.minHeight ?? 1) * visual.aspectRatio,
+    );
+    const maximum = Math.min(
+      visual.maxWidth ?? Number.POSITIVE_INFINITY,
+      (visual.maxHeight ?? Number.POSITIVE_INFINITY) * visual.aspectRatio,
+    );
+    if (minimum > maximum)
+      return [
+        error(
+          "value.range",
+          "visual.aspectRatio",
+          "aspect ratio is incompatible with the authored size limits",
+        ),
+      ];
+  }
+  const textResize = visual.textResize;
+  if (
+    textResize !== undefined &&
+    textResize !== "fixed" &&
+    textResize !== "auto-width" &&
+    textResize !== "auto-height"
+  )
+    return [
+      error("value.enum", "visual.textResize", "unknown text resize mode"),
+    ];
+  const weight = visual.layoutGrow;
+  if (
+    weight !== undefined &&
+    (typeof weight !== "number" || !Number.isFinite(weight) || weight < 0)
+  )
+    return [
+      error(
+        "value.range",
+        "visual.layoutGrow",
+        "fill weight must be finite and non-negative",
+      ),
+    ];
+  if (
+    visual.layoutPosition !== undefined &&
+    visual.layoutPosition !== "absolute"
+  )
+    return [
+      error(
+        "value.enum",
+        "visual.layoutPosition",
+        "unknown auto-layout position mode",
+      ),
+    ];
+  return [];
 }
 
 function validateNewElement(
@@ -214,7 +323,13 @@ function validateNewElement(
   }
   if (!isPlainObject(element.visual)) {
     out.push(error("type.object", "element.visual", "expected a JSON object"));
-  }
+  } else out.push(...validateVisualFields(element.visual));
+  out.push(
+    ...validateAccessibilityMetadata(
+      element.accessibility,
+      "element.accessibility",
+    ),
+  );
   out.push(
     ...validateSemanticPayload(
       element.type,
@@ -245,6 +360,20 @@ function validateNewPage(
   if (!isPageKind(page.kind)) {
     out.push(error("value.enum", "page.kind", "unknown page kind"));
   }
+  if (
+    page.order !== undefined &&
+    (typeof page.order !== "string" || !isFractionalKey(page.order))
+  )
+    out.push(
+      error("page.order", "page.order", "invalid fractional page order"),
+    );
+  if (
+    page.tokenMode !== undefined &&
+    (typeof page.tokenMode !== "string" || !page.tokenMode.trim())
+  )
+    out.push(
+      error("value.empty", "page.tokenMode", "must be a non-empty string"),
+    );
   return out;
 }
 
@@ -390,6 +519,10 @@ export function applyCommands(
             "updateVisual: expected a JSON object",
           );
         }
+        const visualIssues = validateVisualFields(
+          mergeVisual(previous.visual, command.visual),
+        );
+        if (visualIssues.length) fail(visualIssues, "invalid visual fields");
         working.set(command.id, {
           ...previous,
           visual: mergeVisual(previous.visual, command.visual),
@@ -410,6 +543,8 @@ export function applyCommands(
             "replaceVisual: expected a JSON object",
           );
         }
+        const visualIssues = validateVisualFields(command.visual);
+        if (visualIssues.length) fail(visualIssues, "invalid visual fields");
         working.set(command.id, { ...previous, visual: command.visual });
         markUpdate(command.id);
         undo.unshift({
@@ -435,6 +570,35 @@ export function applyCommands(
           type: "updateSemantic",
           id: command.id,
           semantic: previous.semantic,
+        });
+        break;
+      }
+      case "replaceAccessibility": {
+        const previous = mustGet(command.id, "replaceAccessibility");
+        const issues = validateAccessibilityMetadata(
+          command.accessibility,
+          "accessibility",
+        );
+        if (hasErrors(issues))
+          fail(
+            issues,
+            `replaceAccessibility: invalid metadata for "${command.id}"`,
+          );
+        const { accessibility: _accessibility, ...withoutAccessibility } =
+          previous;
+        working.set(
+          command.id,
+          command.accessibility
+            ? { ...previous, accessibility: command.accessibility }
+            : withoutAccessibility,
+        );
+        markUpdate(command.id);
+        undo.unshift({
+          type: "replaceAccessibility",
+          id: command.id,
+          ...(previous.accessibility
+            ? { accessibility: previous.accessibility }
+            : {}),
         });
         break;
       }
@@ -464,10 +628,51 @@ export function applyCommands(
             "updatePage: unknown page kind",
           );
         }
+        if (
+          patch.tokenMode !== undefined &&
+          patch.tokenMode !== null &&
+          (typeof patch.tokenMode !== "string" || !patch.tokenMode.trim())
+        )
+          fail(
+            [
+              error(
+                "value.empty",
+                "page.tokenMode",
+                "must be a non-empty string or null",
+              ),
+            ],
+            "updatePage: invalid token mode",
+          );
+        if (
+          patch.order !== undefined &&
+          patch.order !== null &&
+          (typeof patch.order !== "string" || !isFractionalKey(patch.order))
+        )
+          fail(
+            [
+              error(
+                "page.order",
+                "page.order",
+                "invalid fractional page order",
+              ),
+            ],
+            "updatePage: invalid order",
+          );
+        const { tokenMode: _oldMode, order: _oldOrder, ...base } = previous;
         pages.set(command.id, {
-          ...previous,
+          ...base,
+          ...(patch.tokenMode === null || previous.tokenMode === undefined
+            ? {}
+            : { tokenMode: previous.tokenMode }),
+          ...(patch.order === null || previous.order === undefined
+            ? {}
+            : { order: previous.order }),
           ...(patch.name === undefined ? {} : { name: patch.name }),
           ...(patch.kind === undefined ? {} : { kind: patch.kind }),
+          ...(typeof patch.tokenMode === "string"
+            ? { tokenMode: patch.tokenMode.trim() }
+            : {}),
+          ...(typeof patch.order === "string" ? { order: patch.order } : {}),
         });
         if (!createdPages.has(command.id)) {
           updatedPages.add(command.id);
@@ -475,7 +680,12 @@ export function applyCommands(
         undo.unshift({
           type: "updatePage",
           id: command.id,
-          page: { name: previous.name, kind: previous.kind },
+          page: {
+            name: previous.name,
+            kind: previous.kind,
+            tokenMode: previous.tokenMode ?? null,
+            order: previous.order ?? null,
+          },
         });
         break;
       }

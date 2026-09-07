@@ -211,6 +211,37 @@ function addShape(editor: Editor, label: string): void {
 }
 
 describe("a new session", () => {
+  test("import detaches the old file and never autosaves imported content over it", async () => {
+    const { editor, backend, session, timers } = createHarness();
+    const original = serializeDocument(editor.getSnapshot());
+    backend.files.set("old.jsonl", original);
+    await session.openPath("old.jsonl");
+    addShape(editor, "pending old edit");
+    const imported = {
+      ...editor.getSnapshot(),
+      title: "Imported",
+      elements: [],
+    };
+    await session.importDocument(imported, "design.jsonl");
+    expect(session.state().filePath).toBeNull();
+    expect(session.state().fileName).toBe("design.jsonl");
+    expect(session.state().dirty).toBe(true);
+    expect(timers.pendingCount).toBe(0);
+    expect(backend.files.get("old.jsonl")).toBe(original);
+    expect(editor.getSnapshot().title).toBe("Imported");
+  });
+
+  test("invalid imports leave the open document and file association untouched", async () => {
+    const { editor, backend, session } = createHarness();
+    const before = editor.getSnapshot();
+    backend.files.set("old.jsonl", serializeDocument(before));
+    await session.openPath("old.jsonl");
+    await expect(
+      session.importDocument({ ...before, schemaVersion: -1 }, "broken.jsonl"),
+    ).rejects.toThrow();
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(session.state().filePath).toBe("old.jsonl");
+  });
   test("starts untitled, clean and without a conflict", () => {
     const { session } = createHarness();
     const state = session.state();
@@ -408,6 +439,59 @@ describe("opening", () => {
     expect(harness.session.state().recent.map((entry) => entry.path)).toEqual([
       source.path,
     ]);
+  });
+
+  test("opening Mermaid imports a detached document and never rewrites the source", async () => {
+    const harness = createHarness();
+    const path = "/docs/order-flow.mmd";
+    const source = `sequenceDiagram
+  actor user as User
+  participant api as API
+  user->>api: Create order
+`;
+    harness.backend.files.set(path, source);
+
+    const opened = await harness.session.openPath(path);
+
+    expect(opened).toBe(true);
+    expect(harness.session.state()).toMatchObject({
+      filePath: null,
+      fileName: "order-flow.mmd",
+      dirty: true,
+      error: null,
+    });
+    expect(harness.editor.getSnapshot().title).toBe("order-flow");
+    expect(harness.editor.getSnapshot().pages[0]?.kind).toBe("sequence");
+    expect(harness.editor.store.listElements()).toHaveLength(3);
+    expect(harness.backend.watched).toEqual([null]);
+
+    addShape(harness.editor, "local edit");
+    harness.timers.fire();
+    await harness.settle();
+    expect(harness.backend.writes).toEqual([]);
+    expect(harness.backend.files.get(path)).toBe(source);
+  });
+
+  test("a malformed Mermaid file leaves the current document and association intact", async () => {
+    const source = await savedFile("original");
+    const harness = createHarness();
+    harness.backend.files.set(source.path, source.text);
+    await harness.session.openPath(source.path);
+    const before = serializeDocument(harness.editor.getSnapshot());
+    harness.backend.files.set(
+      "/docs/broken.mermaid",
+      "flowchart LR\n  A --> B",
+    );
+
+    const opened = await harness.session.openPath("/docs/broken.mermaid");
+
+    expect(opened).toBe(false);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(before);
+    expect(harness.session.state().filePath).toBe(source.path);
+    expect(harness.session.state().error).toContain(
+      "could not import broken.mermaid",
+    );
+    expect(harness.backend.watched).toEqual([source.path]);
   });
 
   test("a cancelled open changes nothing", async () => {

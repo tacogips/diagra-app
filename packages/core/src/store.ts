@@ -9,6 +9,7 @@
 // validated, undoable, and announced as exactly one {@link StoreDiff}.
 
 import {
+  comparePageOrder,
   type DocId,
   type Document,
   type Element,
@@ -50,10 +51,6 @@ export interface StoreCommit {
 }
 
 export type StoreListener = (diff: StoreDiff) => void;
-
-function comparePageOrder(left: Page, right: Page): number {
-  return compareFractional(left.id, right.id);
-}
 
 /**
  * Elements sort by fractional index (z-order) and fall back to id so the

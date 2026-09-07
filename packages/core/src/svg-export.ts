@@ -14,15 +14,44 @@
 import {
   type Element,
   type ElementId,
+  type ErdColumn,
+  type ErdTableSemantic,
+  type FillGradient,
+  type ImageSemantic,
+  type LayerEffect,
+  type PathSemantic,
+  type GroupSemantic,
+  type TextMark,
   getElementTypeDefinition,
   type PageId,
   type Visual,
 } from "@diagra/ir";
-import { type Box, unionBoxes } from "./geometry.ts";
+import { type Box, boxCenter, rotatedBox, unionBoxes } from "./geometry.ts";
+import { croppedImageBox } from "./image-crop.ts";
+import { resolvedCornerRadii, roundedRectPath } from "./corner-radii.ts";
 import { createShapeContext } from "./hit-test.ts";
+import { intersectClip } from "./clipping.ts";
+import { effectsBounds, layerEffects } from "./effects.ts";
+import { fontFeatureCss, fontVariationCss } from "./font-settings.ts";
+import {
+  booleanGeometry,
+  booleanMaskDefinition,
+} from "./boolean-operations.ts";
+import {
+  angularGradientPatches,
+  diamondGradientPatches,
+  gradientId,
+  linearGradientVector,
+  sampleGradient,
+  strokeGradientId,
+} from "./gradient.ts";
 import { selfContained } from "./references.ts";
+import { memberIdsOf } from "./group.ts";
+import { richTextSegments, safeTextLinkHref } from "./rich-text.ts";
+import { expandContainers } from "./frame-tree.ts";
 import type { ShapeContext, ShapeUtilRegistry } from "./shape-util.ts";
 import {
+  connectorDefaultDash,
   connectorDecoration,
   endpointReaderFor,
   type MarkerKind,
@@ -31,9 +60,11 @@ import {
 import {
   ERD_TABLE_HEADER_HEIGHT,
   ERD_TABLE_ROW_HEIGHT,
+  erdColumnKey,
 } from "./shapes/erdTable.ts";
 import { geoOutline } from "./shapes/geo-outline.ts";
 import { textNoteText } from "./shapes/textNote.ts";
+import { compoundPathGeometry } from "./shapes/compound-path.ts";
 import {
   UML_CLASS_NAME_HEIGHT,
   UML_CLASS_ROW_HEIGHT,
@@ -42,6 +73,14 @@ import {
   umlNameHeight,
 } from "./shapes/umlClass.ts";
 import type { Store } from "./store.ts";
+import {
+  TEXT_NOTE_LINE_HEIGHT,
+  TEXT_NOTE_PADDING_X,
+  TEXT_NOTE_PADDING_Y,
+  wrapTextLines,
+} from "./text-layout.ts";
+
+export { wrapTextLines } from "./text-layout.ts";
 
 /** Colours and type, mirroring the app stylesheet's custom properties. */
 export interface SvgTheme {
@@ -72,13 +111,15 @@ export interface SvgExportOptions {
   /** Paint behind the diagram. `null` (the default) leaves it transparent. */
   readonly background?: string | null;
   readonly theme?: Partial<SvgTheme>;
+  /** Exact page-space viewport; ignores padding and clips overflow. */
+  readonly viewport?: Box;
 }
 
 const DEFAULT_PADDING = 16;
 const SVG_NS = "http://www.w3.org/2000/svg";
 const STROKE_WIDTH = 1.5;
 /** Horizontal breathing room inside a shape, matching the stylesheet. */
-const TEXT_PADDING = 8;
+const TEXT_PADDING = TEXT_NOTE_PADDING_X;
 const ROW_PADDING = 10;
 /** Grid columns of an ERD row: a 26-unit key column, then a 6-unit gap. */
 const ERD_NAME_OFFSET = ROW_PADDING + 26 + 6;
@@ -145,29 +186,190 @@ function text(map: Attrs, content: string): string {
 }
 
 /** Document styling wins over the theme, field by field. */
-function styled(base: Attrs, visual: Visual): Attrs {
+function styled(base: Attrs, visual: Visual, elementId?: string): Attrs {
   const style = visual.style;
   if (!style) {
     return base;
   }
   const out: Attrs = { ...base };
-  if (style.fill !== undefined) {
+  if (style.fillGradient && elementId)
+    out["fill"] = `url(#${gradientId(elementId)})`;
+  else if (style.fill !== undefined) {
     out["fill"] = style.fill;
   }
-  if (style.stroke !== undefined) {
+  if (style.strokeGradient && elementId)
+    out["stroke"] = `url(#${strokeGradientId(elementId)})`;
+  else if (style.stroke !== undefined) {
     out["stroke"] = style.stroke;
   }
   if (style.strokeWidth !== undefined) {
     out["stroke-width"] = style.strokeWidth;
   }
-  const dash = style.dash ? DASH_PATTERNS[style.dash] : undefined;
-  if (dash) {
-    out["stroke-dasharray"] = dash;
+  if (style.strokeCap !== undefined) out["stroke-linecap"] = style.strokeCap;
+  if (style.strokeJoin !== undefined) out["stroke-linejoin"] = style.strokeJoin;
+  if (style.strokeMiterLimit !== undefined)
+    out["stroke-miterlimit"] = style.strokeMiterLimit;
+  if (style.dash !== undefined) {
+    const dash = DASH_PATTERNS[style.dash];
+    if (dash) out["stroke-dasharray"] = dash;
+    else out["stroke-dasharray"] = undefined;
   }
   if (style.opacity !== undefined) {
     out["opacity"] = style.opacity;
   }
   return out;
+}
+
+function gradientDefinition(
+  id: string,
+  gradient: FillGradient,
+  box: Box,
+): string {
+  const stops = gradient.stops
+    .map((stop) =>
+      tag("stop", {
+        offset: stop.offset,
+        "stop-color": stop.color,
+        "stop-opacity": stop.opacity ?? 1,
+      }),
+    )
+    .join("");
+  if (gradient.type === "linear") {
+    const vector = linearGradientVector(gradient.angle, box.width, box.height);
+    return wrap(
+      "linearGradient",
+      {
+        id,
+        gradientUnits: "userSpaceOnUse",
+        x1: box.x + vector.x1 * box.width,
+        y1: box.y + vector.y1 * box.height,
+        x2: box.x + vector.x2 * box.width,
+        y2: box.y + vector.y2 * box.height,
+      },
+      stops,
+    );
+  }
+  if (gradient.type === "angular" || gradient.type === "diamond") {
+    const outside = sampleGradient(gradient.stops, 1);
+    const background =
+      gradient.type === "diamond"
+        ? tag("rect", {
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+            fill: outside.color,
+            "fill-opacity": outside.opacity,
+          })
+        : "";
+    const patches =
+      gradient.type === "angular"
+        ? angularGradientPatches(gradient, box.width, box.height, box.x, box.y)
+        : diamondGradientPatches(gradient, box.width, box.height, box.x, box.y);
+    return wrap(
+      "pattern",
+      {
+        id,
+        patternUnits: "userSpaceOnUse",
+        x: box.x,
+        y: box.y,
+        width: Math.abs(box.width) || 1,
+        height: Math.abs(box.height) || 1,
+      },
+      `${background}${patches
+        .map((patch) =>
+          tag("polygon", {
+            points: patch.points,
+            fill: patch.color,
+            "fill-opacity": patch.opacity,
+          }),
+        )
+        .join("")}`,
+    );
+  }
+  const width = Math.abs(box.width);
+  const height = Math.abs(box.height);
+  const base = width || height || 1;
+  const cx = box.x + gradient.centerX * box.width;
+  const cy = box.y + gradient.centerY * box.height;
+  const scaleX = width ? 1 : 1 / base;
+  const scaleY = height ? height / base : 1 / base;
+  return wrap(
+    "radialGradient",
+    {
+      id,
+      gradientUnits: "userSpaceOnUse",
+      cx,
+      cy,
+      r: gradient.radius * base,
+      gradientTransform: `translate(${fmt(cx)} ${fmt(cy)}) scale(${fmt(scaleX)} ${fmt(scaleY)}) translate(${fmt(-cx)} ${fmt(-cy)})`,
+    },
+    stops,
+  );
+}
+
+function effectPrimitives(effects: readonly LayerEffect[]): string {
+  const enabled = effects.filter((effect) => effect.enabled !== false);
+  const backdrop = enabled.filter(
+    (effect) => effect.type === "background-blur",
+  );
+  const content = enabled.filter((effect) => effect.type !== "background-blur");
+  const primitives: string[] = [];
+  let backdropInput = "BackgroundImage";
+  for (const [index, effect] of backdrop.entries()) {
+    const result = `diagra-backdrop-${index}`;
+    primitives.push(
+      tag("feGaussianBlur", {
+        in: backdropInput,
+        stdDeviation: effect.blur,
+        result,
+      }),
+    );
+    backdropInput = result;
+  }
+  if (backdrop.length) {
+    primitives.push(
+      tag("feComposite", {
+        in: backdropInput,
+        in2: "SourceAlpha",
+        operator: "in",
+        result: "diagra-backdrop-clipped",
+      }),
+    );
+  }
+  let contentInput = "SourceGraphic";
+  for (const [index, effect] of content.entries()) {
+    const result = `diagra-content-${index}`;
+    primitives.push(
+      effect.type === "drop-shadow"
+        ? tag("feDropShadow", {
+            in: contentInput,
+            dx: effect.x,
+            dy: effect.y,
+            stdDeviation: effect.blur,
+            "flood-color": effect.color,
+            "flood-opacity": effect.opacity,
+            result,
+          })
+        : tag("feGaussianBlur", {
+            in: contentInput,
+            stdDeviation: effect.blur,
+            result,
+          }),
+    );
+    contentInput = result;
+  }
+  if (backdrop.length) {
+    primitives.push(
+      wrap(
+        "feMerge",
+        {},
+        tag("feMergeNode", { in: "diagra-backdrop-clipped" }) +
+          tag("feMergeNode", { in: contentInput }),
+      ),
+    );
+  }
+  return primitives.join("");
 }
 
 function textStyled(base: Attrs, visual: Visual): Attrs {
@@ -176,6 +378,17 @@ function textStyled(base: Attrs, visual: Visual): Attrs {
     return base;
   }
   const out: Attrs = { ...base };
+  if (style.fontFamily !== undefined) out["font-family"] = style.fontFamily;
+  if (style.fontWeight !== undefined) out["font-weight"] = style.fontWeight;
+  if (style.fontStyle !== undefined) out["font-style"] = style.fontStyle;
+  if (fontVariationCss(style) !== undefined)
+    out["font-variation-settings"] = fontVariationCss(style);
+  if (fontFeatureCss(style) !== undefined)
+    out["font-feature-settings"] = fontFeatureCss(style);
+  if (style.textDecoration !== undefined)
+    out["text-decoration"] = style.textDecoration;
+  if (style.letterSpacing !== undefined)
+    out["letter-spacing"] = style.letterSpacing;
   if (style.color !== undefined) {
     out["fill"] = style.color;
   }
@@ -325,6 +538,7 @@ function renderGeo(element: Element, box: Box, theme: SvgTheme): string {
   const shape = styled(
     { fill: theme.surface, stroke: theme.ink, "stroke-width": STROKE_WIDTH },
     element.visual,
+    element.id,
   );
   let body: string;
   switch (outline.kind) {
@@ -352,14 +566,27 @@ function renderGeo(element: Element, box: Box, theme: SvgTheme): string {
         });
       break;
     default:
-      body = tag("rect", {
-        x: outline.x,
-        y: outline.y,
-        width: outline.width,
-        height: outline.height,
-        rx: outline.rx,
-        ...shape,
-      });
+      body = element.visual.style?.cornerRadii
+        ? tag("path", {
+            d: roundedRectPath(
+              {
+                x: outline.x,
+                y: outline.y,
+                width: outline.width,
+                height: outline.height,
+              },
+              resolvedCornerRadii(element.visual.style),
+            ),
+            ...shape,
+          })
+        : tag("rect", {
+            x: outline.x,
+            y: outline.y,
+            width: outline.width,
+            height: outline.height,
+            rx: element.visual.style?.cornerRadius ?? outline.rx,
+            ...shape,
+          });
       break;
   }
   return (
@@ -376,19 +603,30 @@ function renderGeo(element: Element, box: Box, theme: SvgTheme): string {
 function renderNode(element: Element, box: Box, theme: SvgTheme): string {
   return (
     tag(
-      "rect",
+      element.visual.style?.cornerRadii ? "path" : "rect",
       styled(
-        {
-          x: box.x,
-          y: box.y,
-          width: box.width,
-          height: box.height,
-          rx: 8,
-          fill: theme.surface,
-          stroke: theme.ink,
-          "stroke-width": STROKE_WIDTH,
-        },
+        element.visual.style?.cornerRadii
+          ? {
+              d: roundedRectPath(
+                box,
+                resolvedCornerRadii(element.visual.style, 8),
+              ),
+              fill: theme.surface,
+              stroke: theme.ink,
+              "stroke-width": STROKE_WIDTH,
+            }
+          : {
+              x: box.x,
+              y: box.y,
+              width: box.width,
+              height: box.height,
+              rx: element.visual.style?.cornerRadius ?? 8,
+              fill: theme.surface,
+              stroke: theme.ink,
+              "stroke-width": STROKE_WIDTH,
+            },
         element.visual,
+        element.id,
       ),
     ) +
     centredLabel(
@@ -397,6 +635,65 @@ function renderNode(element: Element, box: Box, theme: SvgTheme): string {
       element.visual,
       theme,
     )
+  );
+}
+
+function renderSequenceParticipant(
+  element: Element,
+  box: Box,
+  theme: SvgTheme,
+): string {
+  const head = { x: box.x, y: box.y, width: box.width, height: 56 };
+  return (
+    tag("line", {
+      x1: box.x + box.width / 2,
+      y1: box.y + head.height,
+      x2: box.x + box.width / 2,
+      y2: box.y + box.height,
+      stroke: theme.muted,
+      "stroke-width": 1,
+      "stroke-dasharray": "5 4",
+    }) +
+    tag(
+      "rect",
+      styled(
+        {
+          ...head,
+          rx: 8,
+          fill: theme.surface,
+          stroke: theme.ink,
+          "stroke-width": STROKE_WIDTH,
+        },
+        element.visual,
+        element.id,
+      ),
+    ) +
+    centredLabel(
+      head,
+      readString(element.semantic, "name"),
+      element.visual,
+      theme,
+    )
+  );
+}
+
+function renderSequenceActivation(
+  element: Element,
+  box: Box,
+  theme: SvgTheme,
+): string {
+  return tag(
+    "rect",
+    styled(
+      {
+        ...box,
+        fill: theme.surface,
+        stroke: theme.ink,
+        "stroke-width": 1,
+      },
+      element.visual,
+      element.id,
+    ),
   );
 }
 
@@ -417,6 +714,7 @@ function renderErdTable(element: Element, box: Box, theme: SvgTheme): string {
           "stroke-width": STROKE_WIDTH,
         },
         element.visual,
+        element.id,
       ),
     ),
     tag("rect", {
@@ -452,7 +750,11 @@ function renderErdTable(element: Element, box: Box, theme: SvgTheme): string {
       ERD_TABLE_HEADER_HEIGHT +
       at * ERD_TABLE_ROW_HEIGHT +
       ERD_TABLE_ROW_HEIGHT / 2;
-    if (readField(column, "pk") === true) {
+    const key = erdColumnKey(
+      element.semantic as Partial<ErdTableSemantic>,
+      column as Partial<ErdColumn>,
+    );
+    if (key) {
       parts.push(
         text(
           {
@@ -463,7 +765,7 @@ function renderErdTable(element: Element, box: Box, theme: SvgTheme): string {
             "font-size": 10,
             "font-weight": 700,
           },
-          "PK",
+          key,
         ),
       );
     }
@@ -540,6 +842,7 @@ function renderUmlClass(element: Element, box: Box, theme: SvgTheme): string {
           "stroke-width": STROKE_WIDTH,
         },
         element.visual,
+        element.id,
       ),
     ),
     tag("line", {
@@ -633,55 +936,10 @@ function renderUmlClass(element: Element, box: Box, theme: SvgTheme): string {
   return parts.join("");
 }
 
-/** Approximate average glyph width as a fraction of the font size. */
-const AVERAGE_GLYPH_WIDTH = 0.55;
 /** Line height as a multiple of the font size, matching the stylesheet. */
-const LINE_HEIGHT = 1.2;
+const LINE_HEIGHT = TEXT_NOTE_LINE_HEIGHT;
 /** Vertical inset of a text note's first line, matching the note view. */
-const NOTE_PADDING_Y = 6;
-
-/**
- * Greedy word wrap for `text` into lines of at most `maxWidth` units, using
- * the average glyph width above. Explicit newlines always break; a word too
- * long for a line is split at the width. Never returns an empty line for an
- * empty paragraph other than the blank line itself, so `"a\n\nb"` is three
- * lines.
- */
-export function wrapTextLines(
-  text: string,
-  maxWidth: number,
-  fontSize: number,
-): readonly string[] {
-  const maxChars = Math.max(
-    1,
-    Math.floor(maxWidth / (fontSize * AVERAGE_GLYPH_WIDTH)),
-  );
-  const lines: string[] = [];
-  for (const paragraph of text.split(/\r?\n/)) {
-    let line = "";
-    for (const word of paragraph.split(" ")) {
-      const pieces: string[] = [];
-      for (let at = 0; at < word.length; at += maxChars) {
-        pieces.push(word.slice(at, at + maxChars));
-      }
-      if (pieces.length === 0) {
-        pieces.push("");
-      }
-      for (const piece of pieces) {
-        if (line === "") {
-          line = piece;
-        } else if (line.length + 1 + piece.length <= maxChars) {
-          line = `${line} ${piece}`;
-        } else {
-          lines.push(line);
-          line = piece;
-        }
-      }
-    }
-    lines.push(line);
-  }
-  return lines;
-}
+const NOTE_PADDING_Y = TEXT_NOTE_PADDING_Y;
 
 /**
  * A text note: optional fill, then the wrapped lines from the top of the
@@ -690,7 +948,7 @@ export function wrapTextLines(
 function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
   const style = element.visual.style;
   const parts: string[] = [];
-  if (style?.fill !== undefined) {
+  if (style?.fill !== undefined || style?.fillGradient !== undefined) {
     parts.push(
       tag(
         "rect",
@@ -704,12 +962,13 @@ function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
             stroke: "none",
           },
           element.visual,
+          element.id,
         ),
       ),
     );
   }
   const fontSize = style?.fontSize ?? theme.fontSize;
-  const lineHeight = fontSize * LINE_HEIGHT;
+  const lineHeight = fontSize * (style?.lineHeight ?? LINE_HEIGHT);
   const anchor = style?.textAlign ?? "start";
   const x =
     anchor === "start"
@@ -721,21 +980,89 @@ function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
     textNoteText(element.semantic),
     Math.max(1, box.width - TEXT_PADDING * 2),
     fontSize,
+    style?.letterSpacing ?? 0,
   );
+  const freeHeight = Math.max(
+    0,
+    box.height - NOTE_PADDING_Y * 2 - lines.length * lineHeight,
+  );
+  const verticalOffset =
+    style?.verticalAlign === "bottom"
+      ? freeHeight
+      : style?.verticalAlign === "middle"
+        ? freeHeight / 2
+        : 0;
+  const source = textNoteText(element.semantic);
+  const richSegments = richTextSegments(element.semantic);
+  const hasRichText = richSegments.some((segment) => segment.marks.length > 0);
+  let sourceCursor = 0;
+  const markedLine = (line: string, start: number): string => {
+    const end = start + line.length;
+    const content = richSegments
+      .filter((segment) => segment.end > start && segment.start < end)
+      .map((segment) => {
+        const value = source.slice(
+          Math.max(start, segment.start),
+          Math.min(end, segment.end),
+        );
+        const kinds = new Set(segment.marks.map((mark) => mark.kind));
+        const attrs: Attrs = {
+          ...(kinds.has("bold") ? { "font-weight": 700 } : {}),
+          ...(kinds.has("italic") ? { "font-style": "italic" } : {}),
+          ...(kinds.has("code")
+            ? {
+                "font-family": "ui-monospace, SFMono-Regular, Menlo, monospace",
+              }
+            : {}),
+          ...(kinds.has("strike") || kinds.has("underline") || kinds.has("link")
+            ? {
+                "text-decoration":
+                  `${kinds.has("link") || kinds.has("underline") ? "underline" : ""}${kinds.has("strike") ? " line-through" : ""}`.trim(),
+              }
+            : {}),
+          ...(kinds.has("link") ? { fill: theme.accent } : {}),
+        };
+        const span = wrap("tspan", attrs, escapeXml(value));
+        const link = segment.marks.find(
+          (mark): mark is TextMark & { readonly href: string } =>
+            mark.kind === "link" &&
+            typeof mark.href === "string" &&
+            safeTextLinkHref(mark.href) !== null,
+        );
+        return link
+          ? wrap(
+              "a",
+              {
+                href: safeTextLinkHref(link.href) ?? undefined,
+                rel: "noopener noreferrer",
+              },
+              span,
+            )
+          : span;
+      })
+      .join("");
+    return hasRichText && content ? content : escapeXml(line);
+  };
   for (const [at, line] of lines.entries()) {
-    const top = box.y + NOTE_PADDING_Y + at * lineHeight;
+    const top = box.y + NOTE_PADDING_Y + verticalOffset + at * lineHeight;
     if (top + lineHeight > box.y + box.height + 0.01) {
       break;
     }
+    const found = source.indexOf(line, sourceCursor);
+    const lineStart = found >= 0 ? found : sourceCursor;
+    sourceCursor = lineStart + line.length;
     if (line === "") {
       continue;
     }
     parts.push(
-      text(
+      wrap(
+        "text",
         textStyled(
           {
             x,
             y: top + lineHeight / 2,
+            "xml:space": "preserve",
+            style: "white-space: pre;",
             "text-anchor": anchor,
             "dominant-baseline": "central",
             fill: theme.ink,
@@ -743,7 +1070,7 @@ function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
           },
           element.visual,
         ),
-        line,
+        markedLine(line, lineStart),
       ),
     );
   }
@@ -788,10 +1115,192 @@ function renderUnsupported(
 
 function renderShape(element: Element, box: Box, theme: SvgTheme): string {
   switch (element.type) {
+    case "draw.path": {
+      const geometry = compoundPathGeometry(element);
+      if (!geometry) return "";
+      return tag(
+        "path",
+        styled(
+          {
+            d: geometry.path,
+            transform: `translate(${fmt(box.x)} ${fmt(box.y)})`,
+            fill: theme.ink,
+            stroke: "none",
+            "fill-rule": (element.semantic as PathSemantic).fillRule,
+          },
+          element.visual,
+          element.id,
+        ),
+      );
+    }
+    case "draw.freehand": {
+      const geometry = freehandGeometry(element);
+      if (!geometry) return "";
+      if (geometry.pressureOutline) {
+        const style = element.visual.style;
+        const hasFill =
+          (element.semantic as { closed?: boolean }).closed === true &&
+          Boolean(
+            style?.fillGradient ||
+              (style?.fill &&
+                style.fill !== "none" &&
+                style.fill !== "transparent"),
+          );
+        const paths: string[] = [];
+        if (hasFill) {
+          const fill = styled(
+            { d: geometry.path, stroke: "none" },
+            element.visual,
+            element.id,
+          );
+          fill["stroke"] = "none";
+          fill["stroke-width"] = undefined;
+          fill["stroke-dasharray"] = undefined;
+          fill["stroke-linecap"] = undefined;
+          fill["stroke-linejoin"] = undefined;
+          fill["stroke-miterlimit"] = undefined;
+          fill["opacity"] = undefined;
+          paths.push(tag("path", fill));
+        }
+        const outline = styled(
+          { d: geometry.pressureOutline.path, fill: "none", stroke: theme.ink },
+          element.visual,
+          element.id,
+        );
+        outline["fill"] = outline["stroke"] ?? theme.ink;
+        outline["fill-rule"] = "evenodd";
+        outline["stroke"] = "none";
+        outline["stroke-width"] = undefined;
+        outline["stroke-dasharray"] = undefined;
+        outline["stroke-linecap"] = undefined;
+        outline["stroke-linejoin"] = undefined;
+        outline["stroke-miterlimit"] = undefined;
+        outline["opacity"] = undefined;
+        paths.push(tag("path", outline));
+        return wrap(
+          "g",
+          {
+            transform: `translate(${fmt(box.x)} ${fmt(box.y)})`,
+            opacity: style?.opacity,
+          },
+          paths.join(""),
+        );
+      }
+      return tag(
+        "path",
+        styled(
+          {
+            d: geometry.path,
+            transform: `translate(${fmt(box.x)} ${fmt(box.y)})`,
+            fill: "none",
+            stroke: theme.ink,
+            "stroke-width": 2,
+            "stroke-linecap": "round",
+            "stroke-linejoin": "round",
+          },
+          element.visual,
+          element.id,
+        ),
+      );
+    }
+    case "image.raster": {
+      const semantic = element.semantic as ImageSemantic;
+      const imageBox = semantic.crop
+        ? croppedImageBox(semantic.crop, {
+            x: 0,
+            y: 0,
+            width: box.width,
+            height: box.height,
+          })
+        : box;
+      const image = tag("image", {
+        ...imageBox,
+        href: semantic.src,
+        "aria-label": semantic.alt,
+        opacity: element.visual.style?.opacity ?? 1,
+        preserveAspectRatio: semantic.crop
+          ? "none"
+          : semantic.fit === "fill"
+            ? "none"
+            : semantic.fit === "cover"
+              ? "xMidYMid slice"
+              : "xMidYMid meet",
+      });
+      const painted = semantic.crop
+        ? wrap("svg", { ...box, overflow: "hidden" }, image)
+        : image;
+      if (
+        !element.visual.style?.cornerRadii &&
+        !element.visual.style?.cornerRadius
+      )
+        return painted;
+      const clipId = `${gradientId(element.id)}-corners`;
+      return (
+        wrap(
+          "defs",
+          {},
+          wrap(
+            "clipPath",
+            { id: clipId, clipPathUnits: "userSpaceOnUse" },
+            tag("path", {
+              d: roundedRectPath(
+                box,
+                resolvedCornerRadii(element.visual.style),
+              ),
+            }),
+          ),
+        ) + wrap("g", { "clip-path": `url(#${clipId})` }, painted)
+      );
+    }
+    case "frame":
+      return (
+        tag(
+          element.visual.style?.cornerRadii ? "path" : "rect",
+          styled(
+            element.visual.style?.cornerRadii
+              ? {
+                  d: roundedRectPath(
+                    box,
+                    resolvedCornerRadii(element.visual.style),
+                  ),
+                  fill: "#ffffff",
+                  stroke: "#cbd5e1",
+                  "stroke-width": 1,
+                }
+              : {
+                  ...box,
+                  rx: element.visual.style?.cornerRadius ?? 0,
+                  fill: "#ffffff",
+                  stroke: "#cbd5e1",
+                  "stroke-width": 1,
+                },
+            element.visual,
+            element.id,
+          ),
+        ) +
+        ((element.semantic as { showTitle?: boolean }).showTitle === false
+          ? ""
+          : text(
+              textStyled(
+                {
+                  x: box.x + 8,
+                  y: box.y + 16,
+                  fill: theme.ink,
+                  "font-size": 12,
+                },
+                element.visual,
+              ),
+              readString(element.semantic, "name"),
+            ))
+      );
     case "shape.geo":
       return renderGeo(element, box, theme);
     case "node.generic":
       return renderNode(element, box, theme);
+    case "sequence.participant":
+      return renderSequenceParticipant(element, box, theme);
+    case "sequence.activation":
+      return renderSequenceActivation(element, box, theme);
     case "erd.table":
       return renderErdTable(element, box, theme);
     case "uml.class":
@@ -817,23 +1326,43 @@ function renderConnector(
     return null;
   }
   const decoration = connectorDecoration(element);
-  const line = tag(
-    "line",
-    styled(
-      {
-        x1: resolved.start.x,
-        y1: resolved.start.y,
-        x2: resolved.end.x,
-        y2: resolved.end.y,
-        fill: "none",
-        stroke: theme.ink,
-        "stroke-width": STROKE_WIDTH,
-        "marker-start": markerUrl(decoration.start),
-        "marker-end": markerUrl(decoration.end),
-      },
-      element.visual,
-    ),
-  );
+  const common = {
+    fill: "none",
+    stroke: theme.ink,
+    "stroke-width": STROKE_WIDTH,
+    "marker-start": markerUrl(decoration.start),
+    "marker-end": markerUrl(decoration.end),
+    "stroke-dasharray": connectorDefaultDash(element),
+  };
+  const line =
+    resolved.points.length > 2
+      ? tag("polyline", {
+          ...styled(
+            {
+              points: resolved.points
+                .map((point) => `${fmt(point.x)},${fmt(point.y)}`)
+                .join(" "),
+              ...common,
+            },
+            element.visual,
+            element.id,
+          ),
+          fill: "none",
+        })
+      : tag(
+          "line",
+          styled(
+            {
+              x1: resolved.start.x,
+              y1: resolved.start.y,
+              x2: resolved.end.x,
+              y2: resolved.end.y,
+              ...common,
+            },
+            element.visual,
+            element.id,
+          ),
+        );
   if (decoration.label === "") {
     return line;
   }
@@ -842,8 +1371,8 @@ function renderConnector(
     text(
       textStyled(
         {
-          x: (resolved.start.x + resolved.end.x) / 2,
-          y: (resolved.start.y + resolved.end.y) / 2 - 6,
+          x: resolved.labelPoint.x,
+          y: resolved.labelPoint.y - 6,
           "text-anchor": "middle",
           fill: theme.muted,
           "font-size": 11,
@@ -855,8 +1384,13 @@ function renderConnector(
   );
 }
 
-function elementGroup(element: Element, box: Box | null, body: string): string {
-  const rotation = element.visual.rotation;
+function elementGroup(
+  element: Element,
+  box: Box | null,
+  body: string,
+  filter?: string,
+): string {
+  const rotation = isEdge(element.type) ? 0 : element.visual.rotation;
   const transform =
     rotation === undefined || rotation === 0 || box === null
       ? undefined
@@ -865,7 +1399,15 @@ function elementGroup(element: Element, box: Box | null, body: string): string {
         )})`;
   return wrap(
     "g",
-    { "data-id": element.id, "data-type": element.type, transform },
+    {
+      "data-id": element.id,
+      "data-type": element.type,
+      transform,
+      filter,
+      style: element.visual.style?.blendMode
+        ? `mix-blend-mode: ${element.visual.style.blendMode};`
+        : undefined,
+    },
     body,
   );
 }
@@ -891,46 +1433,222 @@ export function renderElementsSvg(
   const padding = options.padding ?? DEFAULT_PADDING;
   const background = options.background ?? null;
 
-  const connectors: string[] = [];
-  const shapes: string[] = [];
+  const rendered = new Map<ElementId, string>();
+  const renderedKinds = new Map<ElementId, "connector" | "shape">();
+  const groups = new Map<ElementId, Element>();
   const boxes: Box[] = [];
+  const clips: string[] = [];
+  const effects: string[] = [];
+  const gradients: string[] = [];
+  const booleanMasks: string[] = [];
   for (const element of elements) {
-    // A group has no drawing of its own and its bounds are its members',
-    // which are exported in their own right (design editor-ux.md section 7).
+    if (
+      element.visual.hidden ||
+      context.isHidden?.(element.id) ||
+      context.isMaskSource?.(element.id)
+    )
+      continue;
     if (element.type === "group") {
+      groups.set(element.id, element);
       continue;
     }
     const box = registry
       .getOrFallback(element.type)
       .getBounds(element, context);
+    const clip = context.clipOf?.(element.id);
+    const clipPolygon = context.clipPolygonOf?.(element.id);
+    if (box && element.visual.style?.fillGradient)
+      gradients.push(
+        gradientDefinition(
+          gradientId(element.id),
+          element.visual.style.fillGradient,
+          box,
+        ),
+      );
+    if (box && element.visual.style?.strokeGradient)
+      gradients.push(
+        gradientDefinition(
+          strokeGradientId(element.id),
+          element.visual.style.strokeGradient,
+          box,
+        ),
+      );
+    const elementEffects = layerEffects(element.visual.style);
+    const drawingBox =
+      element.type === "draw.freehand" && !element.visual.rotation
+        ? (freehandGeometry(element)?.curveBounds ?? box)
+        : box;
+    const expanded = drawingBox
+      ? effectsBounds(
+          {
+            ...drawingBox,
+            width: Math.max(1, drawingBox.width),
+            height: Math.max(1, drawingBox.height),
+          },
+          element.visual.style,
+        )
+      : null;
+    // Filters use the element's unrotated user space. Only the resulting
+    // envelope rotates into page space, around the original element center
+    // (not the expanded shadow's center), before ancestor clipping.
+    const pageBounds =
+      expanded && box && !isEdge(element.type)
+        ? rotatedBox(expanded, element.visual.rotation ?? 0, boxCenter(box))
+        : expanded;
+    const visible =
+      clip && pageBounds ? intersectClip(pageBounds, clip) : pageBounds;
+    if (clip && (!visible || visible.width <= 0 || visible.height <= 0))
+      continue;
+    let filter: string | undefined;
+    if (elementEffects.some((effect) => effect.enabled !== false) && expanded) {
+      const id = `diagra-shadow-${effects.length}`;
+      filter = `url(#${id})`;
+      effects.push(
+        wrap(
+          "filter",
+          {
+            id,
+            filterUnits: "userSpaceOnUse",
+            ...expanded,
+            "color-interpolation-filters": "sRGB",
+          },
+          effectPrimitives(elementEffects),
+        ),
+      );
+    }
+    const clipped = (body: string): string => {
+      if (!clip) return body;
+      const id = `diagra-clip-${clips.length}`;
+      clips.push(
+        wrap(
+          "clipPath",
+          { id, clipPathUnits: "userSpaceOnUse" },
+          clipPolygon && clipPolygon.length >= 3
+            ? tag("polygon", {
+                points: clipPolygon
+                  .map((point) => `${point.x},${point.y}`)
+                  .join(" "),
+              })
+            : tag("rect", { ...clip }),
+        ),
+      );
+      return wrap("g", { "clip-path": `url(#${id})` }, body);
+    };
     if (isEdge(element.type)) {
       const body = renderConnector(element, context, theme);
       if (body === null) {
         continue;
       }
-      connectors.push(elementGroup(element, box, body));
+      rendered.set(
+        element.id,
+        clipped(elementGroup(element, box, body, filter)),
+      );
+      renderedKinds.set(element.id, "connector");
     } else {
       if (box === null) {
         continue;
       }
-      shapes.push(elementGroup(element, box, renderShape(element, box, theme)));
+      rendered.set(
+        element.id,
+        clipped(
+          elementGroup(element, box, renderShape(element, box, theme), filter),
+        ),
+      );
+      renderedKinds.set(element.id, "shape");
     }
-    if (box !== null) {
-      boxes.push(box);
+    if (visible !== null) {
+      boxes.push(visible);
     }
   }
 
-  const bounds = unionBoxes(boxes);
+  const bounds = options.viewport ?? unionBoxes(boxes);
   if (bounds === null) {
     return null;
   }
-  const x = bounds.x - padding;
-  const y = bounds.y - padding;
-  const width = bounds.width + padding * 2;
-  const height = bounds.height + padding * 2;
+  if (
+    options.viewport &&
+    (!Object.values(options.viewport).every(Number.isFinite) ||
+      bounds.width <= 0 ||
+      bounds.height <= 0)
+  )
+    return null;
+  const groupParents = new Map<ElementId, ElementId>();
+  for (const group of groups.values()) {
+    for (const member of memberIdsOf(group)) {
+      if (
+        member !== group.id &&
+        (rendered.has(member) || groups.has(member)) &&
+        !groupParents.has(member)
+      )
+        groupParents.set(member, group.id);
+    }
+  }
+  const renderUnit = (
+    element: Element,
+    ancestors: ReadonlySet<ElementId>,
+  ): string => {
+    const leaf = rendered.get(element.id);
+    if (leaf !== undefined) return leaf;
+    if (element.type !== "group" || ancestors.has(element.id)) return "";
+    const nextAncestors = new Set(ancestors).add(element.id);
+    const body = memberIdsOf(element)
+      .map((id) => {
+        const child = groups.get(id) ?? elements.find((item) => item.id === id);
+        return child ? renderUnit(child, nextAncestors) : "";
+      })
+      .join("");
+    if (!body) return "";
+    const semantic = element.semantic as GroupSemantic;
+    const boolean = booleanGeometry(element, context);
+    const booleanMask = boolean
+      ? `diagra-boolean-${booleanMasks.length}`
+      : undefined;
+    if (boolean && booleanMask)
+      booleanMasks.push(booleanMaskDefinition(booleanMask, boolean));
+    const styles = [
+      element.visual.style?.blendMode
+        ? `mix-blend-mode: ${element.visual.style.blendMode};`
+        : "",
+      semantic.isolate ? "isolation: isolate;" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return wrap(
+      "g",
+      {
+        "data-id": element.id,
+        "data-type": "group",
+        "data-boolean-operation": boolean?.operation,
+        opacity: element.visual.style?.opacity,
+        style: styles || undefined,
+        mask: booleanMask ? `url(#${booleanMask})` : undefined,
+      },
+      body,
+    );
+  };
+  const roots = elements.filter(
+    (element) =>
+      (rendered.has(element.id) || groups.has(element.id)) &&
+      !groupParents.has(element.id),
+  );
+  const connectors = roots
+    .filter((element) => renderedKinds.get(element.id) === "connector")
+    .map((element) => renderUnit(element, new Set()));
+  const shapes = roots
+    .filter((element) => renderedKinds.get(element.id) !== "connector")
+    .map((element) => renderUnit(element, new Set()));
+  const margin = options.viewport ? 0 : padding;
+  const x = bounds.x - margin;
+  const y = bounds.y - margin;
+  const width = bounds.width + margin * 2;
+  const height = bounds.height + margin * 2;
 
   const body = [
     markerDefs(theme),
+    gradients.length ? wrap("defs", {}, gradients.join("")) : "",
+    clips.length ? wrap("defs", {}, clips.join("")) : "",
+    effects.length ? wrap("defs", {}, effects.join("")) : "",
+    booleanMasks.length ? wrap("defs", {}, booleanMasks.join("")) : "",
     background === null
       ? ""
       : tag("rect", { x, y, width, height, fill: background }),
@@ -947,6 +1665,7 @@ export function renderElementsSvg(
       width,
       height,
       viewBox: `${fmt(x)} ${fmt(y)} ${fmt(width)} ${fmt(height)}`,
+      ...(options.viewport ? { overflow: "hidden" } : {}),
       "font-family": theme.fontFamily,
       "font-size": theme.fontSize,
     },
@@ -980,13 +1699,42 @@ export function renderSelectionSvg(
   ids: ReadonlySet<ElementId>,
   options: SvgExportOptions = {},
 ): string | null {
+  const context = createShapeContext(store, registry, 1);
+  const expanded = new Set(expandContainers(store, ids, context));
   const picked = store
     .getPageElements(pageId)
-    .filter((element) => ids.has(element.id));
-  return renderElementsSvg(
-    selfContained(picked),
-    registry,
-    createShapeContext(store, registry, 1),
-    options,
-  );
+    .filter((element) => expanded.has(element.id));
+  return renderElementsSvg(selfContained(picked), registry, context, options);
 }
+
+/** Exact-size artboard asset, with descendants but without its editor title. */
+export function renderArtboardSvg(
+  store: Store,
+  registry: ShapeUtilRegistry,
+  id: ElementId,
+  options: SvgExportOptions = {},
+): string | null {
+  const frame = store.get(id);
+  if (!frame || frame.type !== "frame") return null;
+  const context = createShapeContext(store, registry, 1);
+  if (context.isHidden?.(id)) return null;
+  const box = context.boundsOf(id);
+  if (!box) return null;
+  const viewport = rotatedBox(box, frame.visual.rotation ?? 0);
+  const ids = new Set(expandContainers(store, [id], context));
+  const elements = selfContained(
+    store.getPageElements(frame.page).filter((element) => ids.has(element.id)),
+  ).map((element) =>
+    element.id === id
+      ? {
+          ...element,
+          semantic: { ...(element.semantic as object), showTitle: false },
+        }
+      : element,
+  );
+  return renderElementsSvg(elements, registry, context, {
+    ...options,
+    viewport,
+  });
+}
+import { freehandGeometry } from "./shapes/freehand.ts";

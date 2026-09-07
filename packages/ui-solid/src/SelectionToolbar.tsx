@@ -254,7 +254,13 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
           {button("sendToBack", "Back")}
         </div>
         <div class="diagra-float-group">
+          {button("frameSelection", "Frame")}
           {button("group", "Group")}
+          {button("booleanUnion", "Union")}
+          {button("booleanSubtract", "Subtract")}
+          {button("booleanIntersect", "Intersect")}
+          {button("booleanExclude", "Exclude")}
+          {button("flattenBoolean", "Flatten")}
           {button("ungroup", "Ungroup")}
         </div>
         <Show when={isEnabled(getAction("alignLeft"))}>

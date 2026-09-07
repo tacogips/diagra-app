@@ -10,6 +10,14 @@
 // DOM-free on purpose so `bun test` can cover the enabled rules.
 
 import {
+  canCopySelectionStyle,
+  canFlattenBooleanGroup,
+  canPasteSelectionStyle,
+  booleanSourceGeometry,
+  copySelectionStyle,
+  pasteSelectionStyle,
+  matchingLayerIds,
+  selectMatchingLayers,
   type AlignMode,
   type DistributeAxis,
   type Editor,
@@ -21,7 +29,7 @@ import {
   type SizeDimension,
   type ViewportSize,
 } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import type { BooleanOperation, ElementId } from "@diagra/ir";
 
 export type ActionGroup =
   | "clipboard"
@@ -38,14 +46,26 @@ export type ActionId =
   | "cut"
   | "copy"
   | "paste"
+  | "copyStyle"
+  | "pasteStyle"
   | "duplicate"
   | "delete"
   | "selectAll"
+  | "selectSameType"
+  | "selectSameName"
+  | "selectSameFill"
+  | "selectSameStroke"
   | "bringToFront"
   | "bringForward"
   | "sendBackward"
   | "sendToBack"
+  | "frameSelection"
   | "group"
+  | "booleanUnion"
+  | "booleanSubtract"
+  | "booleanIntersect"
+  | "booleanExclude"
+  | "flattenBoolean"
   | "ungroup"
   | "alignLeft"
   | "alignHCenter"
@@ -88,6 +108,32 @@ export interface EditorAction {
   readonly run: (context: ActionContext) => void;
 }
 
+function booleanAction(
+  id: ActionId,
+  label: string,
+  operation: BooleanOperation,
+): EditorAction {
+  return {
+    id,
+    label,
+    group: "group",
+    enabled: ({ editor }) => {
+      const context = editor.createShapeContext();
+      const units = selectionUnits(editor.store, editor.selection.ids());
+      return (
+        units.length >= 2 &&
+        units.every(
+          (unit) =>
+            booleanSourceGeometry(editor.store.get(unit), context) !== null,
+        )
+      );
+    },
+    run: ({ editor }) => {
+      editor.booleanSelection(operation);
+    },
+  };
+}
+
 /**
  * Pick the modifier name for shortcut hints from the platform. The table is
  * built once at module load; the hints are text, never matched against key
@@ -105,6 +151,7 @@ function chord(...keys: readonly string[]): string {
 }
 
 const MOD = MODIFIER_LABEL;
+const ALT = isApplePlatform() ? "Option" : "Alt";
 
 /** Centre of the viewport in screen coordinates: the anchor for keyboard zoom. */
 export function viewportCenter(viewport: ViewportSize): {
@@ -200,7 +247,27 @@ function matchSizeAction(
 }
 
 /** Every action, in menu order. */
-export const EDITOR_ACTIONS: readonly EditorAction[] = [
+const ACTION_DEFINITIONS: readonly EditorAction[] = [
+  {
+    id: "copyStyle",
+    label: "Copy style",
+    shortcut: chord(MOD, ALT, "C"),
+    group: "clipboard",
+    enabled: ({ editor }) => canCopySelectionStyle(editor),
+    run: ({ editor }) => {
+      copySelectionStyle(editor);
+    },
+  },
+  {
+    id: "pasteStyle",
+    label: "Paste style",
+    shortcut: chord(MOD, ALT, "V"),
+    group: "clipboard",
+    enabled: ({ editor }) => canPasteSelectionStyle(editor),
+    run: ({ editor }) => {
+      pasteSelectionStyle(editor);
+    },
+  },
   {
     id: "cut",
     label: "Cut",
@@ -262,6 +329,42 @@ export const EDITOR_ACTIONS: readonly EditorAction[] = [
     },
   },
   {
+    id: "selectSameType",
+    label: "Select same element type",
+    group: "clipboard",
+    enabled: ({ editor }) => matchingLayerIds(editor, "type").length > 1,
+    run: ({ editor }) => {
+      selectMatchingLayers(editor, "type");
+    },
+  },
+  {
+    id: "selectSameName",
+    label: "Select same layer name",
+    group: "clipboard",
+    enabled: ({ editor }) => matchingLayerIds(editor, "name").length > 1,
+    run: ({ editor }) => {
+      selectMatchingLayers(editor, "name");
+    },
+  },
+  {
+    id: "selectSameFill",
+    label: "Select same explicit fill",
+    group: "clipboard",
+    enabled: ({ editor }) => matchingLayerIds(editor, "fill").length > 1,
+    run: ({ editor }) => {
+      selectMatchingLayers(editor, "fill");
+    },
+  },
+  {
+    id: "selectSameStroke",
+    label: "Select same explicit stroke paint",
+    group: "clipboard",
+    enabled: ({ editor }) => matchingLayerIds(editor, "stroke").length > 1,
+    run: ({ editor }) => {
+      selectMatchingLayers(editor, "stroke");
+    },
+  },
+  {
     id: "bringToFront",
     label: "Bring to front",
     shortcut: chord(MOD, "]"),
@@ -302,6 +405,16 @@ export const EDITOR_ACTIONS: readonly EditorAction[] = [
     },
   },
   {
+    id: "frameSelection",
+    label: "Frame selection",
+    shortcut: chord(MOD, ALT, "G"),
+    group: "group",
+    enabled: ({ editor }) => editor.canFrameSelection(),
+    run: ({ editor }) => {
+      editor.frameSelection();
+    },
+  },
+  {
     id: "group",
     label: "Group",
     shortcut: chord(MOD, "G"),
@@ -310,6 +423,25 @@ export const EDITOR_ACTIONS: readonly EditorAction[] = [
       selectionUnits(editor.store, editor.selection.ids()).length >= 2,
     run: ({ editor }) => {
       editor.groupSelection();
+    },
+  },
+  booleanAction("booleanUnion", "Union selection", "union"),
+  booleanAction("booleanSubtract", "Subtract selection", "subtract"),
+  booleanAction("booleanIntersect", "Intersect selection", "intersect"),
+  booleanAction("booleanExclude", "Exclude overlap", "exclude"),
+  {
+    id: "flattenBoolean",
+    label: "Flatten Boolean to path",
+    group: "group",
+    enabled: ({ editor }) => {
+      if (editor.selection.size !== 1) return false;
+      const [id] = editor.selection.ids();
+      return id
+        ? canFlattenBooleanGroup(editor.store, id, editor.createShapeContext())
+        : false;
+    },
+    run: ({ editor }) => {
+      editor.flattenBooleanSelection();
     },
   },
   {
@@ -411,6 +543,31 @@ export const EDITOR_ACTIONS: readonly EditorAction[] = [
     },
   },
 ];
+
+const VIEWER_ACTIONS = new Set<ActionId>([
+  "copy",
+  "copyStyle",
+  "selectAll",
+  "selectSameType",
+  "selectSameName",
+  "selectSameFill",
+  "selectSameStroke",
+  "zoomIn",
+  "zoomOut",
+  "zoomReset",
+  "zoomFit",
+  "zoomSelection",
+  "exportSvg",
+]);
+
+export const EDITOR_ACTIONS: readonly EditorAction[] = ACTION_DEFINITIONS.map(
+  (action) => ({
+    ...action,
+    enabled: (context) =>
+      (!context.editor.readOnly || VIEWER_ACTIONS.has(action.id)) &&
+      action.enabled(context),
+  }),
+);
 
 const ACTIONS_BY_ID: ReadonlyMap<ActionId, EditorAction> = new Map(
   EDITOR_ACTIONS.map((action) => [action.id, action]),

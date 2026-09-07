@@ -45,6 +45,45 @@ function nestedEditor(): Editor {
 }
 
 describe("group lookups", () => {
+  test("duplicating a grouped layer retains its immediate group and mask", () => {
+    const editor = nestedEditor();
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: "g1",
+        semantic: { memberIds: ["a", "b"], maskId: "a" },
+      },
+    ]);
+    editor.selection.set(["b"]);
+    const before = editor.getSnapshot();
+    const [copy] = editor.duplicateSelection();
+    if (!copy) throw new Error("missing duplicate");
+    expect(groupOf(editor.store, copy)?.id).toBe("g1");
+    expect(editor.store.get("g1")?.semantic).toEqual({
+      memberIds: ["a", "b", copy],
+      maskId: "a",
+    });
+    expect(editor.store.get("g2")?.semantic).toEqual({
+      memberIds: ["g1", "c"],
+    });
+    const after = editor.getSnapshot();
+    editor.undo();
+    expect(editor.getSnapshot()).toEqual(before);
+    editor.redo();
+    expect(editor.getSnapshot()).toEqual(after);
+  });
+
+  test("duplicating inside a locked group does not create detached copies", () => {
+    const editor = nestedEditor();
+    editor.apply([
+      { type: "updateVisual", id: "g1", visual: { locked: true } },
+    ]);
+    editor.selection.set(["a"]);
+    const before = editor.getSnapshot();
+    expect(editor.duplicateSelection()).toEqual([]);
+    expect(editor.getSnapshot()).toEqual(before);
+  });
+
   test("walk up and down the membership tree", () => {
     const editor = nestedEditor();
     expect(groupOf(editor.store, "a")?.id).toBe("g1");

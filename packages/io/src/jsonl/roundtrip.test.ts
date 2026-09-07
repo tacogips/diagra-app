@@ -104,6 +104,125 @@ describe("record ordering", () => {
 });
 
 describe("serializeDocument", () => {
+  test("round-trips accessibility metadata in canonical field order", () => {
+    const element = {
+      id: "accessible",
+      page: "p1",
+      type: "text.note",
+      index: "a0",
+      semantic: { text: "Buy" },
+      accessibility: {
+        role: "button" as const,
+        label: "Buy now",
+        hint: "Adds one item",
+        value: "Ready",
+        decorative: false,
+        disabled: true,
+      },
+      visual: {},
+    };
+    const document: Document = {
+      ...MINIMAL,
+      pages: [{ id: "p1", name: "Page", kind: "freeform" }],
+      elements: [element],
+    };
+    const serialized = serializeDocument(document);
+    expect(serialized).toContain(
+      '"semantic":{"text":"Buy"},"accessibility":{"role":"button","label":"Buy now","hint":"Adds one item","value":"Ready","decorative":false,"disabled":true}',
+    );
+    expect(parseDocument(serialized)).toEqual(document);
+  });
+  test("database defaults, indexes and checks round-trip in canonical field order", () => {
+    const document: Document = {
+      schemaVersion: 1,
+      id: "01JDDL00000000000000000000",
+      title: "Schema",
+      pages: [{ id: "p1", name: "Database", kind: "erd" }],
+      elements: [
+        {
+          id: "events",
+          page: "p1",
+          type: "erd.table",
+          index: "a0",
+          semantic: {
+            tableName: "events",
+            columns: [
+              {
+                id: "id",
+                name: "id",
+                dataType: "uuid",
+                pk: true,
+                defaultExpression: "gen_random_uuid()",
+              },
+              {
+                id: "display",
+                name: "display_id",
+                dataType: "text",
+                generatedExpression: "'event-' || id",
+              },
+            ],
+            indexes: [
+              {
+                id: "i1",
+                name: "events_id",
+                columns: ["id"],
+                unique: true,
+              },
+            ],
+            checks: [
+              {
+                id: "ck1",
+                name: "id_present",
+                expression: "id IS NOT NULL",
+              },
+            ],
+          },
+          visual: {},
+        },
+      ],
+    };
+    const serialized = serializeDocument(document);
+    expect(serialized).toContain(
+      '"semantic":{"tableName":"events","columns":[{"id":"id","name":"id","dataType":"uuid","pk":true,"defaultExpression":"gen_random_uuid()"},{"id":"display","name":"display_id","dataType":"text","generatedExpression":"\'event-\' || id"}],"indexes":[{"id":"i1","name":"events_id","columns":["id"],"unique":true}],"checks":[{"id":"ck1","name":"id_present","expression":"id IS NOT NULL"}]}',
+    );
+    expect(parseDocument(serialized)).toEqual(document);
+  });
+
+  test("stroke geometry round-trips in canonical style order", () => {
+    const document: Document = {
+      ...MINIMAL,
+      pages: [{ id: "p1", name: "Page", kind: "freeform" }],
+      elements: [
+        {
+          id: "path",
+          page: "p1",
+          type: "draw.freehand",
+          index: "a0",
+          semantic: {
+            points: [
+              { x: 0, y: 0 },
+              { x: 10, y: 10 },
+            ],
+          },
+          visual: {
+            style: {
+              strokeWidth: 3,
+              strokeCap: "square",
+              strokeJoin: "miter",
+              strokeMiterLimit: 8,
+              dash: "solid",
+            },
+          },
+        },
+      ],
+    };
+    const serialized = serializeDocument(document);
+    expect(serialized).toContain(
+      '"style":{"strokeWidth":3,"strokeCap":"square","strokeJoin":"miter","strokeMiterLimit":8,"dash":"solid"}',
+    );
+    expect(parseDocument(serialized)).toEqual(document);
+  });
+
   test("writes a document with no pages as a single line", () => {
     expect(serializeDocument(MINIMAL)).toBe(
       '{"kind":"document","schemaVersion":1,"id":"01JMIN00000000000000000000","title":"Empty"}\n',

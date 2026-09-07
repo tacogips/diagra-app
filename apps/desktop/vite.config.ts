@@ -11,6 +11,21 @@ export default defineConfig(() => ({
   resolve: {
     dedupe: ["solid-js"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("/node_modules/solid-js/")) return "solid";
+          if (
+            id.includes("/node_modules/yjs/") ||
+            id.includes("/node_modules/y-protocols/") ||
+            id.includes("/node_modules/lib0/")
+          )
+            return "collaboration";
+        },
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

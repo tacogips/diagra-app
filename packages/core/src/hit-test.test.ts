@@ -188,6 +188,47 @@ describe("connectors", () => {
   });
 });
 
+describe("sequence diagrams", () => {
+  const store = new Store(
+    document([
+      element({
+        id: "left",
+        type: "sequence.participant",
+        semantic: { name: "Left", kind: "actor", order: "a1" },
+        visual: { x: 0, y: 0, width: 100, height: 300 },
+      }),
+      element({
+        id: "right",
+        index: "a2",
+        type: "sequence.participant",
+        semantic: { name: "Right", kind: "service", order: "a2" },
+        visual: { x: 300, y: 0, width: 100, height: 300 },
+      }),
+      element({
+        id: "message",
+        index: "a3",
+        type: "sequence.message",
+        semantic: {
+          from: "left",
+          to: "right",
+          order: "b1",
+          kind: "sync",
+        },
+        visual: { y: 150 },
+      }),
+    ]),
+  );
+
+  test("messages use their timeline y-coordinate between lifeline centres", () => {
+    expect(pick(store, { x: 200, y: 150 })).toBe("message");
+    expect(pick(store, { x: 200, y: 100 })).toBeNull();
+  });
+
+  test("participant lifelines remain selectable", () => {
+    expect(pick(store, { x: 50, y: 250 })).toBe("left");
+  });
+});
+
 describe("z-order", () => {
   test("the topmost element wins", () => {
     const store = new Store(

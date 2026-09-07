@@ -1,6 +1,10 @@
 // node.generic: a labelled box, the neutral node type edges connect.
 
-import { type Box, boxContains } from "../geometry.ts";
+import { type Box, roundedBoxContains } from "../geometry.ts";
+import {
+  resolvedCornerRadii,
+  unevenRoundedBoxContains,
+} from "../corner-radii.ts";
 import type { ShapeUtil } from "../shape-util.ts";
 
 export const NODE_DEFAULT_WIDTH = 140;
@@ -27,7 +31,17 @@ export const nodeShapeUtil: ShapeUtil = {
     return nodeBounds(element.visual);
   },
   hitTest(element, point) {
-    return boxContains(nodeBounds(element.visual), point);
+    if (element.visual.style?.cornerRadii)
+      return unevenRoundedBoxContains(
+        nodeBounds(element.visual),
+        point,
+        resolvedCornerRadii(element.visual.style, 8),
+      );
+    return roundedBoxContains(
+      nodeBounds(element.visual),
+      point,
+      element.visual.style?.cornerRadius ?? 0,
+    );
   },
   resize(_element, box) {
     return {

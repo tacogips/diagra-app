@@ -1,0 +1,5 @@
+{"kind":"document","schemaVersion":1,"id":"comments-fixture","title":"Review feedback"}
+{"kind":"page","id":"p1","name":"Review","pageKind":"freeform"}
+{"kind":"element","id":"button","page":"p1","type":"shape.geo","index":"a0","semantic":{"geo":"rect","label":"Continue"},"visual":{"x":40,"y":40,"width":160,"height":48}}
+{"kind":"element","id":"heading","page":"p1","type":"design.text-style","index":"a2","semantic":{"name":"Heading","value":{"fontFamily":"Inter, sans-serif","fontSize":32,"fontWeight":700,"fontStyle":"normal","lineHeight":1.2,"letterSpacing":-0.5,"textAlign":"start","textDecoration":"none","verticalAlign":"top"}}}
+{"kind":"element","id":"thread","page":"p1","type":"review.comment","index":"a1","semantic":{"target":"button","messages":[{"id":"message-1","author":"Ada","body":"Increase the label contrast.","createdAt":"2026-09-07T00:00:00.000Z"},{"id":"message-2","author":"Grace","body":"Updated in the next revision.","createdAt":"2026-09-07T00:05:00.000Z"}]},"visual":{"x":190,"y":40}}

@@ -2,6 +2,7 @@
 // See the product design (diagra-cloud repo), section 6.
 
 import {
+  comparePageOrder,
   assertValidDocument,
   type Document,
   type Element,
@@ -133,7 +134,7 @@ function unknownLine(record: UnknownRecord): string {
 }
 
 function comparePages(left: Page, right: Page): number {
-  return compareStrings(left.id, right.id);
+  return comparePageOrder(left, right);
 }
 
 function compareElements(left: Element, right: Element): number {

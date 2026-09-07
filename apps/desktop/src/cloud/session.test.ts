@@ -100,9 +100,11 @@ interface Harness {
   readonly providers: FakeProvider[];
   /** Room contents the next provider hands over. */
   seed: Document | null;
-  probe: ApiResult<void>;
+  probe: ApiResult<"owner" | "editor" | "viewer">;
   /** Resolves the pending probe by hand when set. */
-  holdProbe: ((result: ApiResult<void>) => void) | null;
+  holdProbe:
+    | ((result: ApiResult<"owner" | "editor" | "viewer">) => void)
+    | null;
   settings: CloudSettings;
 }
 
@@ -114,7 +116,7 @@ function harness(): Harness {
     states: [],
     providers: [],
     seed: roomDocument(),
-    probe: { ok: true, value: undefined },
+    probe: { ok: true, value: "owner" },
     holdProbe: null,
     settings: {
       endpointUrl: ENDPOINT,
@@ -125,11 +127,16 @@ function harness(): Harness {
   };
 
   const api: CloudApi = {
+    createShare: async () => ({ ok: false, status: 403, error: "not used" }),
+    revokeShare: async () => ({ ok: false, status: 403, error: "not used" }),
+    listShares: async () => ({ ok: false, status: 403, error: "not used" }),
     probeDocument() {
       if (state.holdProbe !== null) {
-        return new Promise<ApiResult<void>>((resolve) => {
-          state.holdProbe = resolve;
-        });
+        return new Promise<ApiResult<"owner" | "editor" | "viewer">>(
+          (resolve) => {
+            state.holdProbe = resolve;
+          },
+        );
       }
       return Promise.resolve(state.probe);
     },
@@ -172,6 +179,37 @@ function statuses(harness: Harness): string[] {
 }
 
 describe("CloudSession", () => {
+  test("retains authoritative viewer role and disables cloud undo/redo", async () => {
+    const state = harness();
+    state.probe = { ok: true, value: "viewer" };
+    try {
+      expect(await state.session.open("doc-1")).toBe(true);
+      (state.providers[0] as FakeProvider).finishSync();
+      expect(state.session.state().role).toBe("viewer");
+      expect(state.editor.readOnly).toBe(true);
+      const before = state.editor.getSnapshot();
+      expect(state.editor.setText("t-users", "Local attempt")).toBe(false);
+      expect(state.editor.getSnapshot()).toEqual(before);
+      expect(state.session.canUndo()).toBe(false);
+      expect(state.session.undo()).toBe(false);
+      expect(state.session.redo()).toBe(false);
+      expect(state.session.state().canUndo).toBe(false);
+      const provider = state.providers[0] as FakeProvider;
+      const table = provider.doc
+        .getMap<Y.Map<unknown>>("elements")
+        .get("t-users") as Y.Map<unknown>;
+      (table.get("visual") as Y.Map<unknown>).set("y", 999);
+      expect(state.editor.store.get("t-users")?.visual.y).toBe(999);
+      provider.dropSocket();
+      expect(state.editor.readOnly).toBe(true);
+      provider.finishSync();
+      expect(state.editor.readOnly).toBe(true);
+    } finally {
+      state.session.close();
+    }
+    expect(state.session.state().role).toBeNull();
+    expect(state.editor.readOnly).toBe(false);
+  });
   test("refuses to open without a configured endpoint", async () => {
     const test = harness();
     test.settings = { ...test.settings, endpointUrl: "   " };
@@ -344,9 +382,9 @@ describe("CloudSession", () => {
     test.session.close();
 
     const resolve = test.holdProbe as unknown as (
-      result: ApiResult<void>,
+      result: ApiResult<"owner" | "editor" | "viewer">,
     ) => void;
-    resolve({ ok: true, value: undefined });
+    resolve({ ok: true, value: "owner" });
 
     expect(await pending).toBe(false);
     expect(test.providers).toHaveLength(0);

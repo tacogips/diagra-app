@@ -10,7 +10,15 @@
 // function may have come straight off disk, so fields are read as `unknown`
 // rather than trusted from the declared types.
 
-import { checkEnum, checkNumber, checkObject, checkString } from "./checks.ts";
+import {
+  checkBoolean,
+  checkEnum,
+  checkFontSettings,
+  checkNumber,
+  checkObject,
+  checkString,
+} from "./checks.ts";
+import { validateAccessibilityMetadata } from "./accessibility.ts";
 import {
   DocumentValidationError,
   error,
@@ -20,15 +28,46 @@ import {
 } from "./issues.ts";
 import { VISUAL_KEY_ORDER, VISUAL_STYLE_KEY_ORDER } from "./keyOrder.ts";
 import { getElementTypeDefinition } from "./registry.ts";
-import { type Document, isPlainObject, PAGE_KINDS } from "./types.ts";
+import {
+  BLEND_MODES,
+  type Document,
+  isPlainObject,
+  PAGE_KINDS,
+} from "./types.ts";
 
-const VISUAL_NUMBER_FIELDS = ["x", "y", "width", "height", "rotation"] as const;
+const VISUAL_NUMBER_FIELDS = [
+  "x",
+  "y",
+  "width",
+  "height",
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+  "aspectRatio",
+  "rotation",
+] as const;
 
-const STYLE_NUMBER_FIELDS = ["strokeWidth", "opacity", "fontSize"] as const;
+const STYLE_NUMBER_FIELDS = [
+  "strokeWidth",
+  "strokeMiterLimit",
+  "strokeDashOffset",
+  "opacity",
+  "fontSize",
+] as const;
 
 const NON_NEGATIVE_VISUAL_FIELDS = ["width", "height"] as const;
 
+const SIZE_LIMIT_FIELDS = [
+  "minWidth",
+  "maxWidth",
+  "minHeight",
+  "maxHeight",
+] as const;
+
 const DASH_VALUES = ["solid", "dashed", "dotted"] as const;
+const STROKE_CAP_VALUES = ["butt", "round", "square"] as const;
+const STROKE_JOIN_VALUES = ["miter", "round", "bevel"] as const;
 const TEXT_ALIGN_VALUES = ["start", "middle", "end"] as const;
 
 function asArray(value: unknown): readonly unknown[] | undefined {
@@ -73,6 +112,88 @@ function warnUnknownFields(
   }
 }
 
+function validateGradient(
+  out: ValidationIssue[],
+  gradient: unknown,
+  path: string,
+): void {
+  if (gradient === undefined || !checkObject(out, gradient, path)) return;
+  checkEnum(out, gradient["type"], `${path}.type`, [
+    "linear",
+    "radial",
+    "angular",
+    "diamond",
+  ]);
+  if (
+    gradient["type"] === "linear" ||
+    gradient["type"] === "angular" ||
+    gradient["type"] === "diamond"
+  )
+    checkNumber(out, gradient["angle"], `${path}.angle`);
+  if (
+    gradient["type"] === "radial" ||
+    gradient["type"] === "angular" ||
+    gradient["type"] === "diamond"
+  ) {
+    for (const field of ["centerX", "centerY"])
+      checkNumber(out, gradient[field], `${path}.${field}`, { min: 0 });
+    if (gradient["type"] !== "angular")
+      checkNumber(out, gradient["radius"], `${path}.radius`, { min: 0.01 });
+    for (const field of ["centerX", "centerY"])
+      if (typeof gradient[field] === "number" && gradient[field] > 1)
+        out.push(error("value.max", `${path}.${field}`, "must not exceed 1"));
+    if (
+      gradient["type"] !== "angular" &&
+      typeof gradient["radius"] === "number" &&
+      gradient["radius"] > 2
+    )
+      out.push(error("value.max", `${path}.radius`, "must not exceed 2"));
+  }
+  const stops = gradient["stops"];
+  if (!Array.isArray(stops)) {
+    out.push(error("type.array", `${path}.stops`, "expected an array"));
+    return;
+  }
+  if (stops.length < 2 || stops.length > 8)
+    out.push(error("gradient.stops", `${path}.stops`, "expected 2 to 8 stops"));
+  let previous = -1;
+  for (const [index, stop] of stops.entries()) {
+    const stopPath = `${path}.stops[${index}]`;
+    if (!checkObject(out, stop, stopPath)) continue;
+    checkNumber(out, stop["offset"], `${stopPath}.offset`, { min: 0 });
+    if (typeof stop["offset"] === "number") {
+      if (stop["offset"] > 1)
+        out.push(error("value.max", `${stopPath}.offset`, "must not exceed 1"));
+      if (stop["offset"] < previous)
+        out.push(
+          error(
+            "gradient.order",
+            `${stopPath}.offset`,
+            "must not precede the previous stop",
+          ),
+        );
+      previous = stop["offset"];
+    }
+    if (
+      typeof stop["color"] !== "string" ||
+      !/^#[\da-f]{6}$/i.test(stop["color"])
+    )
+      out.push(
+        error(
+          "value.color",
+          `${stopPath}.color`,
+          "expected a six-digit hex color",
+        ),
+      );
+    checkNumber(out, stop["opacity"], `${stopPath}.opacity`, {
+      optional: true,
+      min: 0,
+    });
+    if (typeof stop["opacity"] === "number" && stop["opacity"] > 1)
+      out.push(error("value.max", `${stopPath}.opacity`, "must not exceed 1"));
+  }
+}
+
 function validateVisual(
   out: ValidationIssue[],
   raw: unknown,
@@ -87,11 +208,143 @@ function validateVisual(
   for (const field of VISUAL_NUMBER_FIELDS) {
     checkNumber(out, raw[field], `${path}.${field}`, { optional: true });
   }
+  for (const field of ["hidden", "locked", "prototypeFixed"]) {
+    checkBoolean(out, raw[field], `${path}.${field}`, { optional: true });
+  }
+  checkString(out, raw["componentKey"], `${path}.componentKey`, {
+    optional: true,
+  });
+  checkEnum(
+    out,
+    raw["textResize"],
+    `${path}.textResize`,
+    ["fixed", "auto-width", "auto-height"],
+    { optional: true },
+  );
+  const colors = raw["colorTokens"];
+  const numbers = raw["numberTokens"];
+  checkString(out, raw["textStyle"], `${path}.textStyle`, { optional: true });
+  checkEnum(out, raw["strokeBounds"], `${path}.strokeBounds`, ["curve"], {
+    optional: true,
+  });
+  checkNumber(out, raw["layoutGrow"], `${path}.layoutGrow`, {
+    optional: true,
+    min: 0,
+  });
+  checkEnum(
+    out,
+    raw["layoutPosition"],
+    `${path}.layoutPosition`,
+    ["absolute"],
+    {
+      optional: true,
+    },
+  );
+  checkString(out, raw["layerName"], `${path}.layerName`, { optional: true });
+  if (colors !== undefined && checkObject(out, colors, `${path}.colorTokens`)) {
+    for (const field of ["fill", "stroke", "color"])
+      checkString(out, colors[field], `${path}.colorTokens.${field}`, {
+        optional: true,
+      });
+  }
+  if (
+    numbers !== undefined &&
+    checkObject(out, numbers, `${path}.numberTokens`)
+  ) {
+    for (const field of [
+      "width",
+      "height",
+      "minWidth",
+      "maxWidth",
+      "minHeight",
+      "maxHeight",
+      "cornerRadius",
+      "cornerTopLeft",
+      "cornerTopRight",
+      "cornerBottomRight",
+      "cornerBottomLeft",
+      "strokeWidth",
+      "fontSize",
+      "letterSpacing",
+      "gap",
+      "crossGap",
+      "padding",
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ])
+      checkString(out, numbers[field], `${path}.numberTokens.${field}`, {
+        optional: true,
+      });
+  }
+  for (const field of ["horizontalConstraint", "verticalConstraint"])
+    checkEnum(
+      out,
+      raw[field],
+      `${path}.${field}`,
+      ["start", "end", "center", "stretch", "scale"],
+      { optional: true },
+    );
   for (const field of NON_NEGATIVE_VISUAL_FIELDS) {
     const value = raw[field];
     if (typeof value === "number" && value < 0) {
       out.push(error("value.min", `${path}.${field}`, "must not be negative"));
     }
+  }
+  for (const field of SIZE_LIMIT_FIELDS) {
+    const value = raw[field];
+    if (typeof value === "number" && value < 1)
+      out.push(error("value.min", `${path}.${field}`, "must be at least 1"));
+  }
+  if (typeof raw["aspectRatio"] === "number" && raw["aspectRatio"] <= 0)
+    out.push(
+      error("value.min", `${path}.aspectRatio`, "must be greater than zero"),
+    );
+  const ratio = raw["aspectRatio"];
+  if (
+    typeof ratio === "number" &&
+    Number.isFinite(ratio) &&
+    ratio > 0 &&
+    ["minWidth", "maxWidth", "minHeight", "maxHeight"].every(
+      (field) =>
+        raw[field] === undefined ||
+        (typeof raw[field] === "number" && Number.isFinite(raw[field])),
+    )
+  ) {
+    const minimum = Math.max(
+      (raw["minWidth"] as number | undefined) ?? 1,
+      ((raw["minHeight"] as number | undefined) ?? 1) * ratio,
+    );
+    const maximum = Math.min(
+      (raw["maxWidth"] as number | undefined) ?? Number.POSITIVE_INFINITY,
+      ((raw["maxHeight"] as number | undefined) ?? Number.POSITIVE_INFINITY) *
+        ratio,
+    );
+    if (minimum > maximum)
+      out.push(
+        error(
+          "value.range",
+          `${path}.aspectRatio`,
+          "is incompatible with the authored size limits",
+        ),
+      );
+  }
+  for (const axis of ["Width", "Height"] as const) {
+    const minimum = raw[`min${axis}`];
+    const maximum = raw[`max${axis}`];
+    if (
+      typeof minimum === "number" &&
+      typeof maximum === "number" &&
+      minimum > maximum
+    )
+      out.push(
+        error(
+          "value.range",
+          `${path}.min${axis}`,
+          `must not exceed max${axis}`,
+        ),
+      );
   }
   warnUnknownFields(out, raw, VISUAL_KEY_ORDER.keys, path, "visual");
 
@@ -110,11 +363,234 @@ function validateVisual(
   checkEnum(out, style["dash"], `${path}.style.dash`, DASH_VALUES, {
     optional: true,
   });
+  const strokeDashArray = style["strokeDashArray"];
+  if (strokeDashArray !== undefined) {
+    const values = asArray(strokeDashArray);
+    if (!values) {
+      out.push(
+        error(
+          "value.type",
+          `${path}.style.strokeDashArray`,
+          "must be an array",
+        ),
+      );
+    } else {
+      if (!values.length || values.length > 32)
+        out.push(
+          error(
+            "value.range",
+            `${path}.style.strokeDashArray`,
+            "must contain between 1 and 32 intervals",
+          ),
+        );
+      for (const [index, value] of values.entries())
+        checkNumber(
+          out,
+          value,
+          `${path}.style.strokeDashArray[${index}]`,
+          { min: 0 },
+        );
+      if (values.length && values.every((value) => value === 0))
+        out.push(
+          error(
+            "value.range",
+            `${path}.style.strokeDashArray`,
+            "must contain a positive interval",
+          ),
+        );
+    }
+  }
+  checkEnum(
+    out,
+    style["strokeCap"],
+    `${path}.style.strokeCap`,
+    STROKE_CAP_VALUES,
+    { optional: true },
+  );
+  checkEnum(
+    out,
+    style["strokeJoin"],
+    `${path}.style.strokeJoin`,
+    STROKE_JOIN_VALUES,
+    { optional: true },
+  );
+  if (
+    typeof style["strokeMiterLimit"] === "number" &&
+    style["strokeMiterLimit"] < 1
+  )
+    out.push(
+      error(
+        "value.min",
+        `${path}.style.strokeMiterLimit`,
+        "must be at least 1",
+      ),
+    );
+  checkEnum(out, style["blendMode"], `${path}.style.blendMode`, BLEND_MODES, {
+    optional: true,
+  });
+  checkString(out, style["fontFamily"], `${path}.style.fontFamily`, {
+    optional: true,
+  });
+  checkFontSettings(
+    out,
+    style["fontVariations"],
+    `${path}.style.fontVariations`,
+    { optional: true },
+  );
+  checkFontSettings(out, style["fontFeatures"], `${path}.style.fontFeatures`, {
+    optional: true,
+    integer: true,
+  });
+  checkNumber(out, style["cornerRadius"], `${path}.style.cornerRadius`, {
+    optional: true,
+    min: 0,
+  });
+  const cornerRadii = style["cornerRadii"];
+  if (
+    cornerRadii !== undefined &&
+    checkObject(out, cornerRadii, `${path}.style.cornerRadii`)
+  ) {
+    for (const field of ["topLeft", "topRight", "bottomRight", "bottomLeft"])
+      checkNumber(
+        out,
+        cornerRadii[field],
+        `${path}.style.cornerRadii.${field}`,
+        { min: 0 },
+      );
+    warnUnknownFields(
+      out,
+      cornerRadii,
+      ["topLeft", "topRight", "bottomRight", "bottomLeft"],
+      `${path}.style.cornerRadii`,
+      "corner radii",
+    );
+  }
+  const shadow = style["shadow"];
+  validateGradient(out, style["fillGradient"], `${path}.style.fillGradient`);
+  validateGradient(
+    out,
+    style["strokeGradient"],
+    `${path}.style.strokeGradient`,
+  );
+  const effects = style["effects"];
+  if (effects !== undefined) {
+    if (!Array.isArray(effects))
+      out.push(
+        error("type.array", `${path}.style.effects`, "expected an array"),
+      );
+    else {
+      if (effects.length > 8)
+        out.push(
+          error(
+            "effects.max",
+            `${path}.style.effects`,
+            "expected at most 8 effects",
+          ),
+        );
+      for (const [index, effect] of effects.entries()) {
+        const effectPath = `${path}.style.effects[${index}]`;
+        if (!checkObject(out, effect, effectPath)) continue;
+        checkEnum(out, effect["type"], `${effectPath}.type`, [
+          "drop-shadow",
+          "layer-blur",
+          "background-blur",
+        ]);
+        checkBoolean(out, effect["enabled"], `${effectPath}.enabled`, {
+          optional: true,
+        });
+        checkNumber(out, effect["blur"], `${effectPath}.blur`, { min: 0 });
+        if (effect["type"] === "drop-shadow") {
+          for (const field of ["x", "y"])
+            checkNumber(out, effect[field], `${effectPath}.${field}`);
+          checkNumber(out, effect["opacity"], `${effectPath}.opacity`, {
+            min: 0,
+          });
+          if (typeof effect["opacity"] === "number" && effect["opacity"] > 1)
+            out.push(
+              error("value.max", `${effectPath}.opacity`, "must not exceed 1"),
+            );
+          if (
+            typeof effect["color"] !== "string" ||
+            !/^#[\da-f]{6}$/i.test(effect["color"])
+          )
+            out.push(
+              error(
+                "value.color",
+                `${effectPath}.color`,
+                "expected a six-digit hex color",
+              ),
+            );
+        }
+      }
+    }
+  }
+  if (
+    shadow !== undefined &&
+    checkObject(out, shadow, `${path}.style.shadow`)
+  ) {
+    for (const field of ["x", "y"])
+      checkNumber(out, shadow[field], `${path}.style.shadow.${field}`);
+    checkNumber(out, shadow["blur"], `${path}.style.shadow.blur`, { min: 0 });
+    checkNumber(out, shadow["opacity"], `${path}.style.shadow.opacity`, {
+      min: 0,
+    });
+    if (typeof shadow["opacity"] === "number" && shadow["opacity"] > 1)
+      out.push(
+        error("value.max", `${path}.style.shadow.opacity`, "must not exceed 1"),
+      );
+    if (
+      typeof shadow["color"] !== "string" ||
+      !/^#[\da-f]{6}$/i.test(shadow["color"])
+    )
+      out.push(
+        error(
+          "value.color",
+          `${path}.style.shadow.color`,
+          "expected a six-digit hex color",
+        ),
+      );
+  }
+  checkNumber(out, style["fontWeight"], `${path}.style.fontWeight`, {
+    optional: true,
+    min: 1,
+  });
+  if (typeof style["fontWeight"] === "number" && style["fontWeight"] > 1000)
+    out.push(
+      error("value.max", `${path}.style.fontWeight`, "must not exceed 1000"),
+    );
+  checkNumber(out, style["lineHeight"], `${path}.style.lineHeight`, {
+    optional: true,
+    min: 0.1,
+  });
+  checkNumber(out, style["letterSpacing"], `${path}.style.letterSpacing`, {
+    optional: true,
+  });
+  checkEnum(
+    out,
+    style["fontStyle"],
+    `${path}.style.fontStyle`,
+    ["normal", "italic"],
+    { optional: true },
+  );
+  checkEnum(
+    out,
+    style["textDecoration"],
+    `${path}.style.textDecoration`,
+    ["none", "underline", "line-through", "underline line-through"],
+    { optional: true },
+  );
   checkEnum(
     out,
     style["textAlign"],
     `${path}.style.textAlign`,
     TEXT_ALIGN_VALUES,
+    { optional: true },
+  );
+  checkEnum(
+    out,
+    style["verticalAlign"],
+    `${path}.style.verticalAlign`,
+    ["top", "middle", "bottom"],
     { optional: true },
   );
   warnUnknownFields(
@@ -179,6 +655,12 @@ function validateElement(
   }
 
   validateVisual(out, raw["visual"], `${path}.visual`);
+  out.push(
+    ...validateAccessibilityMetadata(
+      raw["accessibility"],
+      `${path}.accessibility`,
+    ),
+  );
 }
 
 export interface ValidateOptions {
@@ -229,6 +711,33 @@ export function validateDocument(
       }
       checkString(out, page["name"], `${path}.name`, { allowEmpty: true });
       checkEnum(out, page["kind"], `${path}.kind`, PAGE_KINDS);
+      if (page["order"] !== undefined) {
+        const order = page["order"];
+        if (
+          typeof order !== "string" ||
+          !/^[0-9A-Za-z]*[1-9A-Za-z]$/.test(order)
+        )
+          out.push(
+            error(
+              "page.order",
+              `${path}.order`,
+              "expected a base62 fractional key without a trailing zero",
+            ),
+          );
+      }
+      if (page["tokenMode"] !== undefined) {
+        if (checkString(out, page["tokenMode"], `${path}.tokenMode`)) {
+          const mode = page["tokenMode"];
+          if (typeof mode === "string" && mode.toLowerCase() === "default")
+            out.push(
+              error(
+                "page.tokenModeReserved",
+                `${path}.tokenMode`,
+                'the token mode name "Default" is reserved',
+              ),
+            );
+        }
+      }
     }
   } else {
     out.push(error("type.array", "pages", "expected an array"));

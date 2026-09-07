@@ -14,6 +14,7 @@ import type {
   Element,
   ElementId,
   FractionalIndex,
+  FrameSemantic,
   PageId,
   Visual,
 } from "@diagra/ir";
@@ -38,6 +39,11 @@ export interface ClipboardPayload {
 export function copyElements(
   store: Store,
   ids: Iterable<ElementId>,
+  options: {
+    readonly preserveColorTokens?: boolean;
+    readonly preserveNumberTokens?: boolean;
+    readonly preserveTextStyles?: boolean;
+  } = {},
 ): ClipboardPayload {
   const seen = new Set<ElementId>();
   const present: Element[] = [];
@@ -56,7 +62,87 @@ export function copyElements(
       compareFractional(left.index, right.index) ||
       compareFractional(left.id, right.id),
   );
-  return { elements: structuredClone(selfContained(present)) };
+  return {
+    elements: structuredClone(
+      selfContained(present).map((element) => {
+        const { colorTokens, numberTokens, textStyle, ...rest } =
+          element.visual;
+        if (!colorTokens && !numberTokens && !textStyle) return element;
+        const colors = Object.fromEntries(
+          Object.entries(colorTokens ?? {}).filter(
+            ([, id]) => seen.has(id) || options.preserveColorTokens === true,
+          ),
+        );
+        const numbers = Object.fromEntries(
+          Object.entries(numberTokens ?? {}).filter(
+            ([, id]) => seen.has(id) || options.preserveNumberTokens === true,
+          ),
+        );
+        const typography =
+          textStyle &&
+          (seen.has(textStyle) || options.preserveTextStyles === true)
+            ? textStyle
+            : undefined;
+        return {
+          ...element,
+          visual: {
+            ...rest,
+            ...(Object.keys(colors).length ? { colorTokens: colors } : {}),
+            ...(Object.keys(numbers).length ? { numberTokens: numbers } : {}),
+            ...(typography ? { textStyle: typography } : {}),
+          },
+        };
+      }),
+    ),
+  };
+}
+
+/** Same-document copies retain valid shared resources and component sources. */
+export function copyElementsInDocument(
+  store: Store,
+  ids: Iterable<ElementId>,
+): ClipboardPayload {
+  const copied = copyElements(store, ids, {
+    preserveColorTokens: true,
+    preserveNumberTokens: true,
+    preserveTextStyles: true,
+  });
+  const copiedIds = new Set(copied.elements.map((element) => element.id));
+  return {
+    elements: copied.elements.map((element) => {
+      if (element.type !== "frame") return element;
+      const original = store.get(element.id)?.semantic as FrameSemantic;
+      const sourceId = original.instanceOf ?? original.responsiveSource;
+      const source = sourceId ? store.get(sourceId) : undefined;
+      if (
+        source?.type !== "frame" ||
+        (original.instanceOf && !(source.semantic as FrameSemantic).component)
+      )
+        return element;
+      return {
+        ...element,
+        semantic: {
+          ...(element.semantic as FrameSemantic),
+          ...(original.instanceOf
+            ? { instanceOf: original.instanceOf }
+            : { responsiveSource: original.responsiveSource }),
+          ...(original.instanceBindings
+            ? {
+                instanceBindings: structuredClone(
+                  original.instanceBindings.filter(
+                    (binding) =>
+                      binding.target !== undefined &&
+                      binding.source !== undefined &&
+                      copiedIds.has(binding.target) &&
+                      store.get(binding.source) !== undefined,
+                  ),
+                ),
+              }
+            : {}),
+        },
+      };
+    }),
+  };
 }
 
 export interface PasteOptions {
@@ -104,7 +190,37 @@ export function planPaste(
       page: options.page,
       index: options.nextIndex(),
       semantic: remapReferences(source.type, source.semantic, mapping),
-      visual: offsetVisual(source.visual, options.offset),
+      visual: offsetVisual(
+        {
+          ...source.visual,
+          ...(source.visual.colorTokens
+            ? {
+                colorTokens: Object.fromEntries(
+                  Object.entries(source.visual.colorTokens).map(
+                    ([field, target]) => [field, mapping.get(target) ?? target],
+                  ),
+                ),
+              }
+            : {}),
+          ...(source.visual.numberTokens
+            ? {
+                numberTokens: Object.fromEntries(
+                  Object.entries(source.visual.numberTokens).map(
+                    ([field, target]) => [field, mapping.get(target) ?? target],
+                  ),
+                ),
+              }
+            : {}),
+          ...(source.visual.textStyle
+            ? {
+                textStyle:
+                  mapping.get(source.visual.textStyle) ??
+                  source.visual.textStyle,
+              }
+            : {}),
+        },
+        options.offset,
+      ),
     };
     commands.push({ type: "createElement", element: created });
     ids.push(id);

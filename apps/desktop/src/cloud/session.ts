@@ -22,7 +22,7 @@ import type { Editor } from "@diagra/core";
 import type { ElementId } from "@diagra/ir";
 import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
-import { type CloudApi, cloudApi } from "./api.ts";
+import { type CloudApi, type CloudRole, cloudApi } from "./api.ts";
 import type { CloudSettings } from "./settings.ts";
 
 export type CloudStatus =
@@ -35,6 +35,7 @@ export type CloudStatus =
   | "closed";
 
 export interface CloudSessionState {
+  readonly role: CloudRole | null;
   readonly status: CloudStatus;
   readonly docId: string | null;
   readonly title: string | null;
@@ -82,6 +83,7 @@ export interface OpenOptions {
 }
 
 const IDLE: CloudSessionState = {
+  role: null,
   status: "idle",
   docId: null,
   title: null,
@@ -165,6 +167,7 @@ export class CloudSession {
     const generation = ++this.generation;
     this.patch({
       status: "connecting",
+      role: null,
       docId,
       title: null,
       error: null,
@@ -204,7 +207,7 @@ export class CloudSession {
     this.provider = provider;
     provider.on("sync", this.onSync);
     provider.on("status", this.onStatus);
-    this.patch({ status: "syncing" });
+    this.patch({ status: "syncing", role: probe.value });
 
     // A provider that was already synced (a fake, or a warm cache) never
     // emits the event this session is waiting for.
@@ -218,6 +221,7 @@ export class CloudSession {
   close(): void {
     this.generation += 1;
     this.detachBinding();
+    this.editor.setReadOnly(false);
     if (this.provider) {
       this.provider.off("sync", this.onSync);
       this.provider.off("status", this.onStatus);
@@ -229,6 +233,7 @@ export class CloudSession {
     if (this.current.status !== "idle") {
       this.patch({
         status: "closed",
+        role: null,
         docId: null,
         title: null,
         error: null,
@@ -240,22 +245,26 @@ export class CloudSession {
   }
 
   undo(): boolean {
+    if (this.current.role === "viewer") return false;
     const undone = this.binding?.undo() ?? false;
     this.publishUndoState();
     return undone;
   }
 
   redo(): boolean {
+    if (this.current.role === "viewer") return false;
     const redone = this.binding?.redo() ?? false;
     this.publishUndoState();
     return redone;
   }
 
   canUndo(): boolean {
+    if (this.current.role === "viewer") return false;
     return this.binding?.canUndo() ?? false;
   }
 
   canRedo(): boolean {
+    if (this.current.role === "viewer") return false;
     return this.binding?.canRedo() ?? false;
   }
 
@@ -296,6 +305,7 @@ export class CloudSession {
       return;
     }
     const binding = new CollabBinding({ editor: this.editor, doc: this.doc });
+    this.editor.setReadOnly(this.current.role === "viewer");
     binding.attach();
     this.binding = binding;
     this.stopUndoState = binding.onUndoState(() => {
@@ -311,8 +321,8 @@ export class CloudSession {
       status: "connected",
       title: this.editor.getSnapshot().title,
       error: null,
-      canUndo: binding.canUndo(),
-      canRedo: binding.canRedo(),
+      canUndo: this.canUndo(),
+      canRedo: this.canRedo(),
     });
     this.publishPresence(null);
   }
@@ -332,6 +342,7 @@ export class CloudSession {
 
   private fail(message: string): void {
     this.detachBinding();
+    this.editor.setReadOnly(false);
     if (this.provider) {
       this.provider.off("sync", this.onSync);
       this.provider.off("status", this.onStatus);
@@ -340,7 +351,7 @@ export class CloudSession {
     }
     this.doc?.destroy();
     this.doc = null;
-    this.patch({ status: "error", error: message, peers: [] });
+    this.patch({ status: "error", role: null, error: message, peers: [] });
   }
 
   private patch(changes: Partial<CloudSessionState>): void {

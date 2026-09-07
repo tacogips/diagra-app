@@ -22,6 +22,9 @@ const GOLDEN = [
   "uml-class",
   "sequence",
   "freeform",
+  "image",
+  "tokens",
+  "comments",
   "forward-compat",
 ] as const;
 

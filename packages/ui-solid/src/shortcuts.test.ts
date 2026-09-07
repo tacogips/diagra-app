@@ -48,6 +48,28 @@ function enabled(editor: Editor, id: ActionId): boolean {
 }
 
 describe("action table", () => {
+  test("matching layer actions require one source and another eligible match", () => {
+    const editor = new Editor({ registry: createDefaultRegistry() });
+    const a = rect(editor, 0, 0);
+    editor.selection.set([a]);
+    expect(enabled(editor, "selectSameType")).toBe(false);
+    const b = rect(editor, 200, 0);
+    expect(enabled(editor, "selectSameType")).toBe(true);
+    expect(enabled(editor, "selectSameName")).toBe(true);
+    expect(runAction(getAction("selectSameType"), makeContext(editor))).toBe(
+      true,
+    );
+    expect([...editor.selection.ids()]).toEqual([a, b]);
+    expect(enabled(editor, "selectSameName")).toBe(false);
+    editor.selection.set([a]);
+    editor.apply([{ type: "updateVisual", id: b, visual: { locked: true } }]);
+    expect(enabled(editor, "selectSameType")).toBe(false);
+    expect(runAction(getAction("selectSameName"), makeContext(editor))).toBe(
+      false,
+    );
+    expect([...editor.selection.ids()]).toEqual([a]);
+  });
+
   test("every id resolves and titles carry the shortcut", () => {
     for (const action of EDITOR_ACTIONS) {
       expect(getAction(action.id)).toBe(action);
@@ -78,10 +100,24 @@ describe("action table", () => {
     expect(enabled(editor, "delete")).toBe(false);
 
     editor.selection.set([a]);
+    expect(enabled(editor, "frameSelection")).toBe(true);
     for (const id of ["cut", "copy", "duplicate", "delete"] as const) {
       expect(enabled(editor, id)).toBe(true);
     }
     expect(enabled(editor, "zoomSelection")).toBe(true);
+  });
+
+  test("frame selection action fits one or more sibling layers", () => {
+    const editor = new Editor({ registry: createDefaultRegistry() });
+    const a = rect(editor, 0, 0);
+    const b = rect(editor, 200, 0);
+    // Creation order, not selection order, defines the base and operands.
+    editor.selection.set([b, a]);
+    const context = makeContext(editor);
+    expect(runAction(getAction("frameSelection"), context)).toBe(true);
+    const [frame] = editor.selection.ids();
+    expect(editor.store.get(frame as ElementId)?.type).toBe("frame");
+    expect(enabled(editor, "frameSelection")).toBe(true);
   });
 
   test("paste needs a clipboard payload", () => {
@@ -120,6 +156,68 @@ describe("action table", () => {
     // A single group is one unit: nothing to align it against.
     expect(enabled(editor, "alignLeft")).toBe(false);
     expect(enabled(editor, "group")).toBe(false);
+  });
+
+  test("Boolean actions create an editable operation group from shape outlines", () => {
+    const editor = new Editor({ registry: createDefaultRegistry() });
+    const a = rect(editor, 0, 0);
+    const b = rect(editor, 50, 0);
+    editor.selection.set([a, b]);
+    expect(enabled(editor, "booleanSubtract")).toBe(true);
+    expect(runAction(getAction("booleanSubtract"), makeContext(editor))).toBe(
+      true,
+    );
+    const group = editor.store.get([...editor.selection.ids()][0] ?? "");
+    expect(group?.type).toBe("group");
+    expect(group?.semantic).toEqual({
+      memberIds: [a, b],
+      booleanOperation: "subtract",
+    });
+    expect(enabled(editor, "booleanUnion")).toBe(false);
+    expect(enabled(editor, "flattenBoolean")).toBe(true);
+    expect(runAction(getAction("flattenBoolean"), makeContext(editor))).toBe(
+      true,
+    );
+    expect(editor.store.get([...editor.selection.ids()][0] ?? "")?.type).toBe(
+      "draw.path",
+    );
+    expect(enabled(editor, "flattenBoolean")).toBe(false);
+  });
+
+  test("Boolean actions accept solid open strokes but reject dashed geometry", () => {
+    const editor = new Editor({ registry: createDefaultRegistry() });
+    const shape = rect(editor, 40, -20);
+    const stroke = editor.createElement("draw.freehand", {
+      semantic: {
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+        ],
+      },
+      visual: { style: { strokeWidth: 16, strokeCap: "round" } },
+    });
+    editor.selection.set([stroke, shape]);
+    expect(enabled(editor, "booleanUnion")).toBe(true);
+    const dashed = editor.createElement("draw.freehand", {
+      semantic: {
+        points: [
+          { x: 0, y: 30 },
+          { x: 100, y: 30 },
+        ],
+      },
+      visual: { style: { strokeWidth: 16, dash: "dashed" } },
+    });
+    editor.selection.set([dashed, shape]);
+    expect(enabled(editor, "booleanUnion")).toBe(false);
+  });
+
+  test("Boolean flatten is disabled for an empty geometric result", () => {
+    const editor = new Editor({ registry: createDefaultRegistry() });
+    const a = rect(editor, 0, 0);
+    const b = rect(editor, 0, 0);
+    editor.selection.set([a, b]);
+    editor.booleanSelection("subtract");
+    expect(enabled(editor, "flattenBoolean")).toBe(false);
   });
 
   test("edit text needs exactly one editable element", () => {

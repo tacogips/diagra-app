@@ -6,12 +6,18 @@
 
 import type { GeoKind } from "@diagra/ir";
 import {
+  resolvedCornerRadii,
+  unevenRoundedBoxContains,
+} from "../corner-radii.ts";
+import {
   type Box,
   boxContains,
-  diamondContains,
   ellipseContains,
+  roundedBoxContains,
 } from "../geometry.ts";
+import { polygonContains } from "../clipping.ts";
 import type { ShapeUtil } from "../shape-util.ts";
+import { geoOutlinePolygon } from "./outline.ts";
 
 export const GEO_DEFAULT_WIDTH = 160;
 export const GEO_DEFAULT_HEIGHT = 100;
@@ -47,10 +53,42 @@ export const geoShapeUtil: ShapeUtil = {
   hitTest(element, point) {
     const box = geoBounds(element.visual);
     switch (geoKindOf(element.semantic)) {
+      case "rect":
+        return element.visual.style?.cornerRadii
+          ? unevenRoundedBoxContains(
+              box,
+              point,
+              resolvedCornerRadii(element.visual.style),
+            )
+          : roundedBoxContains(
+              box,
+              point,
+              element.visual.style?.cornerRadius ?? 0,
+            );
       case "ellipse":
-        return ellipseContains(box, point);
+        return ellipseContains(
+          {
+            x: box.x + 1,
+            y: box.y + 1,
+            width: Math.max(0, box.width - 2),
+            height: Math.max(0, box.height - 2),
+          },
+          point,
+        );
       case "diamond":
-        return diamondContains(box, point);
+      case "triangle":
+      case "hexagon":
+      case "parallelogram":
+      case "cylinder":
+      case "star": {
+        const polygon = geoOutlinePolygon(
+          geoKindOf(element.semantic) ?? "rect",
+          box,
+        );
+        return polygon
+          ? polygonContains(polygon, point)
+          : boxContains(box, point);
+      }
       default:
         return boxContains(box, point);
     }

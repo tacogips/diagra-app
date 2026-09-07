@@ -15,6 +15,7 @@ import type {
   UmlMethod,
 } from "@diagra/ir";
 import { For, type JSX, Show } from "solid-js";
+import { fillPaintStyle, strokeBorderStyle } from "./visual.ts";
 
 export interface UmlClassViewProps {
   readonly element: Element;
@@ -52,7 +53,14 @@ function methodText(method: UmlMethod): string {
 export function UmlClassView(props: UmlClassViewProps): JSX.Element {
   const semantic = () => semanticOf(props.element);
   return (
-    <div class="diagra-uml-class">
+    <div
+      class="diagra-uml-class"
+      data-smart-paint="box"
+      style={{
+        ...fillPaintStyle(props.element.visual),
+        ...strokeBorderStyle(props.element.visual),
+      }}
+    >
       <div
         class="diagra-uml-name"
         style={{ height: `${umlNameHeight(props.element.semantic)}px` }}

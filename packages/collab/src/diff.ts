@@ -255,7 +255,23 @@ export function syncElementToY(
     map.set("index", next.index);
   }
   diffValue(map, "semantic", previous.semantic ?? {}, next.semantic ?? {});
-  diffValue(map, "visual", previous.visual ?? {}, next.visual ?? {});
+  // Like visual.style, this is a permanent internal map projected away when
+  // empty, which makes concurrent first-time fields commute.
+  diffValue(
+    map,
+    "accessibility",
+    previous.accessibility ?? {},
+    next.accessibility ?? {},
+  );
+  // `style` is an intentionally permanent internal map (see elementToY),
+  // projected away again when empty. Retaining it lets concurrent first-time
+  // style fields merge instead of racing to replace one optional object.
+  diffValue(
+    map,
+    "visual",
+    { ...previous.visual, style: previous.visual.style ?? {} },
+    { ...next.visual, style: next.visual.style ?? {} },
+  );
   diffValue(map, "extensions", previous.extensions, next.extensions);
 }
 

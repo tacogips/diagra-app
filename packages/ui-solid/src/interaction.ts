@@ -12,9 +12,10 @@
 // time — `activePointerId` — and every event from any other pointer is
 // dropped before it can reach a gesture transition.
 //
-// Which gestures open a batch: `translating` and `resizing` (many applies
-// per drag). `connecting` and `reconnecting` end in at most one apply and
-// open none. Arrow-key nudges open one batch that a timer closes 500 ms
+// Which gestures open a batch: translation, sequence reorder, resize, rotation,
+// multi-selection transforms, and connector bend editing (many applies per
+// drag). `connecting` and `reconnecting` end in at most one apply and open none.
+// Arrow-key nudges open one batch that a timer closes 500 ms
 // after the last press; anything else that could edit the document
 // (a pointer down, a shortcut) closes it first, so the nudge batch is never
 // open underneath another gesture's batch.
@@ -26,31 +27,54 @@ import type {
   Box,
   Editor,
   ResizeEdges,
+  SelectionResizeSnapshot,
   SnapGuide,
   SnapOptions,
   Vec,
   ViewportSize,
 } from "@diagra/core";
 import {
+  copySelectionStyle,
+  pasteSelectionStyle,
+  boxCenter,
+  canResizeSelection,
+  canRotateElement,
+  canRotateSelection,
+  compareFractional,
+  connectorWaypointFromPage,
+  connectorWaypointsWithInsertion,
+  createSelectionResizeSnapshot,
+  rotatePoint,
+  overlapsVisibleElement,
+  rotateElement,
+  rotateSelectionBy,
   ancestorChain,
   ERD_TABLE_HEADER_HEIGHT,
   ERD_TABLE_ROW_HEIGHT,
   endpointReaderFor,
   erdColumnCount,
+  frameParents,
   groupOf,
+  insideClip,
   isGroup,
+  layoutGridBands,
+  pageGuides,
   normalizeBox,
   outermostGroupOf,
   resolveConnector,
+  resizeSelection,
+  safeAreaContentBox,
   snapResize,
   snapTranslate,
   UML_CLASS_ROW_HEIGHT,
   umlNameHeight,
   unionBoxes,
+  visibleBounds,
 } from "@diagra/core";
 import {
   type Element,
   type ElementId,
+  type FrameSemantic,
   getElementTypeDefinition,
 } from "@diagra/ir";
 import { type Accessor, createSignal } from "solid-js";
@@ -68,6 +92,13 @@ export const RESIZE_HANDLES = [
 ] as const;
 
 export type ResizeHandle = (typeof RESIZE_HANDLES)[number];
+
+/** Derived-height engineering boxes expose only their authored width axis. */
+export function resizeHandlesFor(type: string): readonly ResizeHandle[] {
+  return type === "erd.table" || type === "uml.class"
+    ? (["e", "w"] as const)
+    : RESIZE_HANDLES;
+}
 
 /** Nothing may be resized below this, in page units. */
 export const MIN_SHAPE_SIZE = 8;
@@ -126,6 +157,13 @@ export const SLOT_LAYER_CLASS = "diagra-slot-layer";
 
 const NO_GUIDES: readonly SnapGuide[] = [];
 
+interface GridSnap {
+  readonly size?: number;
+  readonly origin?: Vec;
+  readonly xLines: readonly number[];
+  readonly yLines: readonly number[];
+}
+
 export interface PendingConnection {
   readonly from: Vec;
   readonly to: Vec;
@@ -141,6 +179,8 @@ export type EditRegion = "body" | "title" | { readonly row: number };
 export interface SnapSettings {
   readonly grid: boolean;
   readonly objects: boolean;
+  /** Persistent page-guide snapping; omitted keeps the default enabled. */
+  readonly guides?: boolean;
 }
 
 /** Which end of a connector an endpoint handle drags. */
@@ -154,6 +194,8 @@ export interface ContextMenuPoint {
 export interface ResizeModifiers {
   /** Shift: keep the start box's aspect ratio. */
   readonly keepAspect?: boolean;
+  /** Persisted ratio overrides a start box awaiting reconciliation. */
+  readonly aspectRatio?: number;
   /** Alt/Option: grow both sides, keeping the centre where it was. */
   readonly fromCenter?: boolean;
 }
@@ -171,7 +213,28 @@ const defaultScheduler: Scheduler = (callback, delayMs) => {
 
 type Gesture =
   | { readonly kind: "idle" }
+  | {
+      readonly kind: "rotating";
+      readonly id: ElementId;
+      readonly center: Vec;
+      readonly startAngle: number;
+      readonly rotation: number;
+    }
+  | {
+      readonly kind: "rotating-selection";
+      readonly center: Vec;
+      readonly startAngle: number;
+      lastDegrees: number;
+    }
   | { readonly kind: "panning"; lastScreen: Vec }
+  | {
+      readonly kind: "sequence-reorder";
+      readonly id: ElementId;
+      readonly axis: "x" | "y";
+      readonly startScreen: Vec;
+      readonly clickTarget: ElementId | null;
+      moved: boolean;
+    }
   | {
       readonly kind: "translating";
       readonly startPage: Vec;
@@ -181,6 +244,7 @@ type Gesture =
       readonly startBounds: Box | null;
       /** Bounds the moving box may snap to; computed once per drag. */
       readonly candidates: readonly Box[];
+      readonly layoutGrid: GridSnap | null;
       /**
        * What a click (a drag that never travelled) selects on release: the
        * one level further in when a selected group's member was hit, or
@@ -191,11 +255,38 @@ type Gesture =
     }
   | {
       readonly kind: "resizing";
+      readonly rotation: number;
       readonly id: ElementId;
       readonly handle: ResizeHandle;
       readonly startPage: Vec;
       readonly startBox: Box;
       readonly candidates: readonly Box[];
+      readonly layoutGrid: GridSnap | null;
+      /** ER/UML height follows rows, so Shift cannot couple it to width. */
+      readonly derivedHeight: boolean;
+      readonly aspectRatio?: number;
+    }
+  | {
+      readonly kind: "resizing-selection";
+      readonly snapshot: SelectionResizeSnapshot;
+      readonly handle: ResizeHandle;
+      readonly startPage: Vec;
+      readonly candidates: readonly Box[];
+      readonly layoutGrid: GridSnap | null;
+    }
+  | {
+      readonly kind: "routing-bend";
+      readonly id: ElementId;
+      readonly axis: "x" | "y";
+      readonly from: number;
+      readonly to: number;
+    }
+  | {
+      readonly kind: "routing-waypoint";
+      readonly id: ElementId;
+      readonly index: number;
+      readonly fromCenter: Vec;
+      readonly toCenter: Vec;
     }
   | { readonly kind: "connecting"; readonly from: ElementId }
   | {
@@ -220,6 +311,8 @@ export interface InteractionOptions {
   readonly container: () => HTMLElement | undefined;
   /** Fires as the marquee rectangle changes; `null` when the drag ends. */
   readonly onMarquee?: (rect: Box | null) => void;
+  /** Exact page point selected by the review-comment placement tool. */
+  readonly onCommentPlace?: (point: Vec) => void;
   /** Snapping switches; both off when omitted. */
   readonly snap?: Accessor<SnapSettings>;
   /** Canvas size in CSS pixels, for fit-to-view and zoom anchors. */
@@ -248,6 +341,12 @@ export interface Interaction {
   /** The canvas lost focus: release the temporary hand, close open nudges. */
   onBlur(): void;
   startResize(id: ElementId, handle: ResizeHandle, event: PointerEvent): void;
+  startResizeSelection(handle: ResizeHandle, event: PointerEvent): void;
+  startRotate(id: ElementId, event: PointerEvent): void;
+  startRotateSelection(center: Vec, event: PointerEvent): void;
+  /** Drag the middle channel of a selected orthogonal connector. */
+  startRouteBend(id: ElementId, event: PointerEvent): void;
+  startRouteWaypoint(id: ElementId, index: number, event: PointerEvent): void;
   /** Drag one end of a connector to another element. */
   startReconnect(id: ElementId, end: ConnectorEnd, event: PointerEvent): void;
   /** Drag a new connector out of `from`, as the edge tool would. */
@@ -357,7 +456,7 @@ export function resizeBoxConstrained(
   let width = raw.width;
   let height = raw.height;
   if (modifiers.keepAspect === true && start.width > 0 && start.height > 0) {
-    const aspect = start.width / start.height;
+    const aspect = modifiers.aspectRatio ?? start.width / start.height;
     const horizontal = west || east;
     const vertical = north || south;
     if (horizontal && vertical) {
@@ -402,6 +501,36 @@ export function resizeBoxConstrained(
   return clampBox({ x, y, width, height });
 }
 
+/** Resize in local axes, then rotate the changed center back into page space. */
+export function resizeRotatedBox(
+  start: Box,
+  handle: ResizeHandle,
+  dx: number,
+  dy: number,
+  rotation: number,
+  modifiers: ResizeModifiers = {},
+): Box {
+  const angle = ((rotation % 360) * Math.PI) / 180;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  const local = resizeBoxConstrained(
+    start,
+    handle,
+    dx * cosine + dy * sine,
+    -dx * sine + dy * cosine,
+    modifiers,
+  );
+  const center = boxCentre(start);
+  const next = boxCentre(local);
+  const cx = next.x - center.x;
+  const cy = next.y - center.y;
+  return {
+    ...local,
+    x: center.x + cx * cosine - cy * sine - local.width / 2,
+    y: center.y + cx * sine + cy * cosine - local.height / 2,
+  };
+}
+
 /** The edges a resize handle moves, in snapping's vocabulary. */
 export function handleEdges(handle: ResizeHandle): ResizeEdges {
   return {
@@ -430,7 +559,11 @@ export function editRegionAt(
   box: Box,
   point: Vec,
 ): EditRegion {
-  const dy = point.y - box.y;
+  const local =
+    element.visual.rotation && !isConnector(element) && !isGroup(element)
+      ? rotatePoint(point, boxCentre(box), -element.visual.rotation)
+      : point;
+  const dy = local.y - box.y;
   if (element.type === "erd.table") {
     if (dy < ERD_TABLE_HEADER_HEIGHT) {
       return "title";
@@ -502,6 +635,12 @@ function isConnector(element: Element): boolean {
   return getElementTypeDefinition(element.type)?.category === "edge";
 }
 
+const MANUAL_ROUTE_TYPES: ReadonlySet<string> = new Set([
+  "edge.generic",
+  "erd.relation",
+  "uml.association",
+]);
+
 /** Something a connector may end on and a drag may snap to. */
 function isSolid(element: Element): boolean {
   return !isConnector(element) && !isGroup(element);
@@ -554,8 +693,12 @@ export function createInteraction(
     // One context for the whole scan: bounds lookups share the store view.
     const context = editor.createShapeContext();
     for (const element of editor.store.getPageElements(editor.currentPageId)) {
-      const bounds = editor.getBounds(element.id, context);
-      if (bounds && boxesOverlap(bounds, rect)) {
+      // Members resolve to their outermost group after testing; a group's
+      // aggregate bounds would select empty space between rotated members.
+      if (isGroup(element)) continue;
+      if (context.isHidden?.(element.id) || context.isLocked?.(element.id))
+        continue;
+      if (overlapsVisibleElement(element, rect, context)) {
         out.push(element.id);
       }
     }
@@ -575,10 +718,18 @@ export function createInteraction(
     const elements = editor.store.getPageElements(editor.currentPageId);
     for (let at = elements.length - 1; at >= 0; at -= 1) {
       const element = elements[at] as Element;
+      if (context.isHidden?.(element.id) || context.isLocked?.(element.id))
+        continue;
       if (excluded.includes(element.id) || !isSolid(element)) {
         continue;
       }
-      if (editor.getShapeUtil(element.type).hitTest(element, point, context)) {
+      if (!insideClip(context, element.id, point)) continue;
+      const box = context.boundsOf(element.id);
+      const local =
+        box && element.visual.rotation
+          ? rotatePoint(point, boxCentre(box), -element.visual.rotation)
+          : point;
+      if (editor.getShapeUtil(element.type).hitTest(element, local, context)) {
         return element.id;
       }
     }
@@ -625,10 +776,14 @@ export function createInteraction(
     const window = snapWindow();
     const out: Box[] = [];
     for (const element of editor.store.getPageElements(editor.currentPageId)) {
-      if (excluded.has(element.id) || !isSolid(element)) {
+      if (
+        excluded.has(element.id) ||
+        !isSolid(element) ||
+        context.isHidden?.(element.id)
+      ) {
         continue;
       }
-      const bounds = context.boundsOf(element.id);
+      const bounds = visibleBounds(context, element.id);
       if (bounds && (window === null || boxesOverlap(bounds, window))) {
         out.push(bounds);
       }
@@ -636,23 +791,117 @@ export function createInteraction(
     return out;
   };
 
+  /** Construction guides from a shared direct parent, fixed for the gesture. */
+  const layoutGridFor = (ids: Iterable<ElementId>): GridSnap | null => {
+    const selected = [...ids];
+    if (!selected.length) return null;
+    const context = editor.createShapeContext();
+    const parents = frameParents(editor.store, editor.currentPageId, context);
+    const parentId = parents.get(selected[0] as ElementId);
+    if (!parentId || selected.some((id) => parents.get(id) !== parentId))
+      return null;
+    const parent = editor.store.get(parentId);
+    const semantic =
+      parent?.type === "frame" ? (parent.semantic as FrameSemantic) : undefined;
+    const grids = (
+      parent?.type === "frame" ? semantic?.layoutGrids : undefined
+    )?.filter((candidate) => candidate.visible !== false);
+    const bounds = context.boundsOf(parentId);
+    if ((!grids?.length && !semantic?.safeArea) || !bounds) return null;
+    const square = grids?.find((candidate) => candidate.kind === "grid");
+    const xLines = new Set<number>();
+    const yLines = new Set<number>();
+    for (const grid of grids ?? []) {
+      if (grid.kind === "grid") continue;
+      for (const band of layoutGridBands(grid, bounds.width, bounds.height)) {
+        if (grid.kind === "columns") {
+          xLines.add(bounds.x + band.x);
+          xLines.add(bounds.x + band.x + band.width);
+        } else {
+          yLines.add(bounds.y + band.y);
+          yLines.add(bounds.y + band.y + band.height);
+        }
+      }
+    }
+    if (semantic?.safeArea) {
+      const safe = safeAreaContentBox(bounds, semantic.safeArea);
+      xLines.add(safe.x);
+      xLines.add(safe.x + safe.width);
+      yLines.add(safe.y);
+      yLines.add(safe.y + safe.height);
+    }
+    return {
+      ...(square?.kind === "grid"
+        ? {
+            size: square.size,
+            origin: { x: bounds.x, y: bounds.y },
+          }
+        : {}),
+      xLines: [...xLines].sort((a, b) => a - b),
+      yLines: [...yLines].sort((a, b) => a - b),
+    };
+  };
+
   /** Snap parameters for this event, or `null` when snapping is off. */
-  const snapFor = (event: {
-    readonly metaKey?: boolean;
-    readonly ctrlKey?: boolean;
-  }): { readonly objects: boolean; readonly options: SnapOptions } | null => {
+  const snapFor = (
+    event: {
+      readonly metaKey?: boolean;
+      readonly ctrlKey?: boolean;
+    },
+    layoutGrid: GridSnap | null,
+  ): { readonly objects: boolean; readonly options: SnapOptions } | null => {
     const settings = options.snap?.();
-    if (!settings || (!settings.grid && !settings.objects)) {
+    if (!settings) {
       return null;
     }
     // Cmd/Ctrl held during the gesture disables both kinds (design 3.2).
     if (event.metaKey === true || event.ctrlKey === true) {
       return null;
     }
+    const persistent =
+      settings.guides === false
+        ? []
+        : pageGuides(editor, editor.currentPageId).filter(
+            (guide) => !guide.hidden,
+          );
+    if (!settings.grid && !settings.objects && !persistent.length) return null;
     const threshold = SNAP_THRESHOLD_PX / editor.camera.get().z;
+    const gridOptions: SnapOptions = settings.grid
+      ? layoutGrid
+        ? {
+            threshold,
+            ...(layoutGrid.size ? { grid: layoutGrid.size } : {}),
+            ...(layoutGrid.origin ? { gridOrigin: layoutGrid.origin } : {}),
+            ...(layoutGrid.xLines.length
+              ? { gridLinesX: layoutGrid.xLines }
+              : {}),
+            ...(layoutGrid.yLines.length
+              ? { gridLinesY: layoutGrid.yLines }
+              : {}),
+          }
+        : { threshold, grid: SNAP_GRID }
+      : { threshold };
+    const guideLinesX = persistent
+      .filter((guide) => guide.axis === "x")
+      .map((guide) => guide.position);
+    const guideLinesY = persistent
+      .filter((guide) => guide.axis === "y")
+      .map((guide) => guide.position);
     return {
       objects: settings.objects,
-      options: settings.grid ? { threshold, grid: SNAP_GRID } : { threshold },
+      options: {
+        ...gridOptions,
+        ...(guideLinesX.length || gridOptions.gridLinesX?.length
+          ? {
+              gridLinesX: [...(gridOptions.gridLinesX ?? []), ...guideLinesX],
+            }
+          : {}),
+        ...(guideLinesY.length || gridOptions.gridLinesY?.length
+          ? {
+              gridLinesY: [...(gridOptions.gridLinesY ?? []), ...guideLinesY],
+            }
+          : {}),
+      },
     };
   };
 
@@ -694,7 +943,16 @@ export function createInteraction(
 
   /** Commit whatever the gesture did and return to idle. */
   const finishGesture = (): void => {
-    if (gesture.kind === "translating" || gesture.kind === "resizing") {
+    if (
+      gesture.kind === "translating" ||
+      gesture.kind === "sequence-reorder" ||
+      gesture.kind === "resizing" ||
+      gesture.kind === "resizing-selection" ||
+      gesture.kind === "routing-bend" ||
+      gesture.kind === "routing-waypoint" ||
+      gesture.kind === "rotating" ||
+      gesture.kind === "rotating-selection"
+    ) {
       editor.endBatch();
     }
     gesture = { kind: "idle" };
@@ -706,7 +964,16 @@ export function createInteraction(
    * move or resize leaves no trace — not even an undo step.
    */
   const cancelGesture = (): void => {
-    if (gesture.kind === "translating" || gesture.kind === "resizing") {
+    if (
+      gesture.kind === "translating" ||
+      gesture.kind === "sequence-reorder" ||
+      gesture.kind === "resizing" ||
+      gesture.kind === "resizing-selection" ||
+      gesture.kind === "routing-bend" ||
+      gesture.kind === "routing-waypoint" ||
+      gesture.kind === "rotating" ||
+      gesture.kind === "rotating-selection"
+    ) {
       editor.abortBatch();
     }
     if (gesture.kind === "marquee") {
@@ -839,6 +1106,35 @@ export function createInteraction(
       origins,
       startBounds: unionBoxes(boxes),
       candidates: snapCandidates(excluded),
+      layoutGrid: layoutGridFor(editor.selection.ids()),
+      clickTarget,
+      moved: false,
+    };
+    return true;
+  };
+
+  /** Sequence layers reorder on their constrained semantic axis. */
+  const beginSequenceReorder = (
+    id: ElementId,
+    event: PointerEvent,
+    clickTarget: ElementId | null,
+  ): boolean => {
+    const element = editor.store.get(id);
+    if (
+      !element ||
+      (element.type !== "sequence.participant" &&
+        element.type !== "sequence.message") ||
+      editor.selection.size !== 1 ||
+      !editor.selection.has(id) ||
+      editor.createShapeContext().isLocked?.(id)
+    )
+      return false;
+    editor.beginBatch();
+    gesture = {
+      kind: "sequence-reorder",
+      id,
+      axis: element.type === "sequence.participant" ? "x" : "y",
+      startScreen: screenPoint(event),
       clickTarget,
       moved: false,
     };
@@ -856,9 +1152,21 @@ export function createInteraction(
     if (!creation) {
       return;
     }
+    if (creation.type === "sequence.participant") {
+      const semantic = creation.semantic as {
+        kind?: "actor" | "service" | "db";
+      };
+      const id = editor.createSequenceParticipant(
+        semantic.kind ?? "service",
+        point,
+      );
+      editor.selection.set([id]);
+      options.setTool("select");
+      return;
+    }
     const draft = editor.buildElement(creation.type, {
       semantic: creation.semantic,
-      visual: { x: point.x, y: point.y },
+      visual: { ...creation.visual, x: point.x, y: point.y },
     });
     const box = editor
       .getShapeUtil(creation.type)
@@ -931,7 +1239,9 @@ export function createInteraction(
     // the batch it opened is accounted for before this one opens another.
     claim(event);
     options.container()?.focus();
-    const tool = options.tool();
+    const requestedTool = options.tool();
+    const tool =
+      editor.readOnly && requestedTool !== "hand" ? "select" : requestedTool;
     const point = pagePoint(event);
     lastPointer = { screen: screenPoint(event), page: point };
 
@@ -944,6 +1254,12 @@ export function createInteraction(
 
     if (creationFor(tool)) {
       placeShape(point, tool);
+      return;
+    }
+
+    if (tool === "comment") {
+      options.onCommentPlace?.(point);
+      options.setTool("select");
       return;
     }
 
@@ -971,6 +1287,8 @@ export function createInteraction(
     }
 
     const clickTarget = selectOnPress(hit, event.shiftKey);
+    if (editor.readOnly) return;
+    if (beginSequenceReorder(hit, event, clickTarget)) return;
     if (!beginTranslate(event, point, clickTarget)) {
       if (clickTarget !== null) {
         editor.selection.set([clickTarget]);
@@ -980,6 +1298,15 @@ export function createInteraction(
   };
 
   const onPointerMove = (event: PointerEvent): void => {
+    if (
+      editor.readOnly &&
+      gesture.kind !== "panning" &&
+      gesture.kind !== "marquee" &&
+      gesture.kind !== "idle"
+    ) {
+      cancelGesture();
+      return;
+    }
     if (event.pointerId !== activePointerId) {
       return;
     }
@@ -993,6 +1320,53 @@ export function createInteraction(
         gesture.lastScreen = now;
         return;
       }
+      case "sequence-reorder": {
+        const screen = screenPoint(event);
+        if (
+          Math.abs(screen.x - gesture.startScreen.x) > CLICK_SLOP_PX ||
+          Math.abs(screen.y - gesture.startScreen.y) > CLICK_SLOP_PX
+        )
+          gesture.moved = true;
+        if (!gesture.moved) return;
+        const { id, axis } = gesture;
+        const current = editor.store.get(id);
+        if (!current) return;
+        const peers = editor.store
+          .getPageElements(current.page)
+          .filter((element) => element.type === current.type)
+          .sort((left, right) => {
+            const a = (left.semantic as { order: string }).order;
+            const b = (right.semantic as { order: string }).order;
+            return (
+              compareFractional(a, b) || compareFractional(left.id, right.id)
+            );
+          });
+        const coordinate = pagePoint(event)[axis];
+        let desired = peers.findIndex((element) => element.id === id);
+        let distance = Number.POSITIVE_INFINITY;
+        for (let index = 0; index < peers.length; index += 1) {
+          const peer = peers[index];
+          if (!peer) continue;
+          const bounds = editor.getBounds(peer.id);
+          if (!bounds) continue;
+          const center =
+            axis === "x"
+              ? bounds.x + bounds.width / 2
+              : bounds.y + bounds.height / 2;
+          const nextDistance = Math.abs(coordinate - center);
+          if (nextDistance < distance) {
+            desired = index;
+            distance = nextDistance;
+          }
+        }
+        let at = peers.findIndex((element) => element.id === id);
+        while (at !== desired) {
+          const delta = at < desired ? 1 : -1;
+          if (!editor.moveSequenceElement(id, delta)) break;
+          at += delta;
+        }
+        return;
+      }
       case "translating": {
         const point = pagePoint(event);
         const screen = screenPoint(event);
@@ -1004,7 +1378,7 @@ export function createInteraction(
         }
         let dx = point.x - gesture.startPage.x;
         let dy = point.y - gesture.startPage.y;
-        const snap = snapFor(event);
+        const snap = snapFor(event, gesture.layoutGrid);
         if (snap && gesture.startBounds) {
           // The union box of everything moving is what lines up with the
           // neighbours; the same correction then applies to every element.
@@ -1035,14 +1409,23 @@ export function createInteraction(
       }
       case "resizing": {
         const point = pagePoint(event);
-        let box = resizeBoxConstrained(
+        let box = resizeRotatedBox(
           gesture.startBox,
           gesture.handle,
           point.x - gesture.startPage.x,
           point.y - gesture.startPage.y,
-          { keepAspect: event.shiftKey, fromCenter: event.altKey },
+          gesture.rotation,
+          {
+            keepAspect:
+              !gesture.derivedHeight &&
+              (event.shiftKey || gesture.aspectRatio !== undefined),
+            aspectRatio: gesture.aspectRatio,
+            fromCenter: event.altKey,
+          },
         );
-        const snap = snapFor(event);
+        const snap = gesture.rotation
+          ? null
+          : snapFor(event, gesture.layoutGrid);
         if (snap) {
           const result = snapResize(
             box,
@@ -1056,6 +1439,120 @@ export function createInteraction(
           clearGuides();
         }
         editor.resizeElement(gesture.id, box);
+        return;
+      }
+      case "resizing-selection": {
+        const point = pagePoint(event);
+        let box = resizeBoxConstrained(
+          gesture.snapshot.bounds,
+          gesture.handle,
+          point.x - gesture.startPage.x,
+          point.y - gesture.startPage.y,
+          { keepAspect: event.shiftKey, fromCenter: event.altKey },
+        );
+        const snap = snapFor(event, gesture.layoutGrid);
+        if (snap) {
+          const result = snapResize(
+            box,
+            handleEdges(gesture.handle),
+            snap.objects ? gesture.candidates : [],
+            snap.options,
+          );
+          box = clampBox(result.box);
+          setGuides(result.guides);
+        } else {
+          clearGuides();
+        }
+        resizeSelection(editor, gesture.snapshot, box);
+        return;
+      }
+      case "routing-bend": {
+        const element = editor.store.get(gesture.id);
+        if (!element) return;
+        const span = gesture.to - gesture.from;
+        if (Math.abs(span) < 1e-9) return;
+        const point = pagePoint(event);
+        const bend = Math.max(
+          0,
+          Math.min(1, (point[gesture.axis] - gesture.from) / span),
+        );
+        const semantic =
+          typeof element.semantic === "object" && element.semantic !== null
+            ? (element.semantic as Record<string, unknown>)
+            : {};
+        if (semantic["routingBend"] === bend) return;
+        editor.apply([
+          {
+            type: "updateSemantic",
+            id: gesture.id,
+            semantic: { ...semantic, routingBend: bend },
+          },
+        ]);
+        return;
+      }
+      case "routing-waypoint": {
+        const element = editor.store.get(gesture.id);
+        if (!element) return;
+        const semantic =
+          typeof element.semantic === "object" && element.semantic !== null
+            ? (element.semantic as Record<string, unknown>)
+            : {};
+        const waypoints = semantic["routingWaypoints"];
+        if (!Array.isArray(waypoints) || !waypoints[gesture.index]) return;
+        const next = connectorWaypointFromPage(
+          pagePoint(event),
+          gesture.fromCenter,
+          gesture.toCenter,
+        );
+        const waypointIndex = gesture.index;
+        editor.apply([
+          {
+            type: "updateSemantic",
+            id: gesture.id,
+            semantic: {
+              ...semantic,
+              routingWaypoints: waypoints.map((waypoint, index) =>
+                index === waypointIndex ? next : waypoint,
+              ),
+            },
+          },
+        ]);
+        return;
+      }
+      case "rotating": {
+        const point = pagePoint(event);
+        if (
+          Math.hypot(point.x - gesture.center.x, point.y - gesture.center.y) < 1
+        )
+          return;
+        const angle = Math.atan2(
+          point.y - gesture.center.y,
+          point.x - gesture.center.x,
+        );
+        const degrees =
+          gesture.rotation + ((angle - gesture.startAngle) * 180) / Math.PI;
+        rotateElement(
+          editor,
+          gesture.id,
+          event.shiftKey ? Math.round(degrees / 15) * 15 : degrees,
+        );
+        return;
+      }
+      case "rotating-selection": {
+        const point = pagePoint(event);
+        if (
+          Math.hypot(point.x - gesture.center.x, point.y - gesture.center.y) < 1
+        )
+          return;
+        const angle = Math.atan2(
+          point.y - gesture.center.y,
+          point.x - gesture.center.x,
+        );
+        const raw = ((angle - gesture.startAngle) * 180) / Math.PI;
+        const degrees = event.shiftKey ? Math.round(raw / 15) * 15 : raw;
+        const delta = degrees - gesture.lastDegrees;
+        if (rotateSelectionBy(editor, delta, gesture.center))
+          gesture.lastDegrees = degrees;
         return;
       }
       case "connecting": {
@@ -1131,6 +1628,17 @@ export function createInteraction(
     if (event.pointerId !== activePointerId) {
       return;
     }
+    if (
+      editor.readOnly &&
+      gesture.kind !== "panning" &&
+      gesture.kind !== "marquee" &&
+      gesture.kind !== "idle"
+    ) {
+      cancelGesture();
+      release(event);
+      activePointerId = null;
+      return;
+    }
     if (gesture.kind === "connecting") {
       const target = targetUnder(pagePoint(event), [gesture.from]);
       if (target) {
@@ -1145,7 +1653,7 @@ export function createInteraction(
         reconnect(gesture.id, gesture.end, target);
       }
     } else if (
-      gesture.kind === "translating" &&
+      (gesture.kind === "translating" || gesture.kind === "sequence-reorder") &&
       !gesture.moved &&
       gesture.clickTarget !== null
     ) {
@@ -1259,6 +1767,11 @@ export function createInteraction(
 
   /** Chords with Cmd (macOS) or Ctrl held. Returns false when not ours. */
   const onShortcut = (event: KeyboardEvent, key: string): boolean => {
+    if (
+      editor.readOnly &&
+      ["z", "y", "x", "v", "d", "g", "[", "]"].includes(key)
+    )
+      return true;
     switch (key) {
       case "z":
         if (event.shiftKey) {
@@ -1274,19 +1787,23 @@ export function createInteraction(
         editor.selectAll();
         return true;
       case "c":
-        editor.copySelection();
+        if (event.altKey) copySelectionStyle(editor);
+        else editor.copySelection();
         return true;
       case "x":
         editor.cutSelection();
         return true;
       case "v":
-        editor.paste();
+        if (event.altKey) pasteSelectionStyle(editor);
+        else editor.paste();
         return true;
       case "d":
         editor.duplicateSelection();
         return true;
       case "g":
-        if (event.shiftKey) {
+        if (event.altKey) {
+          editor.frameSelection();
+        } else if (event.shiftKey) {
           editor.ungroupSelection();
         } else {
           editor.groupSelection();
@@ -1341,6 +1858,10 @@ export function createInteraction(
     }
 
     if (arrow) {
+      if (editor.readOnly) {
+        event.preventDefault();
+        return;
+      }
       if (editor.selection.size === 0) {
         return;
       }
@@ -1364,12 +1885,17 @@ export function createInteraction(
         return;
       case "enter":
       case "f2":
+        if (editor.readOnly) return;
         if (requestEditOfSelection()) {
           event.preventDefault();
         }
         return;
       case "delete":
       case "backspace":
+        if (editor.readOnly) {
+          event.preventDefault();
+          return;
+        }
         if (editor.selection.size > 0) {
           event.preventDefault();
           editor.deleteSelection();
@@ -1413,6 +1939,7 @@ export function createInteraction(
       const tool = TOOL_KEYS[key];
       if (tool !== undefined) {
         event.preventDefault();
+        if (editor.readOnly && tool !== "select" && tool !== "hand") return;
         options.setTool(tool);
       }
     }
@@ -1431,6 +1958,7 @@ export function createInteraction(
   };
 
   const onDoubleClick = (event: MouseEvent): void => {
+    if (editor.readOnly) return;
     if (insideSlot(event.target)) {
       return;
     }
@@ -1440,6 +1968,38 @@ export function createInteraction(
       return;
     }
     const element = editor.store.get(hit);
+    if (element && MANUAL_ROUTE_TYPES.has(element.type)) {
+      const context = editor.createShapeContext();
+      const semantic =
+        typeof element.semantic === "object" && element.semantic !== null
+          ? (element.semantic as Record<string, unknown>)
+          : {};
+      const resolved = resolveConnector(
+        element,
+        context,
+        endpointReaderFor(element.type),
+      );
+      const routingWaypoints = resolved
+        ? connectorWaypointsWithInsertion(
+            resolved,
+            point,
+            semantic["routing"] === "manual",
+          )
+        : null;
+      if (routingWaypoints && !context.isLocked?.(hit)) {
+        flushNudge();
+        event.preventDefault();
+        editor.apply([
+          {
+            type: "updateSemantic",
+            id: hit,
+            semantic: { ...semantic, routing: "manual", routingWaypoints },
+          },
+        ]);
+        editor.selection.set([hit]);
+      }
+      return;
+    }
     const box = editor.getBounds(hit);
     const region = element && box ? editRegionAt(element, box, point) : "body";
     options.onEditRequest?.(hit, region);
@@ -1465,29 +2025,178 @@ export function createInteraction(
 
   // --------------------------------------------------------------- handles
 
+  const startRotate = (id: ElementId, event: PointerEvent): void => {
+    const element = editor.store.get(id);
+    const box = editor.getBounds(id);
+    const context = editor.createShapeContext();
+    if (
+      !owns(event) ||
+      event.button !== 0 ||
+      !element ||
+      !box ||
+      !canRotateElement(element) ||
+      context.isLocked?.(id) ||
+      context.isHidden?.(id)
+    )
+      return;
+    const center = boxCentre(box);
+    const point = pagePoint(event);
+    if (Math.hypot(point.x - center.x, point.y - center.y) < 1) return;
+    event.stopPropagation();
+    claim(event);
+    editor.beginBatch();
+    gesture = {
+      kind: "rotating",
+      id,
+      center,
+      startAngle: Math.atan2(point.y - center.y, point.x - center.x),
+      rotation: element.visual.rotation ?? 0,
+    };
+  };
+
+  const startRotateSelection = (center: Vec, event: PointerEvent): void => {
+    if (!owns(event) || event.button !== 0 || !canRotateSelection(editor))
+      return;
+    const point = pagePoint(event);
+    if (Math.hypot(point.x - center.x, point.y - center.y) < 1) return;
+    event.stopPropagation();
+    claim(event);
+    editor.beginBatch();
+    gesture = {
+      kind: "rotating-selection",
+      center,
+      startAngle: Math.atan2(point.y - center.y, point.x - center.x),
+      lastDegrees: 0,
+    };
+  };
+
   const startResize = (
     id: ElementId,
     handle: ResizeHandle,
     event: PointerEvent,
   ): void => {
-    if (!owns(event)) {
+    const element = editor.store.get(id);
+    if (
+      !owns(event) ||
+      !element ||
+      editor.createShapeContext().isLocked?.(id)
+    ) {
       return;
     }
     const startBox = editor.getBounds(id);
     if (!startBox) {
       return;
     }
+    const derivedHeight =
+      element.type === "erd.table" || element.type === "uml.class";
+    if (derivedHeight && handle !== "e" && handle !== "w") return;
     event.stopPropagation();
     // Same recovery as `onPointerDown`: never open a batch over an open one.
     claim(event);
     editor.beginBatch();
     gesture = {
       kind: "resizing",
+      rotation: element.visual.rotation ?? 0,
       id,
       handle,
       startPage: pagePoint(event),
       startBox,
       candidates: snapCandidates(new Set([id])),
+      layoutGrid: layoutGridFor([id]),
+      derivedHeight,
+      ...(element.visual.aspectRatio === undefined
+        ? {}
+        : { aspectRatio: element.visual.aspectRatio }),
+    };
+  };
+
+  const startResizeSelection = (
+    handle: ResizeHandle,
+    event: PointerEvent,
+  ): void => {
+    if (!owns(event) || event.button !== 0 || !canResizeSelection(editor))
+      return;
+    const snapshot = createSelectionResizeSnapshot(editor);
+    if (!snapshot) return;
+    event.stopPropagation();
+    claim(event);
+    editor.beginBatch();
+    gesture = {
+      kind: "resizing-selection",
+      snapshot,
+      handle,
+      startPage: pagePoint(event),
+      candidates: snapCandidates(
+        new Set([...snapshot.roots, ...snapshot.items.map((item) => item.id)]),
+      ),
+      layoutGrid: layoutGridFor(snapshot.roots),
+    };
+  };
+
+  const startRouteBend = (id: ElementId, event: PointerEvent): void => {
+    const element = editor.store.get(id);
+    const context = editor.createShapeContext();
+    const resolved = element
+      ? resolveConnector(element, context, endpointReaderFor(element.type))
+      : null;
+    if (
+      !owns(event) ||
+      event.button !== 0 ||
+      !element ||
+      !resolved ||
+      !resolved.bendPoint ||
+      !resolved.bendAxis ||
+      context.isLocked?.(id)
+    )
+      return;
+    const axis = resolved.bendAxis;
+    event.stopPropagation();
+    claim(event);
+    editor.beginBatch();
+    gesture = {
+      kind: "routing-bend",
+      id,
+      axis,
+      from: resolved.start[axis],
+      to: resolved.end[axis],
+    };
+  };
+
+  const startRouteWaypoint = (
+    id: ElementId,
+    index: number,
+    event: PointerEvent,
+  ): void => {
+    const element = editor.store.get(id);
+    const context = editor.createShapeContext();
+    const readEndpoints = element ? endpointReaderFor(element.type) : null;
+    const ids =
+      element && readEndpoints ? readEndpoints(element.semantic) : null;
+    const fromBox = ids ? context.boundsOf(ids.from) : null;
+    const toBox = ids ? context.boundsOf(ids.to) : null;
+    const resolved =
+      element && readEndpoints
+        ? resolveConnector(element, context, readEndpoints)
+        : null;
+    if (
+      !owns(event) ||
+      event.button !== 0 ||
+      !element ||
+      !fromBox ||
+      !toBox ||
+      !resolved?.waypointPoints?.[index] ||
+      context.isLocked?.(id)
+    )
+      return;
+    event.stopPropagation();
+    claim(event);
+    editor.beginBatch();
+    gesture = {
+      kind: "routing-waypoint",
+      id,
+      index,
+      fromCenter: boxCenter(fromBox),
+      toCenter: boxCenter(toBox),
     };
   };
 
@@ -1537,6 +2246,12 @@ export function createInteraction(
     beginConnect(from, pagePoint(event));
   };
 
+  const editableGesture =
+    <Args extends unknown[]>(start: (...args: Args) => void) =>
+    (...args: Args): void => {
+      if (!editor.readOnly) start(...args);
+    };
+
   return {
     onPointerDown,
     onPointerMove,
@@ -1548,9 +2263,14 @@ export function createInteraction(
     onDoubleClick,
     onContextMenu,
     onBlur,
-    startResize,
-    startReconnect,
-    startConnect,
+    startResize: editableGesture(startResize),
+    startResizeSelection: editableGesture(startResizeSelection),
+    startRotate: editableGesture(startRotate),
+    startRotateSelection: editableGesture(startRotateSelection),
+    startRouteBend: editableGesture(startRouteBend),
+    startRouteWaypoint: editableGesture(startRouteWaypoint),
+    startReconnect: editableGesture(startReconnect),
+    startConnect: editableGesture(startConnect),
     flushNudge,
     pending,
     marquee,

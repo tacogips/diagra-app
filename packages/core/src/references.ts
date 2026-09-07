@@ -53,6 +53,14 @@ export function removeAtPath(
   const match = ARRAY_SEGMENT.exec(head);
   const key = match ? (match[1] as string) : head;
   if (rest.length > 0) {
+    if (match) {
+      const list = value[key];
+      const at = Number.parseInt(match[2] as string, 10);
+      if (!Array.isArray(list) || at >= list.length) return value;
+      const next = [...list];
+      next[at] = removeAtPath(list[at], rest, targetId);
+      return { ...value, [key]: next };
+    }
     const child = removeAtPath(value[key], rest, targetId);
     return { ...value, [key]: child };
   }
@@ -86,6 +94,21 @@ export function isEmptyGroup(element: Element): boolean {
   return Array.isArray(members) && members.length === 0;
 }
 
+/** Drop group modes that became invalid after one of their members detached. */
+export function normalizeDetachedReferences(element: Element): Element {
+  if (element.type !== "group" || !isPlainObject(element.semantic))
+    return element;
+  const members = element.semantic["memberIds"];
+  if (
+    !Array.isArray(members) ||
+    members.length >= 2 ||
+    element.semantic["booleanOperation"] === undefined
+  )
+    return element;
+  const { booleanOperation: _operation, ...semantic } = element.semantic;
+  return { ...element, semantic };
+}
+
 /**
  * Replace the id at one declared path, leaving everything else alone.
  * Mirrors {@link removeAtPath}: an array slot keeps its position, a scalar
@@ -103,6 +126,14 @@ function setAtPath(
   const match = ARRAY_SEGMENT.exec(head);
   const key = match ? (match[1] as string) : head;
   if (rest.length > 0) {
+    if (match) {
+      const list = value[key];
+      const at = Number.parseInt(match[2] as string, 10);
+      if (!Array.isArray(list) || at >= list.length) return value;
+      const next = [...list];
+      next[at] = setAtPath(list[at], rest, id);
+      return { ...value, [key]: next };
+    }
     const child = setAtPath(value[key], rest, id);
     return child === value[key] ? value : { ...value, [key]: child };
   }
@@ -161,7 +192,9 @@ function detachOutside(element: Element, ids: ReadonlySet<ElementId>): Element {
       semantic = detachReference(semantic, reference, reference.id);
     }
   }
-  return semantic === element.semantic ? element : { ...element, semantic };
+  return semantic === element.semantic
+    ? element
+    : normalizeDetachedReferences({ ...element, semantic });
 }
 
 /** Whether `element` can stand on its own given the surviving `ids`. */

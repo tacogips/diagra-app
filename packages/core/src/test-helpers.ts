@@ -4,7 +4,13 @@
 // the two sources of nondeterminism in the core, so every test injects a
 // counter and a seeded generator instead of stubbing globals.
 
-import type { Document, Element, Page, Visual } from "@diagra/ir";
+import type {
+  AccessibilityMetadata,
+  Document,
+  Element,
+  Page,
+  Visual,
+} from "@diagra/ir";
 import { Editor, type EditorOptions } from "./editor.ts";
 import type { IdSource } from "./ids.ts";
 
@@ -42,6 +48,7 @@ export interface ElementInput {
   readonly index?: string;
   readonly page?: string;
   readonly visual?: Visual;
+  readonly accessibility?: AccessibilityMetadata;
 }
 
 export function element(input: ElementInput): Element {
@@ -51,6 +58,7 @@ export function element(input: ElementInput): Element {
     type: input.type,
     index: input.index ?? "a1",
     semantic: input.semantic,
+    ...(input.accessibility ? { accessibility: input.accessibility } : {}),
     visual: input.visual ?? {},
   };
 }

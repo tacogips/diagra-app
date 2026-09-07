@@ -14,6 +14,7 @@ import { createSignal, For, type JSX, Show } from "solid-js";
 import { type CloudApi, cloudApi, type CloudDocument } from "./api.ts";
 import type { CloudSession, CloudSessionState } from "./session.ts";
 import type { CloudSettings } from "./settings.ts";
+import { ShareControls } from "./ShareControls.tsx";
 
 export interface CloudPanelProps {
   readonly editor: Editor;
@@ -147,6 +148,11 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
 
       <Show when={open()}>
         <div class="app-cloud-body">
+          <ShareControls
+            api={api()}
+            state={props.state}
+            credentials={credentials()}
+          />
           <div class="app-cloud-row">
             <label class="app-cloud-field">
               <span>Endpoint</span>

@@ -9,8 +9,13 @@
 
 import type {
   ErdColumn,
+  ErdCheckConstraint,
+  ErdEndpoint,
+  ErdIndex,
   ErdRelationSemantic,
   ErdTableSemantic,
+  ForeignKeyDeferrability,
+  ReferentialAction,
   UmlAttribute,
   UmlClassSemantic,
   UmlMethod,
@@ -125,6 +130,159 @@ export function readErdRelation(semantic: unknown): ErdRelationSemantic {
   };
 }
 
+export interface ErdColumnPair {
+  readonly from: string;
+  readonly to: string;
+}
+
+function endpointColumns(endpoint: ErdEndpoint): readonly string[] {
+  return endpoint.columns?.length
+    ? endpoint.columns
+    : endpoint.column
+      ? [endpoint.column]
+      : [];
+}
+
+function withEndpointColumns(
+  endpoint: ErdEndpoint,
+  columns: readonly string[],
+): ErdEndpoint {
+  const { column: _column, columns: _columns, ...rest } = endpoint;
+  const unique = [...new Set(columns.filter(Boolean))];
+  if (unique.length === 0) return rest;
+  if (unique.length === 1) return { ...rest, column: unique[0] };
+  return { ...rest, columns: unique };
+}
+
+/** Ordered pairs used by one simple or composite foreign key. */
+export function readErdColumnPairs(
+  semantic: ErdRelationSemantic,
+): readonly ErdColumnPair[] {
+  const from = endpointColumns(semantic.from);
+  const to = endpointColumns(semantic.to);
+  return Array.from(
+    { length: Math.min(from.length, to.length) },
+    (_, index) => ({ from: from[index] as string, to: to[index] as string }),
+  );
+}
+
+export function setErdColumnPair(
+  semantic: ErdRelationSemantic,
+  index: number,
+  end: "from" | "to",
+  columnId: string,
+): ErdRelationSemantic {
+  const pairs = readErdColumnPairs(semantic);
+  if (index < 0 || index >= pairs.length || !columnId) return semantic;
+  if (pairs.some((pair, at) => at !== index && pair[end] === columnId))
+    return semantic;
+  const next = pairs.map((pair, at) =>
+    at === index ? { ...pair, [end]: columnId } : pair,
+  );
+  return {
+    ...semantic,
+    from: withEndpointColumns(
+      semantic.from,
+      next.map((pair) => pair.from),
+    ),
+    to: withEndpointColumns(
+      semantic.to,
+      next.map((pair) => pair.to),
+    ),
+  };
+}
+
+export function addErdColumnPair(
+  semantic: ErdRelationSemantic,
+  pair: ErdColumnPair,
+): ErdRelationSemantic {
+  const pairs = readErdColumnPairs(semantic);
+  if (
+    !pair.from ||
+    !pair.to ||
+    pairs.some(({ from }) => from === pair.from) ||
+    pairs.some(({ to }) => to === pair.to)
+  )
+    return semantic;
+  const next = [...pairs, pair];
+  return {
+    ...semantic,
+    from: withEndpointColumns(
+      semantic.from,
+      next.map(({ from }) => from),
+    ),
+    to: withEndpointColumns(
+      semantic.to,
+      next.map(({ to }) => to),
+    ),
+  };
+}
+
+export function removeErdColumnPair(
+  semantic: ErdRelationSemantic,
+  index: number,
+): ErdRelationSemantic {
+  const pairs = readErdColumnPairs(semantic);
+  if (index < 0 || index >= pairs.length) return semantic;
+  const next = pairs.filter((_, at) => at !== index);
+  return {
+    ...semantic,
+    from: withEndpointColumns(
+      semantic.from,
+      next.map(({ from }) => from),
+    ),
+    to: withEndpointColumns(
+      semantic.to,
+      next.map(({ to }) => to),
+    ),
+  };
+}
+
+export function moveErdColumnPair(
+  semantic: ErdRelationSemantic,
+  index: number,
+  delta: number,
+): ErdRelationSemantic {
+  const pairs = readErdColumnPairs(semantic);
+  const next = moveItem(pairs, index, index + delta);
+  if (next === pairs) return semantic;
+  return {
+    ...semantic,
+    from: withEndpointColumns(
+      semantic.from,
+      next.map(({ from }) => from),
+    ),
+    to: withEndpointColumns(
+      semantic.to,
+      next.map(({ to }) => to),
+    ),
+  };
+}
+
+/** Store the portable default implicitly so old and newly edited files agree. */
+export function setErdReferentialAction(
+  semantic: ErdRelationSemantic,
+  field: "onDelete" | "onUpdate",
+  action: ReferentialAction,
+): ErdRelationSemantic {
+  const next = { ...semantic } as Record<string, unknown>;
+  if (action === "no-action") delete next[field];
+  else next[field] = action;
+  return next as unknown as ErdRelationSemantic;
+}
+
+/** Store non-default foreign-key timing while keeping the default implicit. */
+export function setErdDeferrability(
+  semantic: ErdRelationSemantic,
+  value: ForeignKeyDeferrability,
+): ErdRelationSemantic {
+  if (value === "not-deferrable") {
+    const { deferrability: _removed, ...next } = semantic;
+    return next;
+  }
+  return { ...semantic, deferrability: value };
+}
+
 export function addErdColumn(
   semantic: ErdTableSemantic,
   id: string,
@@ -144,6 +302,14 @@ export function removeErdColumn(
   return {
     ...semantic,
     columns: semantic.columns.filter((column) => column.id !== columnId),
+    ...(semantic.indexes
+      ? {
+          indexes: semantic.indexes.map((index) => ({
+            ...index,
+            columns: index.columns.filter((id) => id !== columnId),
+          })),
+        }
+      : {}),
   };
 }
 
@@ -183,10 +349,139 @@ export function updateErdColumn(
       }
       if (patch.pk !== undefined) {
         next = withOptionalFlag(next, "pk", patch.pk);
+        if (patch.pk) {
+          const { generatedExpression: _generatedExpression, ...rest } = next;
+          next = rest;
+        }
       }
       if (patch.nullable !== undefined) {
         next = withOptionalFlag(next, "nullable", patch.nullable);
       }
+      if (patch.defaultExpression !== undefined) {
+        next = withOptionalString(
+          next,
+          "defaultExpression",
+          patch.defaultExpression,
+        );
+        if (patch.defaultExpression.trim()) {
+          const { generatedExpression: _generatedExpression, ...rest } = next;
+          next = rest;
+        }
+      }
+      if (patch.generatedExpression !== undefined) {
+        next = withOptionalString(
+          next,
+          "generatedExpression",
+          patch.generatedExpression,
+        );
+        if (patch.generatedExpression.trim()) {
+          const {
+            defaultExpression: _defaultExpression,
+            pk: _pk,
+            ...rest
+          } = next;
+          next = rest;
+        }
+      }
+      return next;
+    }),
+  };
+}
+
+export function addErdIndex(
+  semantic: ErdTableSemantic,
+  id: string,
+): ErdTableSemantic {
+  const index: ErdIndex = {
+    id,
+    columns: semantic.columns[0] ? [semantic.columns[0].id] : [],
+  };
+  return { ...semantic, indexes: [...(semantic.indexes ?? []), index] };
+}
+
+export function removeErdIndex(
+  semantic: ErdTableSemantic,
+  indexId: string,
+): ErdTableSemantic {
+  const indexes = (semantic.indexes ?? []).filter(
+    (index) => index.id !== indexId,
+  );
+  if (indexes.length === (semantic.indexes?.length ?? 0)) return semantic;
+  if (indexes.length) return { ...semantic, indexes };
+  const { indexes: _removed, ...next } = semantic;
+  return next;
+}
+
+export type ErdIndexPatch = Partial<Omit<ErdIndex, "id">>;
+
+export function updateErdIndex(
+  semantic: ErdTableSemantic,
+  indexId: string,
+  patch: ErdIndexPatch,
+): ErdTableSemantic {
+  if (!(semantic.indexes ?? []).some((index) => index.id === indexId))
+    return semantic;
+  const allowedColumns = new Set(semantic.columns.map((column) => column.id));
+  return {
+    ...semantic,
+    indexes: (semantic.indexes ?? []).map((index) => {
+      if (index.id !== indexId) return index;
+      let next: ErdIndex = index;
+      if (patch.name !== undefined)
+        next = withOptionalString(next, "name", patch.name);
+      if (patch.columns !== undefined)
+        next = {
+          ...next,
+          columns: [...new Set(patch.columns)].filter((id) =>
+            allowedColumns.has(id),
+          ),
+        };
+      if (patch.unique !== undefined)
+        next = withOptionalFlag(next, "unique", patch.unique);
+      return next;
+    }),
+  };
+}
+
+export function addErdCheck(
+  semantic: ErdTableSemantic,
+  id: string,
+): ErdTableSemantic {
+  const check: ErdCheckConstraint = { id, expression: "1 = 1" };
+  return { ...semantic, checks: [...(semantic.checks ?? []), check] };
+}
+
+export function removeErdCheck(
+  semantic: ErdTableSemantic,
+  checkId: string,
+): ErdTableSemantic {
+  const checks = (semantic.checks ?? []).filter(
+    (check) => check.id !== checkId,
+  );
+  if (checks.length === (semantic.checks?.length ?? 0)) return semantic;
+  if (checks.length) return { ...semantic, checks };
+  const { checks: _removed, ...next } = semantic;
+  return next;
+}
+
+export type ErdCheckPatch = Partial<Omit<ErdCheckConstraint, "id">>;
+
+export function updateErdCheck(
+  semantic: ErdTableSemantic,
+  checkId: string,
+  patch: ErdCheckPatch,
+): ErdTableSemantic {
+  if (!(semantic.checks ?? []).some((check) => check.id === checkId))
+    return semantic;
+  return {
+    ...semantic,
+    checks: (semantic.checks ?? []).map((check) => {
+      if (check.id !== checkId) return check;
+      let next: ErdCheckConstraint = check;
+      if (patch.name !== undefined)
+        next = withOptionalString(next, "name", patch.name);
+      if (patch.expression !== undefined)
+        next = { ...next, expression: patch.expression };
       return next;
     }),
   };
@@ -200,7 +495,7 @@ export function setErdEndpointColumn(
 ): ErdRelationSemantic {
   return {
     ...semantic,
-    [end]: withOptionalString(semantic[end], "column", columnId),
+    [end]: withEndpointColumns(semantic[end], columnId ? [columnId] : []),
   };
 }
 

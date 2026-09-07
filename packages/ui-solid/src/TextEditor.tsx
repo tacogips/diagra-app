@@ -23,12 +23,17 @@ import {
 import {
   createEffect,
   createMemo,
+  createSignal,
+  createUniqueId,
   type JSX,
   onCleanup,
   onMount,
   Show,
 } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { textEditorRotation } from "./text-editor-rotation.ts";
+import { alignTextEditor } from "./text-editor-alignment.ts";
+import { textEditDraft } from "./text-edit-draft.ts";
 
 export interface TextEditorTarget {
   readonly id: ElementId;
@@ -174,7 +179,10 @@ export function TextEditor(props: TextEditorProps): JSX.Element {
   let textarea: HTMLTextAreaElement | undefined;
   let done = false;
   const multiline = (): boolean => props.target.field === "text";
-  const initial = props.editor.getText(props.target.id) ?? "";
+  const draft = textEditDraft(props.editor, props.target.id);
+  const initial = draft?.value ?? "";
+  const [conflict, setConflict] = createSignal(false);
+  const conflictId = createUniqueId();
   const previouslyFocused =
     document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -188,16 +196,31 @@ export function TextEditor(props: TextEditorProps): JSX.Element {
       : null;
   });
 
+  const alignEditor = (): void => {
+    if (!done && textarea && multiline())
+      alignTextEditor(
+        textarea,
+        props.editor.store.get(props.target.id)?.visual.style?.verticalAlign,
+      );
+  };
+  createEffect(() => {
+    placement();
+    queueMicrotask(alignEditor);
+  });
+
   const finish = (commit: boolean, restoreFocus: boolean): void => {
     if (done) {
       return;
     }
-    done = true;
     if (commit && textarea) {
       const raw = textarea.value;
       const value = multiline() ? raw : raw.replace(/\r?\n/g, " ");
-      props.editor.setText(props.target.id, value);
+      if (!draft || draft.commit(value) === "unavailable") {
+        setConflict(true);
+        return;
+      }
     }
+    done = true;
     props.onDone();
     if (restoreFocus && previouslyFocused?.isConnected) {
       previouslyFocused.focus();
@@ -247,6 +270,7 @@ export function TextEditor(props: TextEditorProps): JSX.Element {
     document.addEventListener("pointerdown", onOutsidePointerDown, true);
     if (textarea) {
       textarea.value = initial;
+      alignEditor();
       textarea.focus();
       textarea.select();
     }
@@ -258,36 +282,74 @@ export function TextEditor(props: TextEditorProps): JSX.Element {
   return (
     <Show when={placement()}>
       {(placed) => (
-        <textarea
-          ref={textarea}
-          class="diagra-text-editor"
-          classList={{ "diagra-text-editor-multiline": multiline() }}
-          aria-label="Edit text"
-          rows={1}
-          spellcheck={false}
-          wrap={multiline() ? "soft" : "off"}
-          style={{
-            left: `${placed().x}px`,
-            top: `${placed().y}px`,
-            width: `${placed().width}px`,
-            height: `${placed().height}px`,
-            "font-size": `${placed().fontSize}px`,
-            "line-height": String(LINE_HEIGHT),
-            "text-align": placed().align,
-            "font-weight": placed().bold ? 700 : 400,
-            padding: placed().padding,
-            ...(placed().color === undefined ? {} : { color: placed().color }),
-          }}
-          on:keydown={onKeyDown}
-          on:keyup={(event) => event.stopPropagation()}
-          on:pointerdown={(event) => event.stopPropagation()}
-          on:pointermove={(event) => event.stopPropagation()}
-          on:pointerup={(event) => event.stopPropagation()}
-          on:dblclick={(event) => event.stopPropagation()}
-          on:contextmenu={(event) => event.stopPropagation()}
-          on:blur={() => finish(true, false)}
-        />
+        <>
+          <textarea
+            ref={textarea}
+            class="diagra-text-editor"
+            classList={{ "diagra-text-editor-multiline": multiline() }}
+            aria-label="Edit text"
+            aria-invalid={conflict() || undefined}
+            aria-describedby={conflict() ? conflictId : undefined}
+            rows={1}
+            spellcheck={false}
+            wrap={multiline() ? "soft" : "off"}
+            style={{
+              ...textEditorRotation(
+                props.editor.store.get(props.target.id),
+                props.editor.getBounds(props.target.id),
+                placed(),
+              ),
+              left: `${placed().x}px`,
+              top: `${placed().y}px`,
+              width: `${placed().width}px`,
+              height: `${placed().height}px`,
+              "font-size": `${placed().fontSize}px`,
+              "line-height": String(LINE_HEIGHT),
+              "text-align": placed().align,
+              "font-weight": placed().bold ? 700 : 400,
+              ...typographyStyle(
+                props.editor.store.get(props.target.id)?.visual ?? {},
+              ),
+              padding: placed().padding,
+              ...(placed().color === undefined
+                ? {}
+                : { color: placed().color }),
+            }}
+            on:keydown={onKeyDown}
+            on:input={alignEditor}
+            on:keyup={(event) => event.stopPropagation()}
+            on:pointerdown={(event) => event.stopPropagation()}
+            on:pointermove={(event) => event.stopPropagation()}
+            on:pointerup={(event) => event.stopPropagation()}
+            on:dblclick={(event) => event.stopPropagation()}
+            on:contextmenu={(event) => event.stopPropagation()}
+            on:blur={() => finish(true, false)}
+          />
+          <Show when={conflict()}>
+            <div
+              id={conflictId}
+              role="alert"
+              style={{
+                position: "absolute",
+                left: `${placed().x}px`,
+                top: `${placed().y + placed().height + 4}px`,
+                width: `${Math.max(240, placed().width)}px`,
+                padding: "8px",
+                background: "#fff3cd",
+                color: "#553c00",
+                "font-size": "13px",
+                "z-index": 100,
+              }}
+              on:pointerdown={(event) => event.stopPropagation()}
+            >
+              Text changed elsewhere or is no longer editable. Your draft was
+              not saved. Copy it if needed, then press Escape and reopen the
+              text.
+            </div>
+          </Show>
+        </>
       )}
     </Show>
   );
 }
+import { typographyStyle } from "./shapes/visual.ts";

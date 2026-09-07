@@ -219,11 +219,58 @@ input {
   cursor: default;
 }
 
+.diagra-canvas.diagra-image-drop-active {
+  box-shadow: inset 0 0 0 2px var(--diagra-accent);
+}
+
+.diagra-image-drop-overlay,
+.diagra-image-drop-error {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid var(--diagra-accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--diagra-surface) 94%, transparent);
+  color: var(--diagra-ink);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.diagra-image-drop-overlay {
+  top: 24px;
+  padding: 12px 18px;
+  pointer-events: none;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.diagra-image-drop-error {
+  bottom: 24px;
+  display: flex;
+  max-width: min(560px, calc(100% - 48px));
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.diagra-image-drop-error button {
+  border: 0;
+  background: transparent;
+  color: var(--diagra-accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+}
+
 .diagra-canvas.diagra-tool-hand {
   cursor: grab;
 }
 
 .diagra-canvas.diagra-tool-edge {
+  cursor: crosshair;
+}
+.diagra-canvas.diagra-tool-comment {
   cursor: crosshair;
 }
 
@@ -252,13 +299,15 @@ input {
 
 /* Connectors */
 
-.diagra-connector line {
+.diagra-connector line,
+.diagra-connector polyline {
   fill: none;
   stroke: var(--diagra-ink);
   stroke-width: 1.5;
 }
 
-.diagra-connector.diagra-selected line {
+.diagra-connector.diagra-selected line,
+.diagra-connector.diagra-selected polyline {
   stroke: var(--diagra-accent);
   stroke-width: 2.5;
 }
@@ -336,6 +385,52 @@ input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.diagra-sequence-participant {
+  position: relative;
+  height: 100%;
+}
+
+.diagra-sequence-participant-head {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 54px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--diagra-ink);
+  border-radius: 8px;
+  background: var(--diagra-surface);
+  text-align: center;
+}
+
+.diagra-sequence-participant-head span {
+  color: var(--diagra-muted);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diagra-sequence-participant-head strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagra-sequence-lifeline {
+  position: absolute;
+  top: 54px;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed var(--diagra-muted);
+}
+
+.diagra-sequence-activation {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--diagra-ink);
+  background: var(--diagra-surface);
 }
 
 .diagra-unknown {
@@ -473,6 +568,46 @@ input {
   stroke: var(--diagra-accent);
   stroke-width: 1.5;
   pointer-events: all;
+}
+
+.diagra-crop-outline {
+  fill: none;
+  stroke: #f8fafc;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+  pointer-events: none;
+}
+
+.diagra-crop-mask {
+  fill: rgb(15 23 42 / 45%);
+  pointer-events: none;
+}
+
+.diagra-crop-handle {
+  fill: var(--diagra-surface);
+  stroke: #f97316;
+  stroke-width: 2;
+  pointer-events: all;
+}
+
+.diagra-gradient-axis {
+  stroke: #f8fafc;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.diagra-gradient-stop-handle,
+.diagra-gradient-geometry-handle {
+  stroke: #0f172a;
+  stroke-width: 1.5;
+  pointer-events: all;
+  cursor: move;
+}
+
+.diagra-gradient-geometry-handle {
+  fill: var(--diagra-surface);
+  stroke: #f97316;
+  stroke-width: 2;
 }
 
 /* Cloud mode */
@@ -714,6 +849,19 @@ input {
   font-size: 0.78rem;
 }
 
+.diagra-page-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.diagra-page-tab-name:focus-visible,
+.diagra-page-menu-button:focus-visible,
+.diagra-page-add:focus-visible {
+  outline: 2px solid var(--diagra-accent);
+  outline-offset: -2px;
+}
+
 .diagra-page-tab.diagra-active {
   background: var(--diagra-surface);
   box-shadow: 0 1px 0 var(--diagra-surface);
@@ -810,6 +958,18 @@ input {
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.diagra-context-menu > .diagra-menu-item,
+.diagra-context-menu > .diagra-menu-submenu-host,
+.diagra-context-menu > .diagra-menu-separator {
+  flex-shrink: 0;
+}
+
+.diagra-context-menu .diagra-menu-label,
+.diagra-context-menu .diagra-menu-shortcut {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .diagra-menu-item:hover:not(:disabled),
@@ -954,6 +1114,9 @@ input {
   bottom: 12px;
   z-index: 20;
   display: flex;
+  flex-wrap: wrap;
+  max-width: calc(100% - 24px);
+  justify-content: flex-end;
   gap: 6px;
   align-items: center;
   user-select: none;
@@ -961,6 +1124,8 @@ input {
 
 .diagra-zoom-group {
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   align-items: center;
   border: 1px solid var(--diagra-line);
   border-radius: 6px;
@@ -995,8 +1160,22 @@ input {
 }
 
 .diagra-zoom-level {
-  min-width: 52px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  border-right: 1px solid var(--diagra-line);
+  font-size: 0.76rem;
   font-variant-numeric: tabular-nums;
+}
+
+.diagra-zoom-level .diagra-input {
+  width: 58px;
+  min-height: 26px;
+  padding: 2px 4px;
+  text-align: right;
+  border: 0;
+  border-radius: 0;
 }
 
 .diagra-zoom-toggle.diagra-active {
@@ -1025,6 +1204,70 @@ input {
 }
 
 .diagra-snap-guide {
+  stroke: var(--diagra-accent);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.diagra-persistent-guide > line:first-of-type {
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.diagra-persistent-guide-hit {
+  stroke: transparent;
+  stroke-width: 10;
+  pointer-events: stroke;
+  cursor: grab;
+}
+
+.diagra-persistent-guide-active .diagra-persistent-guide-hit {
+  cursor: grabbing;
+}
+
+.diagra-persistent-guide-locked .diagra-persistent-guide-hit {
+  pointer-events: none;
+}
+
+.diagra-persistent-guide-label {
+  fill: var(--diagra-accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+}
+
+.diagra-rulers {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.diagra-ruler rect,
+.diagra-ruler-corner {
+  fill: color-mix(in srgb, var(--diagra-surface) 92%, transparent);
+  stroke: var(--diagra-line);
+  stroke-width: 1;
+}
+
+.diagra-ruler rect {
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.diagra-ruler line {
+  stroke: var(--diagra-muted);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.diagra-ruler text {
+  fill: var(--diagra-muted);
+  font: 7px ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+}
+
+.diagra-ruler-draft {
   stroke: var(--diagra-accent);
   stroke-width: 1;
   pointer-events: none;
@@ -1062,4 +1305,373 @@ input {
    (the inline text editor) takes the pointer. */
 .diagra-slot-layer > * {
   pointer-events: auto;
+}
+.diagra-layers {
+  flex: 0 0 210px;
+  min-width: 0;
+  overflow: auto;
+  border-right: 1px solid var(--line, #d8d2c3);
+  background: var(--surface, #fffdf8);
+  font-size: 12px;
+}
+.diagra-layers h2 {
+  font-size: 13px;
+  margin: 14px 12px 8px;
+}
+.diagra-layers p {
+  margin: 8px 12px;
+  color: #596366;
+}
+.diagra-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.diagra-layer-row button,
+.diagra-layer-actions button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 7px 4px;
+  font: inherit;
+}
+.diagra-layer-spacer {
+  width: 14px;
+  flex-shrink: 0;
+}
+.diagra-layer-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagra-layer-name[aria-pressed="true"] {
+  background: #dbe6e8;
+}
+.diagra-layer-row button:focus-visible,
+.diagra-layer-row input:focus-visible {
+  outline: 2px solid #227c91;
+  outline-offset: -2px;
+}
+.diagra-layer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px;
+  gap: 6px;
+}
+.diagra-component-library {
+  border-bottom: 1px solid #d8d2c3;
+  padding: 8px;
+}
+
+.diagra-color-tokens,
+.diagra-number-tokens,
+.diagra-typography-styles,
+.diagra-review-comments {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--diagra-border, #ddd);
+}
+.diagra-color-tokens form,
+.diagra-number-tokens form,
+.diagra-typography-styles form,
+.diagra-color-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px;
+}
+.diagra-color-tokens input:not([type="color"]):not([type="checkbox"]),
+.diagra-number-tokens input {
+  min-width: 0;
+  width: 120px;
+  flex: 1;
+}
+.diagra-typography-styles form input,
+.diagra-typography-entry input {
+  min-width: 0;
+  width: 112px;
+  flex: 1;
+}
+.diagra-typography-entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin: 8px;
+}
+.diagra-typography-entry > span {
+  color: #596366;
+  font-variant-numeric: tabular-nums;
+}
+.diagra-typography-entry button[aria-pressed="true"] {
+  border-color: var(--diagra-accent, #335c67);
+  color: #fff;
+  background: var(--diagra-accent, #335c67);
+}
+.diagra-color-tokens input[type="color"] {
+  width: 32px;
+  height: 28px;
+  padding: 1px;
+}
+.diagra-review-comments > textarea,
+.diagra-comment-thread textarea {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  min-height: 54px;
+  margin: 0 8px;
+  resize: vertical;
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 6px;
+  padding: 6px;
+  color: inherit;
+  background: var(--surface, #fffdf8);
+  font: inherit;
+}
+.diagra-comment-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 8px;
+}
+.diagra-comment-actions button,
+.diagra-comment-placement button,
+.diagra-comment-thread header button,
+.diagra-comment-popover button {
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 5px;
+  padding: 4px 7px;
+  background: var(--surface, #fffdf8);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.diagra-comment-thread {
+  margin: 8px;
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 7px;
+  background: #fff;
+  overflow: hidden;
+}
+.diagra-comment-thread.is-resolved {
+  opacity: 0.65;
+}
+.diagra-comment-thread header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: #f5f2e9;
+}
+.diagra-comment-thread header span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagra-comment-message {
+  padding: 6px 8px 0;
+}
+.diagra-comment-message time {
+  display: block;
+  color: #727b7e;
+  font-size: 10px;
+}
+.diagra-comment-message p {
+  margin: 3px 0 6px;
+  color: inherit;
+  white-space: pre-wrap;
+}
+.diagra-comment-placement {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 8px;
+  padding: 7px;
+  border: 1px solid var(--diagra-accent, #335c67);
+  border-radius: 7px;
+  color: var(--diagra-ink);
+  background: var(--diagra-accent-soft);
+  font-size: 11px;
+}
+.diagra-comment-pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.diagra-comment-pin-wrap {
+  position: absolute;
+  pointer-events: auto;
+}
+.diagra-comment-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 8px;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 28%);
+  color: #fff;
+  background: var(--diagra-accent, #335c67);
+  font: 700 11px / 1 sans-serif;
+  cursor: grab;
+  touch-action: none;
+}
+.diagra-comment-pin.is-dragging {
+  cursor: grabbing;
+}
+.diagra-comment-popover {
+  position: absolute;
+  z-index: 4;
+  left: 18px;
+  top: 18px;
+  width: 220px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 9px;
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 22%);
+  color: var(--ink, #172124);
+  background: var(--surface, #fffdf8);
+  font: 12px / 1.35 sans-serif;
+}
+.diagra-comment-popover > span {
+  display: block;
+  color: #596366;
+}
+.diagra-comment-popover p {
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+.diagra-color-entry > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+}
+.diagra-gradient-stop {
+  display: grid;
+  grid-template-columns: 32px minmax(48px, 1fr) minmax(48px, 1fr);
+  gap: 4px;
+  margin: 6px 0;
+  align-items: center;
+}
+.diagra-gradient-stop button {
+  grid-column: 1 / -1;
+}
+.diagra-effect-actions,
+.diagra-inspector-actions,
+.diagra-effect-entry > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.diagra-inspector-stack {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 6px;
+}
+.diagra-effect-entry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--line, #d8d2c3);
+  border-radius: 6px;
+}
+.diagra-effect-entry > label,
+.diagra-effect-entry > select,
+.diagra-effect-entry > div {
+  grid-column: 1 / -1;
+}
+.diagra-component-library input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+}
+.diagra-component-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #eee9dd;
+}
+.diagra-component-entry strong,
+.diagra-component-entry span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diagra-component-preview {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+  box-sizing: border-box;
+  border: 1px solid #d8d2c3;
+  border-radius: 4px;
+  background: #f2f0e9;
+}
+.diagra-component-entry span {
+  color: #596366;
+}
+.diagra-component-entry button {
+  border: 1px solid #d8d2c3;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-right: 4px;
+  cursor: pointer;
+  background: #fffdf8;
+  color: #1d2a2e;
+}
+.diagra-prototype-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  background: #e9e7e1;
+  color: #1d2a2e;
+}
+.diagra-prototype-overlay header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: #fffdf8;
+}
+.diagra-prototype-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.diagra-prototype-hotspot {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.diagra-prototype-hotspot:hover,
+.diagra-prototype-hotspot:focus-visible {
+  outline: 2px solid #335c67;
+  background: #335c6710;
+}
+.diagra-prototype-overlay {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
 }

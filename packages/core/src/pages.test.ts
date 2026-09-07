@@ -39,6 +39,80 @@ function twoPages() {
 }
 
 describe("page commands", () => {
+  test("same-document refresh retains only surviving selected layers on the active page", () => {
+    const editor = twoPages();
+    editor.selection.set(["n1", "e"]);
+    const observed: string[][] = [];
+    editor.subscribe(() => observed.push([...editor.selection.ids()]));
+    const snapshot = editor.getSnapshot();
+    editor.loadDocument(
+      {
+        ...snapshot,
+        elements: snapshot.elements.filter((element) => element.id !== "e"),
+      },
+      { preserveView: true },
+    );
+    expect([...editor.selection.ids()]).toEqual(["n1"]);
+    expect(observed).toEqual([["n1"]]);
+    editor.loadDocument(
+      {
+        ...editor.getSnapshot(),
+        elements: editor
+          .getSnapshot()
+          .elements.map((element) =>
+            element.id === "n1" ? { ...element, page: SECOND.id } : element,
+          ),
+      },
+      { preserveView: true },
+    );
+    expect(editor.selection.size).toBe(0);
+    editor.setCurrentPage(SECOND.id);
+    editor.selection.set(["n2"]);
+    editor.loadDocument(editor.getSnapshot());
+    expect(editor.selection.size).toBe(0);
+  });
+  test("page views are independent, ephemeral and restored after deleting and undoing a page", () => {
+    const editor = twoPages();
+    const snapshot = editor.getSnapshot();
+    const firstView = { x: -500, y: 200, z: 0.5 };
+    const secondView = { x: 120, y: -80, z: 2 };
+    editor.camera.set(firstView);
+    editor.setCurrentPage(SECOND.id);
+    expect(editor.camera.get()).toEqual({ x: 0, y: 0, z: 1 });
+    editor.camera.set(secondView);
+    editor.setCurrentPage(TEST_PAGE.id);
+    expect(editor.camera.get()).toEqual(firstView);
+    editor.setCurrentPage(SECOND.id);
+    expect(editor.camera.get()).toEqual(secondView);
+    expect(editor.getSnapshot()).toEqual(snapshot);
+    expect(editor.canUndo()).toBe(false);
+    editor.deletePage(SECOND.id);
+    expect(editor.camera.get()).toEqual(firstView);
+    editor.undo();
+    editor.setCurrentPage(SECOND.id);
+    expect(editor.camera.get()).toEqual(secondView);
+  });
+
+  test("remote reload preserves page views but opening a document resets them", () => {
+    const editor = twoPages();
+    const view = { x: 120, y: -80, z: 2 };
+    editor.setCurrentPage(SECOND.id);
+    editor.camera.set(view);
+    editor.loadDocument(editor.getSnapshot(), { preserveView: true });
+    expect(editor.currentPageId).toBe(SECOND.id);
+    expect(editor.camera.get()).toEqual(view);
+    editor.loadDocument(editor.getSnapshot());
+    expect(editor.currentPageId).toBe(TEST_PAGE.id);
+    editor.setCurrentPage(SECOND.id);
+    expect(editor.camera.get()).toEqual({ x: 0, y: 0, z: 1 });
+    editor.camera.set(view);
+    editor.loadDocument(
+      { ...editor.getSnapshot(), id: "different-document" },
+      { preserveView: true },
+    );
+    expect(editor.camera.get()).toEqual({ x: 0, y: 0, z: 1 });
+  });
+
   test("createPage adds, switches, and undoes", () => {
     const editor = twoPages();
     const id = editor.createPage({ name: "Three", kind: "uml" });
@@ -46,6 +120,7 @@ describe("page commands", () => {
       id,
       name: "Three",
       kind: "uml",
+      order: expect.any(String),
     });
     expect(editor.currentPageId).toBe(id);
     editor.undo();
@@ -69,6 +144,22 @@ describe("page commands", () => {
     editor.undo();
     expect(editor.store.getPage(SECOND.id)).toEqual(SECOND);
     expect(editor.renamePage(SECOND.id, "Two")).toBe(false);
+  });
+
+  test("page token modes persist through duplication and have exact undo", () => {
+    const editor = twoPages();
+    expect(editor.setPageTokenMode(SECOND.id, "Android")).toBe(true);
+    expect(editor.store.getPage(SECOND.id)?.tokenMode).toBe("Android");
+    editor.undo();
+    expect(editor.store.getPage(SECOND.id)?.tokenMode).toBeUndefined();
+    editor.redo();
+    expect(editor.store.getPage(SECOND.id)?.tokenMode).toBe("Android");
+    const copy = editor.duplicatePage(SECOND.id);
+    expect(copy).not.toBeNull();
+    expect(editor.store.getPage(copy ?? "")?.tokenMode).toBe("Android");
+    expect(editor.setPageTokenMode(copy ?? "", null)).toBe(true);
+    expect(editor.store.getPage(copy ?? "")?.tokenMode).toBeUndefined();
+    expect(editor.setPageTokenMode(SECOND.id, "Default")).toBe(false);
   });
 
   test("deletePage removes its elements and cascades across pages", () => {
@@ -130,13 +221,13 @@ describe("page commands", () => {
     expect(editor.store.getPage(copy as string)).toBeUndefined();
   });
 
-  test("listPages stays sorted by id across edits", () => {
+  test("new pages append regardless of their ID", () => {
     const editor = twoPages();
     editor.createPage({ id: "page-0", name: "Zero" });
     expect(editor.store.listPages().map((p) => p.id)).toEqual([
-      "page-0",
       "page-1",
       "page-2",
+      "page-0",
     ]);
   });
 });

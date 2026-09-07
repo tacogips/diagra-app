@@ -3,11 +3,17 @@
 // X and Y are the element's own `visual` origin. Width and height go through
 // the ShapeUtil's resize so a type with a derived dimension (an ERD table's
 // height follows its columns) refuses the edit the same way its handles do.
-// Rotation is shown but not yet editable (design editor-ux.md, Wave 2).
+// Rotation uses the element/container center and commits through the shared core
+// hierarchy operation.
 
-import type { Editor } from "@diagra/core";
-import type { Element } from "@diagra/ir";
-import type { JSX } from "solid-js";
+import {
+  type Editor,
+  canRotateElement,
+  rotateElement,
+  supportsAspectRatio,
+} from "@diagra/core";
+import { type Element, getElementTypeDefinition } from "@diagra/ir";
+import { type JSX, Show } from "solid-js";
 import { Field, NumberInput, Section } from "./controls.tsx";
 import { writeVisual } from "./write.ts";
 
@@ -23,12 +29,8 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
 
   const resize = (patch: { width?: number; height?: number }): void => {
     const current = box();
-    const util = props.editor.getShapeUtil(props.element.type);
-    if (!current || !util.canResize || !util.resize) {
-      return;
-    }
-    const next = util.resize(props.element, { ...current, ...patch });
-    writeVisual(props.editor, props.element.id, next.visual);
+    if (!current || !resizable()) return;
+    props.editor.resizeElement(props.element.id, { ...current, ...patch });
   };
 
   return (
@@ -68,13 +70,71 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
         </Field>
         <Field label="Rotation">
           <NumberInput
-            label="Rotation (read-only)"
+            label="Rotation (degrees)"
             value={props.element.visual.rotation ?? 0}
-            disabled
-            onCommit={() => undefined}
+            disabled={!canRotateElement(props.element)}
+            onCommit={(degrees) =>
+              rotateElement(props.editor, props.element.id, degrees)
+            }
           />
         </Field>
       </div>
+      <p class="diagra-muted">
+        Rotation uses the layer center. Database/class rows own height, so their
+        canvas handles resize width only.
+      </p>
+      <Show when={resizable() && supportsAspectRatio(props.element)}>
+        <label>
+          <input
+            type="checkbox"
+            checked={props.element.visual.aspectRatio !== undefined}
+            onChange={(event) => {
+              const current = box();
+              if (!current || current.width <= 0 || current.height <= 0) return;
+              const { aspectRatio: _old, ...rest } = props.element.visual;
+              props.editor.apply([
+                {
+                  type: "replaceVisual",
+                  id: props.element.id,
+                  visual: {
+                    ...rest,
+                    ...(event.currentTarget.checked
+                      ? { aspectRatio: current.width / current.height }
+                      : {}),
+                  },
+                },
+              ]);
+            }}
+          />
+          Lock aspect ratio
+        </label>
+      </Show>
+      <Show
+        when={getElementTypeDefinition(props.element.type)?.category !== "edge"}
+      >
+        <label>
+          <input
+            type="checkbox"
+            checked={props.element.visual.prototypeFixed === true}
+            onChange={(event) => {
+              const { prototypeFixed: _old, ...rest } = props.element.visual;
+              props.editor.apply([
+                {
+                  type: "replaceVisual",
+                  id: props.element.id,
+                  visual: {
+                    ...rest,
+                    ...(event.currentTarget.checked
+                      ? { prototypeFixed: true }
+                      : {}),
+                  },
+                },
+              ]);
+            }}
+          />
+          Fix position when prototype scrolls
+        </label>
+      </Show>
     </Section>
   );
 }

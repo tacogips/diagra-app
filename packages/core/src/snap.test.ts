@@ -56,6 +56,27 @@ describe("snapTranslate", () => {
     });
     expect(result).toEqual({ dx: -10, dy: -10, guides: [] });
   });
+
+  test("a frame-local grid snaps relative to its page-space origin", () => {
+    const result = snapTranslate(
+      { x: 109, y: 223, width: 20, height: 20 },
+      [],
+      {
+        threshold: 8,
+        grid: 8,
+        gridOrigin: { x: 101, y: 204 },
+      },
+    );
+    expect(result).toEqual({ dx: 0, dy: -3, guides: [] });
+  });
+
+  test("irregular column boundaries snap the nearest moving edge", () => {
+    const result = snapTranslate({ x: 117, y: 20, width: 78, height: 20 }, [], {
+      threshold: 8,
+      gridLinesX: [120, 200, 220],
+    });
+    expect(result).toEqual({ dx: 3, dy: 0, guides: [] });
+  });
 });
 
 describe("snapResize", () => {
@@ -84,5 +105,25 @@ describe("snapResize", () => {
     });
     expect(result.box.height).toBe(48);
     expect(result.guides).toHaveLength(0);
+  });
+
+  test("resizes against a frame-local grid origin", () => {
+    const result = snapResize(
+      { x: 101, y: 204, width: 33, height: 35 },
+      { right: true, bottom: true },
+      [],
+      { threshold: 8, grid: 8, gridOrigin: { x: 101, y: 204 } },
+    );
+    expect(result.box).toEqual({ x: 101, y: 204, width: 32, height: 32 });
+  });
+
+  test("resizes against irregular row boundaries", () => {
+    const result = snapResize(
+      { x: 0, y: 40, width: 20, height: 57 },
+      { bottom: true },
+      [],
+      { threshold: 8, gridLinesY: [100, 140] },
+    );
+    expect(result.box.height).toBe(60);
   });
 });

@@ -1,0 +1,3 @@
+{"kind":"document","schemaVersion":1,"id":"image-fixture","title":"Image asset"}
+{"kind":"page","id":"p1","name":"Design","pageKind":"freeform"}
+{"kind":"element","id":"image","page":"p1","type":"image.raster","index":"a0","semantic":{"src":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=","alt":"Sample image","fit":"contain","crop":{"x":0.1,"y":0.2,"width":0.75,"height":0.6}},"visual":{"x":0,"y":0,"width":100,"height":100}}

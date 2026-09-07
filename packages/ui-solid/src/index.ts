@@ -81,11 +81,11 @@ export {
   SNAP_THRESHOLD_PX,
   type SnapSettings,
 } from "./interaction.ts";
-export {
-  Inspector,
-  type InspectorFocus,
-  type InspectorProps,
+export type {
+  InspectorFocus,
+  InspectorProps,
 } from "./Inspector.tsx";
+export { Inspector } from "./LazyInspector.tsx";
 export {
   type PaletteEntry,
   STYLE_PALETTE,
@@ -97,3 +97,6 @@ export {
   type TextEditorProps,
   type TextEditorTarget,
 } from "./TextEditor.tsx";
+export { Layers } from "./LazyLayers.tsx";
+export { ReviewCommentPins, ReviewComments } from "./ReviewComments.tsx";
+export { TypographyStyles } from "./TypographyStyles.tsx";

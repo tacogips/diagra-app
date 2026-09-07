@@ -39,11 +39,27 @@ export function writeVisual(
   visual: Partial<Visual>,
 ): boolean {
   const element = editor.store.get(id);
-  if (!element || same({ ...element.visual, ...visual }, element.visual)) {
+  if (!element) {
     return false;
   }
+  let next = { ...element.visual, ...visual };
+  if (visual.width !== undefined || visual.height !== undefined) {
+    const links = Object.fromEntries(
+      Object.entries(next.numberTokens ?? {}).filter(
+        ([field]) =>
+          !(field === "width" && visual.width !== undefined) &&
+          !(field === "height" && visual.height !== undefined),
+      ),
+    );
+    const { numberTokens: _old, ...rest } = next;
+    next = {
+      ...rest,
+      ...(Object.keys(links).length ? { numberTokens: links } : {}),
+    };
+  }
+  if (same(next, element.visual)) return false;
   try {
-    editor.apply([{ type: "updateVisual", id, visual }]);
+    editor.apply([{ type: "replaceVisual", id, visual: next }]);
     return true;
   } catch (error) {
     if (error instanceof CommandError) {

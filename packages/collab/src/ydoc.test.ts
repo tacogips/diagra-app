@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Document } from "@diagra/ir";
+import type { Document, ErdTableSemantic } from "@diagra/ir";
 import * as Y from "yjs";
 import { allFixtures, erdDocument, freeformDocument } from "./test-fixtures.ts";
 import {
@@ -28,6 +28,33 @@ function sortedById(document: Document): Document {
 }
 
 describe("ydoc mapping", () => {
+  test("stores accessibility as a field-mergeable Y.Map", () => {
+    const base = freeformDocument();
+    const first = base.elements[0];
+    const accessible: Document = {
+      ...base,
+      elements: base.elements.map((element) =>
+        element.id === first?.id
+          ? {
+              ...element,
+              accessibility: {
+                role: "button",
+                label: "Open details",
+                disabled: true,
+              },
+            }
+          : element,
+      ),
+    };
+    const doc = irToYDoc(accessible);
+    const yElement = doc
+      .getMap<Y.Map<unknown>>(ELEMENTS_KEY)
+      .get(first?.id ?? "") as Y.Map<unknown>;
+    const metadata = yElement.get("accessibility") as Y.Map<unknown>;
+    expect(metadata).toBeInstanceOf(Y.Map);
+    expect(metadata.get("label")).toBe("Open details");
+    expect(roundTrip(accessible)).toEqual(sortedById(accessible));
+  });
   test("round-trips every fixture through the Y.Doc", () => {
     for (const fixture of allFixtures()) {
       expect(roundTrip(fixture)).toEqual(sortedById(fixture));
@@ -49,6 +76,58 @@ describe("ydoc mapping", () => {
     // One nested item is one Y.Map, so two peers renaming two columns of the
     // same table never write to the same key (design 7.1).
     expect(columns.get(1).get("name")).toBe("email");
+  });
+
+  test("round-trips database defaults and composite indexes as mergeable Yjs data", () => {
+    const base = erdDocument();
+    const enhanced: Document = {
+      ...base,
+      elements: base.elements.map((element) => {
+        if (element.id !== "t-users") return element;
+        const semantic = element.semantic as ErdTableSemantic;
+        return {
+          ...element,
+          semantic: {
+            ...semantic,
+            columns: semantic.columns.map((column) =>
+              column.id === "c-id"
+                ? { ...column, defaultExpression: "gen_random_uuid()" }
+                : { ...column, generatedExpression: "lower(email)" },
+            ),
+            indexes: [
+              {
+                id: "i-users-email",
+                columns: ["c-email", "c-id"],
+                unique: true,
+              },
+            ],
+            checks: [
+              {
+                id: "ck-email",
+                name: "email_nonempty",
+                expression: "length(email) > 0",
+              },
+            ],
+          },
+        };
+      }),
+    };
+    const doc = irToYDoc(enhanced);
+    expect(ydocToIr(doc)).toEqual(sortedById(enhanced));
+    const table = doc
+      .getMap<Y.Map<unknown>>(ELEMENTS_KEY)
+      .get("t-users") as Y.Map<unknown>;
+    const semantic = table.get("semantic") as Y.Map<unknown>;
+    const columns = semantic.get("columns") as Y.Array<Y.Map<unknown>>;
+    expect(columns.get(1).get("generatedExpression")).toBe("lower(email)");
+    const indexes = semantic.get("indexes") as Y.Array<Y.Map<unknown>>;
+    expect(indexes).toBeInstanceOf(Y.Array);
+    expect(indexes.get(0)).toBeInstanceOf(Y.Map);
+    expect(indexes.get(0).get("columns")).toBeInstanceOf(Y.Array);
+    const checks = semantic.get("checks") as Y.Array<Y.Map<unknown>>;
+    expect(checks).toBeInstanceOf(Y.Array);
+    expect(checks.get(0)).toBeInstanceOf(Y.Map);
+    expect(checks.get(0).get("expression")).toBe("length(email) > 0");
   });
 
   test("keeps scalar arrays and id-less object arrays as Y.Array", () => {

@@ -217,10 +217,22 @@ export function planMatchSize(
       height,
     });
     if (patch) {
+      const links = Object.fromEntries(
+        Object.entries(target.element.visual.numberTokens ?? {}).filter(
+          ([field]) =>
+            !(field === "width" && patch.visual.width !== undefined) &&
+            !(field === "height" && patch.visual.height !== undefined),
+        ),
+      );
+      const { numberTokens: _old, ...rest } = target.element.visual;
       commands.push({
-        type: "updateVisual",
+        type: "replaceVisual",
         id: target.element.id,
-        visual: patch.visual,
+        visual: {
+          ...rest,
+          ...patch.visual,
+          ...(Object.keys(links).length ? { numberTokens: links } : {}),
+        },
       });
     }
   }

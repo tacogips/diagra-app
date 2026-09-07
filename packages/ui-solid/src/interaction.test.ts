@@ -8,7 +8,15 @@
 // checklist in `apps/desktop/README.md`.
 
 import { describe, expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import {
+  addPageGuide,
+  compareFractional,
+  Editor,
+  endpointReaderFor,
+  resolveConnector,
+  type Vec,
+} from "@diagra/core";
+import { exportD2, exportMermaid } from "@diagra/io";
 import type { ElementId } from "@diagra/ir";
 import {
   createInteraction,
@@ -18,14 +26,564 @@ import {
   type InteractionOptions,
   MIN_SHAPE_SIZE,
   NUDGE_GRID_STEP,
+  RESIZE_HANDLES,
   resizeBox,
   resizeBoxConstrained,
+  resizeRotatedBox,
+  resizeHandlesFor,
   type Scheduler,
 } from "./interaction.ts";
 import { creationFor, GEO_TOOLS, TOOLS } from "./tools.ts";
 import type { ToolKind } from "./tools.ts";
 
 const START = { x: 100, y: 100, width: 200, height: 100 };
+
+describe("viewer canvas interaction", () => {
+  test("a pending connection is cancelled if viewer mode starts before release", () => {
+    const { editor, shape, interaction } = harness();
+    const target = editor.createElement("shape.geo", {
+      visual: { x: 200, y: 0, width: 100, height: 100 },
+    });
+    const before = editor.getSnapshot();
+    interaction.startConnect(shape, pointer({ clientX: 50, clientY: 50 }));
+    expect(interaction.pending()).not.toBeNull();
+    editor.setReadOnly(true);
+    interaction.onPointerUp(pointer({ clientX: 250, clientY: 50 }));
+    expect(interaction.pending()).toBeNull();
+    expect(editor.getSnapshot()).toEqual(before);
+    interaction.onPointerDown(
+      pointer({ pointerId: 2, clientX: 250, clientY: 50 }),
+    );
+    interaction.onPointerUp(
+      pointer({ pointerId: 2, clientX: 250, clientY: 50 }),
+    );
+    expect(editor.selection.has(target)).toBe(true);
+  });
+  test("selection, marquee and pan work without moving or creating artwork", () => {
+    const editor = new Editor();
+    const id = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const state = interactionFor(editor, "geo:rect");
+    editor.setReadOnly(true);
+    const before = editor.getSnapshot();
+    state.interaction.onPointerDown(pointer({ clientX: 50, clientY: 50 }));
+    state.interaction.onPointerMove(pointer({ clientX: 200, clientY: 200 }));
+    state.interaction.onPointerUp(pointer({ clientX: 200, clientY: 200 }));
+    expect(editor.selection.has(id)).toBe(true);
+    expect(editor.camera.get()).toEqual({ x: 0, y: 0, z: 1 });
+    editor.selection.clear();
+    state.interaction.onPointerDown(pointer({ clientX: -10, clientY: -10 }));
+    state.interaction.onPointerMove(pointer({ clientX: 120, clientY: 120 }));
+    state.interaction.onPointerUp(pointer({ clientX: 120, clientY: 120 }));
+    expect(editor.selection.has(id)).toBe(true);
+    state.setTool("hand");
+    state.interaction.onPointerDown(pointer({ clientX: 0, clientY: 0 }));
+    state.interaction.onPointerMove(pointer({ clientX: 40, clientY: 30 }));
+    state.interaction.onPointerUp(pointer({ clientX: 40, clientY: 30 }));
+    expect(editor.camera.get()).toEqual({ x: 40, y: 30, z: 1 });
+    expect(editor.getSnapshot()).toEqual(before);
+  });
+
+  test("editing shortcuts and direct handles cannot start viewer edits", () => {
+    const { editor, shape, interaction, tool } = harness();
+    editor.setReadOnly(true);
+    const before = editor.getSnapshot();
+    interaction.startResize(shape, "se", pointer());
+    interaction.startRotate(shape, pointer());
+    interaction.startConnect(shape, pointer());
+    interaction.onPointerMove(pointer({ clientX: 400, clientY: 400 }));
+    interaction.onPointerUp(pointer({ clientX: 400, clientY: 400 }));
+    for (const key of ["ArrowRight", "Delete", "F2", "r"])
+      interaction.onKeyDown(keyboard(key));
+    for (const key of ["x", "v", "d", "g", "z"])
+      interaction.onKeyDown(keyboard(key, { ctrlKey: true }));
+    expect(tool()).toBe("select");
+    expect(interaction.pending()).toBeNull();
+    expect(editor.getSnapshot()).toEqual(before);
+    interaction.onKeyDown(keyboard("c", { ctrlKey: true }));
+    expect(editor.canPaste()).toBe(true);
+    interaction.onKeyDown(keyboard("+", { ctrlKey: true }));
+    expect(editor.camera.get().z).toBeGreaterThan(1);
+  });
+});
+
+describe("pointer rotation", () => {
+  test("connect gestures target rotated drawing geometry instead of old bounds", () => {
+    const editor = new Editor();
+    const a = editor.createElement("node.generic", {
+      visual: { x: 0, y: 300, width: 100, height: 50 },
+    });
+    const b = editor.createElement("node.generic", {
+      visual: { x: 100, y: 100, width: 200, height: 40, rotation: 90 },
+    });
+    const { interaction } = interactionFor(editor, "select");
+    interaction.startConnect(a, pointer({ clientX: 50, clientY: 290 }));
+    interaction.onPointerMove(pointer({ clientX: 110, clientY: 110 }));
+    expect(interaction.hoverTarget()).toBeNull();
+    interaction.onPointerMove(pointer({ clientX: 200, clientY: 40 }));
+    expect(interaction.hoverTarget()).toBe(b);
+    interaction.onPointerUp(pointer({ clientX: 200, clientY: 40 }));
+    const edge = editor.store
+      .listElements()
+      .find((element) => element.type === "edge.generic");
+    expect(edge?.semantic).toMatchObject({ from: a, to: b });
+    editor.undo();
+    expect(
+      editor.store
+        .listElements()
+        .some((element) => element.type === "edge.generic"),
+    ).toBe(false);
+  });
+
+  test("reconnection can land on a rotated layer outside its original bounds", () => {
+    const editor = new Editor();
+    const a = editor.createElement("node.generic", {
+      visual: { x: 0, y: 300 },
+    });
+    const b = editor.createElement("node.generic", {
+      visual: { x: 400, y: 300 },
+    });
+    const c = editor.createElement("node.generic", {
+      visual: { x: 100, y: 100, width: 200, height: 40, rotation: 90 },
+    });
+    const edge = editor.connectSmart(a, b);
+    if (!edge) throw new Error("expected edge");
+    const { interaction } = interactionFor(editor, "select");
+    interaction.startReconnect(
+      edge,
+      "to",
+      pointer({ clientX: 400, clientY: 350 }),
+    );
+    interaction.onPointerUp(pointer({ clientX: 200, clientY: 40 }));
+    expect(editor.store.get(edge)?.semantic).toMatchObject({ from: a, to: c });
+  });
+
+  test("marquee selects the rotated shape outside its original box", () => {
+    const { editor, interaction, shape } = harness();
+    editor.apply([
+      {
+        type: "updateVisual",
+        id: shape,
+        visual: { x: 100, y: 100, width: 200, height: 40, rotation: 90 },
+      },
+    ]);
+    editor.selection.clear();
+    interaction.onPointerDown(pointer({ clientX: 170, clientY: 10 }));
+    interaction.onPointerMove(pointer({ clientX: 210, clientY: 50 }));
+    interaction.onPointerUp(pointer({ clientX: 210, clientY: 50 }));
+    expect([...editor.selection.ids()]).toEqual([shape]);
+  });
+  test("rotated resize follows local axes and undoes atomically", () => {
+    const { editor, interaction, shape } = harness();
+    editor.apply([
+      { type: "updateVisual", id: shape, visual: { rotation: 90 } },
+    ]);
+    const before = editor.getSnapshot();
+    interaction.startResize(shape, "e", pointer({ clientX: 50, clientY: 100 }));
+    interaction.onPointerMove(pointer({ clientX: 50, clientY: 150 }));
+    interaction.onPointerUp(pointer({ clientX: 50, clientY: 150 }));
+    expect(visualOf(editor, shape)).toMatchObject({
+      x: -25,
+      y: 25,
+      width: 150,
+      height: 100,
+      rotation: 90,
+    });
+    editor.undo();
+    expect(editor.getSnapshot()).toEqual(before);
+  });
+
+  test("rotated resize respects center and aspect modifiers", () => {
+    const start = { x: 0, y: 0, width: 100, height: 50 };
+    const resized = resizeRotatedBox(start, "e", 0, 25, 90, {
+      keepAspect: true,
+      fromCenter: true,
+    });
+    expect(resized.width).toBeCloseTo(150);
+    expect(resized.height).toBeCloseTo(75);
+    expect(resized.x + resized.width / 2).toBeCloseTo(50);
+    expect(resized.y + resized.height / 2).toBeCloseTo(25);
+    expect(resizeRotatedBox(start, "se", 10, 20, 0)).toEqual(
+      resizeBoxConstrained(start, "se", 10, 20),
+    );
+  });
+
+  test("diagonal resize keeps the opposite corner fixed in page space", () => {
+    const start = { x: 10, y: 20, width: 100, height: 60 };
+    const angle = Math.PI / 4;
+    const next = resizeRotatedBox(start, "se", 20, 40, 45);
+    const corner = (box: typeof start) => ({
+      x:
+        box.x +
+        box.width / 2 -
+        (box.width / 2) * Math.cos(angle) +
+        (box.height / 2) * Math.sin(angle),
+      y:
+        box.y +
+        box.height / 2 -
+        (box.width / 2) * Math.sin(angle) -
+        (box.height / 2) * Math.cos(angle),
+    });
+    expect(corner(next).x).toBeCloseTo(corner(start).x);
+    expect(corner(next).y).toBeCloseTo(corner(start).y);
+  });
+
+  test("multiple moves form one undo step", () => {
+    const { editor, interaction, shape } = harness();
+    const before = editor.history.undoSize;
+    interaction.startRotate(shape, pointer({ clientX: 50, clientY: -30 }));
+    interaction.onPointerMove(pointer({ clientX: 130, clientY: 50 }));
+    expect(visualOf(editor, shape).rotation).toBe(90);
+    interaction.onPointerMove(pointer({ clientX: 50, clientY: 130 }));
+    interaction.onPointerUp(pointer({ clientX: 50, clientY: 130 }));
+    expect(visualOf(editor, shape).rotation).toBe(180);
+    expect(editor.history.batching).toBe(false);
+    expect(editor.history.undoSize).toBe(before + 1);
+    editor.undo();
+    expect(visualOf(editor, shape).rotation).toBeUndefined();
+  });
+
+  test("shift snaps angle and Escape discards the whole gesture", () => {
+    const { editor, interaction, shape } = harness();
+    const before = editor.history.undoSize;
+    interaction.startRotate(shape, pointer({ clientX: 50, clientY: -30 }));
+    interaction.onPointerMove(
+      pointer({ clientX: 130, clientY: 60, shiftKey: true }),
+    );
+    expect(visualOf(editor, shape).rotation).toBe(90);
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(visualOf(editor, shape).rotation).toBeUndefined();
+    expect(editor.history.batching).toBe(false);
+    expect(editor.history.undoSize).toBe(before);
+  });
+
+  test("multi-selection rotation batches incremental moves and Escape restores all", () => {
+    const editor = new Editor();
+    const left = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const right = editor.createElement("shape.geo", {
+      visual: { x: 200, y: 0, width: 100, height: 100 },
+    });
+    editor.selection.set([left, right]);
+    const { interaction } = interactionFor(editor, "select");
+    const before = editor.getSnapshot();
+    const undoSize = editor.history.undoSize;
+
+    interaction.startRotateSelection(
+      { x: 150, y: 50 },
+      pointer({ clientX: 150, clientY: -50 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 250, clientY: 50 }));
+    expect(visualOf(editor, left)).toMatchObject({
+      x: 100,
+      y: -100,
+      rotation: 90,
+    });
+    interaction.onPointerMove(pointer({ clientX: 150, clientY: 150 }));
+    interaction.onPointerUp(pointer({ clientX: 150, clientY: 150 }));
+    expect(visualOf(editor, left).rotation).toBe(180);
+    expect(visualOf(editor, right).rotation).toBe(180);
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSnapshot()).toEqual(before);
+
+    interaction.startRotateSelection(
+      { x: 150, y: 50 },
+      pointer({ clientX: 150, clientY: -50 }),
+    );
+    interaction.onPointerMove(
+      pointer({ clientX: 249, clientY: 60, shiftKey: true }),
+    );
+    expect(visualOf(editor, left).rotation).toBe(90);
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(undoSize);
+  });
+
+  test("unrelated pointers cannot rotate or cancel the owner's drag", () => {
+    const { editor, interaction, shape } = harness();
+    interaction.startRotate(
+      shape,
+      pointer({ pointerId: 1, clientX: 50, clientY: -30 }),
+    );
+    interaction.onPointerMove(
+      pointer({ pointerId: 2, clientX: 130, clientY: 50 }),
+    );
+    interaction.onPointerCancel(pointer({ pointerId: 2 }));
+    expect(visualOf(editor, shape).rotation).toBeUndefined();
+    expect(editor.history.batching).toBe(true);
+    interaction.onPointerMove(
+      pointer({ pointerId: 1, clientX: 130, clientY: 50 }),
+    );
+    interaction.onPointerCancel(pointer({ pointerId: 1 }));
+    expect(visualOf(editor, shape).rotation).toBeUndefined();
+    expect(editor.history.batching).toBe(false);
+  });
+
+  test("locked layers and center presses never open a batch", () => {
+    const { editor, interaction, shape } = harness();
+    interaction.startRotate(shape, pointer({ clientX: 50, clientY: 50 }));
+    expect(editor.history.batching).toBe(false);
+    editor.apply([
+      { type: "updateVisual", id: shape, visual: { locked: true } },
+    ]);
+    interaction.startRotate(shape, pointer({ clientX: 50, clientY: -30 }));
+    expect(editor.history.batching).toBe(false);
+  });
+
+  test("group rotation batches descendant transforms and Escape restores them", () => {
+    const editor = new Editor();
+    const left = editor.buildElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 50 },
+    });
+    const right = editor.buildElement("shape.geo", {
+      visual: { x: 200, y: 0, width: 100, height: 50 },
+    });
+    const group = editor.buildElement("group", {
+      semantic: { memberIds: [left.id, right.id] },
+    });
+    editor.apply(
+      [left, right, group].map((element) => ({
+        type: "createElement" as const,
+        element,
+      })),
+    );
+    editor.selection.set([group.id]);
+    const before = editor.getSnapshot();
+    const beforeUndo = editor.history.undoSize;
+    const { interaction } = interactionFor(editor, "select");
+
+    interaction.startRotate(group.id, pointer({ clientX: 150, clientY: -75 }));
+    interaction.onPointerMove(pointer({ clientX: 250, clientY: 25 }));
+    expect(editor.store.get(group.id)?.visual.rotation).toBe(90);
+    expect(editor.store.get(left.id)?.visual).toMatchObject({
+      x: 100,
+      y: -100,
+      rotation: 90,
+    });
+    interaction.onPointerMove(pointer({ clientX: 150, clientY: 125 }));
+    expect(editor.store.get(group.id)?.visual.rotation).toBe(180);
+    interaction.onKeyDown(keyboard("Escape"));
+
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.batching).toBe(false);
+    expect(editor.history.undoSize).toBe(beforeUndo);
+    interaction.onPointerUp(pointer({ clientX: 150, clientY: 125 }));
+  });
+
+  test("frame rotation uses the shared gesture and cancels hierarchy changes", () => {
+    const editor = new Editor();
+    const child = editor.buildElement("shape.geo", {
+      visual: { x: 20, y: 20, width: 40, height: 20 },
+    });
+    const frame = editor.buildElement("frame", {
+      semantic: { name: "Screen", memberIds: [child.id] },
+      visual: { x: 0, y: 0, width: 200, height: 100 },
+    });
+    editor.apply(
+      [frame, child].map((element) => ({
+        type: "createElement" as const,
+        element,
+      })),
+    );
+    editor.selection.set([frame.id]);
+    const before = editor.getSnapshot();
+    const beforeUndo = editor.history.undoSize;
+    const { interaction } = interactionFor(editor, "select");
+
+    interaction.startRotate(frame.id, pointer({ clientX: 100, clientY: -30 }));
+    interaction.onPointerMove(pointer({ clientX: 180, clientY: 50 }));
+    expect(editor.store.get(frame.id)?.visual.rotation).toBe(90);
+    expect(editor.store.get(child.id)?.visual).toMatchObject({
+      x: 100,
+      y: -20,
+      rotation: 90,
+    });
+    interaction.onKeyDown(keyboard("Escape"));
+
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(beforeUndo);
+  });
+
+  test("rotated engineering boxes resize only along their local width axis", () => {
+    expect(resizeHandlesFor("erd.table")).toEqual(["e", "w"]);
+    expect(resizeHandlesFor("uml.class")).toEqual(["e", "w"]);
+    expect(resizeHandlesFor("frame")).toEqual(RESIZE_HANDLES);
+    const editor = new Editor();
+    const table = editor.createElement("erd.table", {
+      visual: { x: 0, y: 0, width: 240, rotation: 90 },
+    });
+    const before = editor.getSnapshot();
+    const beforeUndo = editor.history.undoSize;
+    const { interaction } = interactionFor(editor, "select");
+
+    interaction.startResize(table, "n", pointer({ clientX: 0, clientY: 0 }));
+    expect(editor.history.batching).toBe(false);
+    interaction.startResize(table, "e", pointer({ clientX: 0, clientY: 0 }));
+    interaction.onPointerMove(
+      pointer({ clientX: 0, clientY: 40, shiftKey: true }),
+    );
+    expect(visualOf(editor, table)).toMatchObject({
+      x: -20,
+      y: 20,
+      width: 280,
+      rotation: 90,
+    });
+    expect(visualOf(editor, table).height).toBeUndefined();
+    interaction.onPointerUp(pointer({ clientX: 0, clientY: 40 }));
+    expect(editor.history.undoSize).toBe(beforeUndo + 1);
+    editor.undo();
+    expect(editor.getSnapshot()).toEqual(before);
+
+    interaction.startResize(table, "e", pointer({ clientX: 0, clientY: 0 }));
+    interaction.onPointerMove(
+      pointer({ clientX: 0, clientY: 40, altKey: true }),
+    );
+    interaction.onPointerUp(pointer({ clientX: 0, clientY: 40 }));
+    expect(visualOf(editor, table)).toMatchObject({
+      x: -40,
+      y: 0,
+      width: 320,
+      rotation: 90,
+    });
+  });
+
+  test("multi-selection resize batches live scaling and Escape restores all", () => {
+    const editor = new Editor();
+    const left = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const right = editor.createElement("shape.geo", {
+      visual: { x: 200, y: 0, width: 100, height: 100 },
+    });
+    editor.selection.set([left, right]);
+    const { interaction } = interactionFor(editor, "select");
+    const before = editor.getSnapshot();
+    const undoSize = editor.history.undoSize;
+
+    interaction.startResizeSelection(
+      "se",
+      pointer({ clientX: 300, clientY: 100 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 450, clientY: 150 }));
+    expect(visualOf(editor, left)).toMatchObject({
+      width: 150,
+      height: 150,
+    });
+    interaction.onPointerMove(pointer({ clientX: 600, clientY: 200 }));
+    interaction.onPointerUp(pointer({ clientX: 600, clientY: 200 }));
+    expect(visualOf(editor, left)).toMatchObject({
+      x: 0,
+      width: 200,
+      height: 200,
+    });
+    expect(visualOf(editor, right)).toMatchObject({
+      x: 400,
+      width: 200,
+      height: 200,
+    });
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSnapshot()).toEqual(before);
+
+    interaction.startResizeSelection(
+      "e",
+      pointer({ clientX: 300, clientY: 50 }),
+    );
+    interaction.onPointerMove(
+      pointer({ clientX: 450, clientY: 50, altKey: true }),
+    );
+    expect(visualOf(editor, left).x).toBe(-150);
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(undoSize);
+  });
+});
+
+describe("sequence reorder gestures", () => {
+  test("participant drag crosses several slots and undoes atomically", () => {
+    const editor = new Editor();
+    const actor = editor.createSequenceParticipant("actor", { x: 100, y: 80 });
+    const service = editor.createSequenceParticipant("service", {
+      x: 340,
+      y: 80,
+    });
+    const database = editor.createSequenceParticipant("db", {
+      x: 580,
+      y: 80,
+    });
+    const before = editor.getSnapshot();
+    const beforeUndo = editor.history.undoSize;
+    const { interaction } = interactionFor(editor, "select");
+
+    interaction.onPointerDown(pointer({ clientX: 580, clientY: 80 }));
+    interaction.onPointerMove(pointer({ clientX: 100, clientY: 80 }));
+    interaction.onPointerUp(pointer({ clientX: 100, clientY: 80 }));
+
+    const ordered = editor.store
+      .getPageElements(editor.currentPageId)
+      .filter((element) => element.type === "sequence.participant")
+      .sort((left, right) =>
+        compareFractional(
+          (left.semantic as { order: string }).order,
+          (right.semantic as { order: string }).order,
+        ),
+      );
+    expect(ordered.map((element) => element.id)).toEqual([
+      database,
+      actor,
+      service,
+    ]);
+    expect(ordered.map((element) => element.visual.x)).toEqual([20, 260, 500]);
+    const mermaid = exportMermaid(
+      editor.getSnapshot(),
+      editor.currentPageId,
+      "sequenceDiagram",
+    ).code;
+    const d2 = exportD2(editor.getSnapshot(), editor.currentPageId).code;
+    expect(mermaid.indexOf("Database 1")).toBeLessThan(
+      mermaid.indexOf("Actor 1"),
+    );
+    expect(d2.indexOf("Database 1")).toBeLessThan(d2.indexOf("Actor 1"));
+    expect(editor.history.undoSize).toBe(beforeUndo + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSnapshot()).toEqual(before);
+  });
+
+  test("message drag changes time order and Escape restores every crossed slot", () => {
+    const editor = new Editor();
+    const actor = editor.createSequenceParticipant("actor", { x: 100, y: 80 });
+    const service = editor.createSequenceParticipant("service", {
+      x: 340,
+      y: 80,
+    });
+    const first = editor.connectSmart(actor, service) as string;
+    const second = editor.connectSmart(service, actor) as string;
+    const third = editor.connectSmart(actor, service) as string;
+    const before = editor.getSnapshot();
+    const beforeUndo = editor.history.undoSize;
+    const { interaction } = interactionFor(editor, "select");
+
+    interaction.onPointerDown(
+      pointer({ clientX: 220, clientY: editor.store.get(third)?.visual.y }),
+    );
+    interaction.onPointerMove(
+      pointer({ clientX: 220, clientY: editor.store.get(first)?.visual.y }),
+    );
+    expect(
+      (editor.store.get(third)?.semantic as { order: string }).order <
+        (editor.store.get(first)?.semantic as { order: string }).order,
+    ).toBe(true);
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(beforeUndo);
+    interaction.onPointerUp(pointer({ clientX: 220, clientY: 216 }));
+    expect(editor.history.batching).toBe(false);
+    expect(editor.store.has(second)).toBe(true);
+  });
+});
 
 describe("resizeBox", () => {
   test("moves only the edges the handle owns", () => {
@@ -77,6 +635,7 @@ describe("creationFor", () => {
     expect(creationFor("select")).toBeNull();
     expect(creationFor("hand")).toBeNull();
     expect(creationFor("edge")).toBeNull();
+    expect(creationFor("comment")).toBeNull();
   });
 
   test("every geo tool maps onto shape.geo with its kind", () => {
@@ -96,12 +655,66 @@ describe("creationFor", () => {
     expect(creationFor("node.generic")).toEqual({ type: "node.generic" });
   });
 
+  test("sequence tools carry participant-kind intent", () => {
+    expect(creationFor("sequence.actor")).toEqual({
+      type: "sequence.participant",
+      semantic: { kind: "actor" },
+    });
+    expect(creationFor("sequence.service")).toEqual({
+      type: "sequence.participant",
+      semantic: { kind: "service" },
+    });
+    expect(creationFor("sequence.database")).toEqual({
+      type: "sequence.participant",
+      semantic: { kind: "db" },
+    });
+  });
+
+  test("mobile artboard tools carry platform-safe content insets", () => {
+    expect(creationFor("frame:iphone")).toMatchObject({
+      semantic: {
+        platform: "ios",
+        safeArea: { top: 47, right: 0, bottom: 34, left: 0 },
+      },
+    });
+    expect(creationFor("frame:android")).toMatchObject({
+      semantic: {
+        platform: "android",
+        safeArea: { top: 24, right: 0, bottom: 24, left: 0 },
+      },
+    });
+    expect(creationFor("frame:web")?.semantic).not.toHaveProperty("safeArea");
+  });
+
   test("every tool is either a gesture or a creation", () => {
-    const gestures = new Set(["select", "hand", "edge"]);
+    const gestures = new Set([
+      "select",
+      "hand",
+      "comment",
+      "edge",
+      "draw.freehand",
+      "edit.points",
+      "edit.paint",
+      "edit.stroke-paint",
+      "crop",
+    ]);
     for (const tool of TOOLS) {
       expect(creationFor(tool) === null).toBe(gestures.has(tool));
     }
   });
+});
+
+test("comment placement reports an exact page point and returns to Select", () => {
+  const editor = new Editor();
+  editor.camera.set({ x: 10, y: -5, z: 2 });
+  const placed: Vec[] = [];
+  const { interaction, tool } = interactionFor(editor, "comment", {
+    onCommentPlace: (point) => placed.push(point),
+  });
+  interaction.onPointerDown(pointer({ clientX: 100, clientY: 70 }));
+  expect(placed).toEqual([{ x: 40, y: 40 }]);
+  expect(tool()).toBe("select");
+  expect(editor.getSnapshot().elements).toHaveLength(0);
 });
 
 interface Harness {
@@ -546,6 +1159,48 @@ describe("checklist behaviour, driven headlessly", () => {
     ).toHaveLength(1);
   });
 
+  test("sequence tools place participants and edge gestures create messages", () => {
+    const editor = new Editor();
+    const controls = interactionFor(editor, "sequence.actor");
+    controls.interaction.onPointerDown(pointer({ clientX: 100, clientY: 80 }));
+    controls.interaction.onPointerUp(pointer({ clientX: 100, clientY: 80 }));
+    controls.setTool("sequence.service");
+    controls.interaction.onPointerDown(
+      pointer({ pointerId: 2, clientX: 340, clientY: 80 }),
+    );
+    controls.interaction.onPointerUp(
+      pointer({ pointerId: 2, clientX: 340, clientY: 80 }),
+    );
+    const participants = editor.store
+      .listElements()
+      .filter((element) => element.type === "sequence.participant");
+    expect(participants.map((element) => element.semantic)).toEqual([
+      expect.objectContaining({ kind: "actor", name: "Actor 1" }),
+      expect.objectContaining({ kind: "service", name: "Service 1" }),
+    ]);
+
+    controls.setTool("edge");
+    controls.interaction.onPointerDown(
+      pointer({ pointerId: 3, clientX: 100, clientY: 80 }),
+    );
+    controls.interaction.onPointerMove(
+      pointer({ pointerId: 3, clientX: 340, clientY: 80 }),
+    );
+    controls.interaction.onPointerUp(
+      pointer({ pointerId: 3, clientX: 340, clientY: 80 }),
+    );
+    const message = editor.store
+      .listElements()
+      .find((element) => element.type === "sequence.message");
+    expect(message?.semantic).toMatchObject({
+      from: participants[0]?.id,
+      to: participants[1]?.id,
+      kind: "sync",
+      label: "Message",
+    });
+    expect(message?.visual.y).toBeGreaterThan(80);
+  });
+
   test("step 16: delete takes the connectors with the shape", () => {
     const { editor, interaction, shape } = harness();
     const other = editor.createElement("shape.geo", {
@@ -913,6 +1568,167 @@ describe("snapping (design 6)", () => {
     interaction.onPointerUp(pointer({ clientX: 80, clientY: 90 }));
   });
 
+  test("persistent page guides snap independently of grid and object toggles", () => {
+    const editor = new Editor();
+    const moving = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    addPageGuide(editor, editor.currentPageId, "x", 200, "guide-x");
+    editor.selection.set([moving]);
+    const { interaction } = interactionFor(editor, "select", {
+      snap: () => ({ grid: false, objects: false, guides: true }),
+    });
+
+    interaction.onPointerDown(pointer({ clientX: 50, clientY: 50 }));
+    interaction.onPointerMove(pointer({ clientX: 145, clientY: 50 }));
+    expect(visualOf(editor, moving)).toMatchObject({ x: 100, y: 0 });
+    interaction.onPointerUp(pointer({ clientX: 145, clientY: 50 }));
+  });
+
+  test("hidden or disabled page guides do not snap", () => {
+    for (const guides of [true, false]) {
+      const editor = new Editor();
+      const moving = editor.createElement("shape.geo", {
+        visual: { x: 0, y: 0, width: 100, height: 100 },
+      });
+      const id = addPageGuide(
+        editor,
+        editor.currentPageId,
+        "x",
+        200,
+        `guide-${guides}`,
+      );
+      if (guides && id)
+        editor.apply([
+          {
+            type: "updateSemantic",
+            id,
+            semantic: { axis: "x", position: 200, hidden: true },
+          },
+        ]);
+      editor.selection.set([moving]);
+      const { interaction } = interactionFor(editor, "select", {
+        snap: () => ({ grid: false, objects: false, guides }),
+      });
+      interaction.onPointerDown(pointer({ clientX: 50, clientY: 50 }));
+      interaction.onPointerMove(pointer({ clientX: 145, clientY: 50 }));
+      expect(visualOf(editor, moving).x).toBe(95);
+      interaction.onPointerUp(pointer({ clientX: 145, clientY: 50 }));
+    }
+  });
+
+  test("a child snaps to its artboard's visible square grid and origin", () => {
+    const editor = new Editor();
+    const frame = editor.createElement("frame", {
+      semantic: {
+        name: "Mobile",
+        layoutGrids: [
+          {
+            id: "minor-grid",
+            kind: "grid",
+            size: 8,
+            color: "#3b82f6",
+            opacity: 0.2,
+          },
+        ],
+      },
+      visual: { x: 101, y: 203, width: 390, height: 844 },
+    });
+    const moving = editor.createElement("shape.geo", {
+      visual: { x: 109, y: 239, width: 20, height: 20 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: frame,
+        semantic: {
+          ...(editor.store.get(frame)?.semantic as object),
+          memberIds: [moving],
+        },
+      },
+    ]);
+    editor.selection.set([moving]);
+    const { interaction } = interactionFor(editor, "select", { snap: GRID });
+
+    interaction.onPointerDown(pointer({ clientX: 119, clientY: 249 }));
+    interaction.onPointerMove(pointer({ clientX: 124, clientY: 254 }));
+    expect(visualOf(editor, moving)).toMatchObject({ x: 117, y: 243 });
+    interaction.onPointerUp(pointer({ clientX: 124, clientY: 254 }));
+  });
+
+  test("a child snaps to its parent device safe area", () => {
+    const editor = new Editor();
+    const frame = editor.createElement("frame", {
+      semantic: {
+        name: "iPhone",
+        platform: "ios",
+        safeArea: { top: 47, right: 0, bottom: 34, left: 16 },
+      },
+      visual: { x: 100, y: 200, width: 390, height: 844 },
+    });
+    const moving = editor.createElement("shape.geo", {
+      visual: { x: 110, y: 240, width: 20, height: 20 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: frame,
+        semantic: {
+          ...(editor.store.get(frame)?.semantic as object),
+          memberIds: [moving],
+        },
+      },
+    ]);
+    editor.selection.set([moving]);
+    const { interaction } = interactionFor(editor, "select", { snap: GRID });
+
+    interaction.onPointerDown(pointer({ clientX: 120, clientY: 250 }));
+    interaction.onPointerMove(pointer({ clientX: 123, clientY: 256 }));
+    expect(visualOf(editor, moving)).toMatchObject({ x: 116, y: 247 });
+    interaction.onPointerUp(pointer({ clientX: 123, clientY: 256 }));
+  });
+
+  test("column grids snap horizontally without imposing a page grid vertically", () => {
+    const editor = new Editor();
+    const frame = editor.createElement("frame", {
+      semantic: {
+        name: "Mobile columns",
+        layoutGrids: [
+          {
+            id: "columns",
+            kind: "columns",
+            count: 4,
+            gutter: 10,
+            margin: 20,
+            color: "#ef4444",
+            opacity: 0.12,
+          },
+        ],
+      },
+      visual: { x: 101, y: 203, width: 390, height: 844 },
+    });
+    const moving = editor.createElement("shape.geo", {
+      visual: { x: 109, y: 239, width: 20, height: 20 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: frame,
+        semantic: {
+          ...(editor.store.get(frame)?.semantic as object),
+          memberIds: [moving],
+        },
+      },
+    ]);
+    editor.selection.set([moving]);
+    const { interaction } = interactionFor(editor, "select", { snap: GRID });
+
+    interaction.onPointerDown(pointer({ clientX: 119, clientY: 249 }));
+    interaction.onPointerMove(pointer({ clientX: 129, clientY: 254 }));
+    expect(visualOf(editor, moving)).toMatchObject({ x: 121, y: 244 });
+    interaction.onPointerUp(pointer({ clientX: 129, clientY: 254 }));
+  });
+
   test("a group drags as one box: the union snaps, every member moves", () => {
     const { editor, a, b, group } = grouped();
     const wall = editor.createElement("shape.geo", {
@@ -967,6 +1783,29 @@ describe("snapping (design 6)", () => {
     });
     interaction.onPointerUp(pointer({ clientX: 200, clientY: 50 }));
   });
+
+  test("a persisted aspect ratio stays locked without Shift", () => {
+    const { editor, interaction, moving } = neighbours(() => ({
+      grid: false,
+      objects: false,
+    }));
+    editor.apply([
+      { type: "updateVisual", id: moving, visual: { aspectRatio: 2 } },
+    ]);
+    interaction.startResize(
+      moving,
+      "e",
+      pointer({ clientX: 100, clientY: 50 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 200, clientY: 50 }));
+    expect(visualOf(editor, moving)).toMatchObject({
+      width: 200,
+      height: 100,
+      y: -25,
+      aspectRatio: 2,
+    });
+    interaction.onPointerUp(pointer({ clientX: 200, clientY: 50 }));
+  });
 });
 
 describe("resizeBoxConstrained", () => {
@@ -990,6 +1829,15 @@ describe("resizeBoxConstrained", () => {
     expect(
       resizeBoxConstrained(START, "nw", 0, -100, { keepAspect: true }),
     ).toEqual({ x: -100, y: 0, width: 400, height: 200 });
+  });
+
+  test("uses an explicit persisted ratio", () => {
+    expect(
+      resizeBoxConstrained(START, "e", 100, 0, {
+        keepAspect: true,
+        aspectRatio: 4,
+      }),
+    ).toEqual({ x: 100, y: 112.5, width: 300, height: 75 });
   });
 
   test("fromCenter mirrors the owned edge onto its opposite", () => {
@@ -1202,6 +2050,12 @@ describe("keyboard map (design 5)", () => {
     interaction.onKeyDown(keyboard("g", { metaKey: true, shiftKey: true }));
     expect(editor.selection.size).toBe(2);
 
+    interaction.onKeyDown(keyboard("g", { metaKey: true, altKey: true }));
+    const frame = [...editor.selection.ids()];
+    expect(frame).toHaveLength(1);
+    expect(editor.store.get(frame[0] as ElementId)?.type).toBe("frame");
+    editor.undo();
+
     editor.selection.set([shape]);
     interaction.onKeyDown(keyboard("c", { ctrlKey: true }));
     expect(editor.canPaste()).toBe(true);
@@ -1358,7 +2212,7 @@ describe("edit requests (design 3.3)", () => {
     expect(editRegionAt(bareElement, bareBox, { x: 10, y: 60 })).toBe("body");
   });
 
-  test("shapes and connectors report the body", () => {
+  test("shapes report the body and connector segments insert waypoints", () => {
     const editor = new Editor();
     const a = editor.createElement("shape.geo", {
       visual: { x: 0, y: 0, width: 100, height: 100 },
@@ -1368,13 +2222,74 @@ describe("edit requests (design 3.3)", () => {
     });
     const edge = editor.connect(a, b) as ElementId;
     const { interaction, requests } = editing(editor);
+    const undoSize = editor.history.undoSize;
 
     interaction.onDoubleClick(mouse(50, 50));
-    interaction.onDoubleClick(mouse(250, 50));
-    expect(requests).toEqual([
-      [a, "body"],
-      [edge, "body"],
+    interaction.onDoubleClick(mouse(250, 56));
+    expect(requests).toEqual([[a, "body"]]);
+    expect(editor.store.get(edge)?.semantic).toMatchObject({
+      from: a,
+      to: b,
+      routing: "manual",
+      routingWaypoints: [{ u: 0.5, v: 0 }],
+    });
+    expect([...editor.selection.ids()]).toEqual([edge]);
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.store.get(edge)?.semantic).toMatchObject({ from: a, to: b });
+    expect(editor.store.get(edge)?.semantic).not.toHaveProperty("routing");
+  });
+
+  test("double-click preserves an orthogonal route while converting it", () => {
+    const editor = new Editor();
+    const from = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const to = editor.createElement("shape.geo", {
+      visual: { x: 300, y: 200, width: 100, height: 100 },
+    });
+    const edge = editor.connect(from, to) as ElementId;
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: edge,
+        semantic: {
+          from,
+          to,
+          routing: "orthogonal",
+          routingAxis: "horizontal",
+          routingBend: 0.5,
+          routingAvoidObstacles: false,
+        },
+      },
     ]);
+    const before = resolveConnector(
+      editor.store.get(edge)!,
+      editor.createShapeContext(),
+      endpointReaderFor("edge.generic"),
+    );
+    const { interaction } = interactionFor(editor, "select");
+    interaction.onDoubleClick(mouse(200, 150));
+    const after = resolveConnector(
+      editor.store.get(edge)!,
+      editor.createShapeContext(),
+      endpointReaderFor("edge.generic"),
+    );
+    expect(editor.store.get(edge)?.semantic).toMatchObject({
+      routing: "manual",
+    });
+    const expected = [
+      before?.points[0],
+      before?.points[1],
+      { x: 200, y: 150 },
+      before?.points[2],
+      before?.points[3],
+    ];
+    expect(after?.points).toHaveLength(expected.length);
+    after?.points.forEach((point, index) => {
+      expect(point.x).toBeCloseTo(expected[index]?.x ?? 0, 2);
+      expect(point.y).toBeCloseTo(expected[index]?.y ?? 0, 2);
+    });
   });
 
   test("enter and F2 edit the single selected editable element", () => {
@@ -1579,6 +2494,100 @@ describe("connector handles (design 3.4)", () => {
     expect(interaction.pending()).toBeNull();
     interaction.onPointerUp(pointer({ clientX: 50, clientY: 450 }));
     expect(editor.store.get(edge)?.semantic).toMatchObject({ from: a, to: b });
+  });
+
+  test("orthogonal channel dragging batches bend edits and Escape rolls back", () => {
+    const editor = new Editor();
+    const from = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const to = editor.createElement("shape.geo", {
+      visual: { x: 300, y: 200, width: 100, height: 100 },
+    });
+    const edge = editor.connect(from, to);
+    if (!edge) throw new Error("expected edge");
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: edge,
+        semantic: { from, to, routing: "orthogonal" },
+      },
+    ]);
+    editor.selection.set([edge]);
+    const { interaction } = interactionFor(editor, "select");
+    const before = editor.getSnapshot();
+    const undoSize = editor.history.undoSize;
+
+    interaction.startRouteBend(edge, pointer({ clientX: 200, clientY: 150 }));
+    interaction.onPointerMove(pointer({ clientX: 220, clientY: 150 }));
+    interaction.onPointerMove(pointer({ clientX: 250, clientY: 150 }));
+    interaction.onPointerUp(pointer({ clientX: 250, clientY: 150 }));
+    expect(editor.store.get(edge)?.semantic).toMatchObject({
+      routing: "orthogonal",
+      routingBend: 0.75,
+    });
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSnapshot()).toEqual(before);
+
+    interaction.startRouteBend(edge, pointer({ clientX: 200, clientY: 150 }));
+    interaction.onPointerMove(pointer({ clientX: 240, clientY: 150 }));
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(undoSize);
+  });
+
+  test("manual waypoint dragging is endpoint-relative, atomic and cancellable", () => {
+    const editor = new Editor();
+    const from = editor.createElement("shape.geo", {
+      visual: { x: 0, y: 0, width: 100, height: 100 },
+    });
+    const to = editor.createElement("shape.geo", {
+      visual: { x: 300, y: 200, width: 100, height: 100 },
+    });
+    const edge = editor.connect(from, to);
+    if (!edge) throw new Error("expected edge");
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: edge,
+        semantic: {
+          from,
+          to,
+          routing: "manual",
+          routingWaypoints: [{ u: 0.5, v: 40 }],
+        },
+      },
+    ]);
+    const { interaction } = interactionFor(editor, "select");
+    const before = editor.getSnapshot();
+    const undoSize = editor.history.undoSize;
+
+    interaction.startRouteWaypoint(
+      edge,
+      0,
+      pointer({ clientX: 178, clientY: 183 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 220, clientY: 120 }));
+    interaction.onPointerMove(pointer({ clientX: 240, clientY: 130 }));
+    interaction.onPointerUp(pointer({ clientX: 240, clientY: 130 }));
+    expect(
+      (editor.store.get(edge)?.semantic as { routingWaypoints: unknown[] })
+        .routingWaypoints[0],
+    ).not.toEqual({ u: 0.5, v: 40 });
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    expect(editor.undo()).toBe(true);
+    expect(editor.getSnapshot()).toEqual(before);
+
+    interaction.startRouteWaypoint(
+      edge,
+      0,
+      pointer({ clientX: 178, clientY: 183 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 260, clientY: 140 }));
+    interaction.onKeyDown(keyboard("Escape"));
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(editor.history.undoSize).toBe(undoSize);
   });
 
   test("an erd.relation end becomes a table endpoint with no column", () => {

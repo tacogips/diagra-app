@@ -6,8 +6,14 @@
 // export buttons are entries of the shared action table evaluated against
 // the shell's `ActionContext`.
 
-import type { Editor } from "@diagra/core";
-import { For, type JSX } from "solid-js";
+import {
+  type Editor,
+  insertUiBlock,
+  UI_BLOCKS,
+  type UiBlock,
+} from "@diagra/core";
+import { createSignal, For, type JSX, lazy, Show, Suspense } from "solid-js";
+import { ImageImport } from "./ImageImport.tsx";
 import { createEditorSignals } from "./adapter.ts";
 import {
   type ActionContext,
@@ -16,7 +22,13 @@ import {
   getAction,
   runAction,
 } from "./shortcuts.ts";
-import type { ToolKind } from "./tools.ts";
+import { canUseTool, type ToolKind } from "./tools.ts";
+
+const PrototypePreview = lazy(() =>
+  import("./PrototypePreview.tsx").then((module) => ({
+    default: module.PrototypePreview,
+  })),
+);
 
 export interface ToolbarProps {
   readonly editor: Editor;
@@ -34,6 +46,23 @@ interface ToolButton {
 }
 
 const TOOL_BUTTONS: readonly ToolButton[] = [
+  { tool: "draw.freehand", label: "Draw", title: "Draw a freehand stroke" },
+  {
+    tool: "edit.points",
+    label: "Anchors",
+    title: "Select a stroke or vector path and drag its anchors",
+  },
+  { tool: "crop", label: "Crop", title: "Trim the selected image" },
+  {
+    tool: "edit.paint",
+    label: "Fill gradient",
+    title: "Edit the selected layer's fill gradient on canvas",
+  },
+  {
+    tool: "edit.stroke-paint",
+    label: "Stroke gradient",
+    title: "Edit the selected layer's stroke gradient on canvas",
+  },
   { tool: "select", label: "Select", title: "Select and move (V)" },
   { tool: "hand", label: "Hand", title: "Pan the canvas (H, or hold Space)" },
   {
@@ -49,6 +78,34 @@ const TOOL_BUTTONS: readonly ToolButton[] = [
   { tool: "node.generic", label: "Node", title: "Generic node (N)" },
   { tool: "erd.table", label: "Table", title: "ERD table" },
   { tool: "uml.class", label: "Class", title: "UML class" },
+  { tool: "sequence.actor", label: "Actor", title: "Sequence actor" },
+  {
+    tool: "sequence.service",
+    label: "Service",
+    title: "Sequence service participant",
+  },
+  {
+    tool: "sequence.database",
+    label: "Seq DB",
+    title: "Sequence database participant",
+  },
+  { tool: "frame:web", label: "Web", title: "Web artboard (1440 × 900)" },
+  {
+    tool: "frame:iphone",
+    label: "iPhone",
+    title: "iPhone artboard (390 × 844)",
+  },
+  {
+    tool: "frame:android",
+    label: "Android",
+    title: "Android artboard (360 × 800)",
+  },
+  {
+    tool: "frame:tablet",
+    label: "Tablet",
+    title: "Tablet artboard (768 × 1024)",
+  },
+  { tool: "frame:paper", label: "Document", title: "A4 document artboard" },
 ];
 
 interface ActionButton {
@@ -57,7 +114,13 @@ interface ActionButton {
 }
 
 const ARRANGE_BUTTONS: readonly ActionButton[] = [
+  { id: "frameSelection", label: "Frame selection" },
   { id: "group", label: "Group" },
+  { id: "booleanUnion", label: "Union" },
+  { id: "booleanSubtract", label: "Subtract" },
+  { id: "booleanIntersect", label: "Intersect" },
+  { id: "booleanExclude", label: "Exclude" },
+  { id: "flattenBoolean", label: "Flatten Boolean" },
   { id: "ungroup", label: "Ungroup" },
   { id: "alignLeft", label: "Left" },
   { id: "alignHCenter", label: "Centre" },
@@ -72,7 +135,12 @@ const EXPORT_BUTTONS: readonly ActionButton[] = [
 ];
 
 export function Toolbar(props: ToolbarProps): JSX.Element {
+  const [preview, setPreview] = createSignal(false);
   const signals = createEditorSignals(props.editor);
+  const readOnly = () => {
+    signals.rev();
+    return props.editor.readOnly;
+  };
 
   // Reading the revision makes the buttons re-evaluate after every edit.
   const canUndo = () => {
@@ -110,6 +178,48 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
 
   return (
     <div class="diagra-toolbar">
+      <ImageImport editor={props.editor} />
+      <select
+        aria-label="Insert UI block"
+        disabled={readOnly()}
+        value=""
+        onChange={(event) => {
+          if (props.editor.readOnly) return;
+          const kind = event.currentTarget.value;
+          if (UI_BLOCKS.includes(kind as UiBlock)) {
+            insertUiBlock(
+              props.editor,
+              kind as UiBlock,
+              props.editor.camera.screenToPage({ x: 40, y: 40 }),
+            );
+            props.onToolChange("select");
+          }
+          event.currentTarget.value = "";
+        }}
+      >
+        <option value="" disabled>
+          Insert UI block…
+        </option>
+        <option value="button">Primary button</option>
+        <option value="input">Text input</option>
+        <option value="card">Content card</option>
+        <option value="navigation">Navigation bar</option>
+      </select>
+      <button
+        type="button"
+        class="diagra-tool-button"
+        onClick={() => setPreview(true)}
+      >
+        Preview
+      </button>
+      <Show when={preview()}>
+        <Suspense>
+          <PrototypePreview
+            editor={props.editor}
+            onClose={() => setPreview(false)}
+          />
+        </Suspense>
+      </Show>
       <div class="diagra-tool-group">
         <For each={TOOL_BUTTONS}>
           {(button) => (
@@ -119,6 +229,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
               classList={{ "diagra-active": props.tool === button.tool }}
               title={button.title}
               aria-pressed={props.tool === button.tool}
+              disabled={!canUseTool(button.tool, readOnly())}
               onClick={() => props.onToolChange(button.tool)}
             >
               {button.label}

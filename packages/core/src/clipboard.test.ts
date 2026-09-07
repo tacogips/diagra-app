@@ -1,7 +1,7 @@
 // Copy and paste as pure functions, before the editor gets involved.
 
 import { describe, expect, test } from "bun:test";
-import type { Element } from "@diagra/ir";
+import type { Element, GroupSemantic } from "@diagra/ir";
 import {
   type ClipboardPayload,
   Clipboard,
@@ -167,6 +167,36 @@ describe("planPaste", () => {
     expect(semanticOf(first, 0)).not.toBe(
       (source.elements[0] as Element).semantic,
     );
+  });
+
+  test("rewrites a copied group's mask reference with its members", () => {
+    const source = storeOf([
+      element({ id: "mask", type: "shape.geo", semantic: { geo: "ellipse" } }),
+      element({ id: "content", type: "shape.geo", semantic: { geo: "rect" } }),
+      element({
+        id: "group",
+        type: "group",
+        semantic: { memberIds: ["mask", "content"], maskId: "mask" },
+      }),
+    ]);
+    const copied = copyElements(source, ["group", "mask", "content"]);
+    const plan = planPaste(copied, {
+      page: "page-1",
+      idSource: counterIds("p"),
+      nextIndex: indexes(),
+      offset: { x: 0, y: 0 },
+    });
+    const pastedGroup = plan.commands
+      .filter((command) => command.type === "createElement")
+      .map((command) => command.element)
+      .find((entry) => entry.type === "group");
+    const pastedMask = plan.mapping.get("mask");
+    const pastedContent = plan.mapping.get("content");
+    if (!pastedMask || !pastedContent) throw new Error("missing pasted ids");
+    expect(pastedGroup?.semantic as GroupSemantic).toEqual({
+      memberIds: [pastedMask, pastedContent],
+      maskId: pastedMask,
+    });
   });
 });
 

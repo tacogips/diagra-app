@@ -7,6 +7,22 @@
 //
 // The endpoint always arrives from the caller (see `settings.ts`).
 
+export type CloudRole = "owner" | "editor" | "viewer";
+export interface CloudShare {
+  readonly token: string;
+  readonly role: "viewer" | "editor";
+  readonly documentId: string;
+}
+
+export interface CloudShareInfo extends CloudShare {
+  readonly createdAt: string;
+  readonly revoked: boolean;
+}
+export interface CloudSharePage {
+  readonly items: readonly CloudShareInfo[];
+  readonly nextBefore: number | null;
+}
+
 export interface CloudDocument {
   readonly id: string;
   readonly title: string;
@@ -32,6 +48,24 @@ export interface CloudApiOptions {
 }
 
 export interface CloudApi {
+  listShares(
+    options: CloudApiOptions & {
+      readonly docId: string;
+      readonly before?: number;
+    },
+  ): Promise<ApiResult<CloudSharePage>>;
+  revokeShare(
+    options: CloudApiOptions & {
+      readonly docId: string;
+      readonly shareToken: string;
+    },
+  ): Promise<ApiResult<void>>;
+  createShare(
+    options: CloudApiOptions & {
+      readonly docId: string;
+      readonly role: "viewer" | "editor";
+    },
+  ): Promise<ApiResult<CloudShare>>;
   listDocuments(
     options: CloudApiOptions,
   ): Promise<ApiResult<readonly CloudDocument[]>>;
@@ -44,7 +78,7 @@ export interface CloudApi {
   ): Promise<ApiResult<CloudDocument>>;
   probeDocument(
     options: CloudApiOptions & { readonly docId: string },
-  ): Promise<ApiResult<void>>;
+  ): Promise<ApiResult<CloudRole>>;
 }
 
 function describe(error: unknown): string {
@@ -102,6 +136,138 @@ async function failure<T>(response: Response): Promise<ApiResult<T>> {
 }
 
 export const cloudApi: CloudApi = {
+  async listShares(options) {
+    try {
+      const response = await fetch(
+        routeUrl(
+          options,
+          `/api/documents/${encodeURIComponent(options.docId)}/shares`,
+          options.before === undefined
+            ? {}
+            : { before: String(options.before) },
+        ),
+        {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!response.ok) return failure(response);
+      const body = (await response.json()) as Partial<CloudSharePage> | null;
+      if (
+        !body ||
+        !Array.isArray(body.items) ||
+        body.items.length > 50 ||
+        !(
+          body.nextBefore === null ||
+          (typeof body.nextBefore === "number" &&
+            Number.isSafeInteger(body.nextBefore) &&
+            body.nextBefore > 0 &&
+            (options.before === undefined || body.nextBefore < options.before))
+        ) ||
+        (body.nextBefore !== null && body.items.length !== 50) ||
+        !body.items.every(
+          (item) =>
+            item &&
+            item.documentId === options.docId &&
+            (item.role === "viewer" || item.role === "editor") &&
+            typeof item.token === "string" &&
+            /^[A-Za-z0-9_-]{16,256}$/.test(item.token) &&
+            typeof item.createdAt === "string" &&
+            Number.isFinite(Date.parse(item.createdAt)) &&
+            typeof item.revoked === "boolean",
+        ) ||
+        new Set(body.items.map((item) => item.token)).size !== body.items.length
+      )
+        return {
+          ok: false,
+          status: response.status,
+          error: "Server returned an invalid share list.",
+        };
+      return {
+        ok: true,
+        value: { items: body.items, nextBefore: body.nextBefore },
+      };
+    } catch {
+      return {
+        ok: false,
+        status: null,
+        error: "Share links could not be loaded. Retry to refresh.",
+      };
+    }
+  },
+  async revokeShare(options) {
+    try {
+      const response = await fetch(
+        routeUrl(
+          options,
+          `/api/documents/${encodeURIComponent(options.docId)}/revoke-share`,
+        ),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token: options.shareToken }),
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!response.ok) return failure(response);
+      if (response.status !== 204)
+        return {
+          ok: false,
+          status: response.status,
+          error: "Server did not confirm share revocation. Retry to confirm.",
+        };
+      return { ok: true, value: undefined };
+    } catch {
+      return {
+        ok: false,
+        status: null,
+        error: "Share revocation could not be confirmed. Retry to confirm.",
+      };
+    }
+  },
+  async createShare(options) {
+    try {
+      const response = await fetch(
+        routeUrl(
+          options,
+          `/api/documents/${encodeURIComponent(options.docId)}/shares`,
+        ),
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: options.role }),
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!response.ok) return failure(response);
+      const body = (await response.json()) as Partial<CloudShare>;
+      if (
+        body.documentId !== options.docId ||
+        body.role !== options.role ||
+        typeof body.token !== "string" ||
+        !/^[A-Za-z0-9_-]{16,256}$/.test(body.token)
+      )
+        return {
+          ok: false,
+          status: response.status,
+          error: "server returned an invalid share",
+        };
+      return {
+        ok: true,
+        value: {
+          documentId: body.documentId,
+          role: body.role,
+          token: body.token,
+        },
+      };
+    } catch {
+      return {
+        ok: false,
+        status: null,
+        error: "Could not create a share link. Check the connection.",
+      };
+    }
+  },
   async listDocuments(options) {
     let url: URL;
     try {
@@ -162,7 +328,7 @@ export const cloudApi: CloudApi = {
     try {
       url = routeUrl(
         options,
-        `/api/documents/${encodeURIComponent(options.docId)}/export.jsonl`,
+        `/api/documents/${encodeURIComponent(options.docId)}/access`,
       );
     } catch (error) {
       return { ok: false, status: null, error: describe(error) };
@@ -172,9 +338,19 @@ export const cloudApi: CloudApi = {
       if (!response.ok) {
         return failure(response);
       }
-      // Nothing here wants the document itself, and it can be megabytes.
-      await response.body?.cancel().catch(() => {});
-      return { ok: true, value: undefined };
+      const body = (await response.json()) as { role?: unknown };
+      if (
+        body.role !== "owner" &&
+        body.role !== "editor" &&
+        body.role !== "viewer"
+      ) {
+        return {
+          ok: false,
+          status: response.status,
+          error: "server returned an invalid document role",
+        };
+      }
+      return { ok: true, value: body.role };
     } catch (error) {
       return { ok: false, status: null, error: describe(error) };
     }

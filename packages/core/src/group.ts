@@ -223,6 +223,7 @@ export function planGroup(
     return null;
   }
   const ordered = store.getPageElements(page);
+  const orderedMembers = ordered.filter((element) => seen.has(element.id));
   let topAt = -1;
   for (const [at, element] of ordered.entries()) {
     if (seen.has(element.id)) {
@@ -244,7 +245,7 @@ export function planGroup(
     page,
     type: GROUP_TYPE,
     index,
-    semantic: { memberIds: members.map((member) => member.id) },
+    semantic: { memberIds: orderedMembers.map((member) => member.id) },
     visual: {},
   };
   return { id, commands: [{ type: "createElement", element }] };

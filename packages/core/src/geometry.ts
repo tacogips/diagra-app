@@ -22,6 +22,38 @@ export function boxCenter(box: Box): Vec {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+export function rotatePoint(point: Vec, pivot: Vec, degrees: number): Vec {
+  const angle = ((degrees % 360) * Math.PI) / 180;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  const dx = point.x - pivot.x;
+  const dy = point.y - pivot.y;
+  return {
+    x: pivot.x + dx * cosine - dy * sine,
+    y: pivot.y + dx * sine + dy * cosine,
+  };
+}
+
+/** Axis-aligned envelope after rotation in degrees about a page-space pivot. */
+export function rotatedBox(
+  box: Box,
+  degrees: number,
+  pivot = boxCenter(box),
+): Box {
+  if (!Number.isFinite(degrees) || degrees % 360 === 0) return box;
+  const radians = ((degrees % 360) * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const center = boxCenter(box);
+  const dx = center.x - pivot.x;
+  const dy = center.y - pivot.y;
+  const x = pivot.x + dx * cosine - dy * sine;
+  const y = pivot.y + dx * sine + dy * cosine;
+  const width = Math.abs(cosine) * box.width + Math.abs(sine) * box.height;
+  const height = Math.abs(sine) * box.width + Math.abs(cosine) * box.height;
+  return { x: x - width / 2, y: y - height / 2, width, height };
+}
+
 export function boxContains(box: Box, point: Vec, padding = 0): boolean {
   return (
     point.x >= box.x - padding &&
@@ -153,4 +185,16 @@ export function diamondContains(box: Box, point: Vec, padding = 0): boolean {
   const nx = Math.abs(point.x - center.x) / halfWidth;
   const ny = Math.abs(point.y - center.y) / halfHeight;
   return nx + ny <= 1;
+}
+/** A rounded box's transparent corner is outside its hit region. */
+export function roundedBoxContains(
+  box: Box,
+  point: Vec,
+  radius: number,
+): boolean {
+  if (!boxContains(box, point)) return false;
+  const r = Math.max(0, Math.min(radius, box.width / 2, box.height / 2));
+  const cx = Math.max(box.x + r, Math.min(point.x, box.x + box.width - r));
+  const cy = Math.max(box.y + r, Math.min(point.y, box.y + box.height - r));
+  return (point.x - cx) ** 2 + (point.y - cy) ** 2 <= r ** 2;
 }

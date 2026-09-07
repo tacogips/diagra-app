@@ -186,6 +186,29 @@ describe("elements", () => {
     expect(svg).toContain(`fill="${DEFAULT_SVG_THEME.accentSoft}"`);
   });
 
+  test("an erd table exports unique and ordinary index badges", () => {
+    const svg = pageSvg([
+      element({
+        id: "indexed",
+        type: "erd.table",
+        semantic: {
+          tableName: "events",
+          columns: [
+            { id: "slug", name: "slug", dataType: "text" },
+            { id: "created", name: "created_at", dataType: "timestamp" },
+          ],
+          indexes: [
+            { id: "slug-uq", columns: ["slug"], unique: true },
+            { id: "timeline", columns: ["created"] },
+          ],
+        },
+        visual: { x: 0, y: 0, width: 240 },
+      }),
+    ]);
+    expect(svg).toContain(">UQ</text>");
+    expect(svg).toContain(">IX</text>");
+  });
+
   test("a uml class draws its bands, stereotype and member rows", () => {
     const svg = pageSvg([
       element({
@@ -223,6 +246,69 @@ describe("elements", () => {
     expect(svg).toContain(">1:*</text>");
   });
 
+  test("a sequence diagram draws participant lifelines, messages and activations", () => {
+    const svg = pageSvg([
+      element({
+        id: "user",
+        type: "sequence.participant",
+        semantic: { name: "User", kind: "actor", order: "a1" },
+        visual: { x: 0, y: 0, width: 120, height: 260 },
+      }),
+      element({
+        id: "api",
+        index: "a2",
+        type: "sequence.participant",
+        semantic: { name: "API", kind: "service", order: "a2" },
+        visual: { x: 280, y: 0, width: 120, height: 260 },
+      }),
+      element({
+        id: "call",
+        index: "a3",
+        type: "sequence.message",
+        semantic: {
+          from: "user",
+          to: "api",
+          order: "b1",
+          kind: "sync",
+          label: "Request",
+        },
+        visual: { y: 130 },
+      }),
+      element({
+        id: "return",
+        index: "a4",
+        type: "sequence.message",
+        semantic: {
+          from: "api",
+          to: "user",
+          order: "b2",
+          kind: "return",
+          label: "Response",
+        },
+        visual: { y: 182 },
+      }),
+      element({
+        id: "active",
+        index: "a5",
+        type: "sequence.activation",
+        semantic: { participant: "api", fromOrder: "b1", toOrder: "b2" },
+        visual: { x: 335, y: 130, width: 10, height: 52 },
+      }),
+    ]);
+    expect(svg).toContain(
+      '<g data-id="user" data-type="sequence.participant">',
+    );
+    expect(svg).toContain('stroke-dasharray="5 4"');
+    expect(svg).toContain('data-id="call" data-type="sequence.message"');
+    expect(svg).toContain(">Request</text>");
+    expect(svg).toContain(
+      '<g data-id="return" data-type="sequence.message"><line x1="340" y1="182" x2="60" y2="182" fill="none" stroke="#1d2a2e" stroke-width="1.5" marker-end="url(#diagra-arrow)" stroke-dasharray="6 4" />',
+    );
+    expect(svg).toContain(
+      '<g data-id="active" data-type="sequence.activation">',
+    );
+  });
+
   test("a text note draws its lines from the top, left aligned", () => {
     const svg = pageSvg([
       element({
@@ -254,9 +340,9 @@ describe("elements", () => {
       }),
     ]);
     // 84 units of text width at 13 * 0.55 per glyph is 11 characters.
-    expect(svg).toContain(">one two</text>");
-    expect(svg).toContain(">three four</text>");
-    expect(svg).toContain(">five six</text>");
+    expect(svg).toContain(">one two </text>");
+    expect(svg).toContain(">three four </text>");
+    expect(svg).toContain(">five six </text>");
     expect(svg).not.toContain(">one two three</text>");
   });
 
@@ -298,6 +384,31 @@ describe("elements", () => {
     expect(svg).toContain('fill="#123456"');
   });
 
+  test("a text note preserves rich marks and safe links", () => {
+    const svg = pageSvg([
+      element({
+        id: "rich",
+        type: "text.note",
+        semantic: {
+          text: "Bold italic code link",
+          marks: [
+            { start: 0, end: 4, kind: "bold" },
+            { start: 5, end: 11, kind: "italic" },
+            { start: 12, end: 16, kind: "code" },
+            { start: 17, end: 21, kind: "link", href: "https://diagra.app" },
+          ],
+        },
+        visual: { x: 0, y: 0, width: 300, height: 40 },
+      }),
+    ]);
+    expect(svg).toContain('<tspan font-weight="700">Bold</tspan>');
+    expect(svg).toContain('<tspan font-style="italic">italic</tspan>');
+    expect(svg).toContain("ui-monospace");
+    expect(svg).toContain(
+      '<a href="https://diagra.app" rel="noopener noreferrer"><tspan text-decoration="underline"',
+    );
+  });
+
   test("an empty text note still occupies its bounds", () => {
     const svg = pageSvg([
       element({
@@ -311,7 +422,7 @@ describe("elements", () => {
     expect(svg).not.toContain("<text");
   });
 
-  test("a group draws nothing; its members export on their own", () => {
+  test("a group wraps its members without drawing geometry of its own", () => {
     const svg = pageSvg([
       geo("a", "rect"),
       element({
@@ -323,7 +434,10 @@ describe("elements", () => {
       }),
     ]);
     expect(svg).toContain('data-id="a"');
-    expect(svg).not.toContain('data-id="grp"');
+    expect(svg).toContain('data-id="grp" data-type="group"');
+    expect(svg?.indexOf('data-id="a"')).toBeGreaterThan(
+      svg?.indexOf('data-id="grp"') ?? -1,
+    );
     expect(svg).not.toContain("unsupported: group");
   });
 
@@ -331,13 +445,13 @@ describe("elements", () => {
     const svg = pageSvg([
       element({
         id: "n",
-        type: "frame",
+        type: "future.widget",
         semantic: { name: "later" },
         visual: { x: 0, y: 0 },
       }),
     ]);
     expect(svg).toContain('stroke-dasharray="6 4"');
-    expect(svg).toContain(">unsupported: frame</text>");
+    expect(svg).toContain(">unsupported: future.widget</text>");
   });
 
   test("an element with no geometry contributes nothing", () => {
@@ -345,7 +459,7 @@ describe("elements", () => {
       document([
         element({
           id: "floating",
-          type: "frame",
+          type: "future.widget",
           semantic: { name: "later" },
           visual: {},
         }),
@@ -356,13 +470,16 @@ describe("elements", () => {
 });
 
 describe("visual styling", () => {
-  test("fill, stroke, width, dash and opacity reach the primary shape", () => {
+  test("fill, stroke geometry, dash and opacity reach the primary shape", () => {
     const svg = pageSvg([
       geo("g", "rect", {
         style: {
           fill: "#ff0000",
           stroke: "#00ff00",
           strokeWidth: 3,
+          strokeCap: "square",
+          strokeJoin: "bevel",
+          strokeMiterLimit: 6,
           dash: "dotted",
           opacity: 0.25,
         },
@@ -371,6 +488,9 @@ describe("visual styling", () => {
     expect(svg).toContain('fill="#ff0000"');
     expect(svg).toContain('stroke="#00ff00"');
     expect(svg).toContain('stroke-width="3"');
+    expect(svg).toContain('stroke-linecap="square"');
+    expect(svg).toContain('stroke-linejoin="bevel"');
+    expect(svg).toContain('stroke-miterlimit="6"');
     expect(svg).toContain('stroke-dasharray="1 4"');
     expect(svg).toContain('opacity="0.25"');
   });
@@ -427,7 +547,7 @@ describe("wrapTextLines", () => {
   test("wraps greedily at word boundaries", () => {
     // 10 characters per line at 13 * 0.55 = 7.15 units each: 71.5 wide.
     expect(wrapTextLines("aaa bbb ccc ddd", 72, 13)).toEqual([
-      "aaa bbb",
+      "aaa bbb ",
       "ccc ddd",
     ]);
   });
@@ -440,11 +560,138 @@ describe("wrapTextLines", () => {
   });
 
   test("never divides by a zero width", () => {
-    expect(wrapTextLines("ab cd", 0, 13)).toEqual(["a", "b", "c", "d"]);
+    expect(wrapTextLines("ab cd", 0, 13)).toEqual(["a", "b", " ", "c", "d"]);
   });
 });
 
 describe("selection export", () => {
+  test("artboard assets use exact dimensions, suppress root titles and clip overflow", () => {
+    const editor = makeEditor();
+    const child = editor.buildElement("text.note", {
+      semantic: { text: "AssetLabel" },
+      visual: { x: 100, y: 150, width: 200, height: 40 },
+    });
+    const frame = editor.buildElement("frame", {
+      semantic: { name: "Editor-only title", memberIds: [child.id] },
+      visual: { x: 100, y: 100, width: 390, height: 844 },
+    });
+    editor.apply([
+      { type: "createElement", element: frame },
+      {
+        type: "createElement",
+        element: { ...child, index: editor.nextIndex() },
+      },
+    ]);
+    const before = JSON.stringify(editor.getSnapshot());
+    const svg = editor.exportArtboardSvg(frame.id, { padding: 99 }) ?? "";
+    expect(svg).toContain('width="390" height="844"');
+    expect(svg).toContain('viewBox="100 100 390 844"');
+    expect(svg).toContain('overflow="hidden"');
+    expect(svg).toContain("AssetLabel");
+    expect(svg).not.toContain("Editor-only title");
+    expect(JSON.stringify(editor.getSnapshot())).toBe(before);
+    editor.apply([
+      { type: "updateVisual", id: child.id, visual: { width: 900 } },
+    ]);
+    expect(editor.exportArtboardSvg(frame.id)).toContain(
+      'viewBox="100 100 390 844"',
+    );
+  });
+
+  test("artboard assets reject non-artboards and hidden roots while exporting rotation", () => {
+    const editor = makeEditor();
+    const frame = editor.buildElement("frame", {
+      visual: { x: 0, y: 0, width: 100, height: 50 },
+    });
+    const shape = editor.buildElement("shape.geo");
+    editor.apply([
+      { type: "createElement", element: frame },
+      { type: "createElement", element: shape },
+    ]);
+    expect(editor.exportArtboardSvg(shape.id)).toBeNull();
+    expect(editor.exportArtboardSvg("missing")).toBeNull();
+    editor.apply([
+      { type: "updateVisual", id: frame.id, visual: { rotation: 90 } },
+    ]);
+    expect(editor.exportArtboardSvg(frame.id)).toContain(
+      'viewBox="25 -25 50 100"',
+    );
+    editor.apply([
+      {
+        type: "updateVisual",
+        id: frame.id,
+        visual: { hidden: true },
+      },
+    ]);
+    expect(editor.exportArtboardSvg(frame.id)).toBeNull();
+  });
+
+  test("selected artboards include nested groups and shapes without unrelated content", () => {
+    const editor = makeEditor({
+      document: document([
+        element({
+          id: "screen",
+          type: "frame",
+          index: "a0",
+          semantic: {
+            name: "Screen",
+            memberIds: ["nested"],
+            clipContent: true,
+          },
+          visual: { x: 0, y: 0, width: 400, height: 800 },
+        }),
+        element({
+          id: "nested",
+          type: "frame",
+          index: "a1",
+          semantic: { name: "Card", memberIds: ["group"] },
+          visual: { x: 20, y: 20, width: 200, height: 200 },
+        }),
+        element({
+          id: "group",
+          type: "group",
+          index: "a2",
+          semantic: { memberIds: ["label", "hidden"] },
+        }),
+        element({
+          id: "label",
+          type: "text.note",
+          index: "a3",
+          semantic: { text: "Exported label" },
+          visual: { x: 30, y: 30, width: 180, height: 40 },
+        }),
+        element({
+          id: "hidden",
+          type: "text.note",
+          index: "a4",
+          semantic: { text: "Hidden label" },
+          visual: { x: 30, y: 80, width: 100, height: 40, hidden: true },
+        }),
+        element({
+          id: "outside",
+          type: "text.note",
+          index: "a5",
+          semantic: { text: "Unrelated" },
+          visual: { x: 900, y: 0, width: 100, height: 40 },
+        }),
+      ]),
+    });
+    editor.selection.set(["screen", "label"]);
+    const before = JSON.stringify(editor.getSnapshot());
+    const svg = editor.exportSelectionSvg() ?? "";
+    for (const id of ["screen", "nested", "label"])
+      expect(occurrences(svg, `data-id="${id}"`)).toBe(1);
+    expect(svg).toContain("Exported label");
+    expect(svg).toContain("clip-path");
+    expect(svg).not.toContain("Hidden label");
+    expect(svg).not.toContain("Unrelated");
+    expect(JSON.stringify(editor.getSnapshot())).toBe(before);
+    expect([...editor.selection.ids()]).toEqual(["screen", "label"]);
+    editor.selection.set(["group"]);
+    expect(editor.exportSelectionSvg()).toContain("Exported label");
+    expect(editor.exportSelectionSvg()).not.toContain('data-id="screen"');
+  });
+
   test("exports only what was selected", () => {
     const store = new Store(document([...erdFixture()]));
     const svg = renderSelectionSvg(

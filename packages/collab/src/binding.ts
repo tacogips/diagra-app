@@ -26,6 +26,7 @@ import type { Editor, StoreCommit, StoreDiff } from "@diagra/core";
 import type { Element, ElementId, Page, PageId } from "@diagra/ir";
 import * as Y from "yjs";
 import { syncElementToY, syncPageToY } from "./diff.ts";
+import { captureColors, type ColorUndo } from "./color-undo.ts";
 import {
   applyIrToDoc,
   ELEMENTS_KEY,
@@ -71,6 +72,9 @@ export class CollabBinding {
   private unsubscribeStore: (() => void) | null = null;
   private undoManager: Y.UndoManager | null = null;
   private applyingRemote = false;
+  private reconcilingDerived = false;
+  private readonly derivedOrigin = Symbol("derived-state");
+  private readonly colorUndo = new WeakMap<object, Map<string, ColorUndo>>();
   private attached = false;
 
   private readonly onElements = (
@@ -150,6 +154,7 @@ export class CollabBinding {
     this.undoManager.on("stack-item-added", this.onUndoStack);
     this.undoManager.on("stack-item-popped", this.onUndoStack);
     this.undoManager.on("stack-cleared", this.onUndoStack);
+    this.reconcileDerivedState();
   }
 
   /** Stop syncing. Safe to call twice, and never touches the socket. */
@@ -175,11 +180,61 @@ export class CollabBinding {
   }
 
   undo(): boolean {
-    return this.undoManager?.undo() != null;
+    const item = this.undoManager?.undoStack.at(-1);
+    const records = item ? this.colorUndo.get(item) : undefined;
+    const before = new Map(
+      this.editor.store.listElements().map((element) => [element.id, element]),
+    );
+    if (this.undoManager?.undo() == null) return false;
+    const redo = this.undoManager.redoStack.at(-1);
+    if (records && redo) this.colorUndo.set(redo, records);
+    const updates = new Map<string, Element>();
+    for (const record of records?.values() ?? []) {
+      const previous = before.get(record.id);
+      const current =
+        updates.get(record.id) ?? this.editor.store.get(record.id);
+      const token = record.afterToken
+        ? before.get(record.afterToken)
+        : undefined;
+      const value = (token?.semantic as { value?: unknown } | undefined)?.value;
+      if (
+        !current ||
+        !previous ||
+        record.beforeToken !== undefined ||
+        !record.afterToken ||
+        previous.visual.colorTokens?.[record.field] !== record.afterToken ||
+        current.visual.colorTokens?.[record.field] !== undefined ||
+        token?.type !== "design.token" ||
+        previous.visual.style?.[record.field] !== value ||
+        current.visual.style?.[record.field] !== value ||
+        current.visual.style?.[record.field] === record.beforeValue
+      )
+        continue;
+      const style = { ...current.visual.style };
+      if (record.beforeValue === undefined) delete style[record.field];
+      else style[record.field] = record.beforeValue;
+      updates.set(current.id, {
+        ...current,
+        visual: { ...current.visual, style },
+      });
+    }
+    this.reconcilingDerived = true;
+    try {
+      if (updates.size)
+        this.editor.store.commit({ update: [...updates.values()] });
+    } finally {
+      this.reconcilingDerived = false;
+    }
+    return true;
   }
 
   redo(): boolean {
-    return this.undoManager?.redo() != null;
+    const item = this.undoManager?.redoStack.at(-1);
+    const records = item ? this.colorUndo.get(item) : undefined;
+    if (this.undoManager?.redo() == null) return false;
+    const undo = this.undoManager.undoStack.at(-1);
+    if (records && undo) this.colorUndo.set(undo, records);
+    return true;
   }
 
   canUndo(): boolean {
@@ -224,6 +279,13 @@ export class CollabBinding {
       return;
     }
 
+    const colorChanges: [Element, Element][] = [];
+    if (!this.reconcilingDerived)
+      for (const id of diff.updated) {
+        const before = this.shadow.get(id);
+        const after = this.editor.store.get(id);
+        if (before && after) colorChanges.push([before, after]);
+      }
     Y.transact(
       this.doc,
       () => {
@@ -263,8 +325,15 @@ export class CollabBinding {
           this.shadow.delete(id);
         }
       },
-      this.localOrigin,
+      this.reconcilingDerived ? this.derivedOrigin : this.localOrigin,
     );
+    const item = this.undoManager?.undoStack.at(-1);
+    if (item && colorChanges.length) {
+      const records = this.colorUndo.get(item) ?? new Map<string, ColorUndo>();
+      for (const [before, after] of colorChanges)
+        captureColors(records, before, after);
+      this.colorUndo.set(item, records);
+    }
   }
 
   /**
@@ -310,7 +379,11 @@ export class CollabBinding {
     events: YMapEvents,
     transaction: Y.Transaction,
   ): void {
-    if (transaction.origin === this.localOrigin || !this.attached) {
+    if (
+      transaction.origin === this.localOrigin ||
+      transaction.origin === this.derivedOrigin ||
+      !this.attached
+    ) {
       return;
     }
 
@@ -362,19 +435,36 @@ export class CollabBinding {
     } finally {
       this.applyingRemote = false;
     }
+    this.reconcileDerivedState();
   }
 
   /** Remote document-level edits -> reload (design 4.3, coarse but atomic). */
   private applyRemoteDocument(transaction: Y.Transaction): void {
-    if (transaction.origin === this.localOrigin || !this.attached) {
+    if (
+      transaction.origin === this.localOrigin ||
+      transaction.origin === this.derivedOrigin ||
+      !this.attached
+    ) {
       return;
     }
     this.applyingRemote = true;
     try {
-      this.editor.loadDocument(ydocToIr(this.doc));
+      this.editor.loadDocument(ydocToIr(this.doc), { preserveView: true });
     } finally {
       this.applyingRemote = false;
     }
     this.resetShadow();
+    this.reconcileDerivedState();
+  }
+
+  /** Repairs publish with an untracked origin, so merged geometry is not user history. */
+  private reconcileDerivedState(): void {
+    if (this.reconcilingDerived || !this.attached) return;
+    this.reconcilingDerived = true;
+    try {
+      this.editor.reconcileDerivedState();
+    } finally {
+      this.reconcilingDerived = false;
+    }
   }
 }

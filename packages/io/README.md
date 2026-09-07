@@ -3,8 +3,60 @@
 Persistence and interchange adapters. Adapters consume and produce
 `@diagra/ir` documents only — no editor state, no Yjs, no DOM, no framework.
 
-Phase 1 (design section 11) ships JSONL in and out. SVG, PNG, Mermaid, D2
-and DDL adapters land in later phases.
+Phase 1 (design section 11) ships JSONL in and out. Mermaid semantic import
+and export are available for ER, UML class and sequence content; SVG/PNG
+rendering lives in the editor/UI packages. D2 architecture export is also
+available.
+
+## Mermaid
+
+```ts
+import {
+  availableMermaidKinds,
+  exportMermaid,
+  importMermaid,
+} from "@diagra/io";
+
+const kinds = availableMermaidKinds(document, pageId);
+const report = exportMermaid(document, pageId, kinds[0]);
+const imported = importMermaid(source, { title: "Checkout flow" });
+```
+
+`exportMermaid` emits deterministic `.mmd` source without mutating the IR.
+ER output includes table columns, primary/single-column unique keys and
+cardinality. Class output includes stereotypes, members, visibility,
+classifiers, multiplicity and association kinds. Sequence output preserves
+participant/message order, actor declarations, message kinds and activation
+intervals. Cross-page or dangling relationships are omitted and reported in
+`warnings`; composite unique indexes are retained in the IR but warned because
+Mermaid cannot express them as one ER attribute key.
+
+`importMermaid` accepts `erDiagram`, `classDiagram`, and `sequenceDiagram`
+source up to 1 MiB, returns a new validated document with deterministic IDs and
+an editable initial layout, and reports unsupported or lossy statements with
+source line numbers. It understands the subset emitted by Diagra plus common
+explicit Mermaid declarations, aliases, relationships, class members,
+messages, and activation statements. Import callers must treat Mermaid as an
+interchange source rather than a persistence target; the desktop and hosted
+shells therefore load `.mmd` and `.mermaid` as dirty, detached documents.
+
+## D2
+
+```ts
+import { exportD2 } from "@diagra/io";
+
+const report = exportD2(document, pageId);
+```
+
+`exportD2` produces deterministic `.d2` source for mixed architecture and
+flow pages while using D2's native `sql_table`, `class`, and
+`sequence_diagram` shapes for semantic ER, UML, and sequence layers. Explicit
+frame/group membership becomes nested containers; relationships retain row
+targets, supported arrowheads, crow-foot cardinality, message order, return
+dashes, and activation spans. Portable solid paint, strokes, dimensions,
+opacity, typography flags, corner radius, and shadow presence are retained.
+Unsupported or lossy constructs are omitted or reduced with element-addressed
+warnings instead of generating dangling D2 references.
 
 ## JSONL
 

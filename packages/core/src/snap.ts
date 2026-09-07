@@ -10,7 +10,7 @@
 // a box dragged near a neighbour lands flush with it, not on the grid line
 // a few units away.
 
-import type { Box } from "./geometry.ts";
+import type { Box, Vec } from "./geometry.ts";
 
 export interface SnapGuide {
   readonly axis: "x" | "y";
@@ -26,6 +26,11 @@ export interface SnapOptions {
   readonly threshold: number;
   /** Grid spacing in page units; omitted means no grid snapping. */
   readonly grid?: number;
+  /** Page-space origin for a frame-local grid; defaults to the page origin. */
+  readonly gridOrigin?: Vec;
+  /** Irregular construction-guide coordinates, such as column boundaries. */
+  readonly gridLinesX?: readonly number[];
+  readonly gridLinesY?: readonly number[];
 }
 
 export interface SnapResult {
@@ -106,8 +111,31 @@ function bestMatch(
   return best;
 }
 
-function gridDelta(value: number, grid: number): number {
-  return Math.round(value / grid) * grid - value;
+function gridDelta(value: number, grid: number, origin = 0): number {
+  return Math.round((value - origin) / grid) * grid + origin - value;
+}
+
+function lineDelta(
+  moving: readonly Line[],
+  coordinates: readonly number[] | undefined,
+  threshold: number,
+): number | null {
+  let best: { readonly delta: number; readonly edge: boolean } | null = null;
+  for (const at of coordinates ?? []) {
+    if (!Number.isFinite(at)) continue;
+    for (const source of moving) {
+      const delta = at - source.at;
+      const distance = Math.abs(delta);
+      if (
+        distance <= threshold &&
+        (best === null ||
+          distance < Math.abs(best.delta) ||
+          (distance === Math.abs(best.delta) && source.edge && !best.edge))
+      )
+        best = { delta, edge: source.edge };
+    }
+  }
+  return best?.delta ?? null;
 }
 
 function guideFor(
@@ -157,12 +185,22 @@ export function snapTranslate(
 
   let dx = xMatch?.delta ?? 0;
   let dy = yMatch?.delta ?? 0;
+  const xGridLine =
+    xMatch === null
+      ? lineDelta(xLines(moving), options.gridLinesX, options.threshold)
+      : null;
+  const yGridLine =
+    yMatch === null
+      ? lineDelta(yLines(moving), options.gridLinesY, options.threshold)
+      : null;
+  if (xGridLine !== null) dx = xGridLine;
+  if (yGridLine !== null) dy = yGridLine;
   if (options.grid !== undefined && options.grid > 0) {
-    if (xMatch === null) {
-      dx = gridDelta(moving.x, options.grid);
+    if (xMatch === null && xGridLine === null) {
+      dx = gridDelta(moving.x, options.grid, options.gridOrigin?.x);
     }
-    if (yMatch === null) {
-      dy = gridDelta(moving.y, options.grid);
+    if (yMatch === null && yGridLine === null) {
+      dy = gridDelta(moving.y, options.grid, options.gridOrigin?.y);
     }
   }
 
@@ -210,7 +248,14 @@ export function snapResize(
       guides.push(guideFor(axis, match.at, box, match.candidate));
       return match.at;
     }
-    return grid > 0 ? value + gridDelta(value, grid) : value;
+    const line = lineDelta(
+      [{ at: value, edge: true }],
+      axis === "x" ? options.gridLinesX : options.gridLinesY,
+      options.threshold,
+    );
+    if (line !== null) return value + line;
+    const origin = axis === "x" ? options.gridOrigin?.x : options.gridOrigin?.y;
+    return grid > 0 ? value + gridDelta(value, grid, origin) : value;
   };
 
   if (edges.left) {

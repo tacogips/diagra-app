@@ -1,0 +1,3 @@
+{"kind":"document","schemaVersion":1,"id":"tokens-fixture","title":"Design tokens"}
+{"kind":"page","id":"p1","name":"Palette","pageKind":"freeform"}
+{"kind":"element","id":"primary","page":"p1","type":"design.token","index":"a0","semantic":{"name":"Primary","kind":"color","value":"#2563eb"}}

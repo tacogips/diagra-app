@@ -9,11 +9,12 @@
 
 import { For, type JSX } from "solid-js";
 import type { PaletteEntry } from "./palette.ts";
-
-/** True while an IME is composing: Enter and Escape belong to it then. */
-export function isComposing(event: KeyboardEvent): boolean {
-  return event.isComposing || event.keyCode === 229;
-}
+import { isComposing } from "../NumberInput.tsx";
+export {
+  NumberInput,
+  type NumberInputProps,
+  isComposing,
+} from "../NumberInput.tsx";
 
 export interface SectionProps {
   readonly title: string;
@@ -93,6 +94,7 @@ export interface TextAreaProps {
   readonly onCommit: (value: string) => void;
   readonly label: string;
   readonly rows?: number;
+  readonly onSelectionChange?: (start: number, end: number) => void;
 }
 
 /** Multiline text: Enter inserts a newline, Cmd/Ctrl+Enter or blur commits. */
@@ -110,6 +112,12 @@ export function TextArea(props: TextAreaProps): JSX.Element {
       aria-label={props.label}
       rows={props.rows ?? 4}
       value={props.value}
+      on:select={(event) =>
+        props.onSelectionChange?.(
+          event.currentTarget.selectionStart,
+          event.currentTarget.selectionEnd,
+        )
+      }
       on:change={(event) => commit(event.currentTarget)}
       on:keydown={(event) => {
         if (isComposing(event)) {
@@ -121,55 +129,6 @@ export function TextArea(props: TextAreaProps): JSX.Element {
         } else if (event.key === "Escape") {
           event.preventDefault();
           event.currentTarget.value = props.value;
-          event.currentTarget.blur();
-        }
-      }}
-    />
-  );
-}
-
-export interface NumberInputProps {
-  readonly value: number | null;
-  readonly onCommit: (value: number) => void;
-  readonly label: string;
-  readonly step?: number;
-  readonly min?: number;
-  readonly disabled?: boolean;
-}
-
-export function NumberInput(props: NumberInputProps): JSX.Element {
-  const shown = (): string => (props.value === null ? "" : String(props.value));
-  const commit = (element: HTMLInputElement): void => {
-    const parsed = Number(element.value);
-    if (element.value.trim() !== "" && Number.isFinite(parsed)) {
-      const value =
-        props.min !== undefined && parsed < props.min ? props.min : parsed;
-      if (value !== props.value) {
-        props.onCommit(value);
-      }
-    }
-    element.value = shown();
-  };
-  return (
-    <input
-      type="number"
-      class="diagra-input diagra-number"
-      aria-label={props.label}
-      step={props.step ?? 1}
-      min={props.min}
-      disabled={props.disabled}
-      value={shown()}
-      on:change={(event) => commit(event.currentTarget)}
-      on:keydown={(event) => {
-        if (isComposing(event)) {
-          return;
-        }
-        if (event.key === "Enter") {
-          event.preventDefault();
-          commit(event.currentTarget);
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          event.currentTarget.value = shown();
           event.currentTarget.blur();
         }
       }}
@@ -220,6 +179,7 @@ export interface CheckboxProps {
   readonly onCommit: (checked: boolean) => void;
   readonly label: string;
   readonly title?: string;
+  readonly disabled?: boolean;
 }
 
 export function Checkbox(props: CheckboxProps): JSX.Element {
@@ -228,6 +188,7 @@ export function Checkbox(props: CheckboxProps): JSX.Element {
       <input
         type="checkbox"
         checked={props.checked}
+        disabled={props.disabled}
         on:change={(event) => props.onCommit(event.currentTarget.checked)}
       />
       <span>{props.label}</span>

@@ -5,7 +5,7 @@
 // Nothing here renders: a ShapeUtil answers questions in page space and the
 // renderer draws whatever it likes from the same element.
 
-import type { Element, ElementId, Visual } from "@diagra/ir";
+import type { Element, ElementId, PageId, Visual } from "@diagra/ir";
 import type { Box, Vec } from "./geometry.ts";
 
 /** Read-only view of the rest of the document, for shapes that need it. */
@@ -13,8 +13,17 @@ export interface ShapeContext {
   /** Current camera zoom; hit tolerances divide by it to stay screen-sized. */
   readonly zoom: number;
   resolve(id: ElementId): Element | undefined;
+  /** Elements on a page, when document-wide geometry such as routing needs it. */
+  elementsOnPage?(pageId: PageId): readonly Element[];
   /** Bounds of another element, resolved through the same registry. */
   boundsOf(id: ElementId): Box | null;
+  isHidden?(id: ElementId): boolean;
+  isLocked?(id: ElementId): boolean;
+  clipOf?(id: ElementId): Box | null;
+  /** Exact convex clipping polygon when a frame or layer mask applies. */
+  clipPolygonOf?(id: ElementId): readonly Vec[] | null;
+  /** Mask geometry is editable in Layers but omitted from normal rendering. */
+  isMaskSource?(id: ElementId): boolean;
 }
 
 export interface ShapeUtil {

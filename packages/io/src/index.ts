@@ -2,7 +2,8 @@
 // Adapters consume and produce the Diagram IR only — no editor, no Yjs, no
 // DOM, no framework.
 //
-// Phase 1 (design section 11) ships JSONL in/out; later adapters land here.
+// JSONL persistence and deterministic Mermaid semantic export ship here;
+// remaining interchange adapters can extend the same runtime-agnostic surface.
 
 export {
   compareStrings,
@@ -30,3 +31,23 @@ export {
   type SerializeOptions,
   serializeDocument,
 } from "./jsonl/serialize.ts";
+export {
+  MERMAID_DIAGRAM_KINDS,
+  type MermaidDiagramKind,
+  type MermaidExportReport,
+  type MermaidExportWarning,
+  availableMermaidKinds,
+  exportMermaid,
+} from "./mermaid/export.ts";
+export {
+  type MermaidImportOptions,
+  type MermaidImportReport,
+  type MermaidImportWarning,
+  MermaidParseError,
+  importMermaid,
+} from "./mermaid/import.ts";
+export {
+  type D2ExportReport,
+  type D2ExportWarning,
+  exportD2,
+} from "./d2/export.ts";

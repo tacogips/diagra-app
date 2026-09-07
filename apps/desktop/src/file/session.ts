@@ -15,7 +15,12 @@
 //     load produces never mark the fresh document dirty.
 
 import { type Editor, newElementId } from "@diagra/core";
-import { type Document, formatIssue, SCHEMA_VERSION } from "@diagra/ir";
+import {
+  assertValidDocument,
+  type Document,
+  formatIssue,
+  SCHEMA_VERSION,
+} from "@diagra/ir";
 import { parseDocumentResult, serializeDocument } from "@diagra/io";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
@@ -81,6 +86,14 @@ export function emptyLocalDocument(): Document {
 export function baseName(path: string): string {
   const separator = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
   return separator === -1 ? path : path.slice(separator + 1);
+}
+
+function isMermaidPath(path: string): boolean {
+  return /\.(?:mmd|mermaid)$/i.test(path);
+}
+
+function mermaidTitle(path: string): string {
+  return baseName(path).replace(/\.(?:mmd|mermaid)$/i, "");
 }
 
 function describe(error: unknown): string {
@@ -187,6 +200,23 @@ export class DocumentSession {
     });
   }
 
+  /** Import a detached document; no previous file may receive its autosave. */
+  async importDocument(document: Document, name: string): Promise<void> {
+    assertValidDocument(document);
+    this.cancelAutosave();
+    await this.stopWatching();
+    this.load(document);
+    this.lastSavedText = null;
+    this.patch({
+      filePath: null,
+      fileName: baseName(name),
+      dirty: true,
+      conflict: null,
+      status: "idle",
+      error: null,
+    });
+  }
+
   /** Ask for a file and open it. Returns false when cancelled or failed. */
   async open(): Promise<boolean> {
     let path: string | null;
@@ -218,6 +248,20 @@ export class DocumentSession {
       }
       this.fail(`could not open ${baseName(path)}: ${describe(error)}`);
       return false;
+    }
+
+    if (isMermaidPath(path)) {
+      try {
+        const { importMermaid } = await import("@diagra/io/mermaid/import");
+        const imported = importMermaid(diskText, { title: mermaidTitle(path) });
+        // Mermaid is an interchange source, not our persistence format. Keep
+        // the imported document detached so autosave can never rewrite it.
+        await this.importDocument(imported.document, baseName(path));
+        return true;
+      } catch (error) {
+        this.fail(`could not import ${baseName(path)}: ${describe(error)}`);
+        return false;
+      }
     }
 
     const parsed = parseDocumentResult(diskText);

@@ -51,6 +51,18 @@
   gap: 6px;
 }
 
+.diagra-inspector-subsection {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--diagra-line);
+}
+
+.diagra-inspector-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
 .diagra-inspector-summary,
 .diagra-inspector-note {
   margin: 0;
@@ -277,6 +289,17 @@
   align-items: center;
 }
 
+.diagra-row-erd {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr) 22px 22px minmax(
+      0,
+      1fr
+    ) minmax(0, 1fr) auto;
+}
+
+.diagra-row-erd-relation {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
 .diagra-row-uml {
   grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1fr) 22px auto;
 }
@@ -412,4 +435,27 @@
 .diagra-text-note-empty {
   border: 1px dashed var(--diagra-line);
   border-radius: 3px;
+}
+
+.diagra-rich-text-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.diagra-rich-text-controls button[aria-pressed="true"] {
+  border-color: var(--diagra-accent);
+  color: var(--diagra-accent);
+  background: var(--diagra-accent-soft);
+}
+.diagra-note-replacement-preview summary {
+  overflow-wrap: anywhere;
+}
+
+.diagra-note-replacement-preview pre {
+  max-height: 10rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
 }

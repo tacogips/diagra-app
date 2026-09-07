@@ -3,6 +3,8 @@
 //
 // This module is runtime-agnostic: no DOM, no framework imports.
 
+import type { AccessibilityMetadata } from "./accessibility.ts";
+
 /** Identifier of a {@link Document}. ULIDs in practice; any non-empty string parses. */
 export type DocId = string;
 /** Identifier of a {@link Page}, unique within a document. */
@@ -38,15 +40,172 @@ export type PageKind = (typeof PAGE_KINDS)[number];
 export type Extensions = Readonly<Record<string, unknown>>;
 
 /** Visual style. All fields optional; unknown fields survive in `extensions`. */
+export interface GradientStop {
+  /** Position along the gradient, from 0 to 1. */
+  readonly offset: number;
+  readonly color: string;
+  readonly opacity?: number;
+}
+
+export type FillGradient =
+  | {
+      readonly type: "linear";
+      /** Clockwise CSS angle in degrees; zero points upward. */
+      readonly angle: number;
+      readonly stops: readonly GradientStop[];
+    }
+  | {
+      readonly type: "radial";
+      /** Normalized object-bounding-box center and radius. */
+      readonly centerX: number;
+      readonly centerY: number;
+      readonly radius: number;
+      readonly stops: readonly GradientStop[];
+    }
+  | {
+      readonly type: "angular";
+      /** Normalized center; angle is the clockwise zero-stop direction. */
+      readonly centerX: number;
+      readonly centerY: number;
+      readonly angle: number;
+      readonly stops: readonly GradientStop[];
+    }
+  | {
+      readonly type: "diamond";
+      /** Normalized center and radius, rotated clockwise by `angle`. */
+      readonly centerX: number;
+      readonly centerY: number;
+      readonly radius: number;
+      readonly angle: number;
+      readonly stops: readonly GradientStop[];
+    };
+
+export interface DropShadowEffect {
+  readonly type: "drop-shadow";
+  readonly x: number;
+  readonly y: number;
+  /** Gaussian standard deviation in design pixels. */
+  readonly blur: number;
+  readonly color: string;
+  readonly opacity: number;
+  readonly enabled?: boolean;
+}
+
+export interface LayerBlurEffect {
+  readonly type: "layer-blur";
+  /** Gaussian standard deviation in design pixels. */
+  readonly blur: number;
+  readonly enabled?: boolean;
+}
+
+export interface BackgroundBlurEffect {
+  readonly type: "background-blur";
+  /** Gaussian standard deviation applied to pixels behind the layer. */
+  readonly blur: number;
+  readonly enabled?: boolean;
+}
+
+export type LayerEffect =
+  | DropShadowEffect
+  | LayerBlurEffect
+  | BackgroundBlurEffect;
+
+/** Portable layer compositing modes shared by CSS, SVG and native handoff. */
+export const BLEND_MODES = [
+  "normal",
+  "multiply",
+  "screen",
+  "overlay",
+  "darken",
+  "lighten",
+  "color-dodge",
+  "color-burn",
+  "hard-light",
+  "soft-light",
+  "difference",
+  "exclusion",
+  "hue",
+  "saturation",
+  "color",
+  "luminosity",
+] as const;
+export type BlendMode = (typeof BLEND_MODES)[number];
+
+export interface CornerRadii {
+  readonly topLeft: number;
+  readonly topRight: number;
+  readonly bottomRight: number;
+  readonly bottomLeft: number;
+}
+
+export interface FontVariationAxis {
+  /** Four-character OpenType variation tag, for example `wght` or `wdth`. */
+  readonly tag: string;
+  readonly value: number;
+}
+
+export interface FontFeatureSetting {
+  /** Four-character OpenType feature tag, for example `liga` or `ss01`. */
+  readonly tag: string;
+  /** Zero disables; positive integers select or enable the feature. */
+  readonly value: number;
+}
+
+export type TextResizeMode = "fixed" | "auto-width" | "auto-height";
+
 export interface VisualStyle {
+  /** Ordered compositing effects. When present, supersedes legacy `shadow`. */
+  readonly effects?: readonly LayerEffect[];
+  /** Legacy single shadow retained for backward-compatible documents. */
+  readonly shadow?: {
+    readonly x: number;
+    readonly y: number;
+    /** Gaussian standard deviation in design pixels. */
+    readonly blur: number;
+    readonly color: string;
+    readonly opacity: number;
+  };
   readonly fill?: string;
+  /** Gradient body paint; `fill` remains its portable solid fallback. */
+  readonly fillGradient?: FillGradient;
   readonly stroke?: string;
+  /** Gradient outline paint; `stroke` remains its portable solid fallback. */
+  readonly strokeGradient?: FillGradient;
   readonly strokeWidth?: number;
+  /** Shape used at open stroke endpoints. SVG-compatible portable values. */
+  readonly strokeCap?: "butt" | "round" | "square";
+  /** Shape used where consecutive stroke segments meet. */
+  readonly strokeJoin?: "miter" | "round" | "bevel";
+  /** Ratio at which a miter join falls back to a bevel; defaults to 4. */
+  readonly strokeMiterLimit?: number;
+  /** Alternating painted/gap lengths. Overrides the legacy `dash` preset. */
+  readonly strokeDashArray?: readonly number[];
+  /** Phase within the resolved dash cycle, in design pixels. */
+  readonly strokeDashOffset?: number;
+  readonly cornerRadius?: number;
+  /** Independent circular corner radii; supersedes `cornerRadius`. */
+  readonly cornerRadii?: CornerRadii;
   readonly dash?: "solid" | "dashed" | "dotted";
   readonly opacity?: number;
+  /** Composites this layer with the already-painted backdrop. */
+  readonly blendMode?: BlendMode;
   readonly color?: string;
   readonly fontSize?: number;
+  readonly fontFamily?: string;
+  readonly fontWeight?: number;
+  readonly fontStyle?: "normal" | "italic";
+  readonly fontVariations?: readonly FontVariationAxis[];
+  readonly fontFeatures?: readonly FontFeatureSetting[];
+  /** Unitless multiplier of font size. */
+  readonly lineHeight?: number;
+  readonly letterSpacing?: number;
   readonly textAlign?: "start" | "middle" | "end";
+  readonly textDecoration?:
+    | "none"
+    | "underline"
+    | "line-through"
+    | "underline line-through";
+  readonly verticalAlign?: "top" | "middle" | "bottom";
   readonly extensions?: Extensions;
 }
 
@@ -56,12 +215,82 @@ export interface VisualStyle {
  * no box geometry at all.
  */
 export interface Visual {
+  /** Opt-in tight Bézier frame; omitted preserves legacy control-hull mapping. */
+  readonly strokeBounds?: "curve";
+  /** Relative main-axis fill weight inside a fixed auto-layout parent; zero is fixed. */
+  readonly layoutGrow?: number;
+  /** Opt out of a parent frame's flow while retaining explicit membership. */
+  readonly layoutPosition?: "absolute";
+  /** Editor-only layer label, independent of visible/engineering semantics. */
+  readonly layerName?: string;
+  /** Linked palette colors; style retains a portable literal fallback. */
+  readonly colorTokens?: Partial<
+    Record<"fill" | "stroke" | "color", ElementId>
+  >;
+  /** Linked spacing, sizing, radius and typography measurements. */
+  readonly numberTokens?: Partial<
+    Record<
+      | "width"
+      | "height"
+      | "minWidth"
+      | "maxWidth"
+      | "minHeight"
+      | "maxHeight"
+      | "cornerRadius"
+      | "cornerTopLeft"
+      | "cornerTopRight"
+      | "cornerBottomRight"
+      | "cornerBottomLeft"
+      | "strokeWidth"
+      | "fontSize"
+      | "letterSpacing"
+      | "gap"
+      | "crossGap"
+      | "padding"
+      | "paddingTop"
+      | "paddingRight"
+      | "paddingBottom"
+      | "paddingLeft",
+      ElementId
+    >
+  >;
+  /** Linked reusable typography style; literal style fields remain fallbacks. */
+  readonly textStyle?: ElementId;
+  /** Unique within a component definition; matches layers across variants. */
+  readonly componentKey?: string;
+  readonly horizontalConstraint?:
+    | "start"
+    | "end"
+    | "center"
+    | "stretch"
+    | "scale";
+  readonly verticalConstraint?:
+    | "start"
+    | "end"
+    | "center"
+    | "stretch"
+    | "scale";
+  /** Hidden layers remain in the document but are omitted from drawing/export. */
+  readonly hidden?: boolean;
+  /** Prevent direct editing; this is an editor affordance, not authorization. */
+  readonly locked?: boolean;
+  /** Pin this visual root to its prototype viewport while content scrolls. */
+  readonly prototypeFixed?: boolean;
   /** Page-space x, in page units. */
   readonly x?: number;
   /** Page-space y, in page units. */
   readonly y?: number;
   readonly width?: number;
   readonly height?: number;
+  /** Lower/upper bounds for dimensions derived by auto layout. */
+  readonly minWidth?: number;
+  readonly maxWidth?: number;
+  readonly minHeight?: number;
+  readonly maxHeight?: number;
+  /** Persistent width / height proportion used by resizing and layout. */
+  readonly aspectRatio?: number;
+  /** Text-note box sizing; omitted keeps the legacy fixed box. */
+  readonly textResize?: TextResizeMode;
   /**
    * Clockwise rotation in **degrees**, about the element's own centre.
    *
@@ -78,6 +307,10 @@ export interface Page {
   readonly id: PageId;
   readonly name: string;
   readonly kind: PageKind;
+  /** Optional base62 fractional ordering key; legacy pages fall back to ID order. */
+  readonly order?: FractionalIndex;
+  /** Document-token mode used by elements on this page; omitted is Default. */
+  readonly tokenMode?: string;
   readonly extensions?: Extensions;
 }
 
@@ -91,6 +324,7 @@ export interface Element<S = unknown> {
   readonly type: string;
   readonly index: FractionalIndex;
   readonly semantic: S;
+  readonly accessibility?: AccessibilityMetadata;
   readonly visual: Visual;
   readonly extensions?: Extensions;
 }

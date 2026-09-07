@@ -95,6 +95,7 @@ describe("syncElementToY", () => {
       x: 640,
       y: 220,
       width: 280,
+      style: {},
     });
   });
 

@@ -16,6 +16,7 @@ import {
   type UnknownRecord,
   type ValidationIssue,
   validateDocument,
+  VISUAL_KEY_ORDER,
   VISUAL_STYLE_KEY_ORDER,
   type Visual,
 } from "@diagra/ir";
@@ -32,14 +33,7 @@ import {
 /** Byte order mark; some editors prepend one to UTF-8 text files. */
 const BOM = "\uFEFF";
 
-const VISUAL_KEYS: readonly string[] = [
-  "x",
-  "y",
-  "width",
-  "height",
-  "rotation",
-  "style",
-];
+const VISUAL_KEYS: readonly string[] = VISUAL_KEY_ORDER.keys;
 
 export interface ParseOptions {
   /** Run document validation after migration. Default `true`. */
@@ -223,6 +217,10 @@ function collect(text: string): Collected {
         id: known["id"],
         name: known["name"],
         kind: known["pageKind"],
+        ...(known["order"] === undefined ? {} : { order: known["order"] }),
+        ...(known["tokenMode"] === undefined
+          ? {}
+          : { tokenMode: known["tokenMode"] }),
       };
       if (extensions) {
         page["extensions"] = extensions;
@@ -239,6 +237,9 @@ function collect(text: string): Collected {
         type: known["type"],
         index: known["index"],
         semantic: known["semantic"] ?? {},
+        ...(known["accessibility"] === undefined
+          ? {}
+          : { accessibility: known["accessibility"] }),
         visual: parseVisual(known["visual"]),
       };
       if (extensions) {

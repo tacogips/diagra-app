@@ -34,6 +34,48 @@ export function checkArray(
   return true;
 }
 
+/** Validate ordered OpenType variation/feature settings with stable tags. */
+export function checkFontSettings(
+  out: ValidationIssue[],
+  value: unknown,
+  path: string,
+  options: { readonly optional?: boolean; readonly integer?: boolean } = {},
+): boolean {
+  if (value === undefined && options.optional) return true;
+  if (!checkArray(out, value, path)) return false;
+  if (value.length > 16)
+    out.push(
+      error("typography.settings.max", path, "expected at most 16 settings"),
+    );
+  const tags = new Set<string>();
+  for (const [index, item] of value.entries()) {
+    const itemPath = `${path}[${index}]`;
+    if (!checkObject(out, item, itemPath)) continue;
+    const tag = item["tag"];
+    if (typeof tag !== "string" || !/^[A-Za-z0-9]{4}$/.test(tag))
+      out.push(
+        error(
+          "typography.tag",
+          `${itemPath}.tag`,
+          "expected a four-character OpenType tag",
+        ),
+      );
+    else if (tags.has(tag))
+      out.push(
+        error(
+          "typography.tag.duplicate",
+          `${itemPath}.tag`,
+          `duplicate OpenType tag "${tag}"`,
+        ),
+      );
+    else tags.add(tag);
+    checkNumber(out, item["value"], `${itemPath}.value`, {
+      ...(options.integer ? { integer: true, min: 0 } : {}),
+    });
+  }
+  return true;
+}
+
 export function checkString(
   out: ValidationIssue[],
   value: unknown,

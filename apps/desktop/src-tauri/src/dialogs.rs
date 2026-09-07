@@ -11,7 +11,8 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 const FILTER_NAME: &str = "diagra document";
-const FILTER_EXTENSIONS: &[&str] = &["jsonl"];
+const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid"];
+const SAVE_FILTER_EXTENSIONS: &[&str] = &["jsonl"];
 const DEFAULT_FILE_NAME: &str = "untitled.jsonl";
 
 /// Save dialogs on some platforms return the typed name without the filter's
@@ -26,7 +27,7 @@ pub fn ensure_extension(path: PathBuf, extension: &str) -> PathBuf {
 }
 
 pub fn ensure_jsonl_extension(path: PathBuf) -> PathBuf {
-    ensure_extension(path, FILTER_EXTENSIONS[0])
+    ensure_extension(path, SAVE_FILTER_EXTENSIONS[0])
 }
 
 /// An export extension as the frontend hands it over: `svg`, `.SVG` and
@@ -77,7 +78,7 @@ pub async fn pick_open_path(app: AppHandle) -> Result<Option<String>, String> {
     let (sender, receiver) = mpsc::channel();
     app.dialog()
         .file()
-        .add_filter(FILTER_NAME, FILTER_EXTENSIONS)
+        .add_filter(FILTER_NAME, OPEN_FILTER_EXTENSIONS)
         .pick_file(move |picked| {
             let _ = sender.send(picked);
         });
@@ -92,7 +93,7 @@ pub async fn pick_save_path(
     let (sender, receiver) = mpsc::channel();
     app.dialog()
         .file()
-        .add_filter(FILTER_NAME, FILTER_EXTENSIONS)
+        .add_filter(FILTER_NAME, SAVE_FILTER_EXTENSIONS)
         .set_file_name(default_name.unwrap_or_else(|| DEFAULT_FILE_NAME.to_string()))
         .save_file(move |picked| {
             let _ = sender.send(picked);

@@ -1,7 +1,11 @@
 // JSONL record shapes and their declared key orders.
 // See the product design (diagra-cloud repo), section 6.
 
-import { type KeyOrder, VISUAL_KEY_ORDER } from "@diagra/ir";
+import {
+  ACCESSIBILITY_KEY_ORDER,
+  type KeyOrder,
+  VISUAL_KEY_ORDER,
+} from "@diagra/ir";
 
 export const DOCUMENT_KIND = "document";
 export const PAGE_KIND = "page";
@@ -30,6 +34,8 @@ export const PAGE_RECORD_KEYS: readonly string[] = [
   "id",
   "name",
   "pageKind",
+  "order",
+  "tokenMode",
 ];
 
 export const ELEMENT_RECORD_KEYS: readonly string[] = [
@@ -39,6 +45,7 @@ export const ELEMENT_RECORD_KEYS: readonly string[] = [
   "type",
   "index",
   "semantic",
+  "accessibility",
   "visual",
 ];
 
@@ -50,7 +57,10 @@ export const PAGE_RECORD_ORDER: KeyOrder = { keys: PAGE_RECORD_KEYS };
 
 /** Element order with the semantic payload order spliced in per type. */
 export function elementRecordOrder(semantic?: KeyOrder): KeyOrder {
-  const children: Record<string, KeyOrder> = { visual: VISUAL_KEY_ORDER };
+  const children: Record<string, KeyOrder> = {
+    accessibility: ACCESSIBILITY_KEY_ORDER,
+    visual: VISUAL_KEY_ORDER,
+  };
   if (semantic) {
     children["semantic"] = semantic;
   }

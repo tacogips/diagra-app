@@ -8,10 +8,14 @@
 //
 // The menu is positioned inside the canvas host at the screen point of the
 // click and clamped to the host after it has been measured. It closes on an
-// item, an outside press, Escape, or a wheel: a menu that scrolls away from
-// its anchor is worse than no menu.
+// item, an outside press, Escape, or an outside wheel. Internal scrolling
+// keeps actions reachable in short hosts; scrolling the parent closes its submenu.
 
 import type { Vec } from "@diagra/core";
+import { clampToHost, menuLimits, placeSubmenu } from "./menu-geometry.ts";
+export { clampToHost } from "./menu-geometry.ts";
+import { stepMenuIndex } from "./menu-navigation.ts";
+import { Portal } from "solid-js/web";
 import {
   createEffect,
   createMemo,
@@ -79,10 +83,32 @@ const SEPARATOR: MenuEntry = { kind: "separator" };
 function selectionEntries(): readonly MenuEntry[] {
   return [
     ...actions(["cut", "copy", "paste", "duplicate", "delete"]),
+    ...actions(["copyStyle", "pasteStyle"]),
+    {
+      kind: "submenu",
+      label: "Select matching",
+      items: [
+        "selectSameType",
+        "selectSameName",
+        "selectSameFill",
+        "selectSameStroke",
+      ].map((id) => getAction(id as ActionId)),
+    },
     SEPARATOR,
     ...actions(["bringToFront", "bringForward", "sendBackward", "sendToBack"]),
     SEPARATOR,
-    ...actions(["group", "ungroup"]),
+    ...actions(["frameSelection", "group", "ungroup"]),
+    {
+      kind: "submenu",
+      label: "Boolean operation",
+      items: [
+        "booleanUnion",
+        "booleanSubtract",
+        "booleanIntersect",
+        "booleanExclude",
+        "flattenBoolean",
+      ].map((id) => getAction(id as ActionId)),
+    },
     {
       kind: "submenu",
       label: "Align and distribute",
@@ -91,22 +117,6 @@ function selectionEntries(): readonly MenuEntry[] {
     SEPARATOR,
     ...actions(["editText"]),
   ];
-}
-
-const EDGE_MARGIN = 4;
-
-/** Keep a `size` box at `at` inside a `bounds` box, sliding it if needed. */
-export function clampToHost(
-  at: Vec,
-  size: { readonly width: number; readonly height: number },
-  bounds: { readonly width: number; readonly height: number },
-): Vec {
-  const maxX = Math.max(EDGE_MARGIN, bounds.width - size.width - EDGE_MARGIN);
-  const maxY = Math.max(EDGE_MARGIN, bounds.height - size.height - EDGE_MARGIN);
-  return {
-    x: Math.min(Math.max(EDGE_MARGIN, at.x), maxX),
-    y: Math.min(Math.max(EDGE_MARGIN, at.y), maxY),
-  };
 }
 
 export function ContextMenu(props: ContextMenuProps): JSX.Element {
@@ -147,7 +157,15 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
   const [openSubmenu, setOpenSubmenu] = createSignal<number | null>(null);
   const [activeSub, setActiveSub] = createSignal<number | null>(null);
   const [position, setPosition] = createSignal<Vec>(props.at);
-  const [submenuLeft, setSubmenuLeft] = createSignal(true);
+  const [submenuPosition, setSubmenuPosition] = createSignal<Vec>({
+    x: 0,
+    y: 0,
+  });
+  const limits = () =>
+    menuLimits({
+      width: props.host?.clientWidth ?? window.innerWidth,
+      height: props.host?.clientHeight ?? window.innerHeight,
+    });
 
   const run = (action: EditorAction): void => {
     runAction(action, props.context);
@@ -170,22 +188,6 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
     return out;
   };
 
-  const step = (
-    order: readonly number[],
-    current: number | null,
-    delta: 1 | -1,
-  ): number | null => {
-    if (order.length === 0) {
-      return null;
-    }
-    const at = current === null ? -1 : order.indexOf(current);
-    if (at === -1) {
-      return delta === 1 ? (order[0] ?? null) : (order.at(-1) ?? null);
-    }
-    const next = (at + delta + order.length) % order.length;
-    return order[next] ?? null;
-  };
-
   const openSubmenuAt = (index: number, focusFirst: boolean): void => {
     setOpenSubmenu(index);
     setActiveSub(focusFirst ? (enabledSubIndices()[0] ?? null) : null);
@@ -196,11 +198,15 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
     event.stopPropagation();
     const inSubmenu = openSubmenu() !== null && activeSub() !== null;
     switch (event.key) {
+      case "Tab":
+        props.onClose();
+        return;
       case "Escape":
         event.preventDefault();
         if (openSubmenu() !== null) {
           setOpenSubmenu(null);
           setActiveSub(null);
+          menu?.focus();
         } else {
           props.onClose();
         }
@@ -210,10 +216,10 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
         event.preventDefault();
         const delta = event.key === "ArrowDown" ? 1 : -1;
         if (inSubmenu) {
-          setActiveSub(step(enabledSubIndices(), activeSub(), delta));
+          setActiveSub(stepMenuIndex(enabledSubIndices(), activeSub(), delta));
         } else {
           setOpenSubmenu(null);
-          setActive(step(navigable(), active(), delta));
+          setActive(stepMenuIndex(navigable(), active(), delta));
         }
         return;
       }
@@ -244,6 +250,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
           event.preventDefault();
           setOpenSubmenu(null);
           setActiveSub(null);
+          menu?.focus();
         }
         return;
       case "Enter":
@@ -289,14 +296,29 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
 
     const onPointerDown = (event: PointerEvent): void => {
       const target = event.target;
-      if (target instanceof Node && menu?.contains(target)) {
+      if (
+        target instanceof Node &&
+        (menu?.contains(target) || submenu?.contains(target))
+      ) {
         return;
       }
       props.onClose();
     };
-    const onWheel = (): void => props.onClose();
+    const onWheel = (event: Event): void => {
+      if (
+        event.target instanceof Node &&
+        (menu?.contains(event.target) || submenu?.contains(event.target))
+      )
+        return;
+      props.onClose();
+    };
     const onWindowKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
+        if (
+          event.target instanceof Node &&
+          (menu?.contains(event.target) || submenu?.contains(event.target))
+        )
+          return;
         event.stopPropagation();
         props.onClose();
       }
@@ -313,14 +335,42 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
     });
   });
 
-  // Flip the submenu to the left when it would leave the host.
+  // A portal keeps the submenu outside the main menu's scroll clipping.
   createEffect(() => {
-    if (openSubmenu() === null || !submenu || !menu || !props.host) {
+    if (openSubmenu() === null || !submenu || !menu) {
       return;
     }
-    const hostRect = props.host.getBoundingClientRect();
+    const hostRect = props.host?.getBoundingClientRect() ?? {
+      left: 0,
+      top: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    };
     const menuRect = menu.getBoundingClientRect();
-    setSubmenuLeft(menuRect.right + submenu.offsetWidth > hostRect.right);
+    const trigger = menu.querySelector<HTMLElement>("[aria-expanded=true]");
+    const triggerRect = trigger?.getBoundingClientRect() ?? menuRect;
+    setSubmenuPosition(
+      placeSubmenu(
+        menuRect,
+        triggerRect.top,
+        { width: submenu.offsetWidth, height: submenu.offsetHeight },
+        hostRect,
+      ),
+    );
+  });
+
+  createEffect(() => {
+    active();
+    activeSub();
+    const container =
+      activeSub() !== null && openSubmenu() !== null ? submenu : menu;
+    const target = container?.querySelector<HTMLButtonElement>(
+      ".diagra-menu-active",
+    );
+    if (target && !target.disabled) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "nearest" });
+    }
   });
 
   return (
@@ -332,6 +382,15 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
       style={{
         left: `${position().x}px`,
         top: `${position().y}px`,
+        "max-height": `${limits().height}px`,
+        "overflow-y": "auto",
+        "max-width": `${limits().width}px`,
+        "min-width": `${Math.min(200, limits().width)}px`,
+        "box-sizing": "border-box",
+      }}
+      onScroll={() => {
+        setOpenSubmenu(null);
+        setActiveSub(null);
       }}
       onKeyDown={onKeyDown}
       onContextMenu={(event) => event.preventDefault()}
@@ -345,6 +404,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
             return (
               <button
                 type="button"
+                tabIndex={-1}
                 role="menuitem"
                 class="diagra-menu-item"
                 classList={{ "diagra-menu-active": active() === index() }}
@@ -369,6 +429,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
             <div class="diagra-menu-submenu-host">
               <button
                 type="button"
+                tabIndex={-1}
                 role="menuitem"
                 aria-haspopup="menu"
                 aria-expanded={openSubmenu() === index()}
@@ -385,31 +446,45 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
                 <span class="diagra-menu-shortcut">&gt;</span>
               </button>
               <Show when={openSubmenu() === index()}>
-                <div
-                  class="diagra-context-menu diagra-submenu"
-                  classList={{ "diagra-submenu-left": submenuLeft() }}
-                  role="menu"
-                  ref={submenu}
-                >
-                  <For each={entry.items}>
-                    {(action, subIndex) => (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        class="diagra-menu-item"
-                        classList={{
-                          "diagra-menu-active": activeSub() === subIndex(),
-                        }}
-                        disabled={!isEnabled(action)}
-                        title={actionTitle(action)}
-                        onPointerEnter={() => setActiveSub(subIndex())}
-                        onClick={() => run(action)}
-                      >
-                        <span class="diagra-menu-label">{action.label}</span>
-                      </button>
-                    )}
-                  </For>
-                </div>
+                <Portal>
+                  <div
+                    class="diagra-context-menu diagra-submenu"
+                    style={{
+                      position: "fixed",
+                      left: `${submenuPosition().x}px`,
+                      top: `${submenuPosition().y}px`,
+                      "max-height": `${limits().height}px`,
+                      "overflow-y": "auto",
+                      "max-width": `${limits().width}px`,
+                      "min-width": `${Math.min(200, limits().width)}px`,
+                      "box-sizing": "border-box",
+                    }}
+                    role="menu"
+                    ref={submenu}
+                    onKeyDown={onKeyDown}
+                    onContextMenu={(event) => event.preventDefault()}
+                  >
+                    <For each={entry.items}>
+                      {(action, subIndex) => (
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          role="menuitem"
+                          class="diagra-menu-item"
+                          classList={{
+                            "diagra-menu-active": activeSub() === subIndex(),
+                          }}
+                          disabled={!isEnabled(action)}
+                          title={actionTitle(action)}
+                          onPointerEnter={() => setActiveSub(subIndex())}
+                          onClick={() => run(action)}
+                        >
+                          <span class="diagra-menu-label">{action.label}</span>
+                        </button>
+                      )}
+                    </For>
+                  </div>
+                </Portal>
               </Show>
             </div>
           );
