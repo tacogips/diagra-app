@@ -437,6 +437,30 @@ describe("non-destructive Boolean groups", () => {
     );
     expect(merged).toHaveLength(1);
     expect(merged?.[0]).toHaveLength(1);
+
+    const crossingSemantic = editor.store.get(overlapping)?.semantic as {
+      readonly contours: readonly {
+        readonly points: readonly { readonly x: number; readonly y: number }[];
+      }[];
+    };
+    const oppositeCrossing = editor.createElement("draw.path", {
+      semantic: {
+        ...crossingSemantic,
+        fillRule: "nonzero",
+        contours: [
+          crossingSemantic.contours[0],
+          {
+            points: [...(crossingSemantic.contours[1]?.points ?? [])].reverse(),
+          },
+        ],
+      },
+    });
+    const canceled = booleanSourceGeometry(
+      editor.store.get(oppositeCrossing),
+      editor.createShapeContext(),
+    );
+    expect(canceled).toHaveLength(2);
+    expect(canceled?.every((polygon) => polygon)).toBe(true);
   });
 
   test("SVG export and CSS use the same non-destructive mask", () => {
