@@ -23,6 +23,7 @@ import {
   removeComponentVariantProperty,
   switchComponentVariantProperty,
   setGroupMask,
+  setGroupRasterMaskMode,
   setGroupBooleanOperation,
   textNoteMarks,
   textRangeHasMark,
@@ -1739,6 +1740,11 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
   const count = () => memberIdsOf(props.element).length;
   const semantic = () => props.element.semantic as GroupSemantic;
   const mask = () => semantic().maskId ?? "";
+  const rasterMask = () => {
+    const id = semantic().maskId;
+    const element = id ? props.editor.store.get(id) : undefined;
+    return element?.type === "image.raster";
+  };
   const booleanOperation = () => semantic().booleanOperation ?? "";
   const style = () => props.element.visual.style ?? {};
   const candidates = () => groupMaskCandidates(props.editor, props.element.id);
@@ -1818,8 +1824,27 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
       </Field>
       <p class="diagra-inspector-note">
         The mask layer stays editable in Layers but does not paint. Convex
-        shapes and ordinary box layers are supported.
+        shapes, ordinary box layers and raster images are supported.
       </p>
+      <Show when={rasterMask()}>
+        <Field label="Raster mask mode">
+          <SelectInput
+            label="Raster mask mode"
+            value={semantic().maskMode ?? "alpha"}
+            options={[
+              { value: "alpha", label: "Alpha" },
+              { value: "luminance", label: "Luminance" },
+            ]}
+            onCommit={(value) =>
+              setGroupRasterMaskMode(
+                props.editor,
+                props.element.id,
+                value === "luminance" ? "luminance" : "alpha",
+              )
+            }
+          />
+        </Field>
+      </Show>
       <Field label="Boolean operation">
         <SelectInput
           label="Group Boolean operation"
