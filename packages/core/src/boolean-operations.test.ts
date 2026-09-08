@@ -327,6 +327,103 @@ describe("non-destructive Boolean groups", () => {
     expect(editor.booleanSelection("union")).not.toBeNull();
   });
 
+  test("non-zero compound paths retain opposite-winding holes and same-winding fills", () => {
+    const editor = makeEditor();
+    const path = editor.createElement("draw.path", {
+      semantic: {
+        name: "Non-zero mark",
+        fillRule: "nonzero",
+        contours: [
+          {
+            points: [
+              { x: 0, y: 0 },
+              { x: 100, y: 0 },
+              { x: 100, y: 100 },
+              { x: 0, y: 100 },
+            ],
+          },
+          {
+            points: [
+              { x: 25, y: 25 },
+              { x: 25, y: 75 },
+              { x: 75, y: 75 },
+              { x: 75, y: 25 },
+            ],
+          },
+        ],
+      },
+      visual: { style: { fill: "#ef4444" } },
+    });
+    const geometry = booleanSourceGeometry(
+      editor.store.get(path),
+      editor.createShapeContext(),
+    );
+    expect(geometry).toHaveLength(1);
+    expect(geometry?.[0]).toHaveLength(2);
+    const sameWinding = editor.createElement("draw.path", {
+      semantic: {
+        name: "Non-zero filled mark",
+        fillRule: "nonzero",
+        contours: [
+          {
+            points: [
+              { x: 150, y: 0 },
+              { x: 250, y: 0 },
+              { x: 250, y: 100 },
+              { x: 150, y: 100 },
+            ],
+          },
+          {
+            points: [
+              { x: 175, y: 25 },
+              { x: 225, y: 25 },
+              { x: 225, y: 75 },
+              { x: 175, y: 75 },
+            ],
+          },
+        ],
+      },
+      visual: { style: { fill: "#ef4444" } },
+    });
+    const filled = booleanSourceGeometry(
+      editor.store.get(sameWinding),
+      editor.createShapeContext(),
+    );
+    expect(filled).toHaveLength(1);
+    expect(filled?.[0]).toHaveLength(1);
+
+    const overlapping = editor.createElement("draw.path", {
+      semantic: {
+        name: "Ambiguous non-zero mark",
+        fillRule: "nonzero",
+        contours: [
+          {
+            points: [
+              { x: 300, y: 0 },
+              { x: 400, y: 0 },
+              { x: 400, y: 100 },
+              { x: 300, y: 100 },
+            ],
+          },
+          {
+            points: [
+              { x: 350, y: 50 },
+              { x: 450, y: 50 },
+              { x: 450, y: 150 },
+              { x: 350, y: 150 },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      booleanSourceGeometry(
+        editor.store.get(overlapping),
+        editor.createShapeContext(),
+      ),
+    ).toBeNull();
+  });
+
   test("SVG export and CSS use the same non-destructive mask", () => {
     const { editor, group } = fixture("exclude");
     const geometry = booleanGeometry(

@@ -152,6 +152,83 @@ function circlePart(
   );
 }
 
+function signedRingArea(
+  ring: readonly { readonly x: number; readonly y: number }[],
+): number {
+  return ring.reduce((area, point, index) => {
+    const next = ring[(index + 1) % ring.length];
+    return area + point.x * (next?.y ?? 0) - (next?.x ?? 0) * point.y;
+  }, 0);
+}
+
+/**
+ * Convert disjoint or strictly nested SVG non-zero contours into GeoJSON
+ * polygon rings. Crossing overlaps are deliberately rejected: assigning their
+ * faces requires a planar winding arrangement, and guessing would make the
+ * Boolean operand disagree with the SVG path.
+ */
+function nonzeroPathPolygons(
+  rings: readonly BooleanPolygon[],
+): MultiPolygon | null {
+  const entries = rings.map((ring, index) => ({
+    index,
+    ring,
+    polygon: clippedPart(ring),
+    area: signedRingArea(ring),
+    parent: -1,
+    winding: 0,
+    owner: -1,
+  }));
+  if (entries.some((entry) => Math.abs(entry.area) <= Number.EPSILON))
+    return null;
+  for (const child of entries) {
+    let parent: (typeof entries)[number] | undefined;
+    for (const candidate of entries) {
+      if (
+        candidate.index === child.index ||
+        Math.abs(candidate.area) <= Math.abs(child.area)
+      )
+        continue;
+      const outside = polygonClipping.difference(
+        child.polygon,
+        candidate.polygon,
+      );
+      if (!outside.length) {
+        if (!parent || Math.abs(candidate.area) < Math.abs(parent.area))
+          parent = candidate;
+        continue;
+      }
+      const overlap = polygonClipping.intersection(
+        child.polygon,
+        candidate.polygon,
+      );
+      if (overlap.length) return null;
+    }
+    child.parent = parent?.index ?? -1;
+  }
+  const ordered = [...entries].sort(
+    (a, b) => Math.abs(b.area) - Math.abs(a.area),
+  );
+  const polygons: Polygon[] = [];
+  for (const entry of ordered) {
+    const parent = entry.parent < 0 ? undefined : entries[entry.parent];
+    const sign = entry.area > 0 ? 1 : -1;
+    const previous = parent?.winding ?? 0;
+    entry.winding = previous + sign;
+    if (previous === 0 && entry.winding !== 0) {
+      entry.owner = polygons.length;
+      polygons.push(clippedPart(entry.ring));
+    } else if (previous !== 0 && entry.winding === 0) {
+      const owner = parent?.owner ?? -1;
+      if (owner < 0 || !polygons[owner]) return null;
+      polygons[owner]?.push(entry.ring.map((point) => [point.x, point.y]));
+      entry.owner = -1;
+    } else entry.owner = parent?.owner ?? -1;
+  }
+  const [first, ...rest] = polygons;
+  return first ? polygonClipping.union(first, ...rest) : [];
+}
+
 function unionParts(parts: readonly Polygon[]): MultiPolygon {
   let level: MultiPolygon[] = parts.map((part) => [part]);
   while (level.length > 1) {
@@ -383,11 +460,7 @@ function openStrokeSourceMultiPolygon(
 function pathSourceMultiPolygon(element: Element): BooleanMultiPolygon | null {
   const semantic = element.semantic as PathSemantic;
   const geometry = compoundPathGeometry(element);
-  if (
-    !geometry ||
-    (semantic.fillRule === "nonzero" && geometry.contours.length > 1)
-  )
-    return null;
+  if (!geometry) return null;
   const center = boxCenter(geometry.box);
   const rotation = element.visual.rotation ?? 0;
   const rings = geometry.contours.map((contour) =>
@@ -401,6 +474,10 @@ function pathSourceMultiPolygon(element: Element): BooleanMultiPolygon | null {
   );
   if (rings.some((ring) => ring.length < 3)) return null;
   try {
+    if (semantic.fillRule === "nonzero") {
+      const polygons = nonzeroPathPolygons(rings);
+      return polygons ? fromClipped(polygons) : null;
+    }
     const operands = rings.map(
       (ring): Polygon => [ring.map((point) => [point.x, point.y])],
     );
