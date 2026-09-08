@@ -530,3 +530,53 @@ test("generates native convex group masks without painting the mask source", () 
   expect(code?.swiftUi).toContain("Avatar");
   expect(code?.jetpackCompose).toContain("Avatar");
 });
+
+test("generates native alpha and luminance raster group masks", () => {
+  const editor = makeEditor();
+  const mask = editor.buildElement("image.raster", {
+    id: "photo-mask",
+    semantic: {
+      src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+      alt: "Mask",
+      crop: { x: 0.1, y: 0.2, width: 0.7, height: 0.6 },
+    },
+    visual: { x: 20, y: 30, width: 100, height: 80, rotation: 15 },
+  });
+  const content = editor.buildElement("shape.geo", {
+    id: "masked-content",
+    semantic: { geo: "rect", label: "Masked card" },
+    visual: { x: 0, y: 0, width: 160, height: 140 },
+  });
+  const group = editor.buildElement("group", {
+    id: "photo-mask-group",
+    semantic: {
+      memberIds: [mask.id, content.id],
+      maskId: mask.id,
+      maskMode: "luminance",
+    },
+  });
+  const frame = editor.buildElement("frame", {
+    semantic: { name: "Profile", memberIds: [group.id] },
+    visual: { x: 0, y: 0, width: 390, height: 844 },
+  });
+  editor.apply(
+    [frame, group, mask, content].map((element) => ({
+      type: "createElement" as const,
+      element,
+    })),
+  );
+  const code = generateMobileInterfaceCode(editor, frame.id);
+  expect(code?.swiftUi).toContain(
+    'DiagraRasterMask(asset: "diagra_photo_mask"',
+  );
+  expect(code?.swiftUi).toContain("cropX: 0.1");
+  expect(code?.swiftUi).toContain("luminance: true");
+  expect(code?.swiftUi).toContain("luminanceToAlpha()");
+  expect(code?.jetpackCompose).toContain(
+    ".diagraRasterMask(resource = R.drawable.diagra_photo_mask",
+  );
+  expect(code?.jetpackCompose).toContain("luminance = true");
+  expect(code?.jetpackCompose).toContain("BlendMode.DstIn");
+  expect(code?.swiftUi).not.toContain('photo-mask"');
+  expect(code?.jetpackCompose).not.toContain('photo-mask"');
+});

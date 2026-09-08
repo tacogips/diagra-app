@@ -307,7 +307,76 @@ function normalizedMaskPoints(
   );
 }
 
+type RasterMaskPlacement = {
+  readonly resource: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly cropX: number;
+  readonly cropY: number;
+  readonly cropWidth: number;
+  readonly cropHeight: number;
+  readonly rotation: number;
+  readonly luminance: boolean;
+};
+
+function rasterMaskPlacement(
+  editor: Editor,
+  element: Element,
+): RasterMaskPlacement | null {
+  if (element.type !== "group") return null;
+  const semantic = element.semantic as GroupSemantic;
+  const source = semantic.maskId
+    ? editor.store.get(semantic.maskId)
+    : undefined;
+  const groupBox = editor.getBounds(element.id);
+  const sourceBox = source ? editor.getBounds(source.id) : null;
+  if (
+    source?.type !== "image.raster" ||
+    !groupBox ||
+    !sourceBox ||
+    groupBox.width <= 0 ||
+    groupBox.height <= 0
+  )
+    return null;
+  const crop = (source.semantic as ImageSemantic).crop;
+  return {
+    resource: resourceName(source),
+    x: (sourceBox.x - groupBox.x) / groupBox.width,
+    y: (sourceBox.y - groupBox.y) / groupBox.height,
+    width: sourceBox.width / groupBox.width,
+    height: sourceBox.height / groupBox.height,
+    cropX: crop?.x ?? 0,
+    cropY: crop?.y ?? 0,
+    cropWidth: crop?.width ?? 1,
+    cropHeight: crop?.height ?? 1,
+    rotation: source.visual.rotation ?? 0,
+    luminance: semantic.maskMode === "luminance",
+  };
+}
+
+function swiftRasterMaskModifier(
+  editor: Editor,
+  element: Element,
+): string | null {
+  const mask = rasterMaskPlacement(editor, element);
+  if (!mask) return null;
+  return `.mask(DiagraRasterMask(asset: ${swiftString(mask.resource)}, x: ${number(mask.x)}, y: ${number(mask.y)}, width: ${number(mask.width)}, height: ${number(mask.height)}, cropX: ${number(mask.cropX)}, cropY: ${number(mask.cropY)}, cropWidth: ${number(mask.cropWidth)}, cropHeight: ${number(mask.cropHeight)}, rotation: ${number(mask.rotation)}, luminance: ${mask.luminance}))`;
+}
+
+function composeRasterMaskModifier(
+  editor: Editor,
+  element: Element,
+): string | null {
+  const mask = rasterMaskPlacement(editor, element);
+  if (!mask) return null;
+  return `.diagraRasterMask(resource = R.drawable.${mask.resource}, x = ${number(mask.x)}f, y = ${number(mask.y)}f, width = ${number(mask.width)}f, height = ${number(mask.height)}f, cropX = ${number(mask.cropX)}f, cropY = ${number(mask.cropY)}f, cropWidth = ${number(mask.cropWidth)}f, cropHeight = ${number(mask.cropHeight)}f, rotation = ${number(mask.rotation)}f, luminance = ${mask.luminance})`;
+}
+
 function swiftMaskModifier(editor: Editor, element: Element): string | null {
+  const raster = swiftRasterMaskModifier(editor, element);
+  if (raster) return raster;
   const points = normalizedMaskPoints(editor, element);
   if (!points?.length) return null;
   return `.mask(DiagraPolygon(points: [${points
@@ -348,6 +417,8 @@ function swiftBooleanModifier(editor: Editor, element: Element): string | null {
 }
 
 function composeMaskModifier(editor: Editor, element: Element): string | null {
+  const raster = composeRasterMaskModifier(editor, element);
+  if (raster) return raster;
   const points = normalizedMaskPoints(editor, element);
   if (!points?.length) return null;
   const commands = points
@@ -947,6 +1018,16 @@ function swiftCode(
       ? []
       : [
           "",
+          "private struct DiagraRasterMask: View {",
+          "    let asset: String; let x: CGFloat; let y: CGFloat; let width: CGFloat; let height: CGFloat; let cropX: CGFloat; let cropY: CGFloat; let cropWidth: CGFloat; let cropHeight: CGFloat; let rotation: CGFloat; let luminance: Bool",
+          "    var body: some View {",
+          "        GeometryReader { proxy in",
+          "            let image = Image(asset).resizable().frame(width: proxy.size.width * width / cropWidth, height: proxy.size.height * height / cropHeight).offset(x: proxy.size.width * (x - cropX * width / cropWidth), y: proxy.size.height * (y - cropY * height / cropHeight)).rotationEffect(.degrees(rotation))",
+          "            if luminance { image.luminanceToAlpha() } else { image }",
+          "        }",
+          "    }",
+          "}",
+          "",
           "private struct DiagraBooleanMask: View {",
           "    let polygons: [[CGPoint]]",
           "    var body: some View {",
@@ -1199,16 +1280,21 @@ function composeCode(
           "import androidx.compose.ui.draw.alpha",
           "import androidx.compose.ui.draw.clip",
           "import androidx.compose.ui.draw.clipToBounds",
+          "import androidx.compose.ui.draw.drawWithContent",
           "import androidx.compose.ui.draw.rotate",
           "import androidx.compose.ui.geometry.Offset",
+          "import androidx.compose.ui.geometry.Size",
           "import androidx.compose.ui.graphics.Brush",
           "import androidx.compose.ui.graphics.BlendMode",
           "import androidx.compose.ui.graphics.Color",
+          "import androidx.compose.ui.graphics.ColorFilter",
+          "import androidx.compose.ui.graphics.ColorMatrix",
           "import androidx.compose.ui.graphics.graphicsLayer",
           "import androidx.compose.ui.graphics.Path",
           "import androidx.compose.ui.graphics.PathFillType",
           "import androidx.compose.ui.graphics.PathEffect",
           "import androidx.compose.ui.graphics.drawscope.Stroke",
+          "import androidx.compose.ui.graphics.drawscope.withTransform",
           "import androidx.compose.ui.layout.ContentScale",
           "import androidx.compose.ui.res.painterResource",
           "import androidx.compose.ui.semantics.*",
@@ -1227,6 +1313,19 @@ function composeCode(
     "@Composable",
     `fun ${functionName}() {`,
     ...body,
+    "}",
+    "",
+    "@Composable",
+    "private fun Modifier.diagraRasterMask(resource: Int, x: Float, y: Float, width: Float, height: Float, cropX: Float, cropY: Float, cropWidth: Float, cropHeight: Float, rotation: Float, luminance: Boolean): Modifier {",
+    "    val painter = painterResource(resource)",
+    "    val filter = if (luminance) ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, .2126f, .7152f, .0722f, 0f, 0f))) else null",
+    "    return drawWithContent {",
+    "        drawContent()",
+    "        val fullWidth = size.width * width / cropWidth; val fullHeight = size.height * height / cropHeight",
+    "        val origin = Offset(size.width * (x - cropX * width / cropWidth), size.height * (y - cropY * height / cropHeight))",
+    "        val pivot = Offset(size.width * (x + width / 2f), size.height * (y + height / 2f))",
+    "        withTransform({ rotate(rotation, pivot) }) { with(painter) { draw(size = Size(fullWidth, fullHeight), topLeft = origin, colorFilter = filter, blendMode = BlendMode.DstIn) } }",
+    "    }",
     "}",
   ].join("\n");
 }
