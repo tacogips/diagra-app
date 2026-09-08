@@ -64,3 +64,30 @@ test("pressure width drives freehand picking and exported visual bounds", () => 
   expect(svg).toContain('fill="#123456"');
   expect(svg).toContain('fill-rule="evenodd"');
 });
+
+test("dashed pressure input uses the portable fixed-width SVG stroke path", () => {
+  const editor = makeEditor();
+  const stroke = editor.buildElement("draw.freehand", {
+    semantic: {
+      points: [
+        { x: 0, y: 0, pressure: 0 },
+        { x: 100, y: 0, pressure: 1 },
+      ],
+    },
+    visual: {
+      style: {
+        stroke: "#123456",
+        strokeWidth: 20,
+        strokeDashArray: [6, 2],
+        strokeDashOffset: -1,
+      },
+    },
+  });
+  editor.apply([{ type: "createElement", element: stroke }]);
+  expect(freehandGeometry(stroke)?.pressureOutline).toBeNull();
+  const svg = editor.exportPageSvg();
+  expect(svg).toContain('stroke="#123456"');
+  expect(svg).toContain('stroke-dasharray="6 2"');
+  expect(svg).toContain('stroke-dashoffset="-1"');
+  expect(svg).not.toContain('fill-rule="evenodd"');
+});
