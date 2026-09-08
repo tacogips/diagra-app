@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import {
   dashPolyline,
+  MAX_DASH_SPLIT_STEPS,
   resolvedStrokeDashArray,
   strokeDashCss,
 } from "./stroke-dash.ts";
@@ -51,4 +52,12 @@ test("dash fragments continue through vertices and omit zero-length gaps", () =>
       { x: 8, y: 4 },
     ],
   ]);
+});
+
+test("very dense patterns use one bounded solid fallback for Boolean geometry", () => {
+  const points = [
+    { x: 0, y: 0 },
+    { x: MAX_DASH_SPLIT_STEPS + 4, y: 0 },
+  ];
+  expect(dashPolyline(points, [1, 1])).toEqual([points]);
 });

@@ -24,6 +24,7 @@ export {
 } from "./font-settings.ts";
 export {
   dashPolyline,
+  MAX_DASH_SPLIT_STEPS,
   resolvedStrokeDashArray,
   strokeDashCss,
   type DashPoint,

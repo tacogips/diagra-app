@@ -9,6 +9,13 @@ const PRESET_DASHES: Readonly<
   dotted: [1, 4],
 };
 
+/**
+ * Boolean expansion needs concrete polygons for every painted dash. Keep this
+ * deliberately finite: SVG renderers retain the exact authored dash pattern,
+ * while an excessively dense Boolean operand falls back to its full stroke.
+ */
+export const MAX_DASH_SPLIT_STEPS = 16_384;
+
 /** Custom intervals override the legacy named preset. Odd arrays repeat once. */
 export function resolvedStrokeDashArray(
   style: VisualStyle | undefined,
@@ -71,6 +78,7 @@ export function dashPolyline(
   let remaining = (pattern[patternIndex] ?? 0) - phase;
   const fragments: DashPoint[][] = [];
   let current: DashPoint[] | null = null;
+  let steps = 0;
   const advance = (): void => {
     let attempts = 0;
     do {
@@ -92,6 +100,8 @@ export function dashPolyline(
     if (length <= Number.EPSILON) continue;
     let consumed = 0;
     while (consumed < length - 1e-9) {
+      steps += 1;
+      if (steps > MAX_DASH_SPLIT_STEPS) return [[...points]];
       const step = Math.min(remaining, length - consumed);
       const from = interpolate(start, end, consumed / length);
       const to = interpolate(start, end, (consumed + step) / length);
