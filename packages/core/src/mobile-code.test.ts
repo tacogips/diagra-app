@@ -135,6 +135,55 @@ test("maps stroke geometry to SwiftUI and reports Compose border limits", () => 
   );
 });
 
+test("maps compound-path dashes and phase to SwiftUI and Compose Canvas", () => {
+  const editor = makeEditor();
+  const path = editor.buildElement("draw.path", {
+    semantic: {
+      name: "Dashed triangle",
+      contours: [
+        {
+          points: [
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            { x: 50, y: 80 },
+          ],
+        },
+      ],
+      fillRule: "evenodd",
+    },
+    visual: {
+      x: 20,
+      y: 20,
+      width: 120,
+      height: 80,
+      style: {
+        stroke: "#ff0000",
+        strokeWidth: 3,
+        strokeDashArray: [6, 2],
+        strokeDashOffset: -1,
+      },
+    },
+  });
+  const frame = editor.buildElement("frame", {
+    semantic: { name: "Dashed path", memberIds: [path.id] },
+    visual: { x: 0, y: 0, width: 160, height: 120 },
+  });
+  editor.apply(
+    [frame, path].map((element) => ({
+      type: "createElement" as const,
+      element,
+    })),
+  );
+  const code = generateMobileInterfaceCode(editor, frame.id);
+  expect(code?.swiftUi).toContain("dash: [6, 2], dashPhase: -1");
+  expect(code?.jetpackCompose).toContain(
+    "PathEffect.dashPathEffect(floatArrayOf(6f, 2f), -1f)",
+  );
+  expect(code?.jetpackCompose).toContain(
+    "import androidx.compose.ui.graphics.PathEffect",
+  );
+});
+
 test("generates native min/max sizing constraints", () => {
   const editor = makeEditor();
   const child = editor.buildElement("shape.geo", {
