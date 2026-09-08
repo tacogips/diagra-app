@@ -183,6 +183,27 @@ function nonzeroPathPolygons(
   const orientations = new Set(entries.map((entry) => Math.sign(entry.area)));
   if (orientations.size === 1)
     return unionParts(entries.map((entry) => clippedPart(entry.ring)));
+  if (entries.length === 2) {
+    const [first, second] = entries;
+    if (first && second) {
+      const overlap = polygonClipping.intersection(
+        first.polygon,
+        second.polygon,
+      );
+      const firstOnly = polygonClipping.difference(
+        first.polygon,
+        second.polygon,
+      );
+      const secondOnly = polygonClipping.difference(
+        second.polygon,
+        first.polygon,
+      );
+      // Opposite winding cancels only the overlapping face; neither contour
+      // contains the other in this crossing case.
+      if (overlap.length && firstOnly.length && secondOnly.length)
+        return polygonClipping.xor(first.polygon, second.polygon);
+    }
+  }
   for (const child of entries) {
     let parent: (typeof entries)[number] | undefined;
     for (const candidate of entries) {
