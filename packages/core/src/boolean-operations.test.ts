@@ -360,6 +360,21 @@ describe("non-destructive Boolean groups", () => {
     );
     expect(geometry).toHaveLength(1);
     expect(geometry?.[0]).toHaveLength(2);
+    const island = editor.createElement("shape.geo", {
+      semantic: { geo: "rect" },
+      visual: { x: 120, y: 20, width: 30, height: 30 },
+    });
+    const group = editor.createElement("group", {
+      semantic: { memberIds: [path, island], booleanOperation: "union" },
+    });
+    const grouped = booleanGeometry(
+      editor.store.get(group)!,
+      editor.createShapeContext(),
+    );
+    if (!grouped) throw new Error("missing non-zero Boolean geometry");
+    expect(booleanGeometryContains(grouped, { x: 10, y: 10 })).toBe(true);
+    expect(booleanGeometryContains(grouped, { x: 50, y: 50 })).toBe(false);
+    expect(booleanGeometryContains(grouped, { x: 130, y: 30 })).toBe(true);
     const sameWinding = editor.createElement("draw.path", {
       semantic: {
         name: "Non-zero filled mark",
