@@ -38,6 +38,7 @@ import {
   isGroup,
   memberIdsOf,
   resolveConnector,
+  rasterGroupMaskCss,
   unionBoxes,
 } from "@diagra/core";
 import {
@@ -560,6 +561,10 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
       const nextAncestors = new Set(ancestors).add(element.id);
       const semantic = element.semantic as { isolate?: boolean };
       const boolean = booleanGeometry(element, context());
+      const rasterMask = rasterGroupMaskCss(props.editor, element.id);
+      const groupBounds = rasterMask
+        ? props.editor.getBounds(element.id)
+        : null;
       const children = memberIdsOf(element).flatMap((id) => {
         const child = props.editor.store.get(id);
         return child &&
@@ -600,6 +605,43 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
               position: "absolute",
               left: `${-boolean.bounds.x}px`,
               top: `${-boolean.bounds.y}px`,
+              width: "1px",
+              height: "1px",
+              overflow: "visible",
+            }}
+          >
+            {contents}
+          </div>
+        </div>
+      ) : rasterMask && groupBounds ? (
+        <div
+          data-group-id={element.id}
+          style={{
+            position: "absolute",
+            left: `${groupBounds.x}px`,
+            top: `${groupBounds.y}px`,
+            width: `${groupBounds.width}px`,
+            height: `${groupBounds.height}px`,
+            overflow: "visible",
+            "pointer-events": "none",
+            opacity: element.visual.style?.opacity ?? 1,
+            filter: effectsCss(element.visual.style),
+            "backdrop-filter": backdropEffectsCss(element.visual.style),
+            "mix-blend-mode": element.visual.style?.blendMode ?? "normal",
+            isolation: semantic.isolate ? "isolate" : undefined,
+            "mask-image": rasterMask,
+            "mask-mode":
+              (element.semantic as { maskMode?: "alpha" | "luminance" })
+                .maskMode ?? "alpha",
+            "mask-repeat": "no-repeat",
+            "mask-size": "100% 100%",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              left: `${-groupBounds.x}px`,
+              top: `${-groupBounds.y}px`,
               width: "1px",
               height: "1px",
               overflow: "visible",

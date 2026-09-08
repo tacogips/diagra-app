@@ -7,6 +7,15 @@ import {
 import { canProvideMask, isRasterMaskSource } from "./clipping.ts";
 import type { Editor } from "./editor.ts";
 import { memberIdsOf } from "./group.ts";
+import { croppedImageBox } from "./image-crop.ts";
+
+function attribute(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+function number(value: number): string {
+  return String(Number(value.toFixed(4)));
+}
 
 export function canBeMask(
   editor: Editor,
@@ -105,4 +114,39 @@ export function setGroupRasterMaskMode(
     },
   ]);
   return true;
+}
+
+/** CSS SVG mask for a raster source, in its owning group's page coordinates. */
+export function rasterGroupMaskCss(
+  editor: Editor,
+  groupId: ElementId,
+): string | undefined {
+  const group = editor.store.get(groupId);
+  if (group?.type !== "group") return undefined;
+  const semantic = group.semantic as GroupSemantic;
+  const source = semantic.maskId
+    ? editor.store.get(semantic.maskId)
+    : undefined;
+  if (!source || !isRasterMaskSource(source)) return undefined;
+  const groupBox = editor.getBounds(groupId);
+  const sourceBox = editor.getBounds(source.id);
+  if (!groupBox || !sourceBox || groupBox.width <= 0 || groupBox.height <= 0)
+    return undefined;
+  const image = source.semantic as {
+    src: string;
+    crop?: { x: number; y: number; width: number; height: number };
+  };
+  const imageBox = image.crop
+    ? croppedImageBox(image.crop, sourceBox)
+    : sourceBox;
+  const rotation = source.visual.rotation ?? 0;
+  const transform = rotation
+    ? ` transform="rotate(${number(rotation)} ${number(sourceBox.x + sourceBox.width / 2)} ${number(sourceBox.y + sourceBox.height / 2)})"`
+    : "";
+  const media = `<image x="${number(imageBox.x)}" y="${number(imageBox.y)}" width="${number(imageBox.width)}" height="${number(imageBox.height)}" href="${attribute(image.src)}" preserveAspectRatio="none"/>`;
+  const clipped = image.crop
+    ? `<svg x="${number(sourceBox.x)}" y="${number(sourceBox.y)}" width="${number(sourceBox.width)}" height="${number(sourceBox.height)}" overflow="hidden">${media}</svg>`
+    : media;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${number(groupBox.x)} ${number(groupBox.y)} ${number(groupBox.width)} ${number(groupBox.height)}"><g${transform}>${clipped}</g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }

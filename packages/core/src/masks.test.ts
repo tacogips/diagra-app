@@ -11,6 +11,7 @@ import {
 import { generateInterfaceCode } from "./interface-code.ts";
 import {
   groupMaskCandidates,
+  rasterGroupMaskCss,
   setGroupMask,
   setGroupRasterMaskMode,
 } from "./masks.ts";
@@ -160,6 +161,10 @@ describe("layer masks", () => {
     expect((editor.store.get(group)?.semantic as GroupSemantic).maskMode).toBe(
       "luminance",
     );
+    const css = rasterGroupMaskCss(editor, group);
+    expect(css).toContain("data:image/svg+xml,");
+    expect(decodeURIComponent(css ?? "")).toContain('href="data:image/png');
+    expect(decodeURIComponent(css ?? "")).toContain("viewBox=");
     expect(setGroupMask(editor, group, null)).toBe(true);
     expect(editor.store.get(group)?.semantic).toEqual({
       memberIds: [image, content],

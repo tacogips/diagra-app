@@ -487,6 +487,7 @@ export { layerRows, selectLayerRow } from "./layer-tree.ts";
 export {
   canBeMask,
   groupMaskCandidates,
+  rasterGroupMaskCss,
   setGroupMask,
   setGroupRasterMaskMode,
 } from "./masks.ts";
