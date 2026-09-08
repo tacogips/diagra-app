@@ -481,6 +481,8 @@ describe("visual styling", () => {
           strokeJoin: "bevel",
           strokeMiterLimit: 6,
           dash: "dotted",
+          strokeDashArray: [7, 3],
+          strokeDashOffset: -2,
           opacity: 0.25,
         },
       }),
@@ -491,7 +493,8 @@ describe("visual styling", () => {
     expect(svg).toContain('stroke-linecap="square"');
     expect(svg).toContain('stroke-linejoin="bevel"');
     expect(svg).toContain('stroke-miterlimit="6"');
-    expect(svg).toContain('stroke-dasharray="1 4"');
+    expect(svg).toContain('stroke-dasharray="7 3"');
+    expect(svg).toContain('stroke-dashoffset="-2"');
     expect(svg).toContain('opacity="0.25"');
   });
 

@@ -65,6 +65,7 @@ const DASHES: readonly { value: string; label: string }[] = [
   { value: "solid", label: "Solid" },
   { value: "dashed", label: "Dashed" },
   { value: "dotted", label: "Dotted" },
+  { value: "custom", label: "Custom" },
 ];
 const STROKE_CAPS: readonly { value: string; label: string }[] = [
   DEFAULT_OPTION,
@@ -96,6 +97,22 @@ const ALIGNMENTS: readonly {
 
 function numberOption(value: number | undefined): string {
   return value === undefined ? "" : String(value);
+}
+
+function dashPatternText(values: readonly number[] | undefined): string {
+  return values?.join(", ") ?? "";
+}
+
+function parseDashPattern(value: string): readonly number[] | null {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  const values = trimmed.split(/[\s,]+/).map(Number);
+  return values.length <= 32 &&
+    values.length > 0 &&
+    values.every((item) => Number.isFinite(item) && item >= 0) &&
+    values.some((item) => item > 0)
+    ? values
+    : null;
 }
 
 export function StyleSection(props: StyleSectionProps): JSX.Element {
@@ -481,15 +498,42 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       <Field label="Dash">
         <SelectInput
           label="Dash"
-          value={style().dash ?? ""}
+          value={style().strokeDashArray ? "custom" : (style().dash ?? "")}
           options={DASHES}
           onCommit={(value) =>
-            write({
-              dash: value === "" ? null : (value as VisualStyle["dash"]),
-            })
+            value === "custom"
+              ? write({
+                  dash: null,
+                  strokeDashArray: style().strokeDashArray ?? [6, 4],
+                })
+              : write({
+                  dash: value === "" ? null : (value as VisualStyle["dash"]),
+                  strokeDashArray: null,
+                  strokeDashOffset: null,
+                })
           }
         />
       </Field>
+      <Show when={style().strokeDashArray}>
+        <Field label="Pattern">
+          <TextInput
+            label="Dash pattern"
+            value={dashPatternText(style().strokeDashArray)}
+            placeholder="6, 4"
+            onCommit={(value) => {
+              const strokeDashArray = parseDashPattern(value);
+              if (strokeDashArray) write({ strokeDashArray });
+            }}
+          />
+        </Field>
+        <Field label="Offset">
+          <NumberInput
+            label="Dash offset"
+            value={style().strokeDashOffset ?? 0}
+            onCommit={(strokeDashOffset) => write({ strokeDashOffset })}
+          />
+        </Field>
+      </Show>
       <Field label="Cap">
         <SelectInput
           label="Stroke cap"

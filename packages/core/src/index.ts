@@ -23,6 +23,12 @@ export {
   fontVariationCss,
 } from "./font-settings.ts";
 export {
+  dashPolyline,
+  resolvedStrokeDashArray,
+  strokeDashCss,
+  type DashPoint,
+} from "./stroke-dash.ts";
+export {
   canCopySelectionStyle,
   canPasteSelectionStyle,
   copySelectionStyle,

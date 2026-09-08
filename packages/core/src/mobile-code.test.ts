@@ -113,6 +113,8 @@ test("maps stroke geometry to SwiftUI and reports Compose border limits", () => 
         strokeCap: "square",
         strokeJoin: "bevel",
         strokeMiterLimit: 7,
+        strokeDashArray: [6, 2],
+        strokeDashOffset: 1,
       },
     },
   });
@@ -126,7 +128,7 @@ test("maps stroke geometry to SwiftUI and reports Compose border limits", () => 
   ]);
   const code = generateMobileInterfaceCode(editor, frame.id);
   expect(code?.swiftUi).toContain(
-    "StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .bevel, miterLimit: 7)",
+    "StrokeStyle(lineWidth: 3, lineCap: .square, lineJoin: .bevel, miterLimit: 7, dash: [6, 2], dashPhase: 1)",
   );
   expect(code?.notes).toContainEqual(
     expect.stringContaining("Jetpack Compose BorderStroke does not expose"),

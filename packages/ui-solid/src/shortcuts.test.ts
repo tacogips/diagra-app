@@ -184,7 +184,7 @@ describe("action table", () => {
     expect(enabled(editor, "flattenBoolean")).toBe(false);
   });
 
-  test("Boolean actions accept solid open strokes but reject dashed geometry", () => {
+  test("Boolean actions accept solid and dashed open strokes", () => {
     const editor = new Editor({ registry: createDefaultRegistry() });
     const shape = rect(editor, 40, -20);
     const stroke = editor.createElement("draw.freehand", {
@@ -208,7 +208,7 @@ describe("action table", () => {
       visual: { style: { strokeWidth: 16, dash: "dashed" } },
     });
     editor.selection.set([dashed, shape]);
-    expect(enabled(editor, "booleanUnion")).toBe(false);
+    expect(enabled(editor, "booleanUnion")).toBe(true);
   });
 
   test("Boolean flatten is disabled for an empty geometric result", () => {

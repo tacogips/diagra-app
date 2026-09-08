@@ -2,6 +2,7 @@ import type { ElementId, GroupSemantic } from "@diagra/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
 import { cornerRadiiCss, resolvedCornerRadii } from "./corner-radii.ts";
+import { strokeDashCss } from "./stroke-dash.ts";
 import { backdropEffectsCss, effectsCss } from "./effects.ts";
 import { gradientCss } from "./gradient.ts";
 import {
@@ -177,6 +178,10 @@ export function inspectDesign(editor: Editor, id: ElementId) {
     );
     add("border-style", style.dash ?? "solid");
   }
+  const dash = strokeDashCss(style);
+  if (dash !== undefined) add("stroke-dasharray", dash);
+  if (style?.strokeDashOffset !== undefined)
+    add("stroke-dashoffset", String(style.strokeDashOffset));
   add("stroke-linecap", style?.strokeCap);
   add("stroke-linejoin", style?.strokeJoin);
   if (style?.strokeMiterLimit !== undefined)

@@ -11,22 +11,18 @@ import {
   fontVariationCss,
   gradientCss,
   gradientId,
+  strokeDashCss,
   strokeGradientId,
 } from "@diagra/core";
 import type { Visual } from "@diagra/ir";
 import type { JSX } from "solid-js";
-
-const DASH_PATTERNS: Record<string, string> = {
-  solid: "",
-  dashed: "6 4",
-  dotted: "1 4",
-};
 
 export interface SvgStyleAttributes {
   readonly fill?: string;
   readonly stroke?: string;
   readonly "stroke-width"?: number;
   readonly "stroke-dasharray"?: string;
+  readonly "stroke-dashoffset"?: number;
   readonly "stroke-linecap"?: "butt" | "round" | "square";
   readonly "stroke-linejoin"?: "miter" | "round" | "bevel";
   readonly "stroke-miterlimit"?: number;
@@ -40,7 +36,7 @@ export function svgStyle(
   if (!style) {
     return {};
   }
-  const dash = style.dash ? DASH_PATTERNS[style.dash] : undefined;
+  const dash = strokeDashCss(style);
   return {
     ...(style.fillGradient && elementId
       ? { fill: `url(#${gradientId(elementId)})` }
@@ -55,7 +51,10 @@ export function svgStyle(
     ...(style.strokeWidth === undefined
       ? {}
       : { "stroke-width": style.strokeWidth }),
-    ...(style.dash === undefined ? {} : { "stroke-dasharray": dash ?? "" }),
+    ...(dash === undefined ? {} : { "stroke-dasharray": dash }),
+    ...(style.strokeDashOffset === undefined
+      ? {}
+      : { "stroke-dashoffset": style.strokeDashOffset }),
     ...(style.strokeCap === undefined
       ? {}
       : { "stroke-linecap": style.strokeCap }),

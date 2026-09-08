@@ -210,6 +210,8 @@ describe("serializeDocument", () => {
               strokeCap: "square",
               strokeJoin: "miter",
               strokeMiterLimit: 8,
+              strokeDashArray: [6, 2],
+              strokeDashOffset: -1,
               dash: "solid",
             },
           },
@@ -218,7 +220,7 @@ describe("serializeDocument", () => {
     };
     const serialized = serializeDocument(document);
     expect(serialized).toContain(
-      '"style":{"strokeWidth":3,"strokeCap":"square","strokeJoin":"miter","strokeMiterLimit":8,"dash":"solid"}',
+      '"style":{"strokeWidth":3,"strokeCap":"square","strokeJoin":"miter","strokeMiterLimit":8,"strokeDashArray":[6,2],"strokeDashOffset":-1,"dash":"solid"}',
     );
     expect(parseDocument(serialized)).toEqual(document);
   });

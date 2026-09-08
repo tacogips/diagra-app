@@ -327,6 +327,23 @@ describe("element errors", () => {
     expect(codes(errorsOf(document))).toEqual(["value.enum"]);
   });
 
+  test("validates bounded portable custom dash intervals and phase", () => {
+    const valid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: { style: { strokeDashArray: [8, 3], strokeDashOffset: -2 } },
+      },
+    ] as unknown as Document["elements"]);
+    expect(errorsOf(valid)).toEqual([]);
+    const invalid = withElements([
+      {
+        ...(base().elements[0] as Document["elements"][number]),
+        visual: { style: { strokeDashArray: [0, 0] } },
+      },
+    ] as unknown as Document["elements"]);
+    expect(codes(errorsOf(invalid))).toEqual(["value.range"]);
+  });
+
   test("accepts portable blend modes and rejects unknown compositing values", () => {
     const valid = withElements([
       {

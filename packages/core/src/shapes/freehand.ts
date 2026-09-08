@@ -6,6 +6,7 @@ import {
   pressureStrokeOutline,
 } from "../pressure-stroke.ts";
 import { flattenStroke, strokePath } from "../stroke-path.ts";
+import { resolvedStrokeDashArray } from "../stroke-dash.ts";
 import { strokeBounds } from "../stroke-bounds.ts";
 
 export function freehandGeometry(element: Element) {
@@ -58,15 +59,13 @@ export function freehandGeometry(element: Element) {
     mapped,
     (element.semantic as FreehandSemantic).closed,
   );
-  const pressureOutline =
-    element.visual.style?.dash === undefined ||
-    element.visual.style.dash === "solid"
-      ? pressureStrokeOutline(
-          mapped,
-          (element.semantic as FreehandSemantic).closed === true,
-          element.visual.style?.strokeWidth ?? 2,
-        )
-      : null;
+  const pressureOutline = !resolvedStrokeDashArray(element.visual.style).length
+    ? pressureStrokeOutline(
+        mapped,
+        (element.semantic as FreehandSemantic).closed === true,
+        element.visual.style?.strokeWidth ?? 2,
+      )
+    : null;
   const curveBounds = pressureOutline
     ? tight
       ? {

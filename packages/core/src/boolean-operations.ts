@@ -30,6 +30,7 @@ import type { Store } from "./store.ts";
 import { compoundPathGeometry } from "./shapes/compound-path.ts";
 import { freehandGeometry } from "./shapes/freehand.ts";
 import { flattenStroke } from "./stroke-path.ts";
+import { dashPolyline, resolvedStrokeDashArray } from "./stroke-dash.ts";
 
 export type BooleanPolygon = readonly {
   readonly x: number;
@@ -305,7 +306,6 @@ function openStrokeSourceMultiPolygon(
   if (
     element.type !== "draw.freehand" ||
     semantic.closed === true ||
-    (style?.dash !== undefined && style.dash !== "solid") ||
     (!style?.strokeGradient &&
       (style?.stroke === "none" || style?.stroke === "transparent"))
   )
@@ -343,12 +343,20 @@ function openStrokeSourceMultiPolygon(
     });
     parts.push(...samples.map((sample) => circlePart(sample, sample.radius)));
   } else {
-    parts = fixedStrokeParts(
+    const pattern = resolvedStrokeDashArray(style);
+    const fragments = dashPolyline(
       flattenStroke(geometry.points, false, 0.25),
-      strokeWidth,
-      style?.strokeCap ?? "round",
-      style?.strokeJoin ?? "round",
-      style?.strokeMiterLimit ?? 4,
+      pattern,
+      style?.strokeDashOffset ?? 0,
+    );
+    parts = fragments.flatMap((fragment) =>
+      fixedStrokeParts(
+        fragment,
+        strokeWidth,
+        style?.strokeCap ?? "round",
+        style?.strokeJoin ?? "round",
+        style?.strokeMiterLimit ?? 4,
+      ),
     );
   }
   if (!parts.length) return null;
@@ -568,6 +576,8 @@ export function planFlattenBooleanGroup(
             strokeCap: _strokeCap,
             strokeJoin: _strokeJoin,
             strokeMiterLimit: _strokeMiterLimit,
+            strokeDashArray: _strokeDashArray,
+            strokeDashOffset: _strokeDashOffset,
             dash: _dash,
             ...rest
           } = firstStyle ?? {};

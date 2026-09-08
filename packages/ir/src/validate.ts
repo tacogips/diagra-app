@@ -384,12 +384,9 @@ function validateVisual(
           ),
         );
       for (const [index, value] of values.entries())
-        checkNumber(
-          out,
-          value,
-          `${path}.style.strokeDashArray[${index}]`,
-          { min: 0 },
-        );
+        checkNumber(out, value, `${path}.style.strokeDashArray[${index}]`, {
+          min: 0,
+        });
       if (values.length && values.every((value) => value === 0))
         out.push(
           error(

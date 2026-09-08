@@ -1,7 +1,9 @@
 import type { VisualStyle } from "@diagra/ir";
 import type { Vec } from "./geometry.ts";
 
-const PRESET_DASHES: Readonly<Record<NonNullable<VisualStyle["dash"]>, readonly number[]>> = {
+const PRESET_DASHES: Readonly<
+  Record<NonNullable<VisualStyle["dash"]>, readonly number[]>
+> = {
   solid: [],
   dashed: [6, 4],
   dotted: [1, 4],
@@ -11,12 +13,15 @@ const PRESET_DASHES: Readonly<Record<NonNullable<VisualStyle["dash"]>, readonly 
 export function resolvedStrokeDashArray(
   style: VisualStyle | undefined,
 ): readonly number[] {
-  const source = style?.strokeDashArray ?? PRESET_DASHES[style?.dash ?? "solid"];
+  const source =
+    style?.strokeDashArray ?? PRESET_DASHES[style?.dash ?? "solid"];
   if (!source.length || source.every((value) => value === 0)) return [];
   return source.length % 2 === 1 ? [...source, ...source] : source;
 }
 
-export function strokeDashCss(style: VisualStyle | undefined): string | undefined {
+export function strokeDashCss(
+  style: VisualStyle | undefined,
+): string | undefined {
   const pattern = resolvedStrokeDashArray(style);
   return pattern.length ? pattern.join(" ") : undefined;
 }
@@ -50,7 +55,10 @@ export function dashPolyline(
   if (points.length < 2) return [];
   if (!pattern.length) return [[...points]];
   const cycle = pattern.reduce((sum, value) => sum + value, 0);
-  if (!(cycle > 0) || pattern.some((value) => !Number.isFinite(value) || value < 0))
+  if (
+    !(cycle > 0) ||
+    pattern.some((value) => !Number.isFinite(value) || value < 0)
+  )
     return [];
   let phase = ((offset % cycle) + cycle) % cycle;
   let patternIndex = 0;
@@ -72,7 +80,11 @@ export function dashPolyline(
     } while (remaining <= 1e-9 && attempts <= pattern.length);
   };
   if (remaining <= 1e-9) advance();
-  for (let segmentIndex = 0; segmentIndex < points.length - 1; segmentIndex += 1) {
+  for (
+    let segmentIndex = 0;
+    segmentIndex < points.length - 1;
+    segmentIndex += 1
+  ) {
     const start = points[segmentIndex];
     const end = points[segmentIndex + 1];
     if (!start || !end) continue;

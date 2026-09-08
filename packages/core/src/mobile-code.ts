@@ -27,6 +27,7 @@ import {
   booleanResultGeometry,
 } from "./boolean-operations.ts";
 import { compoundPathGeometry } from "./shapes/compound-path.ts";
+import { resolvedStrokeDashArray } from "./stroke-dash.ts";
 
 export interface MobileAssetReference {
   readonly elementId: ElementId;
@@ -403,10 +404,13 @@ function swiftShape(element: Element, style: VisualStyle, box: Box): string {
 
 function swiftStroke(style: VisualStyle, paint: string): string {
   const width = number(style.strokeWidth ?? 1);
+  const dash = resolvedStrokeDashArray(style);
   if (
     style.strokeCap === undefined &&
     style.strokeJoin === undefined &&
-    style.strokeMiterLimit === undefined
+    style.strokeMiterLimit === undefined &&
+    !dash.length &&
+    style.strokeDashOffset === undefined
   )
     return `.stroke(${paint}, lineWidth: ${width})`;
   const arguments_: string[] = [`lineWidth: ${width}`];
@@ -414,6 +418,9 @@ function swiftStroke(style: VisualStyle, paint: string): string {
   if (style.strokeJoin) arguments_.push(`lineJoin: .${style.strokeJoin}`);
   if (style.strokeMiterLimit !== undefined)
     arguments_.push(`miterLimit: ${number(style.strokeMiterLimit)}`);
+  if (dash.length) arguments_.push(`dash: [${dash.map(number).join(", ")}]`);
+  if (style.strokeDashOffset !== undefined)
+    arguments_.push(`dashPhase: ${number(style.strokeDashOffset)}`);
   return `.stroke(${paint}, style: StrokeStyle(${arguments_.join(", ")}))`;
 }
 
@@ -512,8 +519,17 @@ function composeCompoundPath(element: Element, style: VisualStyle): string {
       style.stroke,
       geometry.box,
     );
+    const dash = resolvedStrokeDashArray(style);
+    const stroke = [
+      `width = ${number(style.strokeWidth ?? 1)}.dp.toPx()`,
+      ...(dash.length
+        ? [
+            `pathEffect = PathEffect.dashPathEffect(floatArrayOf(${dash.map((value) => `${number(value)}f`).join(", ")}), ${number(style.strokeDashOffset ?? 0)}f)`,
+          ]
+        : []),
+    ].join(", ");
     draws.push(
-      `drawPath(path, ${style.strokeGradient ? `brush = ${strokePaint}` : `color = ${strokePaint}`}, style = Stroke(width = ${number(style.strokeWidth ?? 1)}.dp.toPx()))`,
+      `drawPath(path, ${style.strokeGradient ? `brush = ${strokePaint}` : `color = ${strokePaint}`}, style = Stroke(${stroke}))`,
     );
   }
   return `Canvas(modifier = Modifier.matchParentSize()) { ${path}; ${draws.join("; ")} }`;
@@ -1191,6 +1207,7 @@ function composeCode(
           "import androidx.compose.ui.graphics.graphicsLayer",
           "import androidx.compose.ui.graphics.Path",
           "import androidx.compose.ui.graphics.PathFillType",
+          "import androidx.compose.ui.graphics.PathEffect",
           "import androidx.compose.ui.graphics.drawscope.Stroke",
           "import androidx.compose.ui.layout.ContentScale",
           "import androidx.compose.ui.res.painterResource",

@@ -39,6 +39,8 @@ test("handoff reports frame-relative geometry without mutating the document", ()
         strokeCap: "round",
         strokeJoin: "miter",
         strokeMiterLimit: 9,
+        strokeDashArray: [6, 2],
+        strokeDashOffset: -1,
         fontSize: 16,
         lineHeight: 1.5,
         opacity: 0,
@@ -69,6 +71,8 @@ test("handoff reports frame-relative geometry without mutating the document", ()
   expect(report?.css).toContain("stroke-linecap: round;");
   expect(report?.css).toContain("stroke-linejoin: miter;");
   expect(report?.css).toContain("stroke-miterlimit: 9;");
+  expect(report?.css).toContain("stroke-dasharray: 6 2;");
+  expect(report?.css).toContain("stroke-dashoffset: -1;");
   expect(JSON.stringify(editor.getSnapshot())).toBe(before);
   expect(editor.revision).toBe(revision);
   expect(inspectDesign(editor, "missing")).toBeNull();

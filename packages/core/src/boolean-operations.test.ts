@@ -183,7 +183,9 @@ describe("non-destructive Boolean groups", () => {
       booleanSourceGeometry(editor.store.get(pressure), context)?.flat(2)
         .length,
     ).toBeGreaterThan(30);
-    expect(booleanSourceGeometry(editor.store.get(dashed), context)).toBeNull();
+    expect(
+      booleanSourceGeometry(editor.store.get(dashed), context),
+    ).not.toBeNull();
 
     const cutter = editor.createElement("shape.geo", {
       semantic: { geo: "rect" },

@@ -33,6 +33,7 @@ import { createShapeContext } from "./hit-test.ts";
 import { intersectClip } from "./clipping.ts";
 import { effectsBounds, layerEffects } from "./effects.ts";
 import { fontFeatureCss, fontVariationCss } from "./font-settings.ts";
+import { strokeDashCss } from "./stroke-dash.ts";
 import {
   booleanGeometry,
   booleanMaskDefinition,
@@ -209,11 +210,10 @@ function styled(base: Attrs, visual: Visual, elementId?: string): Attrs {
   if (style.strokeJoin !== undefined) out["stroke-linejoin"] = style.strokeJoin;
   if (style.strokeMiterLimit !== undefined)
     out["stroke-miterlimit"] = style.strokeMiterLimit;
-  if (style.dash !== undefined) {
-    const dash = DASH_PATTERNS[style.dash];
-    if (dash) out["stroke-dasharray"] = dash;
-    else out["stroke-dasharray"] = undefined;
-  }
+  const dash = strokeDashCss(style);
+  if (dash !== undefined) out["stroke-dasharray"] = dash;
+  if (style.strokeDashOffset !== undefined)
+    out["stroke-dashoffset"] = style.strokeDashOffset;
   if (style.opacity !== undefined) {
     out["opacity"] = style.opacity;
   }
