@@ -162,10 +162,9 @@ function signedRingArea(
 }
 
 /**
- * Convert disjoint or strictly nested SVG non-zero contours into GeoJSON
- * polygon rings. Crossing overlaps are deliberately rejected: assigning their
- * faces requires a planar winding arrangement, and guessing would make the
- * Boolean operand disagree with the SVG path.
+ * Convert SVG non-zero contours into GeoJSON polygon rings. Same-winding
+ * contours are simply a union, including crossings. Mixed-winding crossings
+ * still require a planar winding arrangement and remain guarded below.
  */
 function nonzeroPathPolygons(
   rings: readonly BooleanPolygon[],
@@ -181,6 +180,9 @@ function nonzeroPathPolygons(
   }));
   if (entries.some((entry) => Math.abs(entry.area) <= Number.EPSILON))
     return null;
+  const orientations = new Set(entries.map((entry) => Math.sign(entry.area)));
+  if (orientations.size === 1)
+    return unionParts(entries.map((entry) => clippedPart(entry.ring)));
   for (const child of entries) {
     let parent: (typeof entries)[number] | undefined;
     for (const candidate of entries) {

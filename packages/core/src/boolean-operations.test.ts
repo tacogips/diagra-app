@@ -431,12 +431,12 @@ describe("non-destructive Boolean groups", () => {
         ],
       },
     });
-    expect(
-      booleanSourceGeometry(
-        editor.store.get(overlapping),
-        editor.createShapeContext(),
-      ),
-    ).toBeNull();
+    const merged = booleanSourceGeometry(
+      editor.store.get(overlapping),
+      editor.createShapeContext(),
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged?.[0]).toHaveLength(1);
   });
 
   test("SVG export and CSS use the same non-destructive mask", () => {
