@@ -165,6 +165,9 @@ describe("layer masks", () => {
     expect(css).toContain("data:image/svg+xml,");
     expect(decodeURIComponent(css ?? "")).toContain('href="data:image/png');
     expect(decodeURIComponent(css ?? "")).toContain("viewBox=");
+    const svg = editor.exportPageSvg({ padding: 0 });
+    expect(svg).toContain('mask-type="luminance"');
+    expect(svg).toContain('mask="url(#diagra-raster-mask-0)"');
     expect(setGroupMask(editor, group, null)).toBe(true);
     expect(editor.store.get(group)?.semantic).toEqual({
       memberIds: [image, content],

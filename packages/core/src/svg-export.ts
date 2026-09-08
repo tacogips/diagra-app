@@ -28,6 +28,7 @@ import {
 } from "@diagra/ir";
 import { type Box, boxCenter, rotatedBox, unionBoxes } from "./geometry.ts";
 import { croppedImageBox } from "./image-crop.ts";
+import { isRasterMaskSource } from "./clipping.ts";
 import { resolvedCornerRadii, roundedRectPath } from "./corner-radii.ts";
 import { createShapeContext } from "./hit-test.ts";
 import { intersectClip } from "./clipping.ts";
@@ -1441,6 +1442,7 @@ export function renderElementsSvg(
   const effects: string[] = [];
   const gradients: string[] = [];
   const booleanMasks: string[] = [];
+  const rasterMasks: string[] = [];
   for (const element of elements) {
     if (
       element.visual.hidden ||
@@ -1605,6 +1607,52 @@ export function renderElementsSvg(
       : undefined;
     if (boolean && booleanMask)
       booleanMasks.push(booleanMaskDefinition(booleanMask, boolean));
+    const maskSource = semantic.maskId
+      ? elements.find((item) => item.id === semantic.maskId)
+      : undefined;
+    const rasterMask =
+      !boolean && isRasterMaskSource(maskSource)
+        ? `diagra-raster-mask-${rasterMasks.length}`
+        : undefined;
+    if (rasterMask && maskSource) {
+      const groupBox = context.boundsOf(element.id);
+      const sourceBox = context.boundsOf(maskSource.id);
+      if (groupBox && sourceBox && groupBox.width > 0 && groupBox.height > 0) {
+        const image = maskSource.semantic as ImageSemantic;
+        const imageBox = image.crop
+          ? croppedImageBox(image.crop, sourceBox)
+          : sourceBox;
+        const media = tag("image", {
+          ...imageBox,
+          href: image.src,
+          preserveAspectRatio: "none",
+        });
+        const clipped = image.crop
+          ? wrap("svg", { ...sourceBox, overflow: "hidden" }, media)
+          : media;
+        const rotation = maskSource.visual.rotation ?? 0;
+        rasterMasks.push(
+          wrap(
+            "mask",
+            {
+              id: rasterMask,
+              maskUnits: "userSpaceOnUse",
+              ...groupBox,
+              "mask-type": semantic.maskMode ?? "alpha",
+            },
+            rotation
+              ? wrap(
+                  "g",
+                  {
+                    transform: `rotate(${fmt(rotation)} ${fmt(sourceBox.x + sourceBox.width / 2)} ${fmt(sourceBox.y + sourceBox.height / 2)})`,
+                  },
+                  clipped,
+                )
+              : clipped,
+          ),
+        );
+      }
+    }
     const styles = [
       element.visual.style?.blendMode
         ? `mix-blend-mode: ${element.visual.style.blendMode};`
@@ -1621,7 +1669,11 @@ export function renderElementsSvg(
         "data-boolean-operation": boolean?.operation,
         opacity: element.visual.style?.opacity,
         style: styles || undefined,
-        mask: booleanMask ? `url(#${booleanMask})` : undefined,
+        mask: booleanMask
+          ? `url(#${booleanMask})`
+          : rasterMask
+            ? `url(#${rasterMask})`
+            : undefined,
       },
       body,
     );
@@ -1649,6 +1701,7 @@ export function renderElementsSvg(
     clips.length ? wrap("defs", {}, clips.join("")) : "",
     effects.length ? wrap("defs", {}, effects.join("")) : "",
     booleanMasks.length ? wrap("defs", {}, booleanMasks.join("")) : "",
+    rasterMasks.length ? wrap("defs", {}, rasterMasks.join("")) : "",
     background === null
       ? ""
       : tag("rect", { x, y, width, height, fill: background }),
