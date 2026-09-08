@@ -19,6 +19,7 @@ import { booleanGeometry, booleanMaskCss } from "./boolean-operations.ts";
 import { groupOf } from "./group.ts";
 import { fontFeatureCss, fontVariationCss } from "./font-settings.ts";
 import { compoundPathMaskCss } from "./shapes/compound-path.ts";
+import { rasterGroupMaskCss } from "./masks.ts";
 
 /** CSS strings cannot terminate their declaration or introduce new rules. */
 function cssString(value: string): string {
@@ -124,6 +125,14 @@ export function inspectDesign(editor: Editor, id: ElementId) {
   const boolean = booleanGeometry(element, context);
   if (boolean) {
     add("mask-image", booleanMaskCss(boolean));
+    add("mask-repeat", "no-repeat");
+    add("mask-size", "100% 100%");
+  }
+  const rasterMask =
+    element.type === "group" ? rasterGroupMaskCss(editor, id) : undefined;
+  if (rasterMask) {
+    add("mask-image", rasterMask);
+    add("mask-mode", (element.semantic as GroupSemantic).maskMode ?? "alpha");
     add("mask-repeat", "no-repeat");
     add("mask-size", "100% 100%");
   }

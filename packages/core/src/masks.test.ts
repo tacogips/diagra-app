@@ -9,6 +9,7 @@ import {
   polygonContains,
 } from "./clipping.ts";
 import { generateInterfaceCode } from "./interface-code.ts";
+import { inspectDesign } from "./handoff.ts";
 import {
   groupMaskCandidates,
   rasterGroupMaskCss,
@@ -168,6 +169,9 @@ describe("layer masks", () => {
     const svg = editor.exportPageSvg({ padding: 0 });
     expect(svg).toContain('mask-type="luminance"');
     expect(svg).toContain('mask="url(#diagra-raster-mask-0)"');
+    const handoff = inspectDesign(editor, group);
+    expect(handoff?.css).toContain("mask-image: url(");
+    expect(handoff?.css).toContain("mask-mode: luminance;");
     expect(setGroupMask(editor, group, null)).toBe(true);
     expect(editor.store.get(group)?.semantic).toEqual({
       memberIds: [image, content],
