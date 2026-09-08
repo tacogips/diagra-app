@@ -83,6 +83,7 @@ import {
 } from "./rich-text.ts";
 import { viewBounds } from "./view-bounds.ts";
 import type {
+  RasterMaskSampler,
   ShapeContext,
   ShapeUtil,
   ShapeUtilRegistry,
@@ -269,6 +270,7 @@ export class Editor {
 
   private readonly idSource: IdSource;
   private readonly rng: Rng;
+  private rasterMaskSampler: RasterMaskSampler | undefined;
   private readonly listeners = new Set<EditorListener>();
   /** Highest index handed out per page, so a batch of builds stays ordered. */
   private readonly pendingTop = new Map<PageId, FractionalIndex>();
@@ -1087,8 +1089,22 @@ export class Editor {
     return this.registry.getOrFallback(type);
   }
 
+  /**
+   * Installs a platform-local decoded-pixel reader for raster mask picking.
+   * It is deliberately ephemeral: document data and headless behavior retain
+   * the deterministic source-box fallback when no sampler is present.
+   */
+  setRasterMaskSampler(sampler: RasterMaskSampler | undefined): void {
+    this.rasterMaskSampler = sampler;
+  }
+
   createShapeContext(zoom: number = this.camera.get().z): ShapeContext {
-    return createShapeContext(this.store, this.registry, zoom);
+    return createShapeContext(
+      this.store,
+      this.registry,
+      zoom,
+      this.rasterMaskSampler,
+    );
   }
 
   getBounds(id: ElementId, context = this.createShapeContext()): Box | null {

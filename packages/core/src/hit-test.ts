@@ -11,12 +11,17 @@ import {
   getElementTypeDefinition,
 } from "@diagra/ir";
 import type { Box, Vec } from "./geometry.ts";
-import type { ShapeContext, ShapeUtilRegistry } from "./shape-util.ts";
+import type {
+  RasterMaskSampler,
+  ShapeContext,
+  ShapeUtilRegistry,
+} from "./shape-util.ts";
 import type { Store } from "./store.ts";
 import { layerStates } from "./layer-state.ts";
 import {
   frameClips,
   insideClip,
+  insideRasterMasks,
   layerClipPolygons,
   maskSources,
 } from "./clipping.ts";
@@ -56,6 +61,7 @@ export function createShapeContext(
   store: Store,
   registry: ShapeUtilRegistry,
   zoom: number,
+  rasterMaskSample?: RasterMaskSampler,
 ): ShapeContext {
   const cache = new Map<ElementId, Box | null>();
   const resolving = new Set<ElementId>();
@@ -77,6 +83,7 @@ export function createShapeContext(
       masks ??= maskSources(store, context);
       return masks.has(id);
     },
+    rasterMaskSample,
     isHidden: (id) => {
       states ??= layerStates(store, context);
       return states.isHidden(id);
@@ -139,7 +146,8 @@ export function hitTestPoint(
       context.isHidden?.(element.id) ||
       context.isLocked?.(element.id) ||
       context.isMaskSource?.(element.id) ||
-      !insideClip(context, element.id, point)
+      !insideClip(context, element.id, point) ||
+      !insideRasterMasks(store, element, point, context)
     )
       continue;
     const boolean = booleanGeometry(element, context);

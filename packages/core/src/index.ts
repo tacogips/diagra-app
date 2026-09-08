@@ -236,6 +236,8 @@ export {
   type SelectionListener,
 } from "./selection.ts";
 export {
+  type RasterMaskPixel,
+  type RasterMaskSampler,
   type ShapeContext,
   type ShapeUtil,
   ShapeUtilRegistry,

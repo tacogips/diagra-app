@@ -8,6 +8,22 @@
 import type { Element, ElementId, PageId, Visual } from "@diagra/ir";
 import type { Box, Vec } from "./geometry.ts";
 
+/** A decoded raster pixel expressed as normalized channel intensities. */
+export interface RasterMaskPixel {
+  readonly alpha: number;
+  readonly luminance: number;
+}
+
+/**
+ * Browser/native adapters can decode raster sources without making the core
+ * document model depend on a platform image API. Returning `undefined` keeps
+ * deterministic geometric picking for unavailable or tainted assets.
+ */
+export type RasterMaskSampler = (
+  id: ElementId,
+  sourcePoint: Vec,
+) => RasterMaskPixel | undefined;
+
 /** Read-only view of the rest of the document, for shapes that need it. */
 export interface ShapeContext {
   /** Current camera zoom; hit tolerances divide by it to stay screen-sized. */
@@ -24,6 +40,11 @@ export interface ShapeContext {
   clipPolygonOf?(id: ElementId): readonly Vec[] | null;
   /** Mask geometry is editable in Layers but omitted from normal rendering. */
   isMaskSource?(id: ElementId): boolean;
+  /** Optional decoded-pixel lookup in un-cropped image coordinates (0..1). */
+  rasterMaskSample?(
+    id: ElementId,
+    sourcePoint: Vec,
+  ): RasterMaskPixel | undefined;
 }
 
 export interface ShapeUtil {

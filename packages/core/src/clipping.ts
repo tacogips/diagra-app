@@ -15,6 +15,7 @@ import {
   type Vec,
 } from "./geometry.ts";
 import { memberIdsOf } from "./group.ts";
+import { groupOf } from "./group.ts";
 import { resolvedCornerRadii, roundedRectPolygon } from "./corner-radii.ts";
 import type { ShapeContext } from "./shape-util.ts";
 import type { Store } from "./store.ts";
@@ -221,6 +222,81 @@ export function canProvideMask(
   context: ShapeContext,
 ): boolean {
   return isRasterMaskSource(element) || maskPolygon(element, context) !== null;
+}
+
+function inverseRotatePoint(point: Vec, box: Box, rotation: number): Vec {
+  const angle = ((rotation % 360) * Math.PI) / 180;
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  const dx = point.x - cx;
+  const dy = point.y - cy;
+  return { x: cx + dx * cosine + dy * sine, y: cy - dx * sine + dy * cosine };
+}
+
+/**
+ * Tests one raster mask in page space. If the platform has not decoded the
+ * source (or its pixels cannot be read), retain the existing source-box
+ * fallback instead of making an asset temporarily unselectable.
+ */
+export function rasterMaskContains(
+  element: Element,
+  mode: "alpha" | "luminance",
+  point: Vec,
+  context: ShapeContext,
+): boolean {
+  const box = context.boundsOf(element.id);
+  if (!box || box.width <= 0 || box.height <= 0) return false;
+  const local = element.visual.rotation
+    ? inverseRotatePoint(point, box, element.visual.rotation)
+    : point;
+  if (!boxContains(box, local)) return false;
+  const crop = (
+    element.semantic as {
+      crop?: { x: number; y: number; width: number; height: number };
+    }
+  ).crop;
+  const viewportX = (local.x - box.x) / box.width;
+  const viewportY = (local.y - box.y) / box.height;
+  const sourcePoint = crop
+    ? {
+        x: crop.x + viewportX * crop.width,
+        y: crop.y + viewportY * crop.height,
+      }
+    : { x: viewportX, y: viewportY };
+  const pixel = context.rasterMaskSample?.(element.id, sourcePoint);
+  if (!pixel) return true;
+  const alpha = Math.max(0, Math.min(1, pixel.alpha));
+  if (mode === "alpha") return alpha > 0;
+  return alpha * Math.max(0, Math.min(1, pixel.luminance)) > 0;
+}
+
+/** Applies decoded raster masks on every ancestor group during picking. */
+export function insideRasterMasks(
+  store: Store,
+  element: Element,
+  point: Vec,
+  context: ShapeContext,
+): boolean {
+  const visited = new Set<ElementId>([element.id]);
+  let child = element;
+  while (true) {
+    const parent = groupOf(store, child.id);
+    if (!parent || visited.has(parent.id)) return true;
+    visited.add(parent.id);
+    const semantic = parent.semantic as GroupSemantic;
+    const mask = semantic.maskId ? store.get(semantic.maskId) : undefined;
+    if (
+      semantic.maskId &&
+      semantic.maskId !== child.id &&
+      mask &&
+      isRasterMaskSource(mask) &&
+      !rasterMaskContains(mask, semantic.maskMode ?? "alpha", point, context)
+    )
+      return false;
+    child = parent;
+  }
 }
 
 export function maskSources(

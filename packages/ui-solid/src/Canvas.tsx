@@ -65,6 +65,7 @@ import { StrokeHandles } from "./StrokeHandles.tsx";
 import { CompoundPathHandles } from "./CompoundPathHandles.tsx";
 import { ImageCropHandles } from "./ImageCropHandles.tsx";
 import { importRasterFiles } from "./image-import.ts";
+import { installRasterMaskSampler } from "./raster-mask-sampler.ts";
 import { GradientHandles } from "./GradientHandles.tsx";
 import {
   type ConnectorEnd,
@@ -262,6 +263,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
   });
 
   onMount(() => {
+    onCleanup(installRasterMaskSampler(props.editor));
     const element = container;
     if (!element) {
       return;

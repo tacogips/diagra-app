@@ -183,6 +183,85 @@ describe("layer masks", () => {
     });
   });
 
+  test("decoded raster pixels constrain alpha and luminance picking", () => {
+    const { editor, mask, content, group } = fixture();
+    editor.deleteElements([mask]);
+    const image = editor.createElement("image.raster", {
+      semantic: {
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        alt: "Decoded mask",
+      },
+      visual: { x: 20, y: 20, width: 100, height: 100 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: group,
+        semantic: {
+          memberIds: [image, content],
+          maskId: image,
+          maskMode: "alpha",
+        },
+      },
+    ]);
+    const alphaContext = {
+      ...editor.createShapeContext(),
+      rasterMaskSample: (_id: string, point: { x: number; y: number }) => ({
+        alpha: point.x >= 0.5 ? 1 : 0,
+        luminance: 1,
+      }),
+    };
+    expect(editor.hitTest({ x: 40, y: 70 }, alphaContext)).toBeNull();
+    expect(editor.hitTest({ x: 90, y: 70 }, alphaContext)).toBe(content);
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: group,
+        semantic: {
+          memberIds: [image, content],
+          maskId: image,
+          maskMode: "luminance",
+        },
+      },
+    ]);
+    const luminanceContext = {
+      ...editor.createShapeContext(),
+      rasterMaskSample: () => ({ alpha: 1, luminance: 0 }),
+    };
+    expect(editor.hitTest({ x: 90, y: 70 }, luminanceContext)).toBeNull();
+  });
+
+  test("decoded raster sampling maps crop coordinates through rotation", () => {
+    const { editor, mask, content, group } = fixture();
+    editor.deleteElements([mask]);
+    const image = editor.createElement("image.raster", {
+      semantic: {
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        alt: "Cropped mask",
+        crop: { x: 0.25, y: 0.1, width: 0.5, height: 0.5 },
+      },
+      visual: { x: 20, y: 20, width: 100, height: 100, rotation: 90 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: group,
+        semantic: { memberIds: [image, content], maskId: image },
+      },
+    ]);
+    let sampled: { x: number; y: number } | undefined;
+    const context = {
+      ...editor.createShapeContext(),
+      rasterMaskSample: (_id: string, point: { x: number; y: number }) => {
+        sampled = point;
+        return { alpha: 1, luminance: 1 };
+      },
+    };
+    expect(editor.hitTest({ x: 70, y: 100 }, context)).toBe(content);
+    expect(sampled?.x).toBeCloseTo(0.65);
+    expect(sampled?.y).toBeCloseTo(0.35);
+  });
+
   test("concave and decorative geometry is rejected until exact clipping exists", () => {
     const { editor, group } = fixture();
     const star = editor.createElement("shape.geo", {
