@@ -1644,7 +1644,7 @@ const GROUP: ElementTypeDefinition = {
   type: "group",
   category: "container",
   keyOrder: {
-    keys: ["memberIds", "maskId", "booleanOperation", "isolate"],
+    keys: ["memberIds", "maskId", "maskMode", "booleanOperation", "isolate"],
   },
   onReferenceDeleted: "detach",
   references(semantic) {
@@ -1686,6 +1686,21 @@ const GROUP: ElementTypeDefinition = {
           ),
         );
     }
+    checkEnum(
+      out,
+      semantic["maskMode"],
+      `${path}.maskMode`,
+      ["alpha", "luminance"],
+      { optional: true },
+    );
+    if (semantic["maskMode"] !== undefined && mask === undefined)
+      out.push(
+        error(
+          "group.maskMode",
+          `${path}.maskMode`,
+          "a mask mode requires a mask member",
+        ),
+      );
     checkEnum(
       out,
       semantic["booleanOperation"],

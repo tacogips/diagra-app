@@ -506,6 +506,8 @@ export interface GroupSemantic {
   readonly memberIds: readonly ElementId[];
   /** One member whose visible geometry clips the other members. */
   readonly maskId?: ElementId;
+  /** Raster mask interpretation; omitted means alpha. Requires `maskId`. */
+  readonly maskMode?: "alpha" | "luminance";
   /** Non-destructive ordered combination of the members' visible outlines. */
   readonly booleanOperation?: BooleanOperation;
   /** Force a compositing boundary while retaining ordinary member geometry. */

@@ -172,6 +172,11 @@ describe("semantic validation", () => {
     expectValid("frame", { name: "Group A" });
     expectValid("group", { memberIds: ["a", "b"] });
     expectValid("group", { memberIds: ["mask", "content"], maskId: "mask" });
+    expectValid("group", {
+      memberIds: ["mask", "content"],
+      maskId: "mask",
+      maskMode: "luminance",
+    });
     expectValid("group", { memberIds: ["a", "b"], isolate: true });
     expectValid("group", {
       memberIds: ["base", "cutout"],
@@ -665,6 +670,21 @@ describe("semantic validation", () => {
     expect(
       codes(validate("group", { memberIds: ["content"], maskId: "mask" })),
     ).toEqual(["group.maskMember"]);
+  });
+
+  test("validates raster mask mode only with a mask member", () => {
+    expect(
+      codes(validate("group", { memberIds: ["a"], maskMode: "alpha" })),
+    ).toEqual(["group.maskMode"]);
+    expect(
+      codes(
+        validate("group", {
+          memberIds: ["a"],
+          maskId: "a",
+          maskMode: "opaque",
+        }),
+      ),
+    ).toEqual(["value.enum"]);
   });
 
   test("validates Boolean group operation, arity and mask exclusivity", () => {
