@@ -579,4 +579,11 @@ test("generates native alpha and luminance raster group masks", () => {
   expect(code?.jetpackCompose).toContain("BlendMode.DstIn");
   expect(code?.swiftUi).not.toContain('photo-mask"');
   expect(code?.jetpackCompose).not.toContain('photo-mask"');
+  expect(code?.assets).toEqual([
+    {
+      elementId: mask.id,
+      resourceName: "diagra_photo_mask",
+      mediaType: "image/png",
+    },
+  ]);
 });

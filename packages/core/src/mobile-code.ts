@@ -1339,7 +1339,16 @@ export function generateMobileInterfaceCode(
   const tree = collectInterfaceTree(editor, rootId);
   if (!tree) return null;
   const rootSemantic = tree.root.semantic as FrameSemantic;
-  const assets = tree.included.flatMap((element) => {
+  const assetElements = new Map(
+    tree.included.map((element) => [element.id, element]),
+  );
+  for (const group of tree.included) {
+    if (group.type !== "group") continue;
+    const maskId = (group.semantic as GroupSemantic).maskId;
+    const mask = maskId ? editor.store.get(maskId) : undefined;
+    if (mask?.type === "image.raster") assetElements.set(mask.id, mask);
+  }
+  const assets = [...assetElements.values()].flatMap((element) => {
     if (element.type !== "image.raster") return [];
     const semantic = element.semantic as ImageSemantic;
     const mediaType = /^data:([^;,]+)/.exec(semantic.src)?.[1] ?? "image/png";
