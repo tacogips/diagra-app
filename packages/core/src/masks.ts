@@ -4,7 +4,7 @@ import {
   getElementTypeDefinition,
   type GroupSemantic,
 } from "@diagra/ir";
-import { maskPolygon } from "./clipping.ts";
+import { canProvideMask, isRasterMaskSource } from "./clipping.ts";
 import type { Editor } from "./editor.ts";
 import { memberIdsOf } from "./group.ts";
 
@@ -19,7 +19,7 @@ export function canBeMask(
     getElementTypeDefinition(element.type)?.category === "resource"
   )
     return false;
-  return maskPolygon(element, editor.createShapeContext()) !== null;
+  return canProvideMask(element, editor.createShapeContext());
 }
 
 export function groupMaskCandidates(
@@ -55,12 +55,53 @@ export function setGroupMask(
       return false;
   }
   if ((semantic.maskId ?? null) === maskId) return false;
-  const { maskId: _mask, booleanOperation: _operation, ...rest } = semantic;
+  const {
+    maskId: _mask,
+    maskMode: _maskMode,
+    booleanOperation: _operation,
+    ...rest
+  } = semantic;
   editor.apply([
     {
       type: "updateSemantic",
       id: groupId,
-      semantic: maskId ? { ...rest, maskId } : rest,
+      semantic: maskId
+        ? {
+            ...rest,
+            maskId,
+            ...(isRasterMaskSource(editor.store.get(maskId))
+              ? { maskMode: semantic.maskMode ?? "alpha" }
+              : {}),
+          }
+        : rest,
+    },
+  ]);
+  return true;
+}
+
+export function setGroupRasterMaskMode(
+  editor: Editor,
+  groupId: ElementId,
+  maskMode: "alpha" | "luminance",
+): boolean {
+  const group = editor.store.get(groupId);
+  if (
+    group?.type !== "group" ||
+    editor.createShapeContext().isLocked?.(groupId)
+  )
+    return false;
+  const semantic = group.semantic as GroupSemantic;
+  if (
+    !semantic.maskId ||
+    !isRasterMaskSource(editor.store.get(semantic.maskId))
+  )
+    return false;
+  if ((semantic.maskMode ?? "alpha") === maskMode) return false;
+  editor.apply([
+    {
+      type: "updateSemantic",
+      id: groupId,
+      semantic: { ...semantic, maskMode },
     },
   ]);
   return true;

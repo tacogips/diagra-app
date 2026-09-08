@@ -484,7 +484,12 @@ export {
   type LayerRenameOptions,
 } from "./batch-layer-names.ts";
 export { layerRows, selectLayerRow } from "./layer-tree.ts";
-export { canBeMask, groupMaskCandidates, setGroupMask } from "./masks.ts";
+export {
+  canBeMask,
+  groupMaskCandidates,
+  setGroupMask,
+  setGroupRasterMaskMode,
+} from "./masks.ts";
 export {
   cornerRadiiCss,
   normalizedCornerRadii,

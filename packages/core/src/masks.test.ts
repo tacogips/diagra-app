@@ -9,7 +9,11 @@ import {
   polygonContains,
 } from "./clipping.ts";
 import { generateInterfaceCode } from "./interface-code.ts";
-import { groupMaskCandidates, setGroupMask } from "./masks.ts";
+import {
+  groupMaskCandidates,
+  setGroupMask,
+  setGroupRasterMaskMode,
+} from "./masks.ts";
 import { prototypeScreen } from "./prototype.ts";
 import { document, makeEditor } from "./test-helpers.ts";
 
@@ -125,6 +129,46 @@ describe("layer masks", () => {
     editor.deleteElements([mask]);
     expect(editor.store.get(group)?.semantic).toEqual({ memberIds: [content] });
     expect(editor.hitTest({ x: 5, y: 5 })).toBe(content);
+  });
+
+  test("raster sources become mask candidates and retain alpha/luminance mode", () => {
+    const { editor, content, group } = fixture();
+    const image = editor.createElement("image.raster", {
+      semantic: {
+        src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        alt: "Mask",
+      },
+      visual: { x: 10, y: 10, width: 80, height: 80 },
+    });
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: group,
+        semantic: {
+          memberIds: [image, content],
+        },
+      },
+    ]);
+    expect(groupMaskCandidates(editor, group).map((item) => item.id)).toContain(
+      image,
+    );
+    expect(setGroupMask(editor, group, image)).toBe(true);
+    expect((editor.store.get(group)?.semantic as GroupSemantic).maskMode).toBe(
+      "alpha",
+    );
+    expect(setGroupRasterMaskMode(editor, group, "luminance")).toBe(true);
+    expect((editor.store.get(group)?.semantic as GroupSemantic).maskMode).toBe(
+      "luminance",
+    );
+    expect(setGroupMask(editor, group, null)).toBe(true);
+    expect(editor.store.get(group)?.semantic).toEqual({
+      memberIds: [image, content],
+    });
+    expect(setGroupMask(editor, group, image)).toBe(true);
+    editor.deleteElements([image]);
+    expect(editor.store.get(group)?.semantic).toEqual({
+      memberIds: [content],
+    });
   });
 
   test("concave and decorative geometry is rejected until exact clipping exists", () => {

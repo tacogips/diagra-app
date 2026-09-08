@@ -98,15 +98,21 @@ export function isEmptyGroup(element: Element): boolean {
 export function normalizeDetachedReferences(element: Element): Element {
   if (element.type !== "group" || !isPlainObject(element.semantic))
     return element;
-  const members = element.semantic["memberIds"];
+  let semantic = element.semantic;
+  if (semantic["maskId"] === undefined && semantic["maskMode"] !== undefined) {
+    const { maskMode: _maskMode, ...rest } = semantic;
+    semantic = rest;
+  }
+  const members = semantic["memberIds"];
   if (
-    !Array.isArray(members) ||
-    members.length >= 2 ||
-    element.semantic["booleanOperation"] === undefined
-  )
-    return element;
-  const { booleanOperation: _operation, ...semantic } = element.semantic;
-  return { ...element, semantic };
+    Array.isArray(members) &&
+    members.length < 2 &&
+    semantic["booleanOperation"] !== undefined
+  ) {
+    const { booleanOperation: _operation, ...rest } = semantic;
+    semantic = rest;
+  }
+  return semantic === element.semantic ? element : { ...element, semantic };
 }
 
 /**

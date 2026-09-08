@@ -207,6 +207,22 @@ export function maskPolygon(
   return points;
 }
 
+/** A raster source can mask paint even though it has no portable clip polygon. */
+export function isRasterMaskSource(element: Element | undefined): boolean {
+  return (
+    element?.type === "image.raster" &&
+    typeof (element.semantic as { src?: unknown }).src === "string" &&
+    (element.semantic as { src: string }).src.trim().length > 0
+  );
+}
+
+export function canProvideMask(
+  element: Element | undefined,
+  context: ShapeContext,
+): boolean {
+  return isRasterMaskSource(element) || maskPolygon(element, context) !== null;
+}
+
 export function maskSources(
   source: Store | readonly Element[],
   context?: ShapeContext,
@@ -221,7 +237,7 @@ export function maskSources(
     if (
       semantic.maskId &&
       memberIdsOf(element).includes(semantic.maskId) &&
-      (!context || maskPolygon(context.resolve(semantic.maskId), context))
+      (!context || canProvideMask(context.resolve(semantic.maskId), context))
     )
       out.add(semantic.maskId);
   }
