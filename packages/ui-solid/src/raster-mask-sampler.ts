@@ -7,21 +7,43 @@ type DecodedImage = {
   readonly pixels: Uint8ClampedArray;
 };
 
-type CacheEntry = DecodedImage | "loading" | "unavailable";
+type PendingImage = { readonly cancel: () => void };
+type CacheEntry = DecodedImage | PendingImage | "unavailable";
+
+// Bound retained RGBA buffers to 64 MiB (browser decode/canvas memory is extra).
+// Oversized sources keep the core geometry fallback instead of a huge canvas.
+const MAX_ENTRIES = 8;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+const installations = new WeakMap<
+  Editor,
+  { users: number; dispose: () => void }
+>();
 
 function decode(cache: Map<string, CacheEntry>, src: string): void {
   if (typeof Image === "undefined" || typeof document === "undefined") {
     cache.set(src, "unavailable");
     return;
   }
-  cache.set(src, "loading");
   const image = new Image();
+  const pending: PendingImage = {
+    cancel: () => {
+      image.onload = null;
+      image.onerror = null;
+      image.src = "";
+    },
+  };
+  cache.set(src, pending);
   image.onload = () => {
+    if (cache.get(src) !== pending) return;
+    let canvas: HTMLCanvasElement | undefined;
     try {
       const width = image.naturalWidth;
       const height = image.naturalHeight;
       if (!width || !height) throw new Error("Image has no decoded pixels");
-      const canvas = document.createElement("canvas");
+      if (width * height * 4 > MAX_IMAGE_BYTES)
+        throw new Error("Image exceeds pixel picking budget");
+      canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
       const context = canvas.getContext("2d", { willReadFrequently: true });
@@ -36,9 +58,19 @@ function decode(cache: Map<string, CacheEntry>, src: string): void {
     } catch {
       // Cross-origin/tainted sources remain on the core's safe box fallback.
       cache.set(src, "unavailable");
+    } finally {
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      pending.cancel();
     }
   };
-  image.onerror = () => cache.set(src, "unavailable");
+  image.onerror = () => {
+    if (cache.get(src) !== pending) return;
+    cache.set(src, "unavailable");
+    pending.cancel();
+  };
   image.src = src;
 }
 
@@ -67,6 +99,11 @@ function pixelAt(
  * fallback, which also protects documents whose image CORS policy changes.
  */
 export function installRasterMaskSampler(editor: Editor): () => void {
+  const existing = installations.get(editor);
+  if (existing) {
+    existing.users++;
+    return releaseOnce(editor, existing);
+  }
   const cache = new Map<string, CacheEntry>();
   const sampler = (
     id: string,
@@ -78,14 +115,50 @@ export function installRasterMaskSampler(editor: Editor): () => void {
     if (typeof src !== "string" || !src) return undefined;
     const entry = cache.get(src);
     if (!entry) {
+      if (cache.size >= MAX_ENTRIES) {
+        const oldest = cache.keys().next().value;
+        if (oldest !== undefined) {
+          const evicted = cache.get(oldest);
+          cache.delete(oldest);
+          if (typeof evicted === "object" && "cancel" in evicted)
+            evicted.cancel();
+        }
+      }
       decode(cache, src);
       return undefined;
     }
-    return typeof entry === "object" ? pixelAt(entry, point) : undefined;
+    cache.delete(src);
+    cache.set(src, entry);
+    return typeof entry === "object" && "pixels" in entry
+      ? pixelAt(entry, point)
+      : undefined;
   };
   editor.setRasterMaskSampler(sampler);
+  const installation = {
+    users: 1,
+    dispose: () => {
+      const entries = [...cache.values()];
+      cache.clear();
+      for (const entry of entries)
+        if (typeof entry === "object" && "cancel" in entry) entry.cancel();
+      if (editor.createShapeContext().rasterMaskSample === sampler)
+        editor.setRasterMaskSampler(undefined);
+    },
+  };
+  installations.set(editor, installation);
+  return releaseOnce(editor, installation);
+}
+
+function releaseOnce(
+  editor: Editor,
+  installation: { users: number; dispose: () => void },
+): () => void {
+  let released = false;
   return () => {
-    cache.clear();
-    editor.setRasterMaskSampler(undefined);
+    if (released) return;
+    released = true;
+    if (--installation.users > 0) return;
+    installations.delete(editor);
+    installation.dispose();
   };
 }

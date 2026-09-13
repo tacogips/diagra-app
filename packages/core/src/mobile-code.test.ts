@@ -572,6 +572,15 @@ test("generates native alpha and luminance raster group masks", () => {
   expect(code?.swiftUi).toContain("cropX: 0.1");
   expect(code?.swiftUi).toContain("luminance: true");
   expect(code?.swiftUi).toContain("luminanceToAlpha()");
+  expect(code?.swiftUi).toContain(
+    ".offset(x: -cropX * viewportWidth / cropWidth, y: -cropY * viewportHeight / cropHeight)",
+  );
+  expect(code?.swiftUi).toContain(
+    ".frame(width: viewportWidth, height: viewportHeight, alignment: .topLeading)\n                .clipped()\n                .rotationEffect(.degrees(rotation))",
+  );
+  expect(code?.swiftUi).toContain(
+    ".position(x: proxy.size.width * x + viewportWidth / 2, y: proxy.size.height * y + viewportHeight / 2)",
+  );
   expect(code?.jetpackCompose).toContain(
     ".diagraRasterMask(resource = R.drawable.diagra_photo_mask",
   );
