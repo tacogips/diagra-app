@@ -52,6 +52,7 @@ import {
 import { CloudPanel } from "./cloud/CloudPanel.tsx";
 import { PresenceChip, PresenceOverlay } from "./cloud/PresenceOverlay.tsx";
 import type { CloudSession, CloudSessionState } from "./cloud/session.ts";
+import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
 import type { CloudSettings } from "./cloud/settings.ts";
 import type { ExportBackend } from "./file/backend.ts";
 import type { DocumentSession, SessionState } from "./file/session.ts";
@@ -66,6 +67,8 @@ export interface AppProps {
   readonly exportBackend: ExportBackend;
   readonly cloudSettings: CloudSettings;
   readonly onCloudSettingsChange: (settings: CloudSettings) => void;
+  /** Opaque account lifecycle signal for invalidating cloud list pages. */
+  readonly cloudRefreshToken?: unknown;
 }
 
 /** Which document the editor is showing. File mode is the default. */
@@ -184,20 +187,19 @@ export function App(props: AppProps): JSX.Element {
   };
 
   onCleanup(props.session.subscribe(setFile));
+  onCleanup(bindCloudFileOwnership(props.cloud, props.session));
   onCleanup(props.cloud.subscribe(setCloud));
 
   /**
-   * A cloud document owns the editor exactly while its binding is attached —
-   * which is what `connected` and `reconnecting` mean.
+   * Ownership is independent of transport status: reconnect permission probes
+   * and fresh viewer snapshots must not reactivate local autosave.
    *
    * Not from the moment one is *requested*: `connecting` and `syncing` have
    * not touched the editor yet, and a connect that fails its authorization
    * probe must leave the user's open file exactly as it was.
    */
   const mode = (): DocumentMode =>
-    cloud().status === "connected" || cloud().status === "reconnecting"
-      ? { kind: "cloud" }
-      : { kind: "file" };
+    cloud().ownsEditor ? { kind: "cloud" } : { kind: "file" };
   const isCloud = (): boolean => mode().kind === "cloud";
   let wasViewer = false;
   createEffect(() => {
@@ -208,17 +210,6 @@ export function App(props: AppProps): JSX.Element {
     setActiveTool("select");
     setEditing(null);
     setContextMenu(null);
-  });
-
-  // Exactly one session may own the editor. Without this, every edit arriving
-  // from a room would look to the file session like the user typing, and its
-  // autosave would write the cloud document over whatever file was open.
-  createEffect(() => {
-    if (isCloud()) {
-      props.session.suspend();
-    } else {
-      props.session.resume();
-    }
   });
 
   const updateSettings = (next: CloudSettings): void => {
@@ -569,6 +560,7 @@ export function App(props: AppProps): JSX.Element {
         state={cloud()}
         settings={settings()}
         onSettingsChange={updateSettings}
+        refreshToken={props.cloudRefreshToken}
         // Opening a room replaces what is on the canvas, exactly like opening
         // a file does, so it asks the same question first.
         mayDiscard={mayDiscard}

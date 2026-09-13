@@ -1,6 +1,114 @@
 import { expect, test, spyOn } from "bun:test";
 import { cloudApi } from "./api.ts";
 
+const document = {
+  id: "01K4F4H50G9S4FH1P9RPKDZ0TQ",
+  title: "Domain",
+  ownerId: "owner",
+  createdAt: "2026-09-14T00:00:00.000Z",
+  updatedAt: "2026-09-14T00:00:00.000Z",
+};
+
+test("document listing validates bounded workspace pages and forwards before", async () => {
+  const fetchMock = spyOn(globalThis, "fetch");
+  const before = "01K4F4H50G9S4FH1P9RPKDZ0TZ";
+  const page = {
+    documents: [document],
+    nextCursor: null,
+    workspaceId: "01K4F4H50G9S4FH1P9RPKDZ0TW",
+    adoptedCount: 2,
+    moreDocuments: false,
+    pendingInvalidation: false,
+    cursorReset: false,
+    status: "complete" as const,
+  };
+  try {
+    fetchMock.mockResolvedValueOnce(Response.json(page));
+    expect(
+      await cloudApi.listDocuments({
+        endpoint: "https://example.test/sync",
+        before,
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        items: [document],
+        nextCursor: null,
+        workspaceId: page.workspaceId,
+        adoptedCount: page.adoptedCount,
+        moreDocuments: page.moreDocuments,
+        pendingInvalidation: page.pendingInvalidation,
+        cursorReset: page.cursorReset,
+        status: page.status,
+      },
+    });
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]));
+    expect(url.pathname).toBe("/sync/api/documents");
+    expect(url.searchParams.get("before")).toBe(before);
+
+    for (const invalid of [
+      { ...page, status: undefined },
+      { ...page, adoptedCount: -1 },
+      { ...page, moreDocuments: "false" },
+      { ...page, documents: [{ ...document, createdAt: "not-a-date" }] },
+      { ...page, documents: Array.from({ length: 101 }, () => document) },
+    ]) {
+      fetchMock.mockResolvedValueOnce(Response.json(invalid));
+      expect(
+        (await cloudApi.listDocuments({ endpoint: "https://example.test" })).ok,
+      ).toBe(false);
+    }
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
+test("document listing supports legacy responses and accepts a migration cursor reset", async () => {
+  const fetchMock = spyOn(globalThis, "fetch");
+  const before = "01K4F4H50G9S4FH1P9RPKDZ0TZ";
+  try {
+    fetchMock.mockResolvedValueOnce(Response.json({ documents: [document] }));
+    expect(
+      await cloudApi.listDocuments({ endpoint: "https://example.test" }),
+    ).toEqual({
+      ok: true,
+      value: {
+        items: [document],
+        nextCursor: null,
+        workspaceId: null,
+        adoptedCount: 0,
+        moreDocuments: false,
+        pendingInvalidation: false,
+        cursorReset: false,
+        status: "complete",
+      },
+    });
+    fetchMock.mockResolvedValueOnce(
+      Response.json({
+        documents: [],
+        nextCursor: null,
+        workspaceId: "01K4F4H50G9S4FH1P9RPKDZ0TW",
+        adoptedCount: 2,
+        moreDocuments: false,
+        pendingInvalidation: false,
+        cursorReset: true,
+        status: "complete",
+      }),
+    );
+    expect(
+      await cloudApi.listDocuments({
+        endpoint: "https://example.test",
+        before,
+      }),
+    ).toMatchObject({
+      ok: true,
+      value: { cursorReset: true, status: "complete" },
+    });
+  } finally {
+    fetchMock.mockRestore();
+  }
+});
+
 test("share listing validates each capability and requests an uncached bounded page", async () => {
   const fetchMock = spyOn(globalThis, "fetch");
   const item = {

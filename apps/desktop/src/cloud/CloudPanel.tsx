@@ -10,9 +10,20 @@
 
 import type { Editor } from "@diagra/core";
 import { serializeDocument } from "@diagra/io";
-import { createSignal, For, type JSX, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  onCleanup,
+  type JSX,
+  Show,
+} from "solid-js";
 import { type CloudApi, cloudApi, type CloudDocument } from "./api.ts";
-import type { CloudSession, CloudSessionState } from "./session.ts";
+import type {
+  CloudSession,
+  CloudSessionState,
+  CloudSessionRecovery,
+} from "./session.ts";
 import type { CloudSettings } from "./settings.ts";
 import { ShareControls } from "./ShareControls.tsx";
 
@@ -29,15 +40,19 @@ export interface CloudPanelProps {
   readonly mayDiscard?: () => boolean;
   /** Injectable for tests and for a future authenticated client. */
   readonly api?: CloudApi;
+  /** Opaque account lifecycle signal; changing it invalidates list pages. */
+  readonly refreshToken?: unknown;
 }
 
 export function CloudPanel(props: CloudPanelProps): JSX.Element {
   const [open, setOpen] = createSignal(false);
   const [documents, setDocuments] = createSignal<readonly CloudDocument[]>([]);
+  const [nextCursor, setNextCursor] = createSignal<string | null>(null);
   const [docId, setDocId] = createSignal("");
   const [token, setToken] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   const [notice, setNotice] = createSignal<string | null>(null);
+  let listRequest = 0;
 
   const api = (): CloudApi => props.api ?? cloudApi;
 
@@ -51,18 +66,79 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
     props.onSettingsChange({ ...props.settings, ...changes });
   };
 
-  const refresh = async (): Promise<void> => {
+  const listContext = (): string => JSON.stringify(credentials());
+
+  // A list page belongs to one server/account/token context. Never let an
+  // older response populate a new account's panel or leave it busy.
+  createEffect(() => {
+    void api();
+    void listContext();
+    void props.refreshToken;
+    listRequest += 1;
+    setDocuments([]);
+    setNextCursor(null);
+    setBusy(false);
+    setNotice(null);
+    onCleanup(() => {
+      listRequest += 1;
+    });
+  });
+
+  const loadPage = async (
+    before: string | undefined,
+    accumulated: readonly CloudDocument[],
+  ): Promise<void> => {
+    const request = ++listRequest;
+    const context = listContext();
+    const apiRef = api();
+    const refreshToken = props.refreshToken;
     setBusy(true);
     setNotice(null);
-    const result = await api().listDocuments(credentials());
+    const result = await apiRef.listDocuments({
+      ...credentials(),
+      ...(before === undefined ? {} : { before }),
+    });
+    if (request !== listRequest) return;
+    if (apiRef !== api() || refreshToken !== props.refreshToken) {
+      setBusy(false);
+      return;
+    }
+    if (context !== listContext()) {
+      setBusy(false);
+      return;
+    }
     setBusy(false);
     if (result.ok) {
-      setDocuments(result.value);
-      setNotice(result.value.length === 0 ? "no documents yet" : null);
+      if (result.value.cursorReset) {
+        setDocuments([]);
+        setNextCursor(null);
+        setNotice(
+          "The document list changed. Refresh list to restart at the newest documents.",
+        );
+        return;
+      }
+      const items = [...accumulated, ...result.value.items];
+      setDocuments(items);
+      setNextCursor(result.value.nextCursor);
+      if (result.value.moreDocuments) {
+        setNotice("Migrating older documents. Refresh list to check again.");
+      } else if (result.value.pendingInvalidation) {
+        setNotice("Document access is updating. Refresh list to check again.");
+      } else {
+        setNotice(items.length === 0 ? "no documents yet" : null);
+      }
     } else {
-      setDocuments([]);
+      if (before === undefined) setDocuments([]);
+      setNextCursor(null);
       setNotice(result.error);
     }
+  };
+
+  const refresh = async (): Promise<void> => loadPage(undefined, []);
+
+  const loadMore = async (): Promise<void> => {
+    const cursor = nextCursor();
+    if (cursor !== null) await loadPage(cursor, documents());
   };
 
   /**
@@ -118,6 +194,27 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
     await openDocument(result.value.id, false);
   };
 
+  const downloadRecovery = (recovery: CloudSessionRecovery): void => {
+    try {
+      const blob = new Blob([serializeDocument(recovery.document)], {
+        type: "application/x-ndjson;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${recovery.title.replace(/[/\\:*?"<>|]+/g, "-") || "untitled"}-recovery-${recovery.id}.jsonl`;
+      document.body.append(link);
+      try {
+        link.click();
+      } finally {
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch {
+      setNotice("Could not download the recovery copy. Please retry.");
+    }
+  };
+
   return (
     <div class="app-cloud-panel">
       <div class="app-cloud-summary">
@@ -145,6 +242,39 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
           )}
         </Show>
       </div>
+
+      <For each={props.state.recoveries}>
+        {(recovery) => (
+          <div class="app-cloud-notice" role="status">
+            <span>
+              Recovery copy #{recovery.id} of {recovery.title} is kept in
+              memory. It may contain edits that did not reach the server.
+              Download it before closing this app or tab.
+            </span>{" "}
+            <button
+              type="button"
+              class="app-file-button"
+              onClick={() => downloadRecovery(recovery)}
+            >
+              Download recovery copy
+            </button>{" "}
+            <button
+              type="button"
+              class="app-file-button"
+              onClick={() => {
+                if (window.confirm("Discard the saved recovery copy?"))
+                  props.session.discardRecovery(recovery.id);
+              }}
+            >
+              Discard recovery copy
+            </button>
+          </div>
+        )}
+      </For>
+
+      <Show when={notice()}>
+        {(message) => <p class="app-cloud-notice">{message()}</p>}
+      </Show>
 
       <Show when={open()}>
         <div class="app-cloud-body">
@@ -260,10 +390,6 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
             </button>
           </div>
 
-          <Show when={notice()}>
-            {(message) => <p class="app-cloud-notice">{message()}</p>}
-          </Show>
-
           <Show when={documents().length > 0}>
             <ul class="app-cloud-list">
               <For each={documents()}>
@@ -283,6 +409,16 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
                 )}
               </For>
             </ul>
+          </Show>
+          <Show when={nextCursor() !== null}>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={busy()}
+              onClick={() => void loadMore()}
+            >
+              Load more
+            </button>
           </Show>
         </div>
       </Show>

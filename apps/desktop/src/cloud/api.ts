@@ -31,6 +31,20 @@ export interface CloudDocument {
   readonly updatedAt: string;
 }
 
+/** A bounded personal-workspace page returned by `GET /api/documents`. */
+export interface CloudDocumentPage {
+  readonly items: readonly CloudDocument[];
+  readonly nextCursor: string | null;
+  readonly workspaceId: string | null;
+  readonly adoptedCount: number;
+  /** More historical documents still need to be adopted; refresh from head. */
+  readonly moreDocuments: boolean;
+  readonly pendingInvalidation: boolean;
+  /** A cursor page changed while migration ran; discard it and restart at head. */
+  readonly cursorReset: boolean;
+  readonly status: "pending" | "complete";
+}
+
 export type ApiResult<T> =
   | { readonly ok: true; readonly value: T }
   | {
@@ -67,8 +81,8 @@ export interface CloudApi {
     },
   ): Promise<ApiResult<CloudShare>>;
   listDocuments(
-    options: CloudApiOptions,
-  ): Promise<ApiResult<readonly CloudDocument[]>>;
+    options: CloudApiOptions & { readonly before?: string },
+  ): Promise<ApiResult<CloudDocumentPage>>;
   createDocument(
     options: CloudApiOptions & {
       readonly title?: string;
@@ -83,6 +97,121 @@ export interface CloudApi {
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function isCloudDocument(value: unknown): value is CloudDocument {
+  if (!value || typeof value !== "object") return false;
+  const document = value as Partial<CloudDocument>;
+  return (
+    typeof document.id === "string" &&
+    document.id.length > 0 &&
+    typeof document.title === "string" &&
+    typeof document.ownerId === "string" &&
+    document.ownerId.length > 0 &&
+    typeof document.createdAt === "string" &&
+    Number.isFinite(Date.parse(document.createdAt)) &&
+    typeof document.updatedAt === "string" &&
+    Number.isFinite(Date.parse(document.updatedAt))
+  );
+}
+
+function invalidDocumentPage(status: number): ApiResult<CloudDocumentPage> {
+  return {
+    ok: false,
+    status,
+    error: "Server returned an invalid document list.",
+  };
+}
+
+function parseDocumentPage(
+  body: unknown,
+  status: number,
+  before: string | undefined,
+): ApiResult<CloudDocumentPage> {
+  if (!body || typeof body !== "object") return invalidDocumentPage(status);
+  const page = body as Record<string, unknown>;
+  if (
+    !Array.isArray(page.documents) ||
+    !page.documents.every(isCloudDocument) ||
+    new Set(page.documents.map((document) => document.id)).size !==
+      page.documents.length
+  )
+    return invalidDocumentPage(status);
+
+  // Keep development servers from before workspace pagination usable.
+  const hasProgressFields = [
+    "nextCursor",
+    "workspaceId",
+    "adoptedCount",
+    "moreDocuments",
+    "pendingInvalidation",
+    "cursorReset",
+    "status",
+  ].some((field) => field in page);
+  if (!hasProgressFields)
+    return {
+      ok: true,
+      value: {
+        items: page.documents,
+        nextCursor: null,
+        workspaceId: null,
+        adoptedCount: 0,
+        moreDocuments: false,
+        pendingInvalidation: false,
+        cursorReset: false,
+        status: "complete",
+      },
+    };
+
+  const nextCursor = page.nextCursor;
+  const documents = page.documents;
+  const descending = documents.every((document, index) => {
+    const previous = documents[index - 1];
+    return index === 0 || (previous !== undefined && previous.id > document.id);
+  });
+  if (
+    documents.length > 100 ||
+    !(
+      nextCursor === null ||
+      (typeof nextCursor === "string" &&
+        /^[0-9A-HJKMNP-TV-Z]{26}$/.test(nextCursor))
+    ) ||
+    (typeof nextCursor === "string" &&
+      (documents.length !== 100 ||
+        documents.at(-1)?.id !== nextCursor ||
+        (before !== undefined && nextCursor >= before))) ||
+    !descending ||
+    !(
+      typeof page.workspaceId === "string" &&
+      /^[0-9A-HJKMNP-TV-Z]{26}$/.test(page.workspaceId)
+    ) ||
+    !Number.isSafeInteger(page.adoptedCount) ||
+    (page.adoptedCount as number) < 0 ||
+    (page.adoptedCount as number) > 10 ||
+    typeof page.moreDocuments !== "boolean" ||
+    typeof page.pendingInvalidation !== "boolean" ||
+    typeof page.cursorReset !== "boolean" ||
+    (page.status !== "pending" && page.status !== "complete") ||
+    (page.status === "pending") !==
+      (page.moreDocuments === true || page.pendingInvalidation === true) ||
+    ((page.moreDocuments || page.cursorReset) && nextCursor !== null) ||
+    (page.cursorReset && (before === undefined || documents.length !== 0))
+  )
+    return invalidDocumentPage(status);
+
+  return {
+    ok: true,
+    value: {
+      items: page.documents,
+      nextCursor,
+      workspaceId: page.workspaceId,
+      adoptedCount: page.adoptedCount as number,
+      moreDocuments: page.moreDocuments,
+      pendingInvalidation: page.pendingInvalidation,
+      cursorReset: page.cursorReset,
+      status: page.status,
+    },
+  };
 }
 
 /** Build a route URL on the configured endpoint, carrying the credentials. */
@@ -271,21 +400,34 @@ export const cloudApi: CloudApi = {
   async listDocuments(options) {
     let url: URL;
     try {
-      url = routeUrl(options, "/api/documents");
+      url = routeUrl(
+        options,
+        "/api/documents",
+        options.before === undefined ? {} : { before: options.before },
+      );
     } catch (error) {
       return { ok: false, status: null, error: describe(error) };
     }
     try {
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), {
+        cache: "no-store",
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      });
       if (!response.ok) {
         return failure(response);
       }
-      const body = (await response.json()) as {
-        documents?: readonly CloudDocument[];
+      return parseDocumentPage(
+        await response.json(),
+        response.status,
+        options.before,
+      );
+    } catch {
+      return {
+        ok: false,
+        status: null,
+        error: "Documents could not be loaded. Retry to refresh.",
       };
-      return { ok: true, value: body.documents ?? [] };
-    } catch (error) {
-      return { ok: false, status: null, error: describe(error) };
     }
   },
 

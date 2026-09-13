@@ -19,7 +19,7 @@ import {
   publishPresence,
 } from "@diagra/collab";
 import type { Editor } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import type { Document, ElementId } from "@diagra/ir";
 import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { type CloudApi, type CloudRole, cloudApi } from "./api.ts";
@@ -43,9 +43,25 @@ export interface CloudSessionState {
   readonly peers: readonly PresencePeer[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  /** This cloud binding has replaced the host's local-file editor owner. */
+  readonly ownsEditor: boolean;
+  /** Writer snapshots retained after losing or downgrading cloud access. */
+  readonly recoveries: readonly CloudSessionRecovery[];
 }
 
 export type CloudSessionListener = (state: CloudSessionState) => void;
+export interface CloudSessionRecovery {
+  /** Session-local identity; the same document can have several snapshots. */
+  readonly id: number;
+  readonly docId: string;
+  readonly title: string;
+  readonly document: Document;
+}
+export interface CloudAccessLost {
+  readonly docId: string;
+  readonly message: string;
+}
+export type CloudAccessLostListener = (event: CloudAccessLost) => void;
 
 /** What this session needs from a provider; `YProvider` satisfies it. */
 export interface DocumentProvider {
@@ -56,6 +72,8 @@ export interface DocumentProvider {
   on(name: string, handler: (...args: any[]) => void): void;
   // biome-ignore lint/suspicious/noExplicitAny: matches lib0's Observable.
   off(name: string, handler: (...args: any[]) => void): void;
+  connect(): void | Promise<void>;
+  disconnect(): void;
   destroy(): void;
 }
 
@@ -82,6 +100,12 @@ export interface OpenOptions {
   readonly token?: string;
 }
 
+type ConnectionContext = Readonly<{
+  endpoint: string;
+  devUser: string | undefined;
+  token: string | undefined;
+}>;
+
 const IDLE: CloudSessionState = {
   role: null,
   status: "idle",
@@ -91,6 +115,8 @@ const IDLE: CloudSessionState = {
   peers: [],
   canUndo: false,
   canRedo: false,
+  ownsEditor: false,
+  recoveries: [],
 };
 
 function defaultProviderFactory(request: ProviderRequest): DocumentProvider {
@@ -99,6 +125,8 @@ function defaultProviderFactory(request: ProviderRequest): DocumentProvider {
     docId: request.docId,
     doc: request.doc,
     params: () => ({ token: request.token, devUser: request.devUser }),
+    connect: false,
+    managedReconnect: true,
   }) as unknown as DocumentProvider;
 }
 
@@ -108,6 +136,7 @@ export class CloudSession {
   private readonly api: CloudApi;
   private readonly createProvider: ProviderFactory;
   private readonly listeners = new Set<CloudSessionListener>();
+  private readonly accessLostListeners = new Set<CloudAccessLostListener>();
 
   private current: CloudSessionState = IDLE;
   private provider: DocumentProvider | null = null;
@@ -115,21 +144,14 @@ export class CloudSession {
   private doc: Y.Doc | null = null;
   private stopPresence: (() => void) | null = null;
   private stopUndoState: (() => void) | null = null;
+  private connection: ConnectionContext | null = null;
+  private revalidating = false;
+  private revalidatingWasWriter = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryDelayMs = 500;
+  private nextRecoveryId = 1;
   /** Bumped by every open, so a slow probe cannot resurrect a closed doc. */
   private generation = 0;
-
-  private readonly onSync = (isSynced: boolean): void => {
-    if (isSynced) {
-      this.attach();
-    }
-  };
-  private readonly onStatus = (event: { status?: string }): void => {
-    if (event.status === "disconnected" && this.current.status !== "closed") {
-      // The provider owns the backoff from here. Local edits keep applying to
-      // the Y.Doc and flush on resync, so this is a status, not an error.
-      this.patch({ status: "reconnecting" });
-    }
-  };
 
   constructor(options: CloudSessionOptions) {
     this.editor = options.editor;
@@ -149,6 +171,31 @@ export class CloudSession {
     };
   }
 
+  subscribeAccessLost(listener: CloudAccessLostListener): () => void {
+    this.accessLostListeners.add(listener);
+    return () => {
+      this.accessLostListeners.delete(listener);
+    };
+  }
+
+  /** Retained snapshots are user-controlled and survive later cloud opens. */
+  discardRecovery(id: number): void {
+    this.patch({
+      recoveries: this.current.recoveries.filter(
+        (recovery) => recovery.id !== id,
+      ),
+    });
+  }
+
+  /**
+   * Let a host-side REST lifecycle (deletion, account removal) stop this
+   * session without coupling the public client to a particular auth system.
+   */
+  loseAccess(message = "Cloud document access was lost."): void {
+    if (this.current.docId === null) return;
+    this.accessLost(message);
+  }
+
   /**
    * Open `docId` against the configured endpoint.
    *
@@ -165,6 +212,12 @@ export class CloudSession {
     }
     this.close();
     const generation = ++this.generation;
+    const connection: ConnectionContext = {
+      endpoint: settings.endpointUrl,
+      devUser: settings.devUser,
+      token: options.token,
+    };
+    this.connection = connection;
     this.patch({
       status: "connecting",
       role: null,
@@ -172,13 +225,14 @@ export class CloudSession {
       title: null,
       error: null,
       peers: [],
+      ownsEditor: false,
     });
 
     const probe = await this.api.probeDocument({
-      endpoint: settings.endpointUrl,
+      endpoint: connection.endpoint,
       docId,
-      ...(settings.devUser ? { devUser: settings.devUser } : {}),
-      ...(options.token ? { token: options.token } : {}),
+      ...(connection.devUser ? { devUser: connection.devUser } : {}),
+      ...(connection.token ? { token: connection.token } : {}),
     });
     if (generation !== this.generation) {
       // Another open (or a close) happened while the probe was in flight.
@@ -189,42 +243,26 @@ export class CloudSession {
       return false;
     }
 
-    const doc = new Y.Doc();
-    this.doc = doc;
-    let provider: DocumentProvider;
-    try {
-      provider = this.createProvider({
-        endpoint: settings.endpointUrl,
-        docId,
-        doc,
-        token: options.token,
-        devUser: settings.devUser,
-      });
-    } catch (error) {
-      this.fail(error instanceof Error ? error.message : String(error));
+    if (!this.installProvider(generation, connection.endpoint, docId)) {
       return false;
     }
-    this.provider = provider;
-    provider.on("sync", this.onSync);
-    provider.on("status", this.onStatus);
     this.patch({ status: "syncing", role: probe.value });
-
-    // A provider that was already synced (a fake, or a warm cache) never
-    // emits the event this session is waiting for.
-    if (provider.synced) {
-      this.attach();
-    }
+    this.connectProvider();
     return true;
   }
 
   /** Close the document and drop every subscription. Safe to call twice. */
   close(): void {
     this.generation += 1;
+    this.cancelRetry();
+    this.revalidating = false;
+    this.revalidatingWasWriter = false;
+    this.connection = null;
     this.detachBinding();
     this.editor.setReadOnly(false);
     if (this.provider) {
-      this.provider.off("sync", this.onSync);
-      this.provider.off("status", this.onStatus);
+      this.removeProviderListeners(this.provider);
+      this.provider.disconnect();
       this.provider.destroy();
       this.provider = null;
     }
@@ -240,31 +278,32 @@ export class CloudSession {
         peers: [],
         canUndo: false,
         canRedo: false,
+        ownsEditor: false,
       });
     }
   }
 
   undo(): boolean {
-    if (this.current.role === "viewer") return false;
+    if (!this.canWrite()) return false;
     const undone = this.binding?.undo() ?? false;
     this.publishUndoState();
     return undone;
   }
 
   redo(): boolean {
-    if (this.current.role === "viewer") return false;
+    if (!this.canWrite()) return false;
     const redone = this.binding?.redo() ?? false;
     this.publishUndoState();
     return redone;
   }
 
   canUndo(): boolean {
-    if (this.current.role === "viewer") return false;
+    if (!this.canWrite()) return false;
     return this.binding?.canUndo() ?? false;
   }
 
   canRedo(): boolean {
-    if (this.current.role === "viewer") return false;
+    if (!this.canWrite()) return false;
     return this.binding?.canRedo() ?? false;
   }
 
@@ -300,14 +339,23 @@ export class CloudSession {
       // A resync after a reconnect. The binding never went anywhere — the
       // Y.Doc kept accepting edits offline — so only the status moves back.
       if (this.current.status !== "connected") {
+        this.editor.setReadOnly(this.current.role === "viewer");
+        this.revalidatingWasWriter =
+          this.current.role === "owner" || this.current.role === "editor";
         this.patch({ status: "connected", error: null });
+        this.publishUndoState();
       }
       return;
     }
     const binding = new CollabBinding({ editor: this.editor, doc: this.doc });
+    // The host must retire its local-file owner before this binding can mutate
+    // the editor. It intentionally stays false through initial probing/sync.
+    this.patch({ ownsEditor: true });
     this.editor.setReadOnly(this.current.role === "viewer");
     binding.attach();
     this.binding = binding;
+    this.revalidatingWasWriter =
+      this.current.role === "owner" || this.current.role === "editor";
     this.stopUndoState = binding.onUndoState(() => {
       this.publishUndoState();
     });
@@ -321,9 +369,8 @@ export class CloudSession {
       status: "connected",
       title: this.editor.getSnapshot().title,
       error: null,
-      canUndo: this.canUndo(),
-      canRedo: this.canRedo(),
     });
+    this.publishUndoState();
     this.publishPresence(null);
   }
 
@@ -340,18 +387,294 @@ export class CloudSession {
     this.patch({ canUndo: this.canUndo(), canRedo: this.canRedo() });
   }
 
-  private fail(message: string): void {
+  private canWrite(): boolean {
+    return (
+      this.current.status === "connected" &&
+      (this.current.role === "owner" || this.current.role === "editor")
+    );
+  }
+
+  private installProvider(
+    generation: number,
+    endpoint: string,
+    docId: string,
+  ): boolean {
+    const doc = new Y.Doc();
+    this.doc = doc;
+    let provider: DocumentProvider;
+    try {
+      provider = this.createProvider({
+        endpoint,
+        docId,
+        doc,
+        token: this.connection?.token,
+        devUser: this.connection?.devUser,
+      });
+    } catch (error) {
+      this.fail(error instanceof Error ? error.message : String(error));
+      return false;
+    }
+    this.provider = provider;
+    const onSync = (isSynced: boolean): void => {
+      if (
+        this.provider === provider &&
+        generation === this.generation &&
+        !this.revalidating &&
+        this.retryTimer === null &&
+        isSynced
+      ) {
+        this.attach();
+      }
+    };
+    const onStatus = (event: { status?: string }): void => {
+      if (
+        this.provider === provider &&
+        generation === this.generation &&
+        event.status === "disconnected"
+      ) {
+        void this.revalidateAfterClose(provider, generation);
+      }
+    };
+    const onConnectionClose = (): void => {
+      if (this.provider === provider && generation === this.generation) {
+        void this.revalidateAfterClose(provider, generation);
+      }
+    };
+    provider.on("sync", onSync);
+    provider.on("status", onStatus);
+    provider.on("connection-close", onConnectionClose);
+    this.providerListeners.set(provider, {
+      onSync,
+      onStatus,
+      onConnectionClose,
+    });
+    return true;
+  }
+
+  private readonly providerListeners = new Map<
+    DocumentProvider,
+    Readonly<{
+      // biome-ignore lint/suspicious/noExplicitAny: matches lib0's Observable.
+      onSync: (...args: any[]) => void;
+      // biome-ignore lint/suspicious/noExplicitAny: matches lib0's Observable.
+      onStatus: (...args: any[]) => void;
+      // biome-ignore lint/suspicious/noExplicitAny: matches lib0's Observable.
+      onConnectionClose: (...args: any[]) => void;
+    }>
+  >();
+
+  private removeProviderListeners(provider: DocumentProvider): void {
+    const handlers = this.providerListeners.get(provider);
+    if (handlers) {
+      provider.off("sync", handlers.onSync);
+      provider.off("status", handlers.onStatus);
+      provider.off("connection-close", handlers.onConnectionClose);
+      this.providerListeners.delete(provider);
+    }
+  }
+
+  private connectProvider(): void {
+    const provider = this.provider;
+    if (!provider) return;
+    try {
+      void Promise.resolve(provider.connect()).catch(() => {
+        if (this.provider === provider && this.current.status !== "closed") {
+          void this.revalidateAfterClose(provider, this.generation);
+        }
+      });
+    } catch {
+      void this.revalidateAfterClose(provider, this.generation);
+    }
+    // A fake or a warm cache need not emit a sync event after connect().
+    if (provider.synced && !this.revalidating && this.retryTimer === null) {
+      this.attach();
+    }
+  }
+
+  private async revalidateAfterClose(
+    provider: DocumentProvider,
+    generation: number,
+  ): Promise<void> {
+    if (
+      this.revalidating ||
+      this.retryTimer !== null ||
+      this.current.status === "closed" ||
+      this.current.status === "error" ||
+      this.current.docId === null
+    ) {
+      return;
+    }
+    this.revalidating = true;
+    if (!this.revalidatingWasWriter) {
+      this.revalidatingWasWriter =
+        this.current.ownsEditor && this.editor.readOnly === false;
+    }
+    // Stop provider-owned backoff until the current authorization is known.
+    provider.disconnect();
+    if (this.current.ownsEditor) this.editor.setReadOnly(true);
+    this.patch({
+      status: "reconnecting",
+      role: null,
+      canUndo: false,
+      canRedo: false,
+    });
+    // Let a provider finish its close callback before a REST probe decides
+    // whether another socket attempt is allowed.
+    await Promise.resolve();
+    if (
+      generation !== this.generation ||
+      this.provider !== provider ||
+      this.current.docId === null
+    ) {
+      return;
+    }
+    const docId = this.current.docId;
+    const connection = this.connection;
+    if (connection === null) return;
+    const probe = await this.api.probeDocument({
+      endpoint: connection.endpoint,
+      docId,
+      ...(connection.devUser ? { devUser: connection.devUser } : {}),
+      ...(connection.token ? { token: connection.token } : {}),
+    });
+    if (
+      generation !== this.generation ||
+      this.provider !== provider ||
+      this.current.docId !== docId
+    ) {
+      return;
+    }
+    if (!probe.ok) {
+      if (
+        probe.status === 401 ||
+        probe.status === 403 ||
+        probe.status === 404
+      ) {
+        this.accessLost("Cloud document access was lost.");
+      } else {
+        this.revalidating = false;
+        this.scheduleRevalidation(provider, generation);
+      }
+      return;
+    }
+    this.revalidating = false;
+    this.retryDelayMs = 500;
+    const wasWriter = this.revalidatingWasWriter;
+    if (wasWriter && probe.value === "viewer") {
+      this.captureRecovery();
+      this.detachBinding();
+      this.removeProviderListeners(provider);
+      provider.disconnect();
+      provider.destroy();
+      this.provider = null;
+      this.doc?.destroy();
+      this.doc = null;
+      this.revalidatingWasWriter = false;
+      if (!this.installProvider(generation, connection.endpoint, docId)) return;
+      this.patch({ status: "syncing", role: "viewer", peers: [] });
+      this.connectProvider();
+      return;
+    }
+    this.patch({ status: "syncing", role: probe.value });
+    this.connectProvider();
+  }
+
+  private scheduleRevalidation(
+    provider: DocumentProvider,
+    generation: number,
+  ): void {
+    const delay = this.retryDelayMs;
+    this.retryDelayMs = Math.min(this.retryDelayMs * 2, 30_000);
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.revalidateAfterClose(provider, generation);
+    }, delay);
+  }
+
+  private cancelRetry(): void {
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.retryDelayMs = 500;
+  }
+
+  private captureRecovery(): void {
+    const docId = this.current.docId;
+    if (docId === null) return;
+    // A recovery copy must not retain references that a later binding can
+    // mutate while this snapshot waits to be downloaded.
+    const document = structuredClone(this.editor.getSnapshot()) as Document;
+    this.patch({
+      recoveries: [
+        ...this.current.recoveries,
+        { id: this.nextRecoveryId++, docId, title: document.title, document },
+      ],
+    });
+  }
+
+  private accessLost(message: string): void {
+    const docId = this.current.docId;
+    if (docId === null) return;
+    if (
+      this.current.ownsEditor &&
+      (this.editor.readOnly === false || this.revalidatingWasWriter)
+    ) {
+      this.captureRecovery();
+    }
+    // Also invalidates an initial probe: host-side access loss can arrive
+    // while an open is still pending, before CloudSession owns the editor.
+    this.generation += 1;
+    this.cancelRetry();
+    this.revalidating = false;
+    this.revalidatingWasWriter = false;
+    this.connection = null;
     this.detachBinding();
     this.editor.setReadOnly(false);
     if (this.provider) {
-      this.provider.off("sync", this.onSync);
-      this.provider.off("status", this.onStatus);
+      this.removeProviderListeners(this.provider);
+      this.provider.disconnect();
       this.provider.destroy();
       this.provider = null;
     }
     this.doc?.destroy();
     this.doc = null;
-    this.patch({ status: "error", role: null, error: message, peers: [] });
+    this.patch({
+      status: "error",
+      role: null,
+      docId: null,
+      title: null,
+      error: message,
+      peers: [],
+      canUndo: false,
+      canRedo: false,
+      ownsEditor: false,
+    });
+    for (const listener of [...this.accessLostListeners])
+      listener({ docId, message });
+  }
+
+  private fail(message: string): void {
+    this.cancelRetry();
+    this.detachBinding();
+    this.editor.setReadOnly(false);
+    if (this.provider) {
+      this.removeProviderListeners(this.provider);
+      this.provider.disconnect();
+      this.provider.destroy();
+      this.provider = null;
+    }
+    this.doc?.destroy();
+    this.doc = null;
+    this.patch({
+      status: "error",
+      role: null,
+      docId: null,
+      title: null,
+      error: message,
+      peers: [],
+      canUndo: false,
+      canRedo: false,
+      ownsEditor: false,
+    });
   }
 
   private patch(changes: Partial<CloudSessionState>): void {

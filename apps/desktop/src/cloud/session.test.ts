@@ -11,7 +11,7 @@ import { Editor } from "@diagra/core";
 import type { Document } from "@diagra/ir";
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
-import type { ApiResult, CloudApi, CloudDocument } from "./api.ts";
+import type { ApiResult, CloudApi } from "./api.ts";
 import {
   CloudSession,
   type CloudSessionState,
@@ -46,6 +46,9 @@ function roomDocument(): Document {
 class FakeProvider implements DocumentProvider {
   synced = false;
   destroyed = false;
+  connected = false;
+  connects = 0;
+  disconnects = 0;
   readonly awareness: Awareness;
   // biome-ignore lint/suspicious/noExplicitAny: mirrors lib0's Observable.
   private readonly handlers = new Map<string, Set<(...args: any[]) => void>>();
@@ -68,6 +71,16 @@ class FakeProvider implements DocumentProvider {
   // biome-ignore lint/suspicious/noExplicitAny: mirrors lib0's Observable.
   off(name: string, handler: (...args: any[]) => void): void {
     this.handlers.get(name)?.delete(handler);
+  }
+
+  connect(): void {
+    this.connected = true;
+    this.connects++;
+  }
+
+  disconnect(): void {
+    this.connected = false;
+    this.disconnects++;
   }
 
   destroy(): void {
@@ -101,6 +114,8 @@ interface Harness {
   /** Room contents the next provider hands over. */
   seed: Document | null;
   probe: ApiResult<"owner" | "editor" | "viewer">;
+  probeCalls: number;
+  probeEndpoints: string[];
   /** Resolves the pending probe by hand when set. */
   holdProbe:
     | ((result: ApiResult<"owner" | "editor" | "viewer">) => void)
@@ -117,6 +132,8 @@ function harness(): Harness {
     providers: [],
     seed: roomDocument(),
     probe: { ok: true, value: "owner" },
+    probeCalls: 0,
+    probeEndpoints: [],
     holdProbe: null,
     settings: {
       endpointUrl: ENDPOINT,
@@ -130,7 +147,9 @@ function harness(): Harness {
     createShare: async () => ({ ok: false, status: 403, error: "not used" }),
     revokeShare: async () => ({ ok: false, status: 403, error: "not used" }),
     listShares: async () => ({ ok: false, status: 403, error: "not used" }),
-    probeDocument() {
+    probeDocument(input) {
+      state.probeCalls++;
+      state.probeEndpoints.push(input.endpoint);
       if (state.holdProbe !== null) {
         return new Promise<ApiResult<"owner" | "editor" | "viewer">>(
           (resolve) => {
@@ -143,7 +162,16 @@ function harness(): Harness {
     listDocuments() {
       return Promise.resolve({
         ok: true,
-        value: [] as readonly CloudDocument[],
+        value: {
+          items: [],
+          nextCursor: null,
+          workspaceId: null,
+          adoptedCount: 0,
+          moreDocuments: false,
+          pendingInvalidation: false,
+          cursorReset: false,
+          status: "complete" as const,
+        },
       });
     },
     createDocument() {
@@ -176,6 +204,10 @@ function harness(): Harness {
 
 function statuses(harness: Harness): string[] {
   return harness.states.map((state) => state.status);
+}
+
+async function settleRevalidation(): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
 describe("CloudSession", () => {
@@ -248,6 +280,7 @@ describe("CloudSession", () => {
       expect(await test.session.open("doc-1")).toBe(false);
       expect(test.session.state().status).toBe("error");
       expect(test.session.state().error).toMatch(expected);
+      expect(test.session.state().ownsEditor).toBe(false);
       // Nothing was opened, so nothing has to be torn down.
       expect(test.providers).toHaveLength(0);
     }
@@ -260,20 +293,256 @@ describe("CloudSession", () => {
     expect(test.session.state().error).toBe("Unable to connect");
   });
 
-  test("reports a dropped socket as reconnecting, not an error", async () => {
+  test("revalidates a dropped writer socket before explicitly reconnecting", async () => {
     const test = harness();
     await test.session.open("doc-1");
     const provider = test.providers[0] as FakeProvider;
     provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 333, y: 1 }]);
+    expect(test.session.canUndo()).toBe(true);
 
     provider.dropSocket();
     expect(test.session.state().status).toBe("reconnecting");
     expect(test.session.state().error).toBeNull();
+    expect(test.editor.readOnly).toBe(true);
+    expect(provider.disconnects).toBe(1);
+
+    await settleRevalidation();
+    expect(test.session.state().status).toBe("syncing");
+    expect(test.editor.readOnly).toBe(true);
+    expect(provider.connects).toBe(2);
 
     provider.finishSync();
     expect(test.session.state().status).toBe("connected");
+    expect(test.editor.readOnly).toBe(false);
+    expect(test.session.state().canUndo).toBe(true);
     // The binding was attached once and stayed attached across the drop.
     expect(test.editor.store.has("t-users")).toBe(true);
+  });
+
+  test("preserves a writer recovery snapshot and uses a fresh document on viewer downgrade", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 640, y: 220 }]);
+    const oldDoc = provider.doc;
+    test.probe = { ok: true, value: "viewer" };
+    test.settings = {
+      ...test.settings,
+      endpointUrl: "http://changed.example.test",
+      devUser: "changed-user",
+    };
+
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.providers).toHaveLength(2);
+    expect(test.probeEndpoints.at(-1)).toBe(ENDPOINT);
+    expect(provider.destroyed).toBe(true);
+    expect((test.providers[1] as FakeProvider).doc).not.toBe(oldDoc);
+    expect(test.session.state().role).toBe("viewer");
+    expect(test.session.state().ownsEditor).toBe(true);
+    expect(
+      test.session.state().recoveries[0]?.document.elements[0]?.visual.x,
+    ).toBe(640);
+    (test.providers[1] as FakeProvider).finishSync();
+    expect(test.editor.readOnly).toBe(true);
+  });
+
+  test("definitive revalidation loss stops reconnecting and emits an opaque event", async () => {
+    const test = harness();
+    const losses: { docId: string; message: string }[] = [];
+    test.session.subscribeAccessLost((event) => losses.push(event));
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.probe = { ok: false, status: 403, error: "raw server detail" };
+
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.session.state().status).toBe("error");
+    expect(test.session.state().docId).toBeNull();
+    expect(test.session.state().role).toBeNull();
+    expect(test.session.state().ownsEditor).toBe(false);
+    expect(test.session.state().error).toBe("Cloud document access was lost.");
+    expect(test.session.state().recoveries[0]?.docId).toBe("doc-1");
+    expect(losses).toEqual([
+      { docId: "doc-1", message: "Cloud document access was lost." },
+    ]);
+    expect(provider.connects).toBe(1);
+  });
+
+  test("gates a failed upgrade through access revalidation before retrying", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    // No sync was ever received: this models a close during the upgrade.
+    provider.dropSocket();
+    expect(test.session.state().ownsEditor).toBe(false);
+    expect(test.editor.readOnly).toBe(false);
+
+    await settleRevalidation();
+
+    expect(test.session.state().status).toBe("syncing");
+    expect(provider.connects).toBe(2);
+  });
+
+  test("does not reconnect a failed upgrade after definitive access loss", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    test.probe = { ok: false, status: 401, error: "ignored" };
+
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.session.state().status).toBe("error");
+    expect(test.session.state().ownsEditor).toBe(false);
+    expect(provider.connects).toBe(1);
+  });
+
+  test("keeps writer provenance through a successful probe followed by another failed upgrade", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 888, y: 1 }]);
+
+    provider.dropSocket();
+    await settleRevalidation();
+    expect(test.session.state().status).toBe("syncing");
+    test.probe = { ok: true, value: "viewer" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.providers).toHaveLength(2);
+    expect(
+      test.session.state().recoveries.at(-1)?.document.elements[0]?.visual.x,
+    ).toBe(888);
+  });
+
+  test("keeps writer recovery through a successful probe followed by definitive loss", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 889, y: 1 }]);
+
+    provider.dropSocket();
+    await settleRevalidation();
+    test.probe = { ok: false, status: 403, error: "ignored" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.session.state().status).toBe("error");
+    expect(
+      test.session.state().recoveries.at(-1)?.document.elements[0]?.visual.x,
+    ).toBe(889);
+  });
+
+  test("retries transient revalidation probes without reconnecting the provider", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.probe = { ok: false, status: null, error: "offline" };
+
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(test.session.state().status).toBe("reconnecting");
+    expect(provider.connects).toBe(1);
+    test.session.close();
+  });
+
+  test("ignores stale sync and cancels a queued transient retry when closed", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.probe = { ok: false, status: null, error: "offline" };
+
+    provider.dropSocket();
+    await settleRevalidation();
+    provider.finishSync();
+    expect(test.session.state().status).toBe("reconnecting");
+    expect(test.editor.readOnly).toBe(true);
+    test.session.close();
+    await new Promise<void>((resolve) => setTimeout(resolve, 550));
+
+    expect(test.probeCalls).toBe(2);
+    expect(provider.connects).toBe(1);
+  });
+
+  test("keeps writer recovery eligibility across a transient probe before viewer downgrade", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 777, y: 1 }]);
+    test.probe = { ok: false, status: null, error: "offline" };
+    provider.dropSocket();
+    await settleRevalidation();
+    test.probe = { ok: true, value: "viewer" };
+    await new Promise<void>((resolve) => setTimeout(resolve, 550));
+
+    expect(test.providers).toHaveLength(2);
+    expect(
+      test.session.state().recoveries[0]?.document.elements[0]?.visual.x,
+    ).toBe(777);
+    test.session.close();
+  });
+
+  test("retains same-document recoveries and discards only the selected copy", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    let provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 201, y: 1 }]);
+    test.probe = { ok: false, status: 403, error: "ignored" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    test.probe = { ok: true, value: "owner" };
+    await test.session.open("doc-1");
+    provider = test.providers[1] as FakeProvider;
+    provider.finishSync();
+    test.editor.moveElements([{ id: "t-users", x: 202, y: 1 }]);
+    test.probe = { ok: false, status: 404, error: "ignored" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    const [first, second] = test.session.state().recoveries;
+    expect(first?.id).not.toBe(second?.id);
+    expect(
+      test.session.state().recoveries.map((recovery) => recovery.docId),
+    ).toEqual(["doc-1", "doc-1"]);
+    test.session.discardRecovery(first?.id as number);
+    expect(test.session.state().recoveries).toEqual([second]);
+  });
+
+  test("retains recoveries from different documents", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    let provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.probe = { ok: false, status: 403, error: "ignored" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    test.probe = { ok: true, value: "owner" };
+    await test.session.open("doc-2");
+    provider = test.providers[1] as FakeProvider;
+    provider.finishSync();
+    test.probe = { ok: false, status: 404, error: "ignored" };
+    provider.dropSocket();
+    await settleRevalidation();
+
+    expect(
+      test.session.state().recoveries.map((recovery) => recovery.docId),
+    ).toEqual(["doc-1", "doc-2"]);
   });
 
   test("syncs edits both ways while connected", async () => {
@@ -389,6 +658,49 @@ describe("CloudSession", () => {
     expect(await pending).toBe(false);
     expect(test.providers).toHaveLength(0);
     expect(test.session.state().status).toBe("closed");
+  });
+
+  test("host access loss during an initial probe emits once and invalidates it", async () => {
+    const test = harness();
+    const losses: { docId: string; message: string }[] = [];
+    test.session.subscribeAccessLost((event) => losses.push(event));
+    test.holdProbe = () => {};
+    const pending = test.session.open("doc-1");
+
+    test.session.loseAccess("Cloud document access was lost.");
+    const resolve = test.holdProbe as unknown as (
+      result: ApiResult<"owner" | "editor" | "viewer">,
+    ) => void;
+    resolve({ ok: true, value: "owner" });
+
+    expect(await pending).toBe(false);
+    expect(test.providers).toHaveLength(0);
+    expect(test.session.state().ownsEditor).toBe(false);
+    expect(losses).toEqual([
+      { docId: "doc-1", message: "Cloud document access was lost." },
+    ]);
+  });
+
+  test("ignores a stale revalidation response after close and a new open", async () => {
+    const test = harness();
+    await test.session.open("doc-1");
+    const provider = test.providers[0] as FakeProvider;
+    provider.finishSync();
+    test.holdProbe = () => {};
+    provider.dropSocket();
+    await settleRevalidation();
+    const resolve = test.holdProbe as unknown as (
+      result: ApiResult<"owner" | "editor" | "viewer">,
+    ) => void;
+
+    test.holdProbe = null;
+    expect(await test.session.open("doc-2")).toBe(true);
+    resolve({ ok: false, status: 403, error: "stale" });
+    await settleRevalidation();
+
+    expect(test.session.state().docId).toBe("doc-2");
+    expect(test.session.state().status).toBe("syncing");
+    expect(test.providers).toHaveLength(2);
   });
 
   test("seeds an empty room from the editor's document", async () => {

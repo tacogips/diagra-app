@@ -5,7 +5,7 @@
 // configuration that arrives from the caller, so a build of this repo can
 // never phone home to somebody else's server.
 
-import YProvider from "y-partyserver/provider";
+import YProvider, { WebsocketProvider } from "y-partyserver/provider";
 import type { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 
@@ -33,6 +33,8 @@ export interface CreateDocProviderOptions {
   readonly awareness?: Awareness;
   /** False to construct without opening a socket (tests). */
   readonly connect?: boolean;
+  /** Let the caller explicitly gate every reconnect attempt. */
+  readonly managedReconnect?: boolean;
 }
 
 export interface EndpointTarget {
@@ -114,12 +116,65 @@ export function createDocProvider(
 ): YProvider {
   const target = parseEndpoint(options.endpoint);
   const readParams = options.params;
-  return new YProvider(target.host, options.docId, options.doc, {
+  const controlled = options.managedReconnect === true;
+  const initialConnect = options.connect ?? true;
+  let connectionGeneration = 0;
+  const provider = new YProvider(target.host, options.docId, options.doc, {
     prefix: documentSocketPath(options.docId, target.basePath),
     protocol: target.protocol,
     disableBc: true,
-    params: readParams ? async () => toQueryParams(await readParams()) : {},
+    params: controlled
+      ? {}
+      : readParams
+        ? async () => toQueryParams(await readParams())
+        : {},
     ...(options.awareness ? { awareness: options.awareness } : {}),
-    ...(options.connect === undefined ? {} : { connect: options.connect }),
+    ...(controlled
+      ? { connect: false }
+      : options.connect === undefined
+        ? {}
+        : { connect: options.connect }),
   });
+  if (!controlled) return provider;
+
+  // YProvider awaits dynamic params before calling its base connect(). A
+  // disconnect during that await otherwise lets the old continuation open a
+  // socket after CloudSession has retired it. Its automatic reconnect path is
+  // disabled here too; CloudSession revalidates then explicitly reconnects.
+  const disconnect = provider.disconnect.bind(provider);
+  const destroy = provider.destroy.bind(provider);
+  let destroyed = false;
+  provider.connect = async (): Promise<void> => {
+    if (destroyed) return;
+    const generation = connectionGeneration;
+    const params = readParams ? await readParams() : {};
+    if (destroyed || generation !== connectionGeneration) return;
+    const urlParams = new URLSearchParams([["_pk", provider.id]]);
+    for (const [key, value] of Object.entries(toQueryParams(params))) {
+      urlParams.append(key, value);
+    }
+    const url = new URL(provider.url);
+    url.search = urlParams.toString();
+    provider.url = url.toString();
+    // This is immediately adjacent to the synchronous base transport open.
+    if (destroyed || generation !== connectionGeneration) return;
+    WebsocketProvider.prototype.connect.call(provider);
+  };
+  provider.disconnect = (): void => {
+    connectionGeneration++;
+    disconnect();
+  };
+  provider.destroy = (): void => {
+    destroyed = true;
+    connectionGeneration++;
+    destroy();
+  };
+  provider._reconnectWS = async (): Promise<void> => {};
+  if (initialConnect) {
+    void provider.connect().catch(() => {
+      // The caller can still explicitly retry; no detached constructor task
+      // may become an unhandled rejection.
+    });
+  }
+  return provider;
 }
