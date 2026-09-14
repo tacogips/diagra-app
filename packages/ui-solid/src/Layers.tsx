@@ -88,23 +88,35 @@ export function Layers(props: {
   );
   return (
     <nav class="diagra-layers" aria-label="Layers">
-      <ComponentLibrary editor={props.editor} />
-      <fieldset
-        disabled={readOnly()}
-        style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+      <details class="diagra-navigation-group">
+        <summary>Components</summary>
+        <ComponentLibrary editor={props.editor} />
+      </details>
+      <details class="diagra-navigation-group">
+        <summary>Styles and tokens</summary>
+        <fieldset
+          disabled={readOnly()}
+          style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+        >
+          <ColorTokens editor={props.editor} />
+          <NumberTokens editor={props.editor} />
+          <TypographyStyles editor={props.editor} />
+        </fieldset>
+      </details>
+      <details
+        class="diagra-navigation-group"
+        open={props.commentPlacementActive}
       >
-        <ColorTokens editor={props.editor} />
-        <NumberTokens editor={props.editor} />
-        <TypographyStyles editor={props.editor} />
-      </fieldset>
-      <ReviewComments
-        editor={props.editor}
-        viewport={props.viewport}
-        author={props.commentAuthor}
-        commentPlacementActive={props.commentPlacementActive}
-        onPlaceComment={props.onPlaceComment}
-        onCancelCommentPlacement={props.onCancelCommentPlacement}
-      />
+        <summary>Comments</summary>
+        <ReviewComments
+          editor={props.editor}
+          viewport={props.viewport}
+          author={props.commentAuthor}
+          commentPlacementActive={props.commentPlacementActive}
+          onPlaceComment={props.onPlaceComment}
+          onCancelCommentPlacement={props.onCancelCommentPlacement}
+        />
+      </details>
       <h2>Layers</h2>
       <label>
         <input
@@ -142,15 +154,18 @@ export function Layers(props: {
           Select matches on this page ({searchMatches().length})
         </button>
       </Show>
-      <p>
-        {readOnly()
-          ? "Select a layer to inspect it. "
-          : "Select a layer to edit it. "}
-        Shift-click selects a range; Ctrl/Cmd-click toggles a layer.
-        {readOnly() ? " " : " Double-click a name or press F2 to rename it. "}
-        Use Up/Down or Home/End to select, Shift to extend, and Left/Right to
-        navigate the hierarchy.
-      </p>
+      <details class="diagra-navigation-group">
+        <summary>Layer shortcuts</summary>
+        <p>
+          {readOnly()
+            ? "Select a layer to inspect it. "
+            : "Select a layer to edit it. "}
+          Shift-click selects a range; Ctrl/Cmd-click toggles a layer.
+          {readOnly() ? " " : " Double-click a name or press F2 to rename it. "}
+          Use Up/Down or Home/End to select, Shift to extend, and Left/Right to
+          navigate the hierarchy.
+        </p>
+      </details>
       <For each={[...rowMap().keys()]}>
         {(id) => (
           <Show when={rowMap().get(id)}>

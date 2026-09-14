@@ -195,18 +195,10 @@ export function Inspector(props: InspectorProps): JSX.Element {
                     }
                   />
                 </Field>
-                <p>
-                  Editor-only name. Clear to use the content label; visible text
-                  and database names stay unchanged.
-                </p>
               </Section>
-              <ParentSection editor={props.editor} element={element()} />
-              <Suspense>
-                <AccessibilitySection
-                  editor={props.editor}
-                  element={element()}
-                />
-              </Suspense>
+              <Show when={hasOwnGeometry(element())}>
+                <GeometrySection editor={props.editor} element={element()} />
+              </Show>
             </>
           )}
         </Show>
@@ -304,9 +296,21 @@ export function Inspector(props: InspectorProps): JSX.Element {
 
         <Show when={single()}>
           {(element) => (
-            <Show when={hasOwnGeometry(element())}>
-              <GeometrySection editor={props.editor} element={element()} />
-            </Show>
+            <>
+              <details class="diagra-inspector-details">
+                <summary>Frame membership</summary>
+                <ParentSection editor={props.editor} element={element()} />
+              </details>
+              <details class="diagra-inspector-details">
+                <summary>Accessibility</summary>
+                <Suspense>
+                  <AccessibilitySection
+                    editor={props.editor}
+                    element={element()}
+                  />
+                </Suspense>
+              </details>
+            </>
           )}
         </Show>
       </fieldset>

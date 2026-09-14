@@ -56,6 +56,17 @@ import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
 import type { CloudSettings } from "./cloud/settings.ts";
 import type { ExportBackend } from "./file/backend.ts";
 import type { DocumentSession, SessionState } from "./file/session.ts";
+import {
+  CANVAS_MIN_WIDTH,
+  clampPaneWidth,
+  PANE_MIN_WIDTH,
+  paneBounds,
+  paneWidthFromKey,
+  paneWidthFromPointer,
+  type PaneSide,
+} from "./layout/pane.ts";
+import "./square-chrome.css";
+import "./pane.css";
 
 export interface AppProps {
   readonly editor: Editor;
@@ -69,6 +80,10 @@ export interface AppProps {
   readonly onCloudSettingsChange: (settings: CloudSettings) => void;
   /** Opaque account lifecycle signal for invalidating cloud list pages. */
   readonly cloudRefreshToken?: unknown;
+  /** Hosted shells can add account controls without coupling to public cloud code. */
+  readonly headerContent?: JSX.Element;
+  /** Hosted shells can mount workspace navigation above the shared Layers pane. */
+  readonly navigationContent?: JSX.Element;
 }
 
 /** Which document the editor is showing. File mode is the default. */
@@ -153,7 +168,19 @@ export function App(props: AppProps): JSX.Element {
   >(undefined);
   const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
-  let inspectorHost: HTMLElement | undefined;
+  const [leftPaneOpen, setLeftPaneOpen] = createSignal(true);
+  const [rightPaneOpen, setRightPaneOpen] = createSignal(true);
+  const [leftPaneWidth, setLeftPaneWidth] = createSignal(260);
+  const [rightPaneWidth, setRightPaneWidth] = createSignal(300);
+  const [draggingPane, setDraggingPane] = createSignal<PaneSide | null>(null);
+  let inspectorHost: HTMLDivElement | undefined;
+  let editorBody: HTMLDivElement | undefined;
+  let dragTarget: HTMLButtonElement | undefined;
+  let dragPointerId: number | undefined;
+  let leftRestoreButton: HTMLButtonElement | undefined;
+  let rightRestoreButton: HTMLButtonElement | undefined;
+  let fileMenu: HTMLDetailsElement | undefined;
+  const [editorBodyWidth, setEditorBodyWidth] = createSignal(0);
 
   const setActiveTool = (next: ToolKind): void => {
     if (props.editor.readOnly && next !== "select" && next !== "hand") return;
@@ -253,8 +280,168 @@ export function App(props: AppProps): JSX.Element {
 
   const focusInspector = (focus: InspectorFocus | undefined): void => {
     setInspectorFocus(focus);
-    inspectorHost?.focus();
+    restorePane("right");
+    queueMicrotask(() => inspectorHost?.focus());
   };
+
+  const paneInput = (side: PaneSide) => {
+    const rect = editorBody?.getBoundingClientRect();
+    return {
+      containerWidth: rect?.width ?? window.innerWidth,
+      oppositeWidth:
+        side === "left"
+          ? rightPaneOpen()
+            ? rightPaneWidth()
+            : 34
+          : leftPaneOpen()
+            ? leftPaneWidth()
+            : 34,
+      overlaysCanvas: paneOverlaysCanvas(),
+    };
+  };
+  const setPaneWidth = (side: PaneSide, width: number): void => {
+    const next = clampPaneWidth(width, paneInput(side));
+    if (side === "left") setLeftPaneWidth(next);
+    else setRightPaneWidth(next);
+  };
+  const keepCanvasUseful = (): void => {
+    const width = editorBody?.getBoundingClientRect().width;
+    if (!width) return;
+    setEditorBodyWidth(width);
+    if (!leftPaneOpen() && !rightPaneOpen()) return;
+    if (!leftPaneOpen()) {
+      setRightPaneWidth(
+        clampPaneWidth(rightPaneWidth(), {
+          containerWidth: width,
+          oppositeWidth: 34,
+          overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+        }),
+      );
+      return;
+    }
+    if (!rightPaneOpen()) {
+      setLeftPaneWidth(
+        clampPaneWidth(leftPaneWidth(), {
+          containerWidth: width,
+          oppositeWidth: 34,
+          overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+        }),
+      );
+      return;
+    }
+    const fittedLeft = clampPaneWidth(leftPaneWidth(), {
+      containerWidth: width,
+      oppositeWidth: 34,
+      overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+    });
+    if (width < CANVAS_MIN_WIDTH + fittedLeft + rightPaneWidth()) {
+      setRightPaneOpen(false);
+      setLeftPaneWidth(fittedLeft);
+    } else {
+      setLeftPaneWidth(fittedLeft);
+      setRightPaneWidth(
+        clampPaneWidth(rightPaneWidth(), {
+          containerWidth: width,
+          oppositeWidth: fittedLeft,
+          overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+        }),
+      );
+    }
+  };
+  const restorePane = (side: PaneSide): void => {
+    const width =
+      editorBody?.getBoundingClientRect().width ?? window.innerWidth;
+    if (side === "left") {
+      if (
+        rightPaneOpen() &&
+        width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + rightPaneWidth()
+      )
+        setRightPaneOpen(false);
+      setLeftPaneWidth(
+        clampPaneWidth(leftPaneWidth(), {
+          containerWidth: width,
+          oppositeWidth: rightPaneOpen() ? rightPaneWidth() : 34,
+          overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+        }),
+      );
+      setLeftPaneOpen(true);
+    } else {
+      if (
+        leftPaneOpen() &&
+        width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + leftPaneWidth()
+      )
+        setLeftPaneOpen(false);
+      setRightPaneWidth(
+        clampPaneWidth(rightPaneWidth(), {
+          containerWidth: width,
+          oppositeWidth: leftPaneOpen() ? leftPaneWidth() : 34,
+          overlaysCanvas: width < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34,
+        }),
+      );
+      setRightPaneOpen(true);
+    }
+  };
+  const hidePane = (side: PaneSide): void => {
+    if (side === "left") setLeftPaneOpen(false);
+    else setRightPaneOpen(false);
+    queueMicrotask(() => {
+      (side === "left" ? leftRestoreButton : rightRestoreButton)?.focus();
+    });
+  };
+  const paneOverlaysCanvas = (): boolean =>
+    editorBodyWidth() < CANVAS_MIN_WIDTH + PANE_MIN_WIDTH + 34;
+  const beginPaneResize = (side: PaneSide, event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    restorePane(side);
+    const target = event.currentTarget as HTMLButtonElement;
+    target.setPointerCapture(event.pointerId);
+    dragTarget = target;
+    dragPointerId = event.pointerId;
+    setDraggingPane(side);
+    event.preventDefault();
+  };
+  const movePaneResize = (side: PaneSide, event: PointerEvent): void => {
+    if (draggingPane() !== side || dragPointerId !== event.pointerId) return;
+    const rect = editorBody?.getBoundingClientRect();
+    if (!rect) return;
+    setPaneWidth(
+      side,
+      paneWidthFromPointer(side, event.clientX, rect.left, rect.right),
+    );
+  };
+  const endPaneResize = (event: PointerEvent): void => {
+    if (dragPointerId !== event.pointerId) return;
+    if (dragTarget?.hasPointerCapture(event.pointerId)) {
+      dragTarget.releasePointerCapture(event.pointerId);
+    }
+    dragTarget = undefined;
+    dragPointerId = undefined;
+    setDraggingPane(null);
+  };
+  const resizePaneByKey = (side: PaneSide, event: KeyboardEvent): void => {
+    const width = side === "left" ? leftPaneWidth() : rightPaneWidth();
+    const next = paneWidthFromKey(side, width, event.key, paneInput(side));
+    if (next === undefined) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setPaneWidth(side, next);
+  };
+  onCleanup(() => {
+    if (
+      dragTarget &&
+      dragPointerId !== undefined &&
+      dragTarget.hasPointerCapture(dragPointerId)
+    ) {
+      dragTarget.releasePointerCapture(dragPointerId);
+    }
+  });
+  onMount(() => {
+    if (!editorBody) return;
+    const observer = new ResizeObserver(keepCanvasUseful);
+    observer.observe(editorBody);
+    keepCanvasUseful();
+    onCleanup(() => observer.disconnect());
+  });
 
   // A focus hint is about one element; once that element leaves the
   // selection the Inspector is showing something else and the hint is stale.
@@ -378,8 +565,28 @@ export function App(props: AppProps): JSX.Element {
       void props.session.save();
     };
     window.addEventListener("keydown", onKeyDown, true);
+    const dismissFileMenu = (event: KeyboardEvent | MouseEvent): void => {
+      if (!fileMenu?.open) return;
+      if (
+        (event instanceof KeyboardEvent && event.key === "Escape") ||
+        (event instanceof MouseEvent &&
+          fileMenu &&
+          !fileMenu.contains(event.target as Node))
+      ) {
+        fileMenu?.removeAttribute("open");
+        if (event instanceof KeyboardEvent) {
+          event.preventDefault();
+          event.stopPropagation();
+          fileMenu?.querySelector<HTMLElement>("summary")?.focus();
+        }
+      }
+    };
+    window.addEventListener("keydown", dismissFileMenu, true);
+    window.addEventListener("pointerdown", dismissFileMenu, true);
     onCleanup(() => {
       window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keydown", dismissFileMenu, true);
+      window.removeEventListener("pointerdown", dismissFileMenu, true);
     });
   });
 
@@ -455,59 +662,61 @@ export function App(props: AppProps): JSX.Element {
     <div class="app-shell" classList={{ "app-cloud-mode": isCloud() }}>
       <header class="app-header">
         <span class="app-title">diagra</span>
-        <div class="app-file-controls">
-          <button
-            type="button"
-            class="app-file-button"
-            disabled={!props.filesAvailable || isCloud()}
-            onClick={newDocument}
-          >
-            New
-          </button>
-          <button
-            type="button"
-            class="app-file-button"
-            disabled={!props.filesAvailable || isCloud()}
-            onClick={open}
-          >
-            Open
-          </button>
-          <button
-            type="button"
-            class="app-file-button"
-            disabled={!props.filesAvailable || isCloud()}
-            onClick={() => void props.session.save()}
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            class="app-file-button"
-            disabled={!props.filesAvailable || isCloud()}
-            onClick={() => void props.session.saveAs()}
-          >
-            Save As
-          </button>
-          <select
-            class="app-recent-select"
-            disabled={
-              !props.filesAvailable || isCloud() || file().recent.length === 0
-            }
-            value=""
-            onChange={(event) => {
-              const path = event.currentTarget.value;
-              // Reset first: reopening the same entry twice in a row must
-              // still fire a change event.
-              event.currentTarget.value = "";
-              openRecent(path);
-            }}
-          >
-            <option value="">Recent</option>
-            <For each={file().recent}>
-              {(entry) => <option value={entry.path}>{entry.path}</option>}
-            </For>
-          </select>
-        </div>
+        <details class="app-file-menu" ref={fileMenu}>
+          <summary class="app-file-button">File</summary>
+          <div class="app-file-controls">
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!props.filesAvailable || isCloud()}
+              onClick={newDocument}
+            >
+              New
+            </button>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!props.filesAvailable || isCloud()}
+              onClick={open}
+            >
+              Open
+            </button>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!props.filesAvailable || isCloud()}
+              onClick={() => void props.session.save()}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!props.filesAvailable || isCloud()}
+              onClick={() => void props.session.saveAs()}
+            >
+              Save As
+            </button>
+            <select
+              class="app-recent-select"
+              disabled={
+                !props.filesAvailable || isCloud() || file().recent.length === 0
+              }
+              value=""
+              onChange={(event) => {
+                const path = event.currentTarget.value;
+                event.currentTarget.value = "";
+                openRecent(path);
+              }}
+            >
+              <option value="">Recent</option>
+              <For each={file().recent}>
+                {(entry) => <option value={entry.path}>{entry.path}</option>}
+              </For>
+            </select>
+          </div>
+        </details>
+        <div class="app-header-slot">{props.headerContent}</div>
         <Show
           when={isCloud()}
           fallback={
@@ -549,10 +758,14 @@ export function App(props: AppProps): JSX.Element {
         <Show when={file().status === "saving" && !isCloud()}>
           <span class="app-file-status">saving…</span>
         </Show>
-        <span class="app-hint">
-          double-click to edit text, right-click for the menu, ctrl/cmd + wheel
-          to zoom, shift + 1 to fit, cmd/ctrl + Z to undo, cmd/ctrl + S to save
-        </span>
+        <details class="app-hint-details">
+          <summary>Help</summary>
+          <p>
+            Double-click to edit text, right-click for the menu, ctrl/cmd +
+            wheel to zoom, shift + 1 to fit, cmd/ctrl + Z to undo, cmd/ctrl + S
+            to save.
+          </p>
+        </details>
       </header>
       <CloudPanel
         editor={props.editor}
@@ -601,16 +814,74 @@ export function App(props: AppProps): JSX.Element {
         context={actionContext()}
       />
       <PageTabs editor={props.editor} />
-      <div class="app-editor-body">
-        <Layers
-          editor={props.editor}
-          viewport={viewport()}
-          commentAuthor={settings().userName}
-          commentPlacementActive={
-            tool() === "comment" && pendingComment() !== null
+      <div class="app-editor-body" ref={editorBody}>
+        <aside
+          class="app-pane app-pane-left"
+          classList={{
+            "is-collapsed": !leftPaneOpen(),
+            "is-overlay": leftPaneOpen() && paneOverlaysCanvas(),
+          }}
+          style={{ "--pane-width": `${leftPaneWidth()}px` }}
+          aria-label="Layers"
+        >
+          <div
+            class="app-pane-content"
+            aria-hidden={!leftPaneOpen()}
+            inert={!leftPaneOpen()}
+          >
+            <button
+              type="button"
+              class="app-pane-collapse"
+              onClick={() => hidePane("left")}
+              aria-label="Hide Layers"
+            >
+              Hide
+            </button>
+            <div class="app-pane-navigation">{props.navigationContent}</div>
+            <Layers
+              editor={props.editor}
+              viewport={viewport()}
+              commentAuthor={settings().userName}
+              commentPlacementActive={
+                tool() === "comment" && pendingComment() !== null
+              }
+              onPlaceComment={beginCommentPlacement}
+              onCancelCommentPlacement={() => setActiveTool("select")}
+            />
+          </div>
+          <button
+            type="button"
+            class="app-pane-restore"
+            onClick={() => restorePane("left")}
+            aria-label="Show Layers"
+            ref={leftRestoreButton}
+          >
+            Layers
+          </button>
+        </aside>
+        <button
+          type="button"
+          class="app-pane-divider"
+          classList={{
+            "is-dragging": draggingPane() === "left",
+            "is-overlay-divider": leftPaneOpen() && paneOverlaysCanvas(),
+          }}
+          style={
+            leftPaneOpen() && paneOverlaysCanvas()
+              ? { left: `${leftPaneWidth() - 4}px` }
+              : undefined
           }
-          onPlaceComment={beginCommentPlacement}
-          onCancelCommentPlacement={() => setActiveTool("select")}
+          role="separator"
+          aria-label="Resize Layers"
+          aria-orientation="vertical"
+          aria-valuemin={paneBounds(paneInput("left")).min}
+          aria-valuemax={paneBounds(paneInput("left")).max}
+          aria-valuenow={leftPaneWidth()}
+          onPointerDown={(event) => beginPaneResize("left", event)}
+          onPointerMove={(event) => movePaneResize("left", event)}
+          onPointerUp={endPaneResize}
+          onPointerCancel={endPaneResize}
+          onKeyDown={(event) => resizePaneByKey("left", event)}
         />
         <div
           class="app-canvas-host"
@@ -690,13 +961,65 @@ export function App(props: AppProps): JSX.Element {
             )}
           </Show>
         </div>
+        <button
+          type="button"
+          class="app-pane-divider"
+          classList={{
+            "is-dragging": draggingPane() === "right",
+            "is-overlay-divider": rightPaneOpen() && paneOverlaysCanvas(),
+          }}
+          style={
+            rightPaneOpen() && paneOverlaysCanvas()
+              ? { right: `${rightPaneWidth() - 4}px` }
+              : undefined
+          }
+          role="separator"
+          aria-label="Resize Inspector"
+          aria-orientation="vertical"
+          aria-valuemin={paneBounds(paneInput("right")).min}
+          aria-valuemax={paneBounds(paneInput("right")).max}
+          aria-valuenow={rightPaneWidth()}
+          onPointerDown={(event) => beginPaneResize("right", event)}
+          onPointerMove={(event) => movePaneResize("right", event)}
+          onPointerUp={endPaneResize}
+          onPointerCancel={endPaneResize}
+          onKeyDown={(event) => resizePaneByKey("right", event)}
+        />
         <aside
-          class="app-inspector"
+          class="app-pane app-pane-right"
+          classList={{
+            "is-collapsed": !rightPaneOpen(),
+            "is-overlay": rightPaneOpen() && paneOverlaysCanvas(),
+          }}
+          style={{ "--pane-width": `${rightPaneWidth()}px` }}
           aria-label="Inspector"
-          tabIndex={-1}
-          ref={inspectorHost}
         >
-          <Inspector editor={props.editor} focus={inspectorFocus()} />
+          <div
+            class="app-pane-content"
+            aria-hidden={!rightPaneOpen()}
+            inert={!rightPaneOpen()}
+          >
+            <button
+              type="button"
+              class="app-pane-collapse"
+              onClick={() => hidePane("right")}
+              aria-label="Hide Inspector"
+            >
+              Hide
+            </button>
+            <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
+              <Inspector editor={props.editor} focus={inspectorFocus()} />
+            </div>
+          </div>
+          <button
+            type="button"
+            class="app-pane-restore"
+            onClick={() => restorePane("right")}
+            aria-label="Show Inspector"
+            ref={rightRestoreButton}
+          >
+            Inspector
+          </button>
         </aside>
       </div>
     </div>

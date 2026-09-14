@@ -61,9 +61,9 @@ input {
 .app-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: baseline;
-  padding: 10px 16px;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--diagra-line);
   background: var(--diagra-surface);
 }
@@ -722,7 +722,7 @@ input {
  * carries the buttons that route to the Y.UndoManager, and this pair is
  * removed rather than left showing a stack nobody is reading.
  */
-.app-cloud-mode .diagra-toolbar > .diagra-tool-group:last-child {
+.app-cloud-mode .diagra-local-history {
   display: none;
 }
 
@@ -1181,6 +1181,33 @@ input {
 .diagra-zoom-toggle.diagra-active {
   color: var(--diagra-surface);
   background: var(--diagra-accent);
+}
+
+.diagra-view-menu > summary {
+  padding: 5px 8px;
+  border: 1px solid var(--diagra-line);
+  background: var(--diagra-surface);
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.diagra-view-menu-body {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  display: grid;
+  width: 190px;
+  max-width: 100%;
+  padding: 4px;
+  border: 1px solid var(--diagra-line);
+  background: var(--diagra-surface);
+  box-shadow: 0 2px 8px rgba(29, 42, 46, 0.08);
+}
+
+.diagra-view-menu-body .diagra-zoom-button {
+  text-align: left;
+  border: 0;
+  min-height: 32px;
 }
 
 /* Text tool cursor, matching the other creation tools. */

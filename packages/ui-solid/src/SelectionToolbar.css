@@ -1,0 +1,52 @@
+.diagra-selection-toolbar {
+  box-sizing: border-box;
+  align-items: center;
+  max-width: min(calc(100% - 8px), 420px);
+  border-radius: 0;
+}
+
+.diagra-selection-disclosure {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.diagra-selection-disclosure > summary {
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  color: var(--diagra-ink);
+  cursor: pointer;
+  font-size: 0.74rem;
+  line-height: 24px;
+}
+
+.diagra-selection-disclosure > summary:hover {
+  background: var(--diagra-accent-soft);
+}
+
+.diagra-selection-disclosure-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: 360px;
+  max-width: 100%;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 0;
+  background: var(--diagra-surface);
+}
+
+.diagra-selection-disclosure-body.diagra-float-colours {
+  flex-direction: column;
+}
+
+.diagra-selection-disclosure-body .diagra-swatch-row {
+  flex-wrap: wrap;
+}
+
+.diagra-selection-toolbar .diagra-float-button {
+  border-radius: 0;
+}

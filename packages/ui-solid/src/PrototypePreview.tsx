@@ -248,8 +248,12 @@ export function PrototypePreview(props: {
     animation.cancel();
     surfaceFocus.dispose();
     for (const cleanup of pressCleanups) cleanup();
-    if (previousFocus instanceof HTMLElement && previousFocus.isConnected)
-      previousFocus.focus();
+    // Cleanup runs before the modal leaves the DOM. Restore focus only once
+    // the dialog no longer makes the toolbar inert.
+    queueMicrotask(() => {
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected)
+        previousFocus.focus();
+    });
   });
   const sourceSignals = createEditorSignals(props.editor);
   const signals = createEditorSignals(runtime);

@@ -29,6 +29,7 @@ import {
   runAction,
 } from "./shortcuts.ts";
 import { STYLE_PALETTE } from "./inspector/palette.ts";
+import "./SelectionToolbar.css";
 
 export interface SelectionToolbarProps {
   readonly context: ActionContext;
@@ -109,6 +110,12 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
   const [pressed, setPressed] = createSignal(false);
   let root: HTMLDivElement | undefined;
 
+  const closeDisclosures = () => {
+    const open = root?.querySelectorAll<HTMLDetailsElement>("details[open]");
+    if (!open) return;
+    for (const details of open) details.open = false;
+  };
+
   const isEnabled = (action: EditorAction): boolean => {
     signals.rev();
     signals.selection();
@@ -128,6 +135,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         event.button === 0 &&
         !(root?.contains(event.target as Node) ?? false)
       ) {
+        closeDisclosures();
         setPressed(true);
       }
     };
@@ -180,6 +188,18 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
 
   const setStyle = (field: "fill" | "stroke", value: string | null): void => {
     editor().setSelectionStyle({ [field]: value });
+  };
+
+  const disclosureKey = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    const details = event.currentTarget as HTMLDetailsElement;
+    if (!details.open) return;
+    event.preventDefault();
+    event.stopPropagation();
+    details.open = false;
+    queueMicrotask(() =>
+      details.querySelector<HTMLElement>("summary")?.focus(),
+    );
   };
 
   const button = (id: ActionId, label: string): JSX.Element => {
@@ -241,35 +261,37 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         // handlers, and must not count as "pressed on the canvas" either.
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div class="diagra-float-group diagra-float-colours">
-          {swatches("fill", FILL_PALETTE)}
-          {swatches("stroke", STROKE_PALETTE)}
-        </div>
         <div class="diagra-float-group">
           {button("duplicate", "Dup")}
           {button("delete", "Del")}
         </div>
-        <div class="diagra-float-group">
-          {button("bringToFront", "Front")}
-          {button("sendToBack", "Back")}
-        </div>
-        <div class="diagra-float-group">
-          {button("frameSelection", "Frame")}
-          {button("group", "Group")}
-          {button("booleanUnion", "Union")}
-          {button("booleanSubtract", "Subtract")}
-          {button("booleanIntersect", "Intersect")}
-          {button("booleanExclude", "Exclude")}
-          {button("flattenBoolean", "Flatten")}
-          {button("ungroup", "Ungroup")}
-        </div>
-        <Show when={isEnabled(getAction("alignLeft"))}>
-          <div class="diagra-float-group">
-            <For each={ARRANGE_BUTTONS}>
-              {(entry) => button(entry.id, entry.label)}
-            </For>
+        <details class="diagra-selection-disclosure" onKeyDown={disclosureKey}>
+          <summary>Colors</summary>
+          <div class="diagra-selection-disclosure-body diagra-float-colours">
+            {swatches("fill", FILL_PALETTE)}
+            {swatches("stroke", STROKE_PALETTE)}
           </div>
-        </Show>
+        </details>
+        <details class="diagra-selection-disclosure" onKeyDown={disclosureKey}>
+          <summary>Arrange</summary>
+          <div class="diagra-selection-disclosure-body">
+            {button("bringToFront", "Front")}
+            {button("sendToBack", "Back")}
+            {button("frameSelection", "Frame")}
+            {button("group", "Group")}
+            {button("booleanUnion", "Union")}
+            {button("booleanSubtract", "Subtract")}
+            {button("booleanIntersect", "Intersect")}
+            {button("booleanExclude", "Exclude")}
+            {button("flattenBoolean", "Flatten")}
+            {button("ungroup", "Ungroup")}
+            <Show when={isEnabled(getAction("alignLeft"))}>
+              <For each={ARRANGE_BUTTONS}>
+                {(entry) => button(entry.id, entry.label)}
+              </For>
+            </Show>
+          </div>
+        </details>
         <div class="diagra-float-group">
           <button
             type="button"

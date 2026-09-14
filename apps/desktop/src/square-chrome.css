@@ -1,0 +1,41 @@
+/* Interface chrome is square. Do not target document shape/rendering classes:
+ * authored corner radii and prototype geometry must remain unchanged. */
+.app-shell.app-shell :is(button, input, select, textarea, .app-file-button),
+.app-shell
+  :is(
+    .app-recent-select,
+    .app-cloud-status,
+    .app-cloud-badge,
+    .app-presence-dot,
+    .app-presence-name,
+    .app-presence-brush,
+    .app-presence-selection,
+    .app-presence-selection-name,
+    .diagra-page-tab,
+    .diagra-context-menu,
+    .diagra-context-submenu,
+    .diagra-selection-toolbar,
+    .diagra-zoom-group,
+    .diagra-segmented,
+    .diagra-image-drop-overlay,
+    .diagra-image-drop-error,
+    .diagra-comment-thread,
+    .diagra-comment-placement,
+    .diagra-comment-popover,
+    .diagra-inspector-stack,
+    .diagra-component-entry,
+    .diagra-component-entry img
+  ) {
+  border-radius: 0;
+}
+
+.diagra-navigation-group > summary {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  border-bottom: 1px solid var(--diagra-line);
+}
+
+.diagra-navigation-group[open] {
+  border-bottom: 1px solid var(--diagra-line);
+}

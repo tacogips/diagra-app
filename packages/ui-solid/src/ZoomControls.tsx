@@ -4,7 +4,7 @@
 // from the action table; the grid and snap toggles are shell state passed
 // in and handed back, because the canvas reads them too.
 
-import type { JSX } from "solid-js";
+import { type JSX, onCleanup, onMount } from "solid-js";
 import { MIN_ZOOM, MAX_ZOOM } from "@diagra/core";
 import { NumberInput } from "./NumberInput.tsx";
 import { createEditorSignals } from "./adapter.ts";
@@ -33,6 +33,20 @@ export function formatZoom(z: number): string {
 
 export function ZoomControls(props: ZoomControlsProps): JSX.Element {
   const signals = createEditorSignals(props.context.editor);
+  let viewMenu: HTMLDetailsElement | undefined;
+  onMount(() => {
+    const outside = (event: PointerEvent): void => {
+      if (
+        event.target instanceof Node &&
+        !viewMenu?.contains(event.target) &&
+        viewMenu
+      ) {
+        viewMenu.open = false;
+      }
+    };
+    document.addEventListener("pointerdown", outside);
+    onCleanup(() => document.removeEventListener("pointerdown", outside));
+  });
 
   const isEnabled = (id: ActionId): boolean => {
     signals.rev();
@@ -47,7 +61,10 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
       class="diagra-zoom-button"
       title={actionTitle(getAction(id))}
       disabled={!isEnabled(id)}
-      onClick={() => runAction(getAction(id), props.context)}
+      onClick={(event) => {
+        event.currentTarget.focus({ preventScroll: true });
+        runAction(getAction(id), props.context);
+      }}
     >
       {label}
     </button>
@@ -65,7 +82,10 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
       classList={{ "diagra-active": on() }}
       aria-pressed={on()}
       title={title}
-      onClick={flip}
+      onClick={(event) => {
+        event.currentTarget.focus({ preventScroll: true });
+        flip();
+      }}
     >
       {label}
     </button>
@@ -92,44 +112,58 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
           <span aria-hidden="true">%</span>
         </div>
         {button("zoomIn", "+")}
-        {button("zoomReset", "100%")}
         {button("zoomFit", "Fit")}
-        {button("zoomSelection", "Selection")}
       </div>
-      <div class="diagra-zoom-group">
-        {toggle(
-          "Grid",
-          "Show grid",
-          () => props.showGrid,
-          () => props.onShowGridChange(!props.showGrid),
-        )}
-        {toggle(
-          "Snap",
-          "Snap to other objects (hold Cmd/Ctrl to bypass)",
-          () => props.snap.objects,
-          () =>
-            props.onSnapChange({
-              ...props.snap,
-              objects: !props.snap.objects,
-            }),
-        )}
-        {toggle(
-          "Grid snap",
-          "Snap to the grid (hold Cmd/Ctrl to bypass)",
-          () => props.snap.grid,
-          () => props.onSnapChange({ ...props.snap, grid: !props.snap.grid }),
-        )}
-        {toggle(
-          "Guides",
-          "Snap to persistent page guides (hold Cmd/Ctrl to bypass)",
-          () => props.snap.guides !== false,
-          () =>
-            props.onSnapChange({
-              ...props.snap,
-              guides: props.snap.guides === false,
-            }),
-        )}
-      </div>
+      <details
+        class="diagra-view-menu"
+        ref={viewMenu}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && event.currentTarget.open) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.open = false;
+            event.currentTarget.querySelector("summary")?.focus();
+          }
+        }}
+      >
+        <summary>View</summary>
+        <div class="diagra-view-menu-body">
+          {button("zoomReset", "Reset to 100%")}
+          {button("zoomSelection", "Fit selection")}
+          {toggle(
+            "Grid",
+            "Show grid",
+            () => props.showGrid,
+            () => props.onShowGridChange(!props.showGrid),
+          )}
+          {toggle(
+            "Snap",
+            "Snap to other objects (hold Cmd/Ctrl to bypass)",
+            () => props.snap.objects,
+            () =>
+              props.onSnapChange({
+                ...props.snap,
+                objects: !props.snap.objects,
+              }),
+          )}
+          {toggle(
+            "Grid snap",
+            "Snap to the grid (hold Cmd/Ctrl to bypass)",
+            () => props.snap.grid,
+            () => props.onSnapChange({ ...props.snap, grid: !props.snap.grid }),
+          )}
+          {toggle(
+            "Guides",
+            "Snap to persistent page guides (hold Cmd/Ctrl to bypass)",
+            () => props.snap.guides !== false,
+            () =>
+              props.onSnapChange({
+                ...props.snap,
+                guides: props.snap.guides === false,
+              }),
+          )}
+        </div>
+      </details>
     </div>
   );
 }

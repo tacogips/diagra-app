@@ -3,7 +3,11 @@ import { createSignal, type JSX, Show } from "solid-js";
 import { importRasterFiles } from "./image-import.ts";
 import { createEditorSignals } from "./adapter.ts";
 
-export function ImageImport(props: { editor: Editor }): JSX.Element {
+export function ImageImport(props: {
+  readonly editor: Editor;
+  readonly compact?: boolean;
+  readonly label?: JSX.Element;
+}): JSX.Element {
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
     signals.rev();
@@ -26,7 +30,10 @@ export function ImageImport(props: { editor: Editor }): JSX.Element {
     }
   };
   return (
-    <div class="diagra-tool-group">
+    <div
+      class="diagra-tool-group"
+      classList={{ "diagra-image-import-compact": props.compact ?? false }}
+    >
       <input
         ref={(element) => {
           input = element;
@@ -43,11 +50,18 @@ export function ImageImport(props: { editor: Editor }): JSX.Element {
       <button
         type="button"
         class="diagra-tool-button"
+        aria-label="Import image"
+        title="Import image"
         disabled={busy() || readOnly()}
         onClick={() => input?.click()}
       >
-        Image
+        {props.label ?? "Image"}
       </button>
+      <Show when={busy()}>
+        <span class="diagra-image-import-status" role="status">
+          Importing image
+        </span>
+      </Show>
       <Show when={error()}>
         <span role="alert">{error()}</span>
       </Show>
