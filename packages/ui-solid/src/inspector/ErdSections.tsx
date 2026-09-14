@@ -14,7 +14,7 @@ import {
   REFERENTIAL_ACTIONS,
   type ReferentialAction,
 } from "@diagra/ir";
-import { createEffect, For, Index, type JSX, on } from "solid-js";
+import { createEffect, createSignal, For, Index, type JSX, on } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { ConnectorRoutingFields } from "./ConnectorRoutingFields.tsx";
 import {
@@ -65,6 +65,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
     writeSemantic(props.editor, props.element.id, next);
   };
   const nameInputs: HTMLInputElement[] = [];
+  const [expandedSqlId, setExpandedSqlId] = createSignal<string | null>(null);
 
   createEffect(
     on(
@@ -87,85 +88,114 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
           onCommit={(tableName) => write({ ...semantic(), tableName })}
         />
       </Field>
-      <div class="diagra-rows" role="table" aria-label="Columns">
-        <div class="diagra-row diagra-row-erd diagra-row-head" role="row">
-          <span>Name</span>
-          <span>Type</span>
-          <span title="Primary key">PK</span>
-          <span title="Nullable">Null</span>
-          <span>Default</span>
-          <span>Generated</span>
-          <span />
-        </div>
+      <div class="diagra-erd-columns" aria-label="Columns">
         <Index each={semantic().columns}>
           {(column, index) => (
-            <div class="diagra-row diagra-row-erd" role="row">
-              <TextInput
-                ref={(element) => {
-                  nameInputs[index] = element;
-                }}
-                label="Column name"
-                value={column().name}
-                onCommit={(name) =>
-                  write(updateErdColumn(semantic(), column().id, { name }))
-                }
-              />
-              <TextInput
-                label="Data type"
-                value={column().dataType}
-                onCommit={(dataType) =>
-                  write(updateErdColumn(semantic(), column().id, { dataType }))
-                }
-              />
-              <Checkbox
-                label=""
-                title="Primary key"
-                checked={column().pk === true}
-                onCommit={(pk) =>
-                  write(updateErdColumn(semantic(), column().id, { pk }))
-                }
-              />
-              <Checkbox
-                label=""
-                title="Nullable"
-                checked={column().nullable === true}
-                onCommit={(nullable) =>
-                  write(updateErdColumn(semantic(), column().id, { nullable }))
-                }
-              />
-              <TextInput
-                label="Default SQL expression"
-                placeholder="CURRENT_TIMESTAMP"
-                value={column().defaultExpression ?? ""}
-                onCommit={(defaultExpression) =>
-                  write(
-                    updateErdColumn(semantic(), column().id, {
-                      defaultExpression,
-                    }),
-                  )
-                }
-              />
-              <TextInput
-                label="Generated SQL expression"
-                placeholder="quantity * unit_price"
-                value={column().generatedExpression ?? ""}
-                onCommit={(generatedExpression) =>
-                  write(
-                    updateErdColumn(semantic(), column().id, {
-                      generatedExpression,
-                    }),
-                  )
-                }
-              />
-              <RowTools
-                canMoveUp={index > 0}
-                canMoveDown={index < semantic().columns.length - 1}
-                onMove={(delta) =>
-                  write(moveErdColumn(semantic(), column().id, delta))
-                }
-                onRemove={() => write(removeErdColumn(semantic(), column().id))}
-              />
-            </div>
+            <section
+              class="diagra-erd-column"
+              aria-label={`Column ${index + 1}`}
+            >
+              <div class="diagra-erd-column-main">
+                <div class="diagra-erd-column-field">
+                  <span>Name</span>
+                  <TextInput
+                    ref={(element) => {
+                      nameInputs[index] = element;
+                    }}
+                    label="Column name"
+                    value={column().name}
+                    onCommit={(name) =>
+                      write(updateErdColumn(semantic(), column().id, { name }))
+                    }
+                  />
+                </div>
+                <div class="diagra-erd-column-field">
+                  <span>Type</span>
+                  <TextInput
+                    label="Data type"
+                    value={column().dataType}
+                    onCommit={(dataType) =>
+                      write(
+                        updateErdColumn(semantic(), column().id, { dataType }),
+                      )
+                    }
+                  />
+                </div>
+                <RowTools
+                  canMoveUp={index > 0}
+                  canMoveDown={index < semantic().columns.length - 1}
+                  onMove={(delta) =>
+                    write(moveErdColumn(semantic(), column().id, delta))
+                  }
+                  onRemove={() =>
+                    write(removeErdColumn(semantic(), column().id))
+                  }
+                />
+              </div>
+              <div class="diagra-erd-column-flags">
+                <Checkbox
+                  label="Primary key"
+                  checked={column().pk === true}
+                  onCommit={(pk) =>
+                    write(updateErdColumn(semantic(), column().id, { pk }))
+                  }
+                />
+                <Checkbox
+                  label="Nullable"
+                  checked={column().nullable === true}
+                  onCommit={(nullable) =>
+                    write(
+                      updateErdColumn(semantic(), column().id, { nullable }),
+                    )
+                  }
+                />
+              </div>
+              <details
+                class="diagra-erd-column-sql"
+                open={expandedSqlId() === column().id}
+              >
+                <summary
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setExpandedSqlId((current) =>
+                      current === column().id ? null : column().id,
+                    );
+                  }}
+                >
+                  SQL
+                </summary>
+                <div class="diagra-erd-column-sql-fields">
+                  <Field label="Default">
+                    <TextInput
+                      label="Default SQL expression"
+                      placeholder="CURRENT_TIMESTAMP"
+                      value={column().defaultExpression ?? ""}
+                      onCommit={(defaultExpression) =>
+                        write(
+                          updateErdColumn(semantic(), column().id, {
+                            defaultExpression,
+                          }),
+                        )
+                      }
+                    />
+                  </Field>
+                  <Field label="Generated">
+                    <TextInput
+                      label="Generated SQL expression"
+                      placeholder="quantity * unit_price"
+                      value={column().generatedExpression ?? ""}
+                      onCommit={(generatedExpression) =>
+                        write(
+                          updateErdColumn(semantic(), column().id, {
+                            generatedExpression,
+                          }),
+                        )
+                      }
+                    />
+                  </Field>
+                </div>
+              </details>
+            </section>
           )}
         </Index>
       </div>

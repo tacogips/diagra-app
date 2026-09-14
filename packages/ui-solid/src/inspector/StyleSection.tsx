@@ -171,7 +171,10 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       effects().map((effect, at) => (at === index ? next : effect)),
     );
   return (
-    <Section title="Style">
+    <Section
+      title="Style"
+      help="Style changes apply to every selected leaf. Choose Default to clear an explicit value and use document defaults."
+    >
       <div class="diagra-effect-actions">
         <button
           type="button"

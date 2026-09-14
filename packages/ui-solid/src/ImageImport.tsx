@@ -2,6 +2,7 @@ import type { Editor } from "@diagra/core";
 import { createSignal, type JSX, Show } from "solid-js";
 import { importRasterFiles } from "./image-import.ts";
 import { createEditorSignals } from "./adapter.ts";
+import "./ImageImport.css";
 
 export function ImageImport(props: {
   readonly editor: Editor;
@@ -16,6 +17,7 @@ export function ImageImport(props: {
   const [error, setError] = createSignal("");
   const [busy, setBusy] = createSignal(false);
   let input: HTMLInputElement | undefined;
+  let trigger: HTMLButtonElement | undefined;
   const insert = async (file: File): Promise<void> => {
     if (props.editor.readOnly) return;
     setBusy(true);
@@ -48,6 +50,7 @@ export function ImageImport(props: {
         }}
       />
       <button
+        ref={trigger}
         type="button"
         class="diagra-tool-button"
         aria-label="Import image"
@@ -63,7 +66,28 @@ export function ImageImport(props: {
         </span>
       </Show>
       <Show when={error()}>
-        <span role="alert">{error()}</span>
+        <span role="alert" class="diagra-image-import-error">
+          <span>{error()}</span>
+          <button
+            type="button"
+            class="diagra-image-error-dismiss"
+            aria-label="Dismiss image error"
+            title="Dismiss image error"
+            onClick={() => {
+              setError("");
+              queueMicrotask(() => trigger?.focus({ preventScroll: true }));
+            }}
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path
+                d="M5 5l10 10M15 5L5 15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              />
+            </svg>
+          </button>
+        </span>
       </Show>
     </div>
   );

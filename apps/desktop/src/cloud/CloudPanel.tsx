@@ -26,6 +26,7 @@ import type {
 } from "./session.ts";
 import type { CloudSettings } from "./settings.ts";
 import { ShareControls } from "./ShareControls.tsx";
+import { isCloudPanelDormant } from "./panel-visibility.ts";
 
 export interface CloudPanelProps {
   readonly editor: Editor;
@@ -227,8 +228,45 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
   };
 
   return (
-    <div class="app-cloud-panel">
+    <div
+      class="app-cloud-panel"
+      role="region"
+      aria-label="Cloud settings"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" || !expanded()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setExpanded(false);
+      }}
+      classList={{
+        "is-embedded": props.renderToggle === false,
+        "is-expanded": expanded(),
+        "is-dormant": isCloudPanelDormant({
+          embedded: props.renderToggle === false,
+          expanded: expanded(),
+          status: props.state.status,
+          docId: props.state.docId,
+          recoveryCount: props.state.recoveries.length,
+          error: props.state.error,
+          notice: notice(),
+          busy: busy(),
+        }),
+      }}
+    >
       <div class="app-cloud-summary">
+        <Show when={expanded() && props.renderToggle === false}>
+          <button
+            type="button"
+            class="app-file-button app-cloud-dismiss"
+            aria-label="Close Cloud settings"
+            title="Close Cloud settings (Escape)"
+            onClick={() => setExpanded(false)}
+          >
+            <svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="m5 5 10 10M15 5 5 15" />
+            </svg>
+          </button>
+        </Show>
         <Show when={props.renderToggle !== false}>
           <button
             type="button"

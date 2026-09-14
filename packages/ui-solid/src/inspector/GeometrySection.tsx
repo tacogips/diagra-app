@@ -34,7 +34,10 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
   };
 
   return (
-    <Section title="Geometry">
+    <Section
+      title="Geometry"
+      help="Position and dimensions use page pixels. Rotation uses the layer center; database and class rows own their height."
+    >
       <div class="diagra-field-grid">
         <Field label="X">
           <NumberInput
@@ -79,10 +82,6 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
           />
         </Field>
       </div>
-      <p class="diagra-muted">
-        Rotation uses the layer center. Database/class rows own height, so their
-        canvas handles resize width only.
-      </p>
       <Show when={resizable() && supportsAspectRatio(props.element)}>
         <label>
           <input

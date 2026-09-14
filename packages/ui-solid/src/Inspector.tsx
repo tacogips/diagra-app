@@ -5,7 +5,8 @@
 // the store through the editor signals and writes through `editor.apply`,
 // so a remote edit re-renders the fields exactly like a local one. Keyboard
 // events are stopped at the panel's root with native listeners: a letter
-// typed into a field must never reach a canvas or window shortcut.
+// typed into a field must never reach a canvas or window shortcut. History
+// chords from non-editable controls may bubble to the shell's history owner.
 
 import type { Editor } from "@diagra/core";
 import { leafElements, layerName, renameLayer } from "@diagra/core";
@@ -26,6 +27,7 @@ import {
   Switch,
 } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { stopPanelKeyDown } from "./panel-keyboard.ts";
 import { GeometrySection } from "./inspector/GeometrySection.tsx";
 import { SelectionGeometrySection } from "./inspector/SelectionGeometrySection.tsx";
 import {
@@ -158,7 +160,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
     <aside
       class="diagra-inspector"
       aria-label="Inspector"
-      on:keydown={stop}
+      on:keydown={stopPanelKeyDown}
       on:keyup={stop}
     >
       <Show

@@ -50,12 +50,19 @@
 }
 
 .diagra-inspector-title {
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--diagra-accent);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.diagra-inspector-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 
 .diagra-inspector-subtitle {
@@ -155,7 +162,7 @@
   min-height: 26px;
   padding: 0 6px;
   border: 1px solid var(--diagra-line);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--diagra-ink);
   background: var(--diagra-surface);
   font: inherit;
@@ -164,9 +171,10 @@
 .diagra-input:focus,
 .diagra-select:focus,
 .diagra-textarea:focus {
-  outline: none;
+  outline: 2px solid var(--diagra-accent);
+  outline-offset: -1px;
   border-color: var(--diagra-accent);
-  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+  box-shadow: none;
 }
 
 .diagra-input:disabled,
@@ -316,6 +324,76 @@
       0,
       1fr
     ) minmax(0, 1fr) auto;
+}
+
+.diagra-erd-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diagra-erd-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--app-chrome-line, var(--diagra-line));
+  background: var(--app-chrome-surface, var(--diagra-surface));
+}
+
+.diagra-erd-column-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: end;
+}
+
+.diagra-erd-column-field {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--diagra-muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.diagra-erd-column-main .diagra-row-tools {
+  align-self: end;
+}
+
+.diagra-erd-column-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.diagra-erd-column-flags .diagra-check {
+  font-size: 0.76rem;
+}
+
+.diagra-erd-column-sql > summary {
+  color: var(--diagra-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.diagra-erd-column-sql-fields {
+  display: grid;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+@container inspector (max-width: 260px) {
+  .diagra-erd-column-main {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .diagra-erd-column-field:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 .diagra-row-erd-relation {

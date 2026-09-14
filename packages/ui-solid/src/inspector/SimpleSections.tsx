@@ -1912,7 +1912,10 @@ export interface PageSectionProps {
 
 export function PageSection(props: PageSectionProps): JSX.Element {
   return (
-    <Section title="Page">
+    <Section
+      title="Page"
+      help="Select an element to edit its content and style."
+    >
       <Field label="Name">
         <TextInput
           label="Page name"
@@ -1933,9 +1936,6 @@ export function PageSection(props: PageSectionProps): JSX.Element {
       <Suspense>
         <PageGuidesSection editor={props.editor} page={props.page} />
       </Suspense>
-      <p class="diagra-inspector-note">
-        Select an element to edit its content and style.
-      </p>
     </Section>
   );
 }

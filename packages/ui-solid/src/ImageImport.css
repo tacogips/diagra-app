@@ -1,0 +1,36 @@
+.diagra-image-import-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.diagra-image-import-error > span {
+  min-width: 0;
+}
+
+.diagra-image-error-dismiss {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  color: var(--diagra-ink);
+  background: transparent;
+  cursor: pointer;
+}
+
+.diagra-image-error-dismiss svg {
+  width: 16px;
+  height: 16px;
+}
+
+.diagra-image-error-dismiss:hover {
+  background: #eef0f2;
+}
+
+.diagra-image-error-dismiss:focus-visible {
+  outline: 2px solid #5d7480;
+}

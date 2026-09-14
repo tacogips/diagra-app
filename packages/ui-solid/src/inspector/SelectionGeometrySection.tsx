@@ -43,7 +43,10 @@ export function SelectionGeometrySection(props: {
     resizeSelection(props.editor, current, target);
   };
   return (
-    <Section title="Selection geometry">
+    <Section
+      title="Selection geometry"
+      help="Dimensions scale the whole selection, including spacing. Artboard contents follow constraints and auto layout."
+    >
       <div class="diagra-field-grid">
         <Field label="X">
           <NumberInput
@@ -89,10 +92,6 @@ export function SelectionGeometrySection(props: {
         />
         Preserve selection proportions
       </label>
-      <p class="diagra-muted">
-        Dimensions scale the whole selection, including spacing. Artboard
-        contents follow constraints and auto layout.
-      </p>
       <Show when={!snapshot()}>
         <p class="diagra-muted">
           This selection cannot be resized together. Select unlocked, visible

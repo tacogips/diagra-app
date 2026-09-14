@@ -8,6 +8,8 @@ import { type JSX, onCleanup, onMount } from "solid-js";
 import { MIN_ZOOM, MAX_ZOOM } from "@diagra/core";
 import { NumberInput } from "./NumberInput.tsx";
 import { createEditorSignals } from "./adapter.ts";
+import { stepMenuIndex } from "./menu-navigation.ts";
+import { stopPanelKeyDown } from "./panel-keyboard.ts";
 import type { SnapSettings } from "./interaction.ts";
 import {
   type ActionContext,
@@ -64,6 +66,10 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
       onClick={(event) => {
         event.currentTarget.focus({ preventScroll: true });
         runAction(getAction(id), props.context);
+        if ((id === "zoomReset" || id === "zoomSelection") && viewMenu) {
+          viewMenu.open = false;
+          viewMenu.querySelector("summary")?.focus({ preventScroll: true });
+        }
       }}
     >
       {label}
@@ -118,15 +124,48 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
         class="diagra-view-menu"
         ref={viewMenu}
         onKeyDown={(event) => {
+          // Menu navigation must not also nudge or pan the canvas.
+          stopPanelKeyDown(event);
           if (event.key === "Escape" && event.currentTarget.open) {
             event.preventDefault();
             event.stopPropagation();
             event.currentTarget.open = false;
             event.currentTarget.querySelector("summary")?.focus();
+            return;
           }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key))
+            return;
+          event.preventDefault();
+          const menu = event.currentTarget;
+          menu.open = true;
+          const items = [
+            ...menu.querySelectorAll<HTMLButtonElement>(
+              "button:not(:disabled)",
+            ),
+          ];
+          const active = items.indexOf(
+            document.activeElement as HTMLButtonElement,
+          );
+          const next =
+            event.key === "Home"
+              ? 0
+              : event.key === "End"
+                ? items.length - 1
+                : stepMenuIndex(
+                    items.map((_, index) => index),
+                    active === -1 ? null : active,
+                    event.key === "ArrowDown" ? 1 : -1,
+                  );
+          if (next !== null) items[next]?.focus({ preventScroll: true });
         }}
       >
-        <summary>View</summary>
+        <summary
+          onClick={(event) =>
+            event.currentTarget.focus({ preventScroll: true })
+          }
+        >
+          View
+        </summary>
         <div class="diagra-view-menu-body">
           {button("zoomReset", "Reset to 100%")}
           {button("zoomSelection", "Fit selection")}

@@ -1,3 +1,4 @@
+import { HelpHint } from "@diagra/ui-solid";
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import type { CloudApi, CloudApiOptions, CloudShareInfo } from "./api.ts";
 import type { CloudSessionState } from "./session.ts";
@@ -203,30 +204,56 @@ export function ShareControls(props: {
   };
   return (
     <Show when={props.state.role === "owner"}>
-      <section aria-label="Share cloud document">
-        <button
-          type="button"
-          disabled={
-            busy() ||
-            confirmToken() !== null ||
-            props.state.status !== "connected"
-          }
-          onClick={() => void loadShares()}
-        >
-          {loaded() ? "Refresh share links" : "Load share links"}
-        </button>
+      <section class="app-cloud-share" aria-label="Share cloud document">
+        <div class="app-cloud-share-toolbar">
+          <button
+            type="button"
+            disabled={
+              busy() ||
+              confirmToken() !== null ||
+              props.state.status !== "connected"
+            }
+            onClick={() => void loadShares()}
+            title="Show issued links, newest first"
+          >
+            {loaded() ? "Refresh links" : "Load links"}
+          </button>
+          <label>
+            <span>Permission</span>
+            <select
+              aria-label="Share link permission"
+              value={role()}
+              disabled={busy() || confirmToken() !== null}
+              onChange={(event) => {
+                setRole(
+                  event.currentTarget.value === "editor" ? "editor" : "viewer",
+                );
+                setLink("");
+              }}
+            >
+              <option value="viewer">Can view</option>
+              <option value="editor">Can edit</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            disabled={
+              busy() ||
+              confirmToken() !== null ||
+              props.state.status !== "connected"
+            }
+            onClick={() => void create()}
+          >
+            Create link
+          </button>
+          <HelpHint text="Anyone with the link receives the selected permission. Existing links keep their current access." />
+        </div>
         <Show when={loaded()}>
-          <p>
-            Issued links, newest first. Refresh to see changes made elsewhere.
-          </p>
           <Show
             when={shares().length > 0}
-            fallback={<p>No share links have been issued.</p>}
+            fallback={<p class="app-cloud-empty">No links</p>}
           >
-            <ul
-              aria-label="Issued share links"
-              style={{ "max-height": "280px", overflow: "auto" }}
-            >
+            <ul class="app-cloud-share-list" aria-label="Issued share links">
               <For each={shares()}>
                 {(share) => (
                   <li>
@@ -292,85 +319,57 @@ export function ShareControls(props: {
             </button>
           </Show>
         </Show>
-        <label>
-          Link permission{" "}
-          <select
-            aria-label="Share link permission"
-            value={role()}
-            disabled={busy() || confirmToken() !== null}
-            onChange={(event) => {
-              setRole(
-                event.currentTarget.value === "editor" ? "editor" : "viewer",
-              );
-              setLink("");
-            }}
-          >
-            <option value="viewer">Can view</option>
-            <option value="editor">Can edit</option>
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={
-            busy() ||
-            confirmToken() !== null ||
-            props.state.status !== "connected"
-          }
-          onClick={() => void create()}
-        >
-          Create share link
-        </button>
-        <p>
-          Anyone with this link receives the selected permission. Creating
-          another link does not revoke older links.
-        </p>
         <Show when={link()}>
-          <input
-            aria-label="Selected share link"
-            type="password"
-            readOnly
-            value={link()}
-            onFocus={(event) => event.currentTarget.select()}
-          />
-          <button type="button" onClick={() => void copy()}>
-            Copy share link
-          </button>
+          <div class="app-cloud-share-row">
+            <input
+              aria-label="Selected share link"
+              type="password"
+              readOnly
+              value={link()}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+            <button type="button" onClick={() => void copy()}>
+              Copy link
+            </button>
+            <button
+              type="button"
+              disabled={
+                busy() ||
+                confirmToken() !== null ||
+                props.state.status !== "connected"
+              }
+              onClick={() => prepareRevocation(link())}
+            >
+              Revoke…
+            </button>
+          </div>
+        </Show>
+        <div class="app-cloud-share-row">
+          <label>
+            <span>Revoke link</span>
+            <input
+              type="password"
+              autocomplete="off"
+              maxLength={4096}
+              spellcheck={false}
+              value={revokeInput()}
+              disabled={busy() || confirmToken() !== null}
+              onInput={(event) => setRevokeInput(event.currentTarget.value)}
+            />
+          </label>
           <button
             type="button"
             disabled={
               busy() ||
               confirmToken() !== null ||
+              !revokeInput().trim() ||
               props.state.status !== "connected"
             }
-            onClick={() => prepareRevocation(link())}
+            onClick={() => prepareRevocation(revokeInput())}
           >
-            Revoke this link…
+            Review…
           </button>
-        </Show>
-        <label>
-          Existing share link to revoke
-          <input
-            type="password"
-            autocomplete="off"
-            maxLength={4096}
-            spellcheck={false}
-            value={revokeInput()}
-            disabled={busy() || confirmToken() !== null}
-            onInput={(event) => setRevokeInput(event.currentTarget.value)}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={
-            busy() ||
-            confirmToken() !== null ||
-            !revokeInput().trim() ||
-            props.state.status !== "connected"
-          }
-          onClick={() => prepareRevocation(revokeInput())}
-        >
-          Review revocation…
-        </button>
+        </div>
         <Show when={confirmToken()}>
           <p>
             Revoke this share link? Everyone using it will lose cloud access and

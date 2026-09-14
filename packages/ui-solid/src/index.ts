@@ -2,6 +2,7 @@
 // The only package allowed to touch the DOM besides app shells.
 
 export { createEditorSignals, type EditorSignals } from "./adapter.ts";
+export { HelpHint } from "./HelpHint.tsx";
 export { type DiagraCanvasProps, DiagraCanvas } from "./Canvas.tsx";
 export {
   createInteraction,

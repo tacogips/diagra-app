@@ -28,6 +28,7 @@ import {
   ContextMenu,
   DiagraCanvas,
   getAction,
+  HelpHint,
   Inspector,
   Layers,
   PageTabs,
@@ -50,6 +51,7 @@ import {
   Show,
 } from "solid-js";
 import { CloudPanel } from "./cloud/CloudPanel.tsx";
+import { handleHistoryShortcut } from "./history-shortcuts.ts";
 import { PresenceChip, PresenceOverlay } from "./cloud/PresenceOverlay.tsx";
 import type { CloudSession, CloudSessionState } from "./cloud/session.ts";
 import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
@@ -180,9 +182,17 @@ export function App(props: AppProps): JSX.Element {
   let dragPointerId: number | undefined;
   let leftRestoreButton: HTMLButtonElement | undefined;
   let rightRestoreButton: HTMLButtonElement | undefined;
+  let leftCollapseButton: HTMLButtonElement | undefined;
+  let rightCollapseButton: HTMLButtonElement | undefined;
   let fileMenu: HTMLDetailsElement | undefined;
   let settingsMenu: HTMLDetailsElement | undefined;
   let cloudPanelHost: HTMLDivElement | undefined;
+  let headerHost: HTMLElement | undefined;
+  const [cloudPanelTop, setCloudPanelTop] = createSignal(44);
+  const dismissCloudPanel = (): void => {
+    setCloudPanelExpanded(false);
+    settingsMenu?.querySelector<HTMLElement>("summary")?.focus();
+  };
   const [editorBodyWidth, setEditorBodyWidth] = createSignal(0);
 
   const setActiveTool = (next: ToolKind): void => {
@@ -351,7 +361,7 @@ export function App(props: AppProps): JSX.Element {
       );
     }
   };
-  const restorePane = (side: PaneSide): void => {
+  const restorePane = (side: PaneSide, focusContent = false): void => {
     const width =
       editorBody?.getBoundingClientRect().width ?? window.innerWidth;
     if (side === "left") {
@@ -382,6 +392,13 @@ export function App(props: AppProps): JSX.Element {
         }),
       );
       setRightPaneOpen(true);
+    }
+    if (focusContent) {
+      queueMicrotask(() => {
+        (side === "left" ? leftCollapseButton : rightCollapseButton)?.focus({
+          preventScroll: true,
+        });
+      });
     }
   };
   const hidePane = (side: PaneSide): void => {
@@ -437,6 +454,21 @@ export function App(props: AppProps): JSX.Element {
     ) {
       dragTarget.releasePointerCapture(dragPointerId);
     }
+  });
+  onMount(() => {
+    const header = headerHost;
+    if (!header) return;
+    const positionCloud = (): void => {
+      setCloudPanelTop(header.getBoundingClientRect().bottom + 4);
+    };
+    const observer = new ResizeObserver(positionCloud);
+    observer.observe(header);
+    window.addEventListener("resize", positionCloud);
+    positionCloud();
+    onCleanup(() => {
+      observer.disconnect();
+      window.removeEventListener("resize", positionCloud);
+    });
   });
   onMount(() => {
     if (!editorBody) return;
@@ -533,16 +565,7 @@ export function App(props: AppProps): JSX.Element {
       // so replaying them would revert whatever a peer did in between. This
       // listener runs in the capture phase and stops the event, so the
       // canvas's own binding never sees the chord while a room is open.
-      if (isCloud() && modifier && (key === "z" || key === "y")) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (key === "y" || event.shiftKey) {
-          props.cloud.redo();
-        } else {
-          props.cloud.undo();
-        }
-        return;
-      }
+      if (isCloud() && handleHistoryShortcut(event, props.cloud)) return;
 
       // Cmd/Ctrl+Shift+E exports wherever focus is: the export is a document
       // action, not a canvas gesture, and the canvas never binds it.
@@ -568,7 +591,26 @@ export function App(props: AppProps): JSX.Element {
       void props.session.save();
     };
     window.addEventListener("keydown", onKeyDown, true);
+    const localHistory = (event: KeyboardEvent): void => {
+      if (!isCloud()) handleHistoryShortcut(event, props.editor);
+    };
+    // Bubble after canvas handlers so their nudge/gesture bookkeeping runs
+    // first and a handled chord cannot undo twice.
+    window.addEventListener("keydown", localHistory);
     const dismissHeaderMenus = (event: KeyboardEvent | MouseEvent): void => {
+      if (
+        cloudPanelExpanded() &&
+        event instanceof MouseEvent &&
+        event.target instanceof Node &&
+        !cloudPanelHost?.contains(event.target) &&
+        !settingsMenu?.contains(event.target) &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest(".diagra-help-tooltip")
+        )
+      ) {
+        setCloudPanelExpanded(false);
+      }
       for (const menu of [fileMenu, settingsMenu]) {
         if (
           !menu?.open ||
@@ -591,6 +633,7 @@ export function App(props: AppProps): JSX.Element {
     window.addEventListener("pointerdown", dismissHeaderMenus, true);
     onCleanup(() => {
       window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keydown", localHistory);
       window.removeEventListener("keydown", dismissHeaderMenus, true);
       window.removeEventListener("pointerdown", dismissHeaderMenus, true);
     });
@@ -666,10 +709,19 @@ export function App(props: AppProps): JSX.Element {
 
   return (
     <div class="app-shell" classList={{ "app-cloud-mode": isCloud() }}>
-      <header class="app-header">
+      <header class="app-header" ref={headerHost}>
         <span class="app-title">diagra</span>
         <details class="app-file-menu" ref={fileMenu}>
-          <summary class="app-file-button">File</summary>
+          <summary
+            class="app-file-button"
+            title={
+              props.filesAvailable
+                ? undefined
+                : "Local file commands require the desktop app. In the browser, use Import design and Download design."
+            }
+          >
+            File
+          </summary>
           <div class="app-file-controls">
             <button
               type="button"
@@ -728,6 +780,7 @@ export function App(props: AppProps): JSX.Element {
             <button
               type="button"
               class="app-file-button"
+              aria-expanded={cloudPanelExpanded()}
               onClick={() => {
                 const next = !cloudPanelExpanded();
                 setCloudPanelExpanded(next);
@@ -775,34 +828,46 @@ export function App(props: AppProps): JSX.Element {
             <button
               type="button"
               class="app-file-button"
+              aria-label="Undo"
+              title="Undo (Cmd/Ctrl+Z)"
               disabled={!cloud().canUndo}
               onClick={() => props.cloud.undo()}
             >
-              Undo
+              <svg
+                class="app-history-icon"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path d="M8 6l-5 5 5 5v-3c5 0 7 2 8 5 0-6-3-9-8-9z" />
+              </svg>
             </button>
             <button
               type="button"
               class="app-file-button"
+              aria-label="Redo"
+              title="Redo (Cmd/Ctrl+Shift+Z)"
               disabled={!cloud().canRedo}
               onClick={() => props.cloud.redo()}
             >
-              Redo
+              <svg
+                class="app-history-icon"
+                viewBox="0 0 20 20"
+                aria-hidden="true"
+              >
+                <path d="M12 6l5 5-5 5v-3c-5 0-7 2-8 5 0-6 3-9 8-9z" />
+              </svg>
             </button>
           </div>
         </Show>
         <Show when={file().status === "saving" && !isCloud()}>
           <span class="app-file-status">saving…</span>
         </Show>
-        <details class="app-hint-details">
-          <summary>Help</summary>
-          <p>
-            Double-click to edit text, right-click for the menu, ctrl/cmd +
-            wheel to zoom, shift + 1 to fit, cmd/ctrl + Z to undo, cmd/ctrl + S
-            to save.
-          </p>
-        </details>
+        <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
       </header>
-      <div ref={cloudPanelHost}>
+      <div
+        ref={cloudPanelHost}
+        style={{ "--app-cloud-top": `${cloudPanelTop()}px` }}
+      >
         <CloudPanel
           editor={props.editor}
           session={props.cloud}
@@ -811,18 +876,16 @@ export function App(props: AppProps): JSX.Element {
           onSettingsChange={updateSettings}
           refreshToken={props.cloudRefreshToken}
           expanded={cloudPanelExpanded()}
-          onExpandedChange={setCloudPanelExpanded}
+          onExpandedChange={(expanded) => {
+            if (expanded) setCloudPanelExpanded(true);
+            else dismissCloudPanel();
+          }}
           renderToggle={false}
           // Opening a room replaces what is on the canvas, exactly like opening
           // a file does, so it asks the same question first.
           mayDiscard={mayDiscard}
         />
       </div>
-      <Show when={!props.filesAvailable && !isCloud()}>
-        <p class="app-notice">
-          Local files are only available in the desktop app.
-        </p>
-      </Show>
       {/* A cloud failure is reported wherever it happens: a refused connect
           leaves the app in file mode, and its message still has to be read. */}
       <Show when={cloud().error ?? file().error ?? exportError()}>
@@ -874,6 +937,7 @@ export function App(props: AppProps): JSX.Element {
               class="app-pane-collapse"
               onClick={() => hidePane("left")}
               aria-label="Hide Layers"
+              ref={leftCollapseButton}
               title="Hide Layers"
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -895,7 +959,7 @@ export function App(props: AppProps): JSX.Element {
           <button
             type="button"
             class="app-pane-restore"
-            onClick={() => restorePane("left")}
+            onClick={() => restorePane("left", true)}
             aria-label="Show Layers"
             ref={leftRestoreButton}
           >
@@ -1047,6 +1111,7 @@ export function App(props: AppProps): JSX.Element {
               class="app-pane-collapse"
               onClick={() => hidePane("right")}
               aria-label="Hide Inspector"
+              ref={rightCollapseButton}
               title="Hide Inspector"
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
@@ -1060,7 +1125,7 @@ export function App(props: AppProps): JSX.Element {
           <button
             type="button"
             class="app-pane-restore"
-            onClick={() => restorePane("right")}
+            onClick={() => restorePane("right", true)}
             aria-label="Show Inspector"
             ref={rightRestoreButton}
           >

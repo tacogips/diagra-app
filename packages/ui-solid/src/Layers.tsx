@@ -24,6 +24,7 @@ import { ReviewComments } from "./ReviewComments.tsx";
 import { TypographyStyles } from "./TypographyStyles.tsx";
 import { LayerRenameInput } from "./LayerRenameInput.tsx";
 import { layerNavigation } from "./layer-keyboard.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 export function Layers(props: {
   readonly editor: Editor;
@@ -117,7 +118,12 @@ export function Layers(props: {
           onCancelCommentPlacement={props.onCancelCommentPlacement}
         />
       </details>
-      <h2>Layers</h2>
+      <h2>
+        Layers{" "}
+        <HelpHint
+          text={`Shift-click selects a range; Ctrl/Cmd-click toggles a layer. ${readOnly() ? "" : "Double-click a name or press F2 to rename. "}Use Up/Down or Home/End to select, Shift to extend, and Left/Right to navigate the hierarchy.`}
+        />
+      </h2>
       <label>
         <input
           type="checkbox"
@@ -130,7 +136,8 @@ export function Layers(props: {
         type="search"
         ref={searchInput}
         aria-label="Search layers"
-        placeholder="Name, content, column or type"
+        placeholder="Search layers"
+        title="Search by name, content, column or type"
         value={query()}
         onInput={(event) => setQuery(event.currentTarget.value)}
         on:keydown={(event) => event.stopPropagation()}
@@ -154,18 +161,6 @@ export function Layers(props: {
           Select matches on this page ({searchMatches().length})
         </button>
       </Show>
-      <details class="diagra-navigation-group">
-        <summary>Layer shortcuts</summary>
-        <p>
-          {readOnly()
-            ? "Select a layer to inspect it. "
-            : "Select a layer to edit it. "}
-          Shift-click selects a range; Ctrl/Cmd-click toggles a layer.
-          {readOnly() ? " " : " Double-click a name or press F2 to rename it. "}
-          Use Up/Down or Home/End to select, Shift to extend, and Left/Right to
-          navigate the hierarchy.
-        </p>
-      </details>
       <For each={[...rowMap().keys()]}>
         {(id) => (
           <Show when={rowMap().get(id)}>
@@ -314,6 +309,7 @@ export function Layers(props: {
                   <Show when={props.viewport}>
                     <button
                       type="button"
+                      class="diagra-layer-icon"
                       aria-label={`Locate ${layerName(row().element)} on canvas`}
                       title="Select this layer and fit its visible artwork"
                       onClick={() => {
@@ -329,11 +325,18 @@ export function Layers(props: {
                         props.editor.zoomToSelection(props.viewport);
                       }}
                     >
-                      Go
+                      <svg viewBox="0 0 20 20" aria-hidden="true">
+                        <circle cx="10" cy="10" r="5" />
+                        <path d="M10 2v4m0 8v4M2 10h4m8 0h4" />
+                      </svg>
                     </button>
                   </Show>
                   <button
                     type="button"
+                    class="diagra-layer-icon"
+                    title={
+                      row().element.visual.hidden ? "Show layer" : "Hide layer"
+                    }
                     aria-label={`${row().element.visual.hidden ? "Show" : "Hide"} ${layerName(row().element)}`}
                     aria-pressed={row().element.visual.hidden === true}
                     disabled={readOnly()}
@@ -347,10 +350,22 @@ export function Layers(props: {
                       ])
                     }
                   >
-                    {row().element.visual.hidden ? "Show" : "Hide"}
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5Z" />
+                      <circle cx="10" cy="10" r="2" />
+                      <Show when={row().element.visual.hidden}>
+                        <path d="m3 3 14 14" />
+                      </Show>
+                    </svg>
                   </button>
                   <button
                     type="button"
+                    class="diagra-layer-icon"
+                    title={
+                      row().element.visual.locked
+                        ? "Unlock layer"
+                        : "Lock layer"
+                    }
                     aria-label={`${row().element.visual.locked ? "Unlock" : "Lock"} ${layerName(row().element)}`}
                     aria-pressed={row().element.visual.locked === true}
                     disabled={readOnly()}
@@ -364,7 +379,17 @@ export function Layers(props: {
                       ])
                     }
                   >
-                    {row().element.visual.locked ? "Unlock" : "Lock"}
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <rect x="5" y="9" width="10" height="8" />
+                      <path
+                        d={
+                          row().element.visual.locked
+                            ? "M7 9V6a3 3 0 0 1 6 0v3"
+                            : "M7 9V6a3 3 0 0 1 6 0"
+                        }
+                      />
+                      <path d="M10 12v2" />
+                    </svg>
                   </button>
                 </div>
               );
@@ -378,7 +403,7 @@ export function Layers(props: {
             ? allPages()
               ? "No matching layers in this document."
               : "No matching layers on this page."
-            : "Add an artboard, shape or diagram to begin."}
+            : "No layers"}
         </p>
       </Show>
       <div class="diagra-layer-actions">

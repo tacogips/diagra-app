@@ -7,7 +7,8 @@
 // native (`on:`) listeners so a stopPropagation in the panel really stops
 // the event before any window-level shortcut handler sees it.
 
-import { For, type JSX } from "solid-js";
+import { For, type JSX, Show } from "solid-js";
+import { HelpHint } from "../HelpHint.tsx";
 import type { PaletteEntry } from "./palette.ts";
 import { isComposing } from "../NumberInput.tsx";
 export {
@@ -19,12 +20,17 @@ export {
 export interface SectionProps {
   readonly title: string;
   readonly children: JSX.Element;
+  /** Routine guidance shown on hover/focus instead of consuming a panel row. */
+  readonly help?: string;
 }
 
 export function Section(props: SectionProps): JSX.Element {
   return (
     <section class="diagra-inspector-section">
-      <h3 class="diagra-inspector-title">{props.title}</h3>
+      <div class="diagra-inspector-title-row">
+        <h3 class="diagra-inspector-title">{props.title}</h3>
+        <Show when={props.help}>{(text) => <HelpHint text={text()} />}</Show>
+      </div>
       <div class="diagra-inspector-body">{props.children}</div>
     </section>
   );
