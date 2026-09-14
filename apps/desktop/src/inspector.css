@@ -8,6 +8,34 @@
 
 /* Inspector */
 
+/* Plain section actions need the same flat chrome as named controls. Keep
+ * specificity at zero so swatches, help icons and pressed-state styles win. */
+:where(.diagra-inspector button) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 3px 6px;
+  border: 1px solid var(--diagra-line);
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--diagra-surface);
+  color: var(--diagra-ink);
+  cursor: pointer;
+}
+
+:where(.diagra-inspector button:hover:not(:disabled)) {
+  background: var(--app-chrome-hover);
+}
+
+:where(.diagra-inspector button:disabled) {
+  color: var(--diagra-muted);
+  cursor: default;
+}
+
+:where(.diagra-inspector button:focus-visible) {
+  outline: 2px solid var(--diagra-accent);
+  outline-offset: 1px;
+}
+
 .diagra-inspector {
   display: flex;
   flex-direction: column;
@@ -108,7 +136,7 @@
   min-height: 26px;
   padding: 0 10px;
   border: 1px solid var(--diagra-line);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--diagra-ink);
   background: var(--diagra-surface);
   font: inherit;
