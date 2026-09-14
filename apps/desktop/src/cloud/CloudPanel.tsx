@@ -42,10 +42,15 @@ export interface CloudPanelProps {
   readonly api?: CloudApi;
   /** Opaque account lifecycle signal; changing it invalidates list pages. */
   readonly refreshToken?: unknown;
+  /** Controlled expansion for shells that place the trigger elsewhere. */
+  readonly expanded?: boolean;
+  readonly onExpandedChange?: (expanded: boolean) => void;
+  /** Standalone callers retain the panel's own Cloud toggle by default. */
+  readonly renderToggle?: boolean;
 }
 
 export function CloudPanel(props: CloudPanelProps): JSX.Element {
-  const [open, setOpen] = createSignal(false);
+  const [localExpanded, setLocalExpanded] = createSignal(false);
   const [documents, setDocuments] = createSignal<readonly CloudDocument[]>([]);
   const [nextCursor, setNextCursor] = createSignal<string | null>(null);
   const [docId, setDocId] = createSignal("");
@@ -53,6 +58,12 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
   const [busy, setBusy] = createSignal(false);
   const [notice, setNotice] = createSignal<string | null>(null);
   let listRequest = 0;
+
+  const expanded = (): boolean => props.expanded ?? localExpanded();
+  const setExpanded = (next: boolean): void => {
+    if (props.expanded === undefined) setLocalExpanded(next);
+    props.onExpandedChange?.(next);
+  };
 
   const api = (): CloudApi => props.api ?? cloudApi;
 
@@ -218,14 +229,16 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
   return (
     <div class="app-cloud-panel">
       <div class="app-cloud-summary">
-        <button
-          type="button"
-          class="app-file-button"
-          aria-expanded={open()}
-          onClick={() => setOpen(!open())}
-        >
-          {open() ? "Hide cloud" : "Cloud"}
-        </button>
+        <Show when={props.renderToggle !== false}>
+          <button
+            type="button"
+            class="app-file-button"
+            aria-expanded={expanded()}
+            onClick={() => setExpanded(!expanded())}
+          >
+            {expanded() ? "Hide cloud" : "Cloud"}
+          </button>
+        </Show>
         <span class="app-cloud-status" data-status={props.state.status}>
           {props.state.status}
         </span>
@@ -276,7 +289,7 @@ export function CloudPanel(props: CloudPanelProps): JSX.Element {
         {(message) => <p class="app-cloud-notice">{message()}</p>}
       </Show>
 
-      <Show when={open()}>
+      <Show when={expanded()}>
         <div class="app-cloud-body">
           <ShareControls
             api={api()}

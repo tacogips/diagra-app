@@ -1207,6 +1207,18 @@ export class Editor {
     }[],
     applyOptions: ApplyOptions = {},
   ): void {
+    // Snapping or repeated pointer samples may produce identical coordinates.
+    // Avoid the derived-planning/store/render pipeline when nothing would move.
+    if (
+      !moves.some((move) => {
+        const current = this.store.get(move.id);
+        return (
+          current &&
+          (current.visual.x !== move.x || current.visual.y !== move.y)
+        );
+      })
+    )
+      return;
     const commands: Command[] = moves
       .filter((move) => this.store.has(move.id))
       .map((move) => ({

@@ -47,6 +47,7 @@ import {
   getElementTypeDefinition,
 } from "@diagra/ir";
 import {
+  batch,
   createMemo,
   createSignal,
   createUniqueId,
@@ -254,6 +255,10 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
     tool: () => props.tool,
     setTool: (tool) => props.onToolChange?.(tool),
     container: () => container,
+    scheduleDragFrame: (callback) => {
+      const frame = requestAnimationFrame(() => batch(callback));
+      return () => cancelAnimationFrame(frame);
+    },
     onMarquee: (rect) => props.onMarquee?.(rect),
     onCommentPlace: (point) => props.onCommentPlace?.(point),
     snap: () => props.snap,
@@ -283,7 +288,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
     }
   });
   // A nudge batch still waiting on its timer must not outlive the canvas.
-  onCleanup(() => interaction.flushNudge());
+  onCleanup(() => interaction.dispose());
 
   const context = createMemo(() => {
     signals.rev();

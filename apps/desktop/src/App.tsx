@@ -150,6 +150,7 @@ export function App(props: AppProps): JSX.Element {
   const [settings, setSettings] = createSignal<CloudSettings>(
     props.cloudSettings,
   );
+  const [cloudPanelExpanded, setCloudPanelExpanded] = createSignal(false);
 
   // Editor chrome state (design editor-ux 3.3, 3.5, 3.6, 4).
   const [snap, setSnap] = createSignal<SnapSettings>({
@@ -180,6 +181,8 @@ export function App(props: AppProps): JSX.Element {
   let leftRestoreButton: HTMLButtonElement | undefined;
   let rightRestoreButton: HTMLButtonElement | undefined;
   let fileMenu: HTMLDetailsElement | undefined;
+  let settingsMenu: HTMLDetailsElement | undefined;
+  let cloudPanelHost: HTMLDivElement | undefined;
   const [editorBodyWidth, setEditorBodyWidth] = createSignal(0);
 
   const setActiveTool = (next: ToolKind): void => {
@@ -565,28 +568,31 @@ export function App(props: AppProps): JSX.Element {
       void props.session.save();
     };
     window.addEventListener("keydown", onKeyDown, true);
-    const dismissFileMenu = (event: KeyboardEvent | MouseEvent): void => {
-      if (!fileMenu?.open) return;
-      if (
-        (event instanceof KeyboardEvent && event.key === "Escape") ||
-        (event instanceof MouseEvent &&
-          fileMenu &&
-          !fileMenu.contains(event.target as Node))
-      ) {
-        fileMenu?.removeAttribute("open");
+    const dismissHeaderMenus = (event: KeyboardEvent | MouseEvent): void => {
+      for (const menu of [fileMenu, settingsMenu]) {
+        if (
+          !menu?.open ||
+          !(
+            (event instanceof KeyboardEvent && event.key === "Escape") ||
+            (event instanceof MouseEvent &&
+              !menu.contains(event.target as Node))
+          )
+        )
+          continue;
+        menu.removeAttribute("open");
         if (event instanceof KeyboardEvent) {
           event.preventDefault();
           event.stopPropagation();
-          fileMenu?.querySelector<HTMLElement>("summary")?.focus();
+          menu.querySelector<HTMLElement>("summary")?.focus();
         }
       }
     };
-    window.addEventListener("keydown", dismissFileMenu, true);
-    window.addEventListener("pointerdown", dismissFileMenu, true);
+    window.addEventListener("keydown", dismissHeaderMenus, true);
+    window.addEventListener("pointerdown", dismissHeaderMenus, true);
     onCleanup(() => {
       window.removeEventListener("keydown", onKeyDown, true);
-      window.removeEventListener("keydown", dismissFileMenu, true);
-      window.removeEventListener("pointerdown", dismissFileMenu, true);
+      window.removeEventListener("keydown", dismissHeaderMenus, true);
+      window.removeEventListener("pointerdown", dismissHeaderMenus, true);
     });
   });
 
@@ -716,6 +722,35 @@ export function App(props: AppProps): JSX.Element {
             </select>
           </div>
         </details>
+        <details class="app-settings-menu" ref={settingsMenu}>
+          <summary class="app-file-button">Settings</summary>
+          <div class="app-settings-controls">
+            <button
+              type="button"
+              class="app-file-button"
+              onClick={() => {
+                const next = !cloudPanelExpanded();
+                setCloudPanelExpanded(next);
+                settingsMenu?.removeAttribute("open");
+                queueMicrotask(() => {
+                  if (next) {
+                    cloudPanelHost
+                      ?.querySelector<HTMLElement>(
+                        ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
+                      )
+                      ?.focus();
+                  } else {
+                    settingsMenu
+                      ?.querySelector<HTMLElement>("summary")
+                      ?.focus();
+                  }
+                });
+              }}
+            >
+              {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
+            </button>
+          </div>
+        </details>
         <div class="app-header-slot">{props.headerContent}</div>
         <Show
           when={isCloud()}
@@ -767,17 +802,22 @@ export function App(props: AppProps): JSX.Element {
           </p>
         </details>
       </header>
-      <CloudPanel
-        editor={props.editor}
-        session={props.cloud}
-        state={cloud()}
-        settings={settings()}
-        onSettingsChange={updateSettings}
-        refreshToken={props.cloudRefreshToken}
-        // Opening a room replaces what is on the canvas, exactly like opening
-        // a file does, so it asks the same question first.
-        mayDiscard={mayDiscard}
-      />
+      <div ref={cloudPanelHost}>
+        <CloudPanel
+          editor={props.editor}
+          session={props.cloud}
+          state={cloud()}
+          settings={settings()}
+          onSettingsChange={updateSettings}
+          refreshToken={props.cloudRefreshToken}
+          expanded={cloudPanelExpanded()}
+          onExpandedChange={setCloudPanelExpanded}
+          renderToggle={false}
+          // Opening a room replaces what is on the canvas, exactly like opening
+          // a file does, so it asks the same question first.
+          mayDiscard={mayDiscard}
+        />
+      </div>
       <Show when={!props.filesAvailable && !isCloud()}>
         <p class="app-notice">
           Local files are only available in the desktop app.
@@ -834,8 +874,11 @@ export function App(props: AppProps): JSX.Element {
               class="app-pane-collapse"
               onClick={() => hidePane("left")}
               aria-label="Hide Layers"
+              title="Hide Layers"
             >
-              Hide
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M11 4l-5 6 5 6" />
+              </svg>
             </button>
             <div class="app-pane-navigation">{props.navigationContent}</div>
             <Layers
@@ -1004,8 +1047,11 @@ export function App(props: AppProps): JSX.Element {
               class="app-pane-collapse"
               onClick={() => hidePane("right")}
               aria-label="Hide Inspector"
+              title="Hide Inspector"
             >
-              Hide
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M9 4l5 6-5 6" />
+              </svg>
             </button>
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
               <Inspector editor={props.editor} focus={inspectorFocus()} />

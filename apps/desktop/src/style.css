@@ -7,6 +7,11 @@
   --diagra-accent: #335c67;
   --diagra-accent-soft: #dbe6e8;
   --diagra-grid: #e3ded1;
+  --app-chrome-surface: #ffffff;
+  --app-chrome-line: #dfe3e6;
+  --app-chrome-muted: #667078;
+  --app-chrome-hover: #f1f3f4;
+  --app-chrome-active: #e5e9eb;
 
   font-family: Inter, ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -61,11 +66,12 @@ input {
 .app-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--diagra-line);
-  background: var(--diagra-surface);
+  min-height: 40px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--app-chrome-line);
+  background: var(--app-chrome-surface);
 }
 
 /* File controls */
@@ -76,23 +82,94 @@ input {
   align-items: center;
 }
 
+.app-file-menu,
+.app-settings-menu {
+  position: relative;
+}
+
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
+  > summary {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  color: var(--diagra-ink);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  list-style: none;
+}
+
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
+  > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
+  > summary::after {
+  width: 5px;
+  height: 5px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
+  > summary:hover,
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)[open]
+  > summary {
+  background: var(--app-chrome-hover);
+}
+
+.app-header
+  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
+  > summary:focus-visible {
+  outline: 2px solid #5d7480;
+  outline-offset: 1px;
+}
+
+.app-settings-controls {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  display: grid;
+  width: 160px;
+  max-width: calc(100vw - 144px);
+  padding: 4px;
+  border: 1px solid var(--app-chrome-line);
+  background: var(--app-chrome-surface);
+  box-shadow: 0 8px 18px rgb(20 28 32 / 10%);
+}
+
 .app-file-button {
   min-height: 26px;
   padding: 0 10px;
-  border: 1px solid var(--diagra-line);
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 0;
   color: var(--diagra-ink);
-  background: var(--diagra-surface);
-  font-size: 0.78rem;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
 }
 
 .app-file-button:hover:not(:disabled) {
-  background: var(--diagra-accent-soft);
+  background: var(--app-chrome-hover);
 }
 
 .app-file-button:disabled {
-  color: #a8a8a8;
+  color: #9aa2a8;
   cursor: default;
 }
 
@@ -100,16 +177,16 @@ input {
   max-width: 220px;
   min-height: 26px;
   padding: 0 6px;
-  border: 1px solid var(--diagra-line);
-  border-radius: 6px;
+  border: 1px solid var(--app-chrome-line);
+  border-radius: 0;
   color: var(--diagra-ink);
-  background: var(--diagra-surface);
-  font-size: 0.78rem;
+  background: var(--app-chrome-surface);
+  font-size: 13px;
 }
 
 .app-file-name {
   color: var(--diagra-ink);
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -151,10 +228,10 @@ input {
 }
 
 .app-title {
-  color: var(--diagra-accent);
-  font-size: 0.9rem;
+  color: #2e363b;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
@@ -617,9 +694,9 @@ input {
   flex-direction: column;
   gap: 8px;
   padding: 8px 16px;
-  border-bottom: 1px solid var(--diagra-line);
-  background: var(--diagra-surface);
-  font-size: 0.8rem;
+  border-bottom: 1px solid var(--app-chrome-line);
+  background: var(--app-chrome-surface);
+  font-size: 13px;
 }
 
 .app-cloud-summary,
@@ -640,18 +717,18 @@ input {
   display: flex;
   gap: 6px;
   align-items: center;
-  color: var(--diagra-muted);
+  color: var(--app-chrome-muted);
 }
 
 .app-cloud-field input {
   min-height: 26px;
   min-width: 160px;
   padding: 0 8px;
-  border: 1px solid var(--diagra-line);
-  border-radius: 6px;
+  border: 1px solid var(--app-chrome-line);
+  border-radius: 0;
   color: var(--diagra-ink);
-  background: var(--diagra-surface);
-  font-size: 0.78rem;
+  background: var(--app-chrome-surface);
+  font-size: 13px;
 }
 
 .app-cloud-field-narrow input {

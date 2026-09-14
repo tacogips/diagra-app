@@ -19,6 +19,29 @@ import {
 
 const SECOND_PAGE: Page = { id: "page-2", name: "Page 2", kind: "freeform" };
 
+test("moveElements skips identical moves but preserves duplicate command order", () => {
+  const editor = new Editor();
+  const id = editor.createElement("shape.geo", {
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  let commits = 0;
+  editor.store.subscribe(() => {
+    commits += 1;
+  });
+  editor.moveElements([{ id, x: 0, y: 0 }]);
+  expect(commits).toBe(0);
+  editor.moveElements([
+    { id, x: 20, y: 0 },
+    { id, x: 0, y: 0 },
+  ]);
+  expect(editor.store.get(id)?.visual.x).toBe(0);
+  editor.moveElements([
+    { id, x: 0, y: 0 },
+    { id, x: 30, y: 0 },
+  ]);
+  expect(editor.store.get(id)?.visual.x).toBe(30);
+});
+
 function twoPageEditor(): Editor {
   return makeEditor({
     document: document(

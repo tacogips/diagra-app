@@ -237,6 +237,8 @@ type Gesture =
     }
   | {
       readonly kind: "translating";
+      readonly documentOpenRevision: number;
+      readonly pageId: string;
       readonly startPage: Vec;
       readonly startScreen: Vec;
       readonly origins: ReadonlyMap<ElementId, Vec>;
@@ -326,6 +328,8 @@ export interface InteractionOptions {
   ) => void;
   /** Timer for nudge coalescing; `setTimeout` when omitted. */
   readonly schedule?: Scheduler;
+  /** Coalesce translation updates to repaint cadence; omitted for synchronous hosts. */
+  readonly scheduleDragFrame?: (callback: () => void) => () => void;
 }
 
 export interface Interaction {
@@ -353,6 +357,8 @@ export interface Interaction {
   startConnect(from: ElementId, event: PointerEvent): void;
   /** Close a pending nudge batch now rather than when its timer fires. */
   flushNudge(): void;
+  /** Cancel pending drag work and release subscriptions when the canvas unmounts. */
+  dispose(): void;
   readonly pending: Accessor<PendingConnection | null>;
   /** The marquee rectangle while brush-selecting, in page space. */
   readonly marquee: Accessor<Box | null>;
@@ -657,6 +663,15 @@ export function createInteraction(
   let gesture: Gesture = { kind: "idle" };
   /** The pointer that owns the canvas, or `null` when none does. */
   let activePointerId: number | null = null;
+  let queuedDrag: PointerEvent | null = null;
+  let queuedDragRevision = 0;
+  let dragSampleSuperseded = false;
+  let cancelDragFrame: (() => void) | null = null;
+  const discardDragFrame = (): void => {
+    cancelDragFrame?.();
+    cancelDragFrame = null;
+    queuedDrag = null;
+  };
   const schedule = options.schedule ?? defaultScheduler;
   /** Cancels the timer closing the open nudge batch; `null` when none is open. */
   let cancelNudgeTimer: (() => void) | null = null;
@@ -943,6 +958,9 @@ export function createInteraction(
 
   /** Commit whatever the gesture did and return to idle. */
   const finishGesture = (): void => {
+    const latest = queuedDragRevision === editor.revision ? queuedDrag : null;
+    discardDragFrame();
+    if (latest) applyPointerMove(latest);
     if (
       gesture.kind === "translating" ||
       gesture.kind === "sequence-reorder" ||
@@ -964,6 +982,7 @@ export function createInteraction(
    * move or resize leaves no trace — not even an undo step.
    */
   const cancelGesture = (): void => {
+    discardDragFrame();
     if (
       gesture.kind === "translating" ||
       gesture.kind === "sequence-reorder" ||
@@ -1101,6 +1120,8 @@ export function createInteraction(
     editor.beginBatch();
     gesture = {
       kind: "translating",
+      documentOpenRevision: editor.documentOpenRevision,
+      pageId: editor.currentPageId,
       startPage,
       startScreen: screenPoint(event),
       origins,
@@ -1110,6 +1131,7 @@ export function createInteraction(
       clickTarget,
       moved: false,
     };
+    dragSampleSuperseded = false;
     return true;
   };
 
@@ -1297,7 +1319,8 @@ export function createInteraction(
     }
   };
 
-  const onPointerMove = (event: PointerEvent): void => {
+  const applyPointerMove = (event: PointerEvent): void => {
+    if (discardStaleTranslation()) return;
     if (
       editor.readOnly &&
       gesture.kind !== "panning" &&
@@ -1596,6 +1619,48 @@ export function createInteraction(
     }
   };
 
+  const onPointerMove = (event: PointerEvent): void => {
+    if (
+      options.scheduleDragFrame &&
+      gesture.kind === "translating" &&
+      !editor.readOnly &&
+      event.pointerId === activePointerId
+    ) {
+      queuedDrag = event;
+      queuedDragRevision = editor.revision;
+      dragSampleSuperseded = false;
+      if (!cancelDragFrame) {
+        cancelDragFrame = options.scheduleDragFrame(() => {
+          const latest =
+            queuedDragRevision === editor.revision ? queuedDrag : null;
+          dragSampleSuperseded = queuedDrag !== null && latest === null;
+          queuedDrag = null;
+          cancelDragFrame = null;
+          if (editor.readOnly) cancelGesture();
+          else if (latest) applyPointerMove(latest);
+        });
+      }
+      return;
+    }
+    applyPointerMove(event);
+  };
+
+  const discardStaleTranslation = (): boolean => {
+    if (
+      gesture.kind !== "translating" ||
+      (gesture.documentOpenRevision === editor.documentOpenRevision &&
+        gesture.pageId === editor.currentPageId &&
+        editor.history.batching)
+    )
+      return false;
+    // loadDocument clears history, including preserveView collaboration loads.
+    // Do not apply old origins or roll back the replacement document.
+    discardDragFrame();
+    gesture = { kind: "idle" };
+    clearTransient();
+    return true;
+  };
+
   /**
    * Point the dragged end of a connector at `target`: one `updateSemantic`
    * carrying the whole payload with that end rewritten. Nothing is written
@@ -1627,6 +1692,22 @@ export function createInteraction(
   const onPointerUp = (event: PointerEvent): void => {
     if (event.pointerId !== activePointerId) {
       return;
+    }
+    discardStaleTranslation();
+    const superseded =
+      dragSampleSuperseded ||
+      (queuedDrag !== null && queuedDragRevision !== editor.revision);
+    if (superseded) discardDragFrame();
+    // Never commit a stale frame, or let a queued update run after endBatch.
+    // A click without movement must retain its existing selection semantics.
+    if (
+      options.scheduleDragFrame &&
+      !superseded &&
+      gesture.kind === "translating" &&
+      (queuedDrag !== null || gesture.moved)
+    ) {
+      discardDragFrame();
+      applyPointerMove(event);
     }
     if (
       editor.readOnly &&
@@ -2253,6 +2334,11 @@ export function createInteraction(
     };
 
   return {
+    dispose: () => {
+      cancelGesture();
+      activePointerId = null;
+      flushNudge();
+    },
     onPointerDown,
     onPointerMove,
     onPointerUp,

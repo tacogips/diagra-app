@@ -38,6 +38,155 @@ import type { ToolKind } from "./tools.ts";
 
 const START = { x: 100, y: 100, width: 200, height: 100 };
 
+describe("frame-paced model dragging", () => {
+  function setup() {
+    const { editor, shape } = harness();
+    const callbacks = new Set<() => void>();
+    const { interaction } = interactionFor(editor, "select", {
+      scheduleDragFrame: (callback) => {
+        callbacks.add(callback);
+        return () => {
+          callbacks.delete(callback);
+        };
+      },
+    });
+    const frame = () => {
+      const pending = [...callbacks];
+      callbacks.clear();
+      for (const callback of pending) callback();
+    };
+    return { editor, shape, interaction, callbacks, frame };
+  }
+
+  test("a burst commits only the latest move per frame and preserves drop/undo", () => {
+    const { editor, shape, interaction, callbacks, frame } = setup();
+    let commits = 0;
+    editor.store.subscribe(() => {
+      commits += 1;
+    });
+    const undoSize = editor.history.undoSize;
+    interaction.onPointerDown(pointer());
+    for (let x = 51; x <= 150; x++) {
+      interaction.onPointerMove(pointer({ clientX: x }));
+    }
+    expect(commits).toBe(0);
+    expect(callbacks.size).toBe(1);
+    frame();
+    expect(commits).toBe(1);
+    expect(visualOf(editor, shape).x).toBe(100);
+    interaction.onPointerMove(pointer({ clientX: 180 }));
+    interaction.onPointerUp(pointer({ clientX: 200 }));
+    expect(visualOf(editor, shape).x).toBe(150);
+    expect(commits).toBe(2);
+    expect(callbacks.size).toBe(0);
+    frame();
+    expect(commits).toBe(2);
+    expect(editor.history.undoSize).toBe(undoSize + 1);
+    editor.undo();
+    expect(visualOf(editor, shape).x).toBe(0);
+    editor.redo();
+    expect(visualOf(editor, shape).x).toBe(150);
+  });
+
+  test("duplicate positions do not publish extra model commits", () => {
+    const { editor, interaction, frame } = setup();
+    let commits = 0;
+    editor.store.subscribe(() => {
+      commits += 1;
+    });
+    interaction.onPointerDown(pointer());
+    interaction.onPointerMove(pointer({ clientX: 80 }));
+    frame();
+    interaction.onPointerMove(pointer({ clientX: 80 }));
+    frame();
+    interaction.onPointerUp(pointer({ clientX: 80 }));
+    expect(commits).toBe(1);
+  });
+
+  for (const cancel of ["pointer", "escape", "readonly", "dispose"] as const) {
+    test(`${cancel} discards pending work and leaves no partial drag`, () => {
+      const { editor, shape, interaction, callbacks, frame } = setup();
+      const undoSize = editor.history.undoSize;
+      interaction.onPointerDown(pointer());
+      interaction.onPointerMove(pointer({ clientX: 80 }));
+      frame();
+      interaction.onPointerMove(pointer({ clientX: 180 }));
+      if (cancel === "pointer") interaction.onPointerCancel(pointer());
+      if (cancel === "escape") interaction.onKeyDown(keyboard("Escape"));
+      if (cancel === "readonly") {
+        editor.setReadOnly(true);
+        frame();
+      }
+      if (cancel === "dispose") interaction.dispose();
+      frame();
+      expect(callbacks.size).toBe(0);
+      // Viewer mode freezes existing state; it must not apply queued edits.
+      expect(visualOf(editor, shape).x).toBe(cancel === "readonly" ? 30 : 0);
+      expect(editor.history.batching).toBe(false);
+      expect(editor.history.undoSize).toBe(undoSize);
+    });
+  }
+
+  test("foreign pointers cannot flush or replace the owner's queued move", () => {
+    const { editor, shape, interaction, frame } = setup();
+    interaction.onPointerDown(pointer());
+    interaction.onPointerMove(pointer({ clientX: 80 }));
+    interaction.onPointerMove(pointer({ pointerId: 2, clientX: 900 }));
+    interaction.onPointerUp(pointer({ pointerId: 2, clientX: 900 }));
+    frame();
+    expect(visualOf(editor, shape).x).toBe(30);
+    interaction.onPointerUp(pointer({ clientX: 80 }));
+    expect(editor.history.batching).toBe(false);
+  });
+
+  for (const preserveView of [false, true]) {
+    test(`document replacement cannot receive a stale drag (preserveView=${preserveView})`, () => {
+      const { editor, shape, interaction, frame } = setup();
+      interaction.onPointerDown(pointer());
+      interaction.onPointerMove(pointer({ clientX: 180 }));
+      const snapshot = editor.getSnapshot();
+      editor.loadDocument(
+        {
+          ...snapshot,
+          elements: snapshot.elements.map((element) =>
+            element.id === shape
+              ? { ...element, visual: { ...element.visual, x: 500 } }
+              : element,
+          ),
+        },
+        { preserveView },
+      );
+      frame();
+      interaction.onPointerUp(pointer({ clientX: 200 }));
+      expect(visualOf(editor, shape).x).toBe(500);
+      expect(editor.history.undoSize).toBe(0);
+      expect(editor.history.batching).toBe(false);
+    });
+  }
+
+  for (const releaseBeforeFrame of [false, true]) {
+    test(`a newer remote commit supersedes a queued sample (releaseFirst=${releaseBeforeFrame})`, () => {
+      const { editor, shape, interaction, frame } = setup();
+      interaction.onPointerDown(pointer());
+      interaction.onPointerMove(pointer({ clientX: 80 }));
+      frame();
+      interaction.onPointerMove(pointer({ clientX: 180 }));
+      const element = editor.store.get(shape);
+      if (!element) throw new Error("missing test shape");
+      editor.store.commit({
+        update: [{ ...element, visual: { ...element.visual, x: 500 } }],
+      });
+      if (releaseBeforeFrame)
+        interaction.onPointerUp(pointer({ clientX: 200 }));
+      frame();
+      if (!releaseBeforeFrame)
+        interaction.onPointerUp(pointer({ clientX: 200 }));
+      expect(visualOf(editor, shape).x).toBe(500);
+      expect(editor.history.batching).toBe(false);
+    });
+  }
+});
+
 describe("viewer canvas interaction", () => {
   test("a pending connection is cancelled if viewer mode starts before release", () => {
     const { editor, shape, interaction } = harness();

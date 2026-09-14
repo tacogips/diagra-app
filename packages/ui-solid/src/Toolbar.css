@@ -7,8 +7,8 @@
   min-width: 0;
   padding: 6px 10px;
   overflow: visible;
-  border-bottom: 1px solid var(--diagra-line);
-  background: var(--diagra-surface);
+  border-bottom: 1px solid #dfe3e6;
+  background: #fff;
 }
 
 .diagra-toolbar-primary,
@@ -35,10 +35,10 @@
 .diagra-toolbar-menu select,
 .diagra-image-import-compact .diagra-tool-button {
   min-height: 30px;
-  border: 1px solid var(--diagra-line);
+  border: 0;
   border-radius: 0;
   color: var(--diagra-ink);
-  background: var(--diagra-surface);
+  background: transparent;
   font: inherit;
   font-size: .8rem;
   cursor: pointer;
@@ -63,6 +63,8 @@
 .diagra-toolbar-split {
   display: flex;
   align-items: stretch;
+  padding-right: 4px;
+  border-right: 1px solid #dfe3e6;
 }
 .diagra-toolbar-split .diagra-toolbar-icon {
   border-right: 0;
@@ -84,9 +86,9 @@
   width: min(260px, calc(100vw - 16px));
   overflow: auto;
   padding: 4px;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid #dfe3e6;
   border-radius: 0;
-  background: var(--diagra-surface);
+  background: #fff;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
 }
 
@@ -101,28 +103,28 @@
 .diagra-toolbar-icon:hover:not(:disabled),
 .diagra-toolbar-chevron:hover:not(:disabled),
 .diagra-image-import-compact .diagra-tool-button:hover:not(:disabled) {
-  background: var(--diagra-accent-soft);
+  background: #f1f3f4;
 }
 
 .diagra-toolbar-menu button:disabled,
 .diagra-toolbar-icon:disabled,
 .diagra-toolbar-chevron:disabled,
 .diagra-image-import-compact .diagra-tool-button:disabled {
-  color: #a8a8a8;
+  color: #9aa2a8;
   cursor: default;
 }
 
 .diagra-toolbar-menu .diagra-active,
 .diagra-toolbar-icon[aria-pressed="true"] {
-  color: var(--diagra-surface);
-  background: var(--diagra-accent);
+  color: #fff;
+  background: #303a40;
 }
 
 .diagra-toolbar-more-menu section {
   display: grid;
   gap: 1px;
   padding: 4px 0;
-  border-bottom: 1px solid var(--diagra-line);
+  border-bottom: 1px solid #dfe3e6;
 }
 .diagra-toolbar-more-menu section:last-child {
   border-bottom: 0;
@@ -130,7 +132,7 @@
 .diagra-toolbar-more-menu h2 {
   margin: 0;
   padding: 2px 8px;
-  color: var(--diagra-muted);
+  color: #667078;
   font-size: .68rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -153,8 +155,8 @@
   width: max-content;
   max-width: min(220px, calc(100vw - 16px));
   padding: 4px 6px;
-  border: 1px solid var(--diagra-line);
-  background: var(--diagra-surface);
+  border: 1px solid #dfe3e6;
+  background: #fff;
   font-size: .72rem;
   overflow-wrap: anywhere;
 }
