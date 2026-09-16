@@ -21,6 +21,7 @@ import {
   Show,
 } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 interface CommentProps {
   readonly editor: Editor;
@@ -53,7 +54,9 @@ function threadTarget(editor: Editor, semantic: ReviewCommentSemantic): string {
   return target ? layerName(target) : "Canvas";
 }
 
-export function ReviewComments(props: CommentProps): JSX.Element {
+export function ReviewComments(
+  props: CommentProps & { readonly showHeading?: boolean },
+): JSX.Element {
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
     signals.rev();
@@ -114,7 +117,17 @@ export function ReviewComments(props: CommentProps): JSX.Element {
   };
   return (
     <section class="diagra-review-comments" aria-label="Review comments">
-      <h2>Comments</h2>
+      <Show
+        when={props.showHeading !== false}
+        fallback={
+          <HelpHint text="Anchor feedback to the selection, or to the visible canvas." />
+        }
+      >
+        <h2>
+          Comments{" "}
+          <HelpHint text="Anchor feedback to the selection, or to the visible canvas." />
+        </h2>
+      </Show>
       <input
         type="search"
         aria-label="Search comments"
@@ -132,7 +145,6 @@ export function ReviewComments(props: CommentProps): JSX.Element {
         />
         All pages
       </label>
-      <p>Anchor feedback to the selection, or to the visible canvas.</p>
       <textarea
         aria-label="New comment"
         placeholder="Leave design feedback…"
@@ -174,7 +186,7 @@ export function ReviewComments(props: CommentProps): JSX.Element {
       </div>
       <Show when={props.commentPlacementActive}>
         <div class="diagra-comment-placement" role="status">
-          <span>Click the canvas to place the comment.</span>
+          <span>Click canvas to place</span>
           <button type="button" onClick={props.onCancelCommentPlacement}>
             Cancel
           </button>
@@ -283,8 +295,11 @@ export function ReviewComments(props: CommentProps): JSX.Element {
       </For>
       <Show when={threads().length === 0}>
         <p>
-          No matching {showResolved() ? "comments" : "open comments"}{" "}
-          {allPages() ? "in this document" : "on this page"}.
+          {query().trim()
+            ? "No matches"
+            : showResolved()
+              ? "No comments"
+              : "No open comments"}
         </p>
       </Show>
     </section>

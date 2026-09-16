@@ -119,7 +119,10 @@ export function ParentSection(props: {
     ]);
   };
   return (
-    <Section title="Frame membership">
+    <Section
+      title="Frame membership"
+      help="Positive fill weights share remaining auto-layout space. Size limits constrain fill, stretch, and hug sizing; clear a limit to remove it. Matching component keys preserve layers across variants."
+    >
       <Show when={parentLayout()}>
         <Field label="Layout position">
           <SelectInput
@@ -162,11 +165,6 @@ export function ParentSection(props: {
           }
         />
       </Field>
-      <p>
-        0 keeps the current size. Positive weights share remaining space along a
-        fixed auto-layout parent's main axis. Hug-sized axes and absolute
-        overlays are not filled.
-      </p>
       <Show
         when={
           parentLayout() ||
@@ -202,10 +200,6 @@ export function ParentSection(props: {
             )}
           </For>
         </div>
-        <p class="diagra-inspector-note">
-          Optional limits constrain dimensions produced by fill, stretch, and
-          hug sizing. Clear a field to remove its limit.
-        </p>
       </Show>
       <Field label="Component / motion key">
         <TextInput
@@ -225,10 +219,6 @@ export function ParentSection(props: {
           }}
         />
       </Field>
-      <p class="diagra-inspector-note">
-        A unique matching key preserves this layer across component variants and
-        moves/resizes it between prototype screens using Smart animate.
-      </p>
       <Show
         when={!groupOf(props.editor.store, props.element.id)}
         fallback={
@@ -278,12 +268,6 @@ export function ParentSection(props: {
                 onCommit={(value) => constrain("verticalConstraint", value)}
               />
             </Field>
-            <p class="diagra-inspector-note">
-              {parentLayout() &&
-              props.element.visual.layoutPosition !== "absolute"
-                ? "Auto-layout parents control positioning instead of these resize constraints."
-                : "Constraints position and size this layer when its parent artboard is resized."}
-            </p>
           </Show>
           <button
             type="button"

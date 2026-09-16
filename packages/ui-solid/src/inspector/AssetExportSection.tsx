@@ -96,10 +96,6 @@ export function AssetExportSection(props: {
   return (
     <details class="diagra-inspector-section">
       <summary>Export PNG</summary>
-      <p>
-        Exports a snapshot through the browser. Fonts and image decoding may
-        vary by platform. Maximum 8192 pixels per side, 32 megapixels.
-      </p>
       <select
         aria-label="PNG export scope"
         value={scope()}

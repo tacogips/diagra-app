@@ -9,6 +9,7 @@ import {
 } from "@diagra/core";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 export function TypographyStyles(props: {
   readonly editor: Editor;
@@ -36,10 +37,10 @@ export function TypographyStyles(props: {
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
-      <h2>Typography</h2>
-      <p>
-        Create from formatted text, then reuse and update it across screens.
-      </p>
+      <h2>
+        Typography{" "}
+        <HelpHint text="Create from formatted text, then reuse and update it across screens." />
+      </h2>
       <form
         onSubmit={(event) => {
           event.preventDefault();

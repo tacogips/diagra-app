@@ -23,11 +23,10 @@ export function ColorBindingsSection(props: {
   });
   return (
     <Show when={(bindings()[0]?.count ?? 0) > 0}>
-      <Section title="Color bindings">
-        <p>
-          Choose a shared color or unlink while keeping its current appearance.
-          Locked layers are skipped.
-        </p>
+      <Section
+        title="Color bindings"
+        help="Choose a shared color or unlink while keeping its current appearance. Locked layers are skipped."
+      >
         <For each={bindings()}>
           {(binding) => {
             const label =

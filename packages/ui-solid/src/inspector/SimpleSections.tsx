@@ -17,7 +17,6 @@ import {
   layerName,
   MAX_LAYOUT_GRIDS,
   MAX_VARIANT_PROPERTIES,
-  memberIdsOf,
   removeLayoutGrid,
   removeTextMarkRange,
   removeComponentVariantProperty,
@@ -53,6 +52,7 @@ import {
   UML_ASSOCIATION_KINDS,
 } from "@diagra/ir";
 import { createSignal, For, type JSX, lazy, Show, Suspense } from "solid-js";
+import { HelpHint } from "../HelpHint.tsx";
 import {
   Field,
   NumberInput,
@@ -523,10 +523,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
       <Show when={!semantic().component && !semantic().instanceOf}>
         <details>
           <summary>Responsive variants</summary>
-          <p class="diagra-inspector-note">
-            Clone this artboard beside the source and reflow its contents
-            through their resize constraints and auto layout.
-          </p>
           <Field label="Target size">
             <SelectInput
               label="Responsive variant target"
@@ -553,9 +549,10 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         {(sourceId) => (
           <details open>
             <summary>Responsive source</summary>
-            <p class="diagra-inspector-note">
-              {`Linked to ${responsiveSourceName(sourceId)}. Refresh inherits source text, rich-text marks, paint, typography and token links while preserving this artboard's geometry and local overrides.`}
-            </p>
+            <span>
+              {responsiveSourceName(sourceId)}
+              <HelpHint text="Refresh updates inherited content while preserving local overrides. Update structure adds and removes source layers while preserving surviving IDs, local geometry, and local layers. Detach makes this artboard independent." />
+            </span>
             <div class="diagra-inspector-actions">
               <button
                 type="button"
@@ -593,11 +590,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
                 Detach responsive source
               </button>
             </div>
-            <p class="diagra-inspector-note">
-              Structure update adds and removes source layers while retaining
-              surviving IDs, this breakpoint&apos;s geometry, and locally added
-              layers. New layers reflow through their responsive constraints.
-            </p>
             <p role="status">{refreshStatus()}</p>
           </details>
         )}
@@ -1006,22 +998,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
             />
           </Field>
         </Show>
-        <Show
-          when={
-            componentVariants(props.editor, semantic().instanceOf ?? "")
-              .length > 1
-          }
-        >
-          <p class="diagra-inspector-note">
-            Unique matching layer keys preserve child IDs and text/style
-            overrides. Unmatched layers are replaced. The new variant supplies
-            geometry; root position is preserved.
-          </p>
-        </Show>
-        <p class="diagra-inspector-note">
-          Component instance. Reset replaces its contents with the source
-          design.
-        </p>
         <Show when={semantic().instanceBindings?.length}>
           <label>
             <input
@@ -1036,11 +1012,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
             />
             Automatically refresh component
           </label>
-          <p class="diagra-inspector-note">
-            Source edits update inherited fields and layer structure in the same
-            undo step. Locked contents, invalid tracking or cyclic dependencies
-            pause automatic refresh.
-          </p>
           <button
             type="button"
             class="diagra-inspector-button"
@@ -1055,10 +1026,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
             Refresh inherited fields
           </button>
           <p role="status">{refreshStatus()}</p>
-          <p class="diagra-inspector-note">
-            Refresh preserves customized text, style and geometry fields plus
-            child IDs. Use Update structure for an explicit source-tree update.
-          </p>
           <button
             type="button"
             class="diagra-inspector-button"
@@ -1072,13 +1039,6 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           >
             Update structure
           </button>
-          <p class="diagra-inspector-note">
-            Update structure adopts source geometry and layer membership.
-            Surviving tracked layers keep their IDs and text/style/geometry
-            overrides. Locally added layers are retained; if their source parent
-            disappears, they move to the instance root. Removed source layers
-            are removed. Undo restores the previous structure.
-          </p>
         </Show>
         <button
           type="button"
@@ -1322,7 +1282,7 @@ export function TextNoteSection(props: ElementSectionProps): JSX.Element {
     return textRangeHasMark(text(), marks(), range.start, range.end, kind);
   };
   return (
-    <Section title="Text">
+    <Section title="Text" help="Select characters to apply inline formatting.">
       <TextArea
         label="Text"
         rows={5}
@@ -1330,9 +1290,6 @@ export function TextNoteSection(props: ElementSectionProps): JSX.Element {
         onCommit={(value) => props.editor.setText(props.element.id, value)}
         onSelectionChange={(start, end) => setSelection({ start, end })}
       />
-      <p class="diagra-inspector-note">
-        Select characters above, then apply inline formatting.
-      </p>
       <div
         class="diagra-rich-text-controls"
         role="toolbar"
@@ -1434,7 +1391,10 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
     });
   };
   return (
-    <Section title="Edge">
+    <Section
+      title="Edge"
+      help="Prototype links can navigate to screens, change variants, or open and close overlays."
+    >
       <label>
         <input
           type="checkbox"
@@ -1448,11 +1408,6 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
         />
         Prototype interaction
       </label>
-      <p class="diagra-inspector-note">
-        Connect a layer to a screen or overlay, connect a component instance to
-        a compatible variant, or connect an overlay control back to its overlay
-        frame to close it.
-      </p>
       <Show when={semantic()["prototype"] === true}>
         <Field label="Action">
           <SelectInput
@@ -1737,7 +1692,6 @@ export function AssociationSection(props: ElementSectionProps): JSX.Element {
 }
 
 export function GroupSection(props: ElementSectionProps): JSX.Element {
-  const count = () => memberIdsOf(props.element).length;
   const semantic = () => props.element.semantic as GroupSemantic;
   const mask = () => semantic().maskId ?? "";
   const rasterMask = () => {
@@ -1798,10 +1752,10 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
     ]);
   };
   return (
-    <Section title="Group">
-      <p class="diagra-inspector-note">
-        {count() === 1 ? "1 member" : `${count()} members`}
-      </p>
+    <Section
+      title="Group"
+      help="Mask layers do not paint. Boolean groups combine ordered, editable convex members; subtract uses the first member as its base."
+    >
       <Field label="Layer mask">
         <select
           aria-label="Group layer mask"
@@ -1822,10 +1776,6 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
           </For>
         </select>
       </Field>
-      <p class="diagra-inspector-note">
-        The mask layer stays editable in Layers but does not paint. Convex
-        shapes, ordinary box layers and raster images are supported.
-      </p>
       <Show when={rasterMask()}>
         <Field label="Raster mask mode">
           <SelectInput
@@ -1865,10 +1815,6 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
           }
         />
       </Field>
-      <p class="diagra-inspector-note">
-        Boolean groups combine ordered, editable convex members. Subtract uses
-        the first member as its base.
-      </p>
       <Field label="Compositing">
         <SelectInput
           label="Group compositing mode"
@@ -1936,6 +1882,23 @@ export function PageSection(props: PageSectionProps): JSX.Element {
       <Suspense>
         <PageGuidesSection editor={props.editor} page={props.page} />
       </Suspense>
+      <Field label="SQL input">
+        <SelectInput
+          label="Page SQL input dialect"
+          value={props.page.sqlDialect ?? "postgresql"}
+          options={[
+            { value: "postgresql", label: "PostgreSQL" },
+            { value: "mysql", label: "MySQL" },
+            { value: "sqlite", label: "SQLite" },
+          ]}
+          onCommit={(value) =>
+            props.editor.setPageSqlDialect(
+              props.page.id,
+              value as NonNullable<Page["sqlDialect"]>,
+            )
+          }
+        />
+      </Field>
     </Section>
   );
 }

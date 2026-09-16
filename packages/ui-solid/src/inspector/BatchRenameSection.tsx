@@ -5,6 +5,7 @@ import {
 } from "@diagra/core";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
+import { HelpHint } from "../HelpHint.tsx";
 import { Field, NumberInput } from "./controls.tsx";
 
 export function BatchRenameSection(props: { editor: Editor }): JSX.Element {
@@ -47,11 +48,7 @@ export function BatchRenameSection(props: { editor: Editor }): JSX.Element {
       }}
     >
       <summary>Rename selected layers</summary>
-      <p>
-        Use {"{name}"}, {"{type}"} and {"{n}"}. Numbering follows layer-panel
-        order and skips locked layers. Clear the pattern to restore content
-        labels.
-      </p>
+      <HelpHint text="Use {name}, {type}, and {n}. Find/replace is literal and case-sensitive before {name}; leave Find empty to skip it. Clear the pattern to restore content labels." />
       <input
         type="text"
         aria-label="Batch layer name pattern"
@@ -86,10 +83,6 @@ export function BatchRenameSection(props: { editor: Editor }): JSX.Element {
           }}
         />
       </Field>
-      <p>
-        Find/replace is literal and case-sensitive, applied before {"{name}"}.
-        Leave Find empty to skip replacement.
-      </p>
       <Field label="Start">
         <NumberInput
           label="Layer numbering start"

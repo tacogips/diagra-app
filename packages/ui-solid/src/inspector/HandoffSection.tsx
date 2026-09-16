@@ -10,6 +10,7 @@ import {
 import type { ElementId } from "@diagra/ir";
 import { createMemo, createSignal, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
+import { HelpHint } from "../HelpHint.tsx";
 
 export function HandoffSection(props: {
   editor: Editor;
@@ -135,34 +136,40 @@ export function HandoffSection(props: {
       setStatus("Clipboard unavailable. Select and copy the text below.");
     }
   };
+  const formatHelp = (): string => {
+    switch (format()) {
+      case "css":
+      case "code-css":
+        return "CSS uses parent-relative absolute positioning and stored styles; it does not reproduce layout rules or shape paths.";
+      case "linked":
+      case "code-linked":
+      case "responsive-linked":
+        return "Token-linked CSS includes literal fallbacks. Copy the matching palette, measurement, and typography variable CSS separately.";
+      case "layout":
+        return "Use the child order in Design JSON and omit absolute child positioning. Verify browser sizing.";
+      case "html":
+      case "manifest":
+      case "responsive-html":
+      case "responsive-css":
+      case "responsive-manifest":
+        return "Select an artboard. Responsive outputs include its linked viewport family.";
+      case "swiftui":
+      case "compose":
+      case "adaptive-swiftui":
+      case "adaptive-compose":
+      case "adaptive-manifest":
+      case "mobile-assets":
+        return "Select an artboard to generate native output. Adaptive formats use the responsive family.";
+      case "accessibility-audit":
+        return "Reports naming, structure, target-size, and measurable solid-color contrast issues without changing the document.";
+      default:
+        return "Design JSON preserves the selected artboard's semantic hierarchy and resource references.";
+    }
+  };
   return (
     <details class="diagra-inspector-section">
       <summary>Developer handoff</summary>
-      <p>
-        Parent-frame-relative coordinates in design pixels. CSS uses absolute
-        positioning and stored styles only; it does not reproduce layout rules
-        or shape paths. Linked CSS uses palette, measurement and typography
-        variables with literal fallbacks. Copy the corresponding variable CSS
-        separately to share design-system values in your application; variables
-        use stable resource IDs and their names are mapped in Design JSON.
-      </p>
-      <p>
-        Flex CSS is separate: use the child order in Design JSON and omit
-        absolute child positioning. Apply each frame class listed in Design
-        JSON. Browser sizing still needs verification.
-      </p>
-      <p>
-        Select an artboard for generated HTML, complete CSS, token-linked CSS,
-        and a semantic manifest. Auto-layout becomes flexbox; ordinary children
-        retain parent-relative geometry. The same hierarchy also generates
-        SwiftUI and Jetpack Compose starting points plus a native asset list.
-        Responsive family outputs collect the selected artboard and every linked
-        viewport into explicit branches with deterministic media queries.
-        Adaptive native outputs generate unique SwiftUI and Compose views plus
-        container-width dispatchers for the same family. The accessibility audit
-        reports naming, structure, target-size and measurable solid-color
-        contrast issues without changing the document.
-      </p>
+      <HelpHint text={formatHelp()} />
       <label>
         Output
         <select

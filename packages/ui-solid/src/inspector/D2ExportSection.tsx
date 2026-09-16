@@ -70,13 +70,6 @@ export function D2ExportSection(props: {
   return (
     <details class="diagra-inspector-section">
       <summary>D2 export</summary>
-      <p>
-        Export architecture, flow, ER, UML and sequence layers as reviewable D2
-        source for engineering documentation and version control.
-      </p>
-      <p>
-        {`${report().elementCount} definitions, ${report().relationCount} relationships/messages, ${report().warnings.length} warnings`}
-      </p>
       <button
         type="button"
         disabled={report().elementCount === 0}

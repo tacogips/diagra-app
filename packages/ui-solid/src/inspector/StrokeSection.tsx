@@ -34,7 +34,10 @@ export function StrokeSection(props: {
       ),
     );
   return (
-    <Section title="Stroke anchors">
+    <Section
+      title="Stroke anchors"
+      help="Anchor and handle coordinates are page pixels, including layer rotation. Fit frame changes only the selection frame; auto-layout parents may reflow."
+    >
       <button
         type="button"
         disabled={props.element.visual.strokeBounds === "curve"}
@@ -44,11 +47,6 @@ export function StrokeSection(props: {
           ? "Frame fitted to curve"
           : "Fit frame to curve"}
       </button>
-      <p>
-        Fits the selection/resize frame without changing the curve. Auto-layout
-        parents may reflow.
-      </p>
-      <p>{points().length} points. Coordinates are in page space.</p>
       <label>
         <input
           type="checkbox"
@@ -62,10 +60,6 @@ export function StrokeSection(props: {
         Closed path
       </label>
       <div>
-        <p>
-          Anchor and handle coordinates are in page pixels, including layer
-          rotation.
-        </p>
         <Show when={point()}>
           <For each={["controlIn", "controlOut"] as const}>
             {(control) => (

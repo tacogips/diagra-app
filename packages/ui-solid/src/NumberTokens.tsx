@@ -7,6 +7,7 @@ import {
 } from "@diagra/core";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 /** Document-wide measurements used by sizing, spacing, radii and typography. */
 export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
@@ -24,11 +25,10 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
-      <h2>Measurements</h2>
-      <p>
-        Reusable pixels for spacing, sizing, corners and typography. Values use
-        the current page mode from Color palette.
-      </p>
+      <h2>
+        Measurements{" "}
+        <HelpHint text="Reusable pixels for spacing, sizing, corners and typography. Values use the current page mode from Color palette." />
+      </h2>
       <form
         onSubmit={(event) => {
           event.preventDefault();

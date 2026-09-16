@@ -7,9 +7,11 @@ import type { FrameSemantic } from "@diagra/ir";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import { componentPreviewSource } from "./component-preview.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 export function ComponentLibrary(props: {
   readonly editor: Editor;
+  readonly showHeading?: boolean;
 }): JSX.Element {
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
@@ -73,7 +75,17 @@ export function ComponentLibrary(props: {
   });
   return (
     <section class="diagra-component-library" aria-label="Component library">
-      <h2>Components</h2>
+      <Show
+        when={props.showHeading !== false}
+        fallback={
+          <HelpHint text="Select an artboard and choose Create component in the inspector." />
+        }
+      >
+        <h2>
+          Components{" "}
+          <HelpHint text="Select an artboard and choose Create component in the inspector." />
+        </h2>
+      </Show>
       <input
         type="search"
         aria-label="Search components"
@@ -139,15 +151,12 @@ export function ComponentLibrary(props: {
                   disabled={!instances().get(id)?.length}
                   onClick={() => selectComponentInstances(props.editor, id)}
                 >
-                  Select instances on this page (
-                  {instances().get(id)?.length ?? 0})
+                  Select instances ({instances().get(id)?.length ?? 0})
                 </button>
                 <Show when={previewId() === id}>
                   <Show
                     when={preview()}
-                    fallback={
-                      <span>Preview unavailable for this component.</span>
-                    }
+                    fallback={<span>Preview unavailable</span>}
                   >
                     {(source) => (
                       <img
@@ -165,10 +174,7 @@ export function ComponentLibrary(props: {
         )}
       </For>
       <Show when={components().length === 0}>
-        <p>
-          No matching components. Select an artboard and choose Create component
-          in the inspector.
-        </p>
+        <p>{query().trim() ? "No matches" : "No components"}</p>
       </Show>
     </section>
   );

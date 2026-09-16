@@ -91,7 +91,7 @@ export function Layers(props: {
     <nav class="diagra-layers" aria-label="Layers">
       <details class="diagra-navigation-group">
         <summary>Components</summary>
-        <ComponentLibrary editor={props.editor} />
+        <ComponentLibrary editor={props.editor} showHeading={false} />
       </details>
       <details class="diagra-navigation-group">
         <summary>Styles and tokens</summary>
@@ -110,6 +110,7 @@ export function Layers(props: {
       >
         <summary>Comments</summary>
         <ReviewComments
+          showHeading={false}
           editor={props.editor}
           viewport={props.viewport}
           author={props.commentAuthor}
@@ -158,7 +159,7 @@ export function Layers(props: {
             selectionAnchor = undefined;
           }}
         >
-          Select matches on this page ({searchMatches().length})
+          Select matches ({searchMatches().length})
         </button>
       </Show>
       <For each={[...rowMap().keys()]}>
@@ -398,13 +399,7 @@ export function Layers(props: {
         )}
       </For>
       <Show when={rows().length === 0}>
-        <p>
-          {query().trim()
-            ? allPages()
-              ? "No matching layers in this document."
-              : "No matching layers on this page."
-            : "No layers"}
-        </p>
+        <p>{query().trim() ? "No matches" : "No layers"}</p>
       </Show>
       <div class="diagra-layer-actions">
         <button

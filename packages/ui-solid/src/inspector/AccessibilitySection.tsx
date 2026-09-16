@@ -37,7 +37,10 @@ export function AccessibilitySection(
   ): void => updateElementAccessibility(props.editor, props.element.id, patch);
   const audit = () => auditAccessibility(props.editor, props.element.id);
   return (
-    <Section title="Accessibility">
+    <Section
+      title="Accessibility"
+      help="Accessibility metadata exports to HTML ARIA, SwiftUI, and Jetpack Compose. Decorative layers are hidden from assistive technology."
+    >
       <Field label="Role">
         <SelectInput
           label="Accessibility role"
@@ -93,11 +96,6 @@ export function AccessibilitySection(
         checked={metadata().disabled ?? false}
         onCommit={(disabled) => update({ disabled })}
       />
-      <p>
-        Exported to HTML ARIA, SwiftUI accessibility modifiers, and Jetpack
-        Compose semantics. Decorative layers are hidden from assistive
-        technology.
-      </p>
       <Show when={audit()}>
         {(report) => (
           <>

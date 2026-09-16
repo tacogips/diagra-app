@@ -169,10 +169,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
           return props.editor.readOnly;
         })()}
       >
-        <p role="status">
-          View only. Properties can be inspected; handoff and export remain
-          available.
-        </p>
+        <p role="status">View only</p>
       </Show>
       <fieldset
         style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}

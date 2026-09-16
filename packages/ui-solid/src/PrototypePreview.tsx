@@ -853,7 +853,7 @@ export function PrototypePreview(props: {
       </header>
       <Show
         when={screen()}
-        fallback={<p>Create or select a visible artboard to preview.</p>}
+        fallback={<p>Preview requires a visible artboard.</p>}
       >
         {(view) => (
           <div class="diagra-prototype-scroll" ref={setScroll}>

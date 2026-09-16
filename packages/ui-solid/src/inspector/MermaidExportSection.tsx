@@ -96,10 +96,6 @@ export function MermaidExportSection(props: {
   return (
     <details class="diagra-inspector-section">
       <summary>Mermaid export</summary>
-      <p>
-        Export semantic ER, UML class or sequence layers for Markdown,
-        documentation sites and version-controlled engineering workflows.
-      </p>
       <Show
         when={kinds().length > 0}
         fallback={
@@ -127,9 +123,6 @@ export function MermaidExportSection(props: {
         <Show when={report()} keyed>
           {(current) => (
             <>
-              <p>
-                {`${current.elementCount} definitions, ${current.relationCount} relationships/messages, ${current.warnings.length} warnings`}
-              </p>
               <button type="button" onClick={() => void copy()}>
                 Copy Mermaid
               </button>

@@ -29,10 +29,10 @@ export function TextStyleBindingsSection(props: {
         : JSON.stringify(binding().id);
   return (
     <Show when={binding().count > 0}>
-      <Section title="Typography style">
-        <p>
-          A linked style updates every consumer. Direct type edits detach it.
-        </p>
+      <Section
+        title="Typography style"
+        help="A linked style updates every consumer. Direct type edits detach it."
+      >
         <Field label="Text style">
           <select
             aria-label="Typography style binding"

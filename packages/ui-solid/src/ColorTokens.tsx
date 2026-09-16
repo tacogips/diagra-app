@@ -12,6 +12,7 @@ import {
 } from "@diagra/core";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { HelpHint } from "./HelpHint.tsx";
 
 /** Shared palette with optional live color bindings. */
 export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
@@ -39,11 +40,10 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
-      <h2>Color palette</h2>
-      <p>
-        Linked colors follow palette edits. Direct style edits unlink that
-        field.
-      </p>
+      <h2>
+        Color palette{" "}
+        <HelpHint text="Linked colors follow palette edits. Direct style edits unlink that field." />
+      </h2>
       <label>
         Page mode
         <select

@@ -79,13 +79,6 @@ export function DatabaseExportSection(props: {
   return (
     <details class="diagra-inspector-section">
       <summary>Database DDL</summary>
-      <p>
-        Generates reviewable tables, safe defaults, ordered indexes, check
-        constraints, primary keys, foreign keys and one-to-one uniqueness from
-        every ERD layer on this page. Relations need columns at both ends; 1:*
-        and *:1 place the foreign key on the many side, while 1:1 uses the To
-        side. Many-to-many relations require an explicit junction table.
-      </p>
       <label>
         SQL dialect
         <select
@@ -106,9 +99,6 @@ export function DatabaseExportSection(props: {
           </For>
         </select>
       </label>
-      <p>
-        {`${report().tableCount} tables, ${report().relationCount} relations, ${report().indexCount} indexes, ${report().checkCount} checks, ${report().warnings.length} warnings`}
-      </p>
       <button type="button" onClick={() => void copy()}>
         Copy SQL
       </button>

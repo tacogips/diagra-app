@@ -37,7 +37,10 @@ export function PathSection(props: {
       ),
     );
   return (
-    <Section title="Vector path">
+    <Section
+      title="Vector path"
+      help="Anchor coordinates include layer rotation."
+    >
       <Field label="Fill rule">
         <SelectInput
           label="Path fill rule"
@@ -60,10 +63,6 @@ export function PathSection(props: {
           }
         />
       </Field>
-      <p>
-        {contours().length} contours, {contours().flat().length} anchors.
-        Coordinates include layer rotation.
-      </p>
       <Field label="Contour">
         <NumberInput
           label="Contour number"

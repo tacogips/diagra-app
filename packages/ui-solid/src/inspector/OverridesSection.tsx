@@ -23,10 +23,6 @@ export function OverridesSection(props: {
     <Show when={overrides().length}>
       <section class="diagra-inspector-section" aria-label="Source overrides">
         <h3>Source overrides</h3>
-        <p>
-          Restore individual fields to the current source value. Other
-          customizations stay unchanged.
-        </p>
         <For each={overrides()}>
           {(item) => (
             <div>

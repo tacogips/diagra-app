@@ -3,7 +3,7 @@ import {
   previewNoteTextReplacement,
   replaceSelectedNoteText,
 } from "@diagra/core";
-import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
+import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
 export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
@@ -40,10 +40,6 @@ export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
       }}
     >
       <summary>Replace selected note text</summary>
-      <p>
-        Literal, case-sensitive replacement in selected text notes only. Locked
-        notes are skipped; layer names and database fields are unchanged.
-      </p>
       <input
         aria-label="Find in selected note text"
         placeholder="Find"
@@ -65,8 +61,8 @@ export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
         }}
       />
       <p>
-        {preview().rows.reduce((total, row) => total + row.matches, 0)}{" "}
-        occurrences in {preview().rows.length} notes will change.
+        {preview().rows.length} notes · {Math.min(preview().rows.length, 5)}{" "}
+        shown
       </p>
       <For each={preview().rows.slice(0, 5)}>
         {(row) => (
@@ -83,12 +79,6 @@ export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
           </details>
         )}
       </For>
-      <Show when={preview().rows.length > 5}>
-        <p>
-          Showing the first 5 of {preview().rows.length} affected notes. All
-          counted notes will be updated.
-        </p>
-      </Show>
       <button
         type="button"
         disabled={!preview().rows.length || Boolean(preview().error)}

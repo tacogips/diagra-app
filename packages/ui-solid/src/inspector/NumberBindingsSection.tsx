@@ -47,11 +47,10 @@ export function NumberBindingsSection(props: {
   });
   return (
     <Show when={bindings().length > 0}>
-      <Section title="Measurement bindings">
-        <p>
-          Link numeric properties to reusable values. Direct edits unlink only
-          that property.
-        </p>
+      <Section
+        title="Measurement bindings"
+        help="Link numeric properties to reusable values. Direct edits unlink only that property."
+      >
         <For each={bindings()}>
           {(binding) => {
             const current = () =>
