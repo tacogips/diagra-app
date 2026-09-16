@@ -470,6 +470,47 @@ describe("semantic validation", () => {
     expect(issues[0]?.path).toBe("semantic.columns[1].id");
   });
 
+  test("validates portable integer identity columns", () => {
+    const column = {
+      id: "id",
+      name: "id",
+      dataType: "integer",
+      pk: true,
+      autoIncrement: true,
+    };
+    expect(
+      hasErrors(validate("erd.table", { tableName: "t", columns: [column] })),
+    ).toBe(false);
+    for (const patch of [
+      { dataType: "uuid" },
+      { pk: false },
+      { nullable: true },
+      { defaultExpression: "1" },
+      { generatedExpression: "1 + 1" },
+      { autoIncrement: "yes" },
+    ]) {
+      expect(
+        hasErrors(
+          validate("erd.table", {
+            tableName: "t",
+            columns: [{ ...column, ...patch }],
+          }),
+        ),
+      ).toBe(true);
+    }
+    expect(
+      hasErrors(
+        validate("erd.table", {
+          tableName: "t",
+          columns: [
+            column,
+            { id: "b", name: "b", dataType: "integer", pk: true },
+          ],
+        }),
+      ),
+    ).toBe(true);
+  });
+
   test("validates database defaults and composite indexes", () => {
     const issues = validate("erd.table", {
       tableName: "t",

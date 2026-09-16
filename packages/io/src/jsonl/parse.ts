@@ -217,6 +217,9 @@ function collect(text: string): Collected {
         id: known["id"],
         name: known["name"],
         kind: known["pageKind"],
+        ...(known["sqlDialect"] === undefined
+          ? {}
+          : { sqlDialect: known["sqlDialect"] }),
         ...(known["order"] === undefined ? {} : { order: known["order"] }),
         ...(known["tokenMode"] === undefined
           ? {}

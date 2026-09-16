@@ -5,6 +5,19 @@ import { document, element, makeEditor, TEST_PAGE } from "./test-helpers.ts";
 
 const SECOND: Page = { id: "page-2", name: "Two", kind: "erd" };
 
+test("page SQL dialect changes are isolated and undoable", () => {
+  const editor = makeEditor({ document: document([], [TEST_PAGE, SECOND]) });
+  expect(editor.setPageSqlDialect(TEST_PAGE.id, "postgresql")).toBe(false);
+  expect(editor.setPageSqlDialect(TEST_PAGE.id, "mysql")).toBe(true);
+  expect(editor.store.getPage(TEST_PAGE.id)?.sqlDialect).toBe("mysql");
+  expect(editor.store.getPage(SECOND.id)?.sqlDialect).toBeUndefined();
+  editor.undo();
+  expect(editor.store.getPage(TEST_PAGE.id)?.sqlDialect).toBeUndefined();
+  editor.redo();
+  expect(editor.store.getPage(TEST_PAGE.id)?.sqlDialect).toBe("mysql");
+  expect(editor.setPageSqlDialect("missing", "sqlite")).toBe(false);
+});
+
 function twoPages() {
   return makeEditor({
     document: document(

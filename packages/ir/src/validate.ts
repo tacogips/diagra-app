@@ -722,6 +722,13 @@ export function validateDocument(
             ),
           );
       }
+      if (page["sqlDialect"] !== undefined) {
+        checkEnum(out, page["sqlDialect"], `${path}.sqlDialect`, [
+          "postgresql",
+          "mysql",
+          "sqlite",
+        ]);
+      }
       if (page["tokenMode"] !== undefined) {
         if (checkString(out, page["tokenMode"], `${path}.tokenMode`)) {
           const mode = page["tokenMode"];

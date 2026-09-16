@@ -183,6 +183,8 @@ export interface ErdColumn {
   readonly dataType: string;
   readonly pk?: boolean;
   readonly nullable?: boolean;
+  /** Portable, single integer primary-key identity. */
+  readonly autoIncrement?: boolean;
   /** Portable SQL expression emitted after DEFAULT when it is safe. */
   readonly defaultExpression?: string;
   /** Portable computed expression emitted as a stored generated column. */

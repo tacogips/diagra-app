@@ -156,6 +156,13 @@ export {
   hitTestPoint,
 } from "./hit-test.ts";
 export { type IdSource, isElementIdFormat, newElementId } from "./ids.ts";
+export { applyErdDefinition } from "./erd-definition-edit.ts";
+export {
+  parseErdDefinition,
+  formatErdDefinition,
+  type DefinitionColumn,
+  type DefinitionResult,
+} from "./erd-definition.ts";
 export {
   addPageGuide,
   DEFAULT_GUIDE_COLOR,

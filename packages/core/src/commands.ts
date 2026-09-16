@@ -78,6 +78,7 @@ export type Command =
         readonly name?: string;
         readonly kind?: PageKind;
         readonly tokenMode?: string | null;
+        readonly sqlDialect?: Page["sqlDialect"] | null;
         readonly order?: FractionalIndex | null;
       };
     }
@@ -360,6 +361,11 @@ function validateNewPage(
   if (!isPageKind(page.kind)) {
     out.push(error("value.enum", "page.kind", "unknown page kind"));
   }
+  if (
+    page.sqlDialect !== undefined &&
+    !["postgresql", "mysql", "sqlite"].includes(page.sqlDialect)
+  )
+    out.push(error("value.enum", "page.sqlDialect", "unknown SQL dialect"));
   if (
     page.order !== undefined &&
     (typeof page.order !== "string" || !isFractionalKey(page.order))
@@ -658,9 +664,30 @@ export function applyCommands(
             ],
             "updatePage: invalid order",
           );
-        const { tokenMode: _oldMode, order: _oldOrder, ...base } = previous;
+        if (
+          patch.sqlDialect != null &&
+          !["postgresql", "mysql", "sqlite"].includes(patch.sqlDialect)
+        ) {
+          throw new CommandError(
+            [error("value.enum", "page.sqlDialect", "unknown SQL dialect")],
+            "updatePage: invalid SQL dialect",
+          );
+        }
+        const {
+          tokenMode: _oldMode,
+          order: _oldOrder,
+          sqlDialect: _oldDialect,
+          ...base
+        } = previous;
         pages.set(command.id, {
           ...base,
+          ...(patch.sqlDialect === null
+            ? {}
+            : patch.sqlDialect !== undefined
+              ? { sqlDialect: patch.sqlDialect }
+              : previous.sqlDialect === undefined
+                ? {}
+                : { sqlDialect: previous.sqlDialect }),
           ...(patch.tokenMode === null || previous.tokenMode === undefined
             ? {}
             : { tokenMode: previous.tokenMode }),
@@ -684,6 +711,7 @@ export function applyCommands(
             name: previous.name,
             kind: previous.kind,
             tokenMode: previous.tokenMode ?? null,
+            sqlDialect: previous.sqlDialect ?? null,
             order: previous.order ?? null,
           },
         });

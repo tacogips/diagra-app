@@ -311,6 +311,8 @@ export interface Page {
   readonly order?: FractionalIndex;
   /** Document-token mode used by elements on this page; omitted is Default. */
   readonly tokenMode?: string;
+  /** Input syntax for ERD table definitions; omitted means PostgreSQL. */
+  readonly sqlDialect?: "postgresql" | "mysql" | "sqlite";
   readonly extensions?: Extensions;
 }
 

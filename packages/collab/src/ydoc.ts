@@ -2,7 +2,7 @@
 //
 // Shape:
 //   meta     Y.Map   { schemaVersion, id, title, extensions?, unknownRecords? }
-//   pages    Y.Map<PageId, Y.Map{ name, kind, order?, tokenMode?, extensions? }>
+//   pages    Y.Map<PageId, Y.Map{ name, kind, order?, tokenMode?, sqlDialect?, extensions? }>
 //   elements Y.Map<ElementId, Y.Map{ type, page, index, semantic,
 //                                    accessibility?, visual, extensions? }>
 //
@@ -88,6 +88,7 @@ export function pageFields(page: Page): Record<string, unknown> {
   return {
     name: page.name,
     kind: page.kind,
+    ...(page.sqlDialect === undefined ? {} : { sqlDialect: page.sqlDialect }),
     ...(page.tokenMode === undefined ? {} : { tokenMode: page.tokenMode }),
     ...(page.order === undefined ? {} : { order: page.order }),
     ...(page.extensions === undefined ? {} : { extensions: page.extensions }),
@@ -203,6 +204,11 @@ export function pageFromY(id: PageId, value: unknown): Page {
     id,
     name: String(record.name ?? ""),
     kind: record.kind as Page["kind"],
+    ...(record.sqlDialect === "postgresql" ||
+    record.sqlDialect === "mysql" ||
+    record.sqlDialect === "sqlite"
+      ? { sqlDialect: record.sqlDialect }
+      : {}),
     ...(typeof record.tokenMode === "string"
       ? { tokenMode: record.tokenMode }
       : {}),

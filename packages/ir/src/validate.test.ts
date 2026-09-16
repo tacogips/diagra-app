@@ -30,6 +30,29 @@ function withElements(elements: Document["elements"]): Document {
   return { ...base(), elements };
 }
 
+test("page SQL input dialect is optional and restricted to supported dialects", () => {
+  for (const sqlDialect of [
+    undefined,
+    "postgresql",
+    "mysql",
+    "sqlite",
+  ] as const) {
+    const doc = base();
+    expect(
+      isValidDocument({ ...doc, pages: [{ ...doc.pages[0], sqlDialect }] }),
+    ).toBe(true);
+  }
+  const doc = base();
+  expect(
+    validateDocument({
+      ...doc,
+      pages: [{ ...doc.pages[0], sqlDialect: "oracle" }],
+    } as unknown as Document).some(
+      (issue) => issue.path === "pages[0].sqlDialect",
+    ),
+  ).toBe(true);
+});
+
 function codes(issues: readonly ValidationIssue[]): string[] {
   return issues.map((issue) => issue.code);
 }

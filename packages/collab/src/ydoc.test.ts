@@ -18,6 +18,59 @@ function roundTrip(document: Document): Document {
   return ydocToIr(irToYDoc(document));
 }
 
+test("page input dialect survives Yjs wire round trips", () => {
+  for (const sqlDialect of ["postgresql", "mysql", "sqlite"] as const) {
+    const base = erdDocument();
+    const doc = {
+      ...base,
+      pages: base.pages.map((page) => ({ ...page, sqlDialect })),
+    };
+    const source = irToYDoc(doc);
+    const remote = new Y.Doc();
+    Y.applyUpdate(remote, Y.encodeStateAsUpdate(source));
+    expect(
+      ydocToIr(remote).pages.every((page) => page.sqlDialect === sqlDialect),
+    ).toBe(true);
+    source.destroy();
+    remote.destroy();
+  }
+});
+
+test("portable column identity survives Yjs wire round trips", () => {
+  const base = erdDocument();
+  const doc = {
+    ...base,
+    elements: base.elements.map((element) =>
+      element.type !== "erd.table"
+        ? element
+        : {
+            ...element,
+            semantic: {
+              tableName: "identity_table",
+              columns: [
+                {
+                  id: "identity",
+                  name: "id",
+                  dataType: "integer",
+                  pk: true,
+                  autoIncrement: true,
+                },
+              ],
+            },
+          },
+    ),
+  };
+  expect(
+    roundTrip(doc)
+      .elements.filter((element) => element.type === "erd.table")
+      .map((element) => element.semantic),
+  ).toEqual(
+    doc.elements
+      .filter((element) => element.type === "erd.table")
+      .map((element) => element.semantic),
+  );
+});
+
 /** Sorted copy, since `ydocToIr` orders by id and fixtures need not. */
 function sortedById(document: Document): Document {
   return {

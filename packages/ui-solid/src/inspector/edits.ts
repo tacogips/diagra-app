@@ -357,6 +357,9 @@ export function updateErdColumn(
       if (patch.nullable !== undefined) {
         next = withOptionalFlag(next, "nullable", patch.nullable);
       }
+      if (patch.autoIncrement !== undefined) {
+        next = withOptionalFlag(next, "autoIncrement", patch.autoIncrement);
+      }
       if (patch.defaultExpression !== undefined) {
         next = withOptionalString(
           next,

@@ -404,6 +404,7 @@ const ERD_TABLE: ElementTypeDefinition = {
           "dataType",
           "pk",
           "nullable",
+          "autoIncrement",
           "defaultExpression",
           "generatedExpression",
         ],
@@ -445,6 +446,33 @@ const ERD_TABLE: ElementTypeDefinition = {
       checkString(out, column["name"], `${at}.name`);
       checkString(out, column["dataType"], `${at}.dataType`);
       checkBoolean(out, column["pk"], `${at}.pk`, { optional: true });
+      checkBoolean(out, column["autoIncrement"], `${at}.autoIncrement`, {
+        optional: true,
+      });
+      if (
+        column["autoIncrement"] === true &&
+        (column["pk"] !== true ||
+          !/^(?:int|integer|smallint|bigint)$/i.test(
+            String(column["dataType"]).trim(),
+          ) ||
+          columns.filter(
+            (item) =>
+              typeof item === "object" &&
+              item !== null &&
+              "pk" in item &&
+              item.pk === true,
+          ).length !== 1 ||
+          column["nullable"] === true ||
+          !!column["defaultExpression"] ||
+          !!column["generatedExpression"])
+      )
+        out.push(
+          error(
+            "erd.identity",
+            at,
+            "auto-increment requires one integer primary key without nullability, default or generated expression",
+          ),
+        );
       checkBoolean(out, column["nullable"], `${at}.nullable`, {
         optional: true,
       });

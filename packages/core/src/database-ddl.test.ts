@@ -311,7 +311,7 @@ test("SQLite handoff executes and enforces keys, defaults, checks and indexes", 
   }
 });
 
-test("PostgreSQL DDL preserves table order, keys, nullability and relations", () => {
+test("PostgreSQL DDL sorts tables by name and preserves keys, nullability and relations", () => {
   const { editor } = databaseFixture();
   const before = editor.getSnapshot();
   const result = generateDatabaseDdl(
@@ -347,8 +347,8 @@ test("PostgreSQL DDL preserves table order, keys, nullability and relations", ()
   expect(result.sql).toContain(
     'ALTER TABLE "orders" ADD CONSTRAINT "fk_orders_user_id_users"',
   );
-  expect(result.sql.indexOf('CREATE TABLE "users"')).toBeLessThan(
-    result.sql.indexOf('CREATE TABLE "orders"'),
+  expect(result.sql.indexOf('CREATE TABLE "orders"')).toBeLessThan(
+    result.sql.indexOf('CREATE TABLE "users"'),
   );
   expect(result.sql.indexOf('CREATE TABLE "orders"')).toBeLessThan(
     result.sql.indexOf('ALTER TABLE "orders"'),

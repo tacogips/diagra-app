@@ -2107,6 +2107,21 @@ export class Editor {
     return true;
   }
 
+  /** Change ERD input syntax without changing the independently chosen export target. */
+  setPageSqlDialect(
+    id: PageId,
+    sqlDialect: NonNullable<Page["sqlDialect"]>,
+    applyOptions: ApplyOptions = {},
+  ): boolean {
+    const page = this.store.getPage(id);
+    if (!page || (page.sqlDialect ?? "postgresql") === sqlDialect) return false;
+    this.apply(
+      [{ type: "updatePage", id, page: { sqlDialect } }],
+      applyOptions,
+    );
+    return true;
+  }
+
   /** Select a design-token mode for one page; null restores Default. */
   setPageTokenMode(
     id: PageId,

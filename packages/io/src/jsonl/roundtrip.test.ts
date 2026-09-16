@@ -19,6 +19,45 @@ const MINIMAL: Document = {
   elements: [],
 };
 
+test("SQL input dialect is a page field through JSONL round trips", () => {
+  for (const sqlDialect of ["postgresql", "mysql", "sqlite"] as const) {
+    const doc: Document = {
+      ...MINIMAL,
+      pages: [{ id: "p1", name: "Schema", kind: "erd", sqlDialect }],
+    };
+    expect(parseDocument(serializeDocument(doc)).pages).toEqual(doc.pages);
+  }
+});
+
+test("portable auto-increment metadata round-trips through JSONL", () => {
+  const doc: Document = {
+    ...MINIMAL,
+    pages: [{ id: "p", name: "Schema", kind: "erd", sqlDialect: "mysql" }],
+    elements: [
+      {
+        id: "t",
+        page: "p",
+        type: "erd.table",
+        index: "a0",
+        visual: {},
+        semantic: {
+          tableName: "t",
+          columns: [
+            {
+              id: "id",
+              name: "id",
+              dataType: "integer",
+              pk: true,
+              autoIncrement: true,
+            },
+          ],
+        },
+      },
+    ],
+  };
+  expect(parseDocument(serializeDocument(doc))).toEqual(doc);
+});
+
 describe("record ordering", () => {
   // Every golden fixture is single-page, so the "by page, then id" rule is
   // pinned here instead.
