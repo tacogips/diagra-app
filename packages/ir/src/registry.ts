@@ -592,6 +592,7 @@ const ERD_RELATION: ElementTypeDefinition = {
       "onDelete",
       "onUpdate",
       "deferrability",
+      "logical",
       "label",
       "routing",
       "routingAxis",
@@ -654,6 +655,9 @@ const ERD_RELATION: ElementTypeDefinition = {
       FOREIGN_KEY_DEFERRABILITIES,
       { optional: true },
     );
+    checkBoolean(out, semantic["logical"], `${path}.logical`, {
+      optional: true,
+    });
     checkString(out, semantic["label"], `${path}.label`, {
       optional: true,
       allowEmpty: true,

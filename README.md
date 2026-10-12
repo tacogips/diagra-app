@@ -101,6 +101,7 @@ check generated artifacts in CI or pre-commit hooks:
 diagra-cli ddl schema.jsonl --dialect postgresql --strict --output schema.sql
 diagra-cli ddl schema.jsonl --dialect postgresql --strict --check schema.sql
 diagra-cli format schema.jsonl --check     # or --write
+diagra-cli arrange schema.jsonl --write    # Tidy layout; --mode overlaps, --check
 diagra-cli validate schema.jsonl
 ```
 
@@ -110,6 +111,39 @@ exits 1 when the file is out of date, `--strict` exits 3 when the export
 reports warnings, and usage or parse errors exit 2. In a checkout, run it with
 `bun apps/cli/src/main.ts`; `mise run build-cli` compiles the standalone
 sidecar that the macOS bundle ships.
+
+## Tidy layout and overlap removal
+
+Arrange > Tidy layout (Cmd/Ctrl+Option+L) re-flows the current page, or the
+selection when two or more layers are selected, into a clean left-to-right
+layered layout: connectors decide the layers (an ERD relation places the
+referenced table before the referencing one), barycenter sweeps reduce
+crossings, and each box is pulled level with the boxes it connects to without
+ever overlapping. Unconnected layers and separate clusters are packed
+compactly. Frames are arranged inside-out: each frame's contents are laid out
+first, the frame is refitted around them, and it then moves as one box,
+carrying its contents. Locked layers stay put as obstacles, auto-layout frames
+keep their own layout and sequence diagrams are left alone. Arrange > Remove
+overlaps instead nudges only overlapping layers apart along the shorter axis,
+growing frames that must contain them. Both are one undo step, deterministic,
+snap to whole units and are fixed points: running them again moves nothing.
+Connectors re-route automatically. `diagra-cli arrange` runs the same command
+headlessly.
+
+On pages with connectors, frames are painted beneath the connector layer and
+no longer count as routing obstacles, so relations inside and across framed
+groups stay visible and take direct routes; the layers inside the frames
+remain obstacles.
+
+## Logical ERD references
+
+A relation's Constraint > Logical reference option marks a join path the
+database does not enforce (for example application-level references in a
+schema without foreign keys). It is drawn dashed, keeps its field-to-field
+column anchors and cardinality, exports as a dotted Mermaid relationship and a
+dashed D2 connection, and Database DDL emits no foreign key or uniqueness for
+it. Turning it on drops the constraint-only settings (referential actions and
+timing).
 
 ## Page ordering
 

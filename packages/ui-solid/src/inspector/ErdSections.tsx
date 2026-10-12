@@ -52,6 +52,7 @@ import {
   removeErdCheck,
   removeErdIndex,
   setErdDeferrability,
+  setErdLogical,
   setErdColumnPair,
   setErdReferentialAction,
   updateErdColumn,
@@ -540,57 +541,78 @@ export function ErdRelationSection(
           }
         />
       </Field>
-      <Field label="On delete">
-        <SelectInput
-          label="On delete"
-          value={semantic().onDelete ?? "no-action"}
-          options={REFERENTIAL_ACTION_OPTIONS}
-          onCommit={(action) =>
-            write(
-              setErdReferentialAction(
-                semantic(),
-                "onDelete",
-                action as ReferentialAction,
-              ),
-            )
-          }
+      <Field label="Constraint">
+        <Checkbox
+          label="Logical reference (no foreign key)"
+          title="Draw and document the join path without emitting a database constraint"
+          checked={semantic().logical === true}
+          onCommit={(logical) => write(setErdLogical(semantic(), logical))}
         />
       </Field>
-      <Field label="On update">
-        <SelectInput
-          label="On update"
-          value={semantic().onUpdate ?? "no-action"}
-          options={REFERENTIAL_ACTION_OPTIONS}
-          onCommit={(action) =>
-            write(
-              setErdReferentialAction(
-                semantic(),
-                "onUpdate",
-                action as ReferentialAction,
-              ),
-            )
-          }
-        />
-      </Field>
-      <Field label="Constraint timing">
-        <SelectInput
-          label="Constraint timing"
-          value={semantic().deferrability ?? "not-deferrable"}
-          options={DEFERRABILITY_OPTIONS}
-          onCommit={(value) =>
-            write(
-              setErdDeferrability(semantic(), value as ForeignKeyDeferrability),
-            )
-          }
-        />
-      </Field>
+      <Show when={semantic().logical !== true}>
+        <Field label="On delete">
+          <SelectInput
+            label="On delete"
+            value={semantic().onDelete ?? "no-action"}
+            options={REFERENTIAL_ACTION_OPTIONS}
+            onCommit={(action) =>
+              write(
+                setErdReferentialAction(
+                  semantic(),
+                  "onDelete",
+                  action as ReferentialAction,
+                ),
+              )
+            }
+          />
+        </Field>
+        <Field label="On update">
+          <SelectInput
+            label="On update"
+            value={semantic().onUpdate ?? "no-action"}
+            options={REFERENTIAL_ACTION_OPTIONS}
+            onCommit={(action) =>
+              write(
+                setErdReferentialAction(
+                  semantic(),
+                  "onUpdate",
+                  action as ReferentialAction,
+                ),
+              )
+            }
+          />
+        </Field>
+        <Field label="Constraint timing">
+          <SelectInput
+            label="Constraint timing"
+            value={semantic().deferrability ?? "not-deferrable"}
+            options={DEFERRABILITY_OPTIONS}
+            onCommit={(value) =>
+              write(
+                setErdDeferrability(
+                  semantic(),
+                  value as ForeignKeyDeferrability,
+                ),
+              )
+            }
+          />
+        </Field>
+      </Show>
       <ConnectorRoutingFields
         semantic={semantic() as unknown as Record<string, unknown>}
         write={(next) => write(next as unknown as ReturnType<typeof semantic>)}
       />
       {endpoint("from")}
       {endpoint("to")}
-      <div class="diagra-rows" role="table" aria-label="Foreign key columns">
+      <div
+        class="diagra-rows"
+        role="table"
+        aria-label={
+          semantic().logical === true
+            ? "Referenced columns"
+            : "Foreign key columns"
+        }
+      >
         <div
           class="diagra-row diagra-row-erd-relation diagra-row-head"
           role="row"

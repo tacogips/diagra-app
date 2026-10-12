@@ -141,6 +141,8 @@ export const ACTION_MENUS: readonly Readonly<{
       ["alignTop", "Align top"],
       ["alignVCenter", "Align middle"],
       ["alignBottom", "Align bottom"],
+      ["tidyLayout", "Tidy layout"],
+      ["removeOverlaps", "Remove overlaps"],
     ]),
   },
   {

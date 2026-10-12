@@ -131,3 +131,34 @@ test("invalid documents and arguments exit with the error code", () => {
   expect(runCli(["frobnicate"], io, "test").exitCode).toBe(EXIT_ERROR);
   expect(runCli(["--version"], io, "1.2.3").stdout).toBe("diagra-cli 1.2.3\n");
 });
+
+test("arrange --write tidies overlapping tables and --check is then clean", () => {
+  const stacked = [
+    '{"kind":"document","schemaVersion":1,"id":"01JCLI0000000000000000001","title":"Pile"}',
+    '{"kind":"page","id":"p1","name":"Schema","pageKind":"erd"}',
+    '{"kind":"element","id":"t-a","page":"p1","type":"erd.table","index":"a0","semantic":{"tableName":"a","columns":[{"id":"c-id","name":"id","dataType":"integer","pk":true}]},"visual":{"x":0,"y":0,"width":200}}',
+    '{"kind":"element","id":"t-b","page":"p1","type":"erd.table","index":"a1","semantic":{"tableName":"b","columns":[{"id":"c-id","name":"id","dataType":"integer","pk":true},{"id":"c-a","name":"a_id","dataType":"integer"}]},"visual":{"x":0,"y":0,"width":200}}',
+    '{"kind":"element","id":"r","page":"p1","type":"erd.relation","index":"a2","semantic":{"from":{"table":"t-b","column":"c-a"},"to":{"table":"t-a","column":"c-id"},"cardinality":"*:1","logical":true}}',
+    "",
+  ].join("\n");
+  const io = memoryIo({ "doc.jsonl": stacked });
+  expect(runCli(["arrange", "doc.jsonl", "--check"], io, "test").exitCode).toBe(
+    EXIT_DRIFT,
+  );
+  expect(runCli(["arrange", "doc.jsonl", "--write"], io, "test").exitCode).toBe(
+    EXIT_OK,
+  );
+  expect(runCli(["arrange", "doc.jsonl", "--check"], io, "test").exitCode).toBe(
+    EXIT_OK,
+  );
+  const text = io.files.get("doc.jsonl") ?? "";
+  expect(text).toContain('"id":"t-b"');
+  expect(text).toMatch(/"id":"t-b".*"visual":\{"x":3\d\d/);
+  expect(
+    runCli(["arrange", "doc.jsonl", "--mode", "grid"], io, "test").stderr,
+  ).toContain('Unsupported mode "grid"');
+  // The logical relation emits no constraint.
+  expect(runCli(["ddl", "doc.jsonl"], io, "test").stdout).not.toContain(
+    "FOREIGN KEY",
+  );
+});

@@ -583,3 +583,26 @@ test("stored generated columns are portable and unsafe expressions are omitted",
     }
   }
 });
+
+test("logical relations are drawn but emit no foreign key or uniqueness", () => {
+  for (const cardinality of ["*:1", "1:1"] as const) {
+    const { editor, relation } = databaseFixture(cardinality);
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: relation.id,
+        semantic: {
+          ...(relation.semantic as ErdRelationSemantic),
+          logical: true,
+        },
+      },
+    ]);
+    for (const dialect of ["postgresql", "mysql", "sqlite"] as const) {
+      const result = generateDatabaseDdl(editor, editor.currentPageId, dialect);
+      expect(result.sql).not.toContain("FOREIGN KEY");
+      expect(result.sql).not.toContain("uq_orders_user_id");
+      expect(result.warnings).toEqual([]);
+      expect(result.relationCount).toBe(1);
+    }
+  }
+});

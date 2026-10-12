@@ -272,6 +272,28 @@ export function setErdReferentialAction(
 }
 
 /** Store non-default foreign-key timing while keeping the default implicit. */
+/**
+ * Mark a relation as a logical (unenforced) reference or as a foreign key.
+ * Constraint-only settings are dropped when the relation becomes logical,
+ * because no database constraint exists for them to configure.
+ */
+export function setErdLogical(
+  semantic: ErdRelationSemantic,
+  logical: boolean,
+): ErdRelationSemantic {
+  if (!logical) {
+    const { logical: _removed, ...enforced } = semantic;
+    return enforced;
+  }
+  const {
+    onDelete: _onDelete,
+    onUpdate: _onUpdate,
+    deferrability: _deferrability,
+    ...rest
+  } = semantic;
+  return { ...rest, logical: true };
+}
+
 export function setErdDeferrability(
   semantic: ErdRelationSemantic,
   value: ForeignKeyDeferrability,

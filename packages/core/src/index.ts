@@ -66,6 +66,22 @@ export {
   selectionUnitsWithBounds,
   type SizeDimension,
 } from "./align.ts";
+export { connectorBackdropIds } from "./backdrops.ts";
+export {
+  type ArrangeMode,
+  type ArrangeOptions,
+  planArrange,
+} from "./arrange.ts";
+export {
+  type LayeredLayoutOptions,
+  type LayoutDirection,
+  type LayoutEdge,
+  type LayoutNode,
+  layeredLayout,
+  type OverlapBox,
+  placeInOrder,
+  separateOverlaps,
+} from "./arrange-graph.ts";
 export {
   Camera,
   type CameraListener,

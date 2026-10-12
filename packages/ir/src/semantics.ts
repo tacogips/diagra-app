@@ -241,6 +241,11 @@ export interface ErdRelationSemantic extends ConnectorRoutingSemantic {
   readonly onUpdate?: ReferentialAction;
   /** Transaction-time enforcement for engines that support deferred keys. */
   readonly deferrability?: ForeignKeyDeferrability;
+  /**
+   * A logical reference: drawn and documented like a foreign key but not
+   * enforced by the database, so DDL export emits no constraint for it.
+   */
+  readonly logical?: boolean;
   readonly label?: string;
 }
 

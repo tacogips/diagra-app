@@ -1,8 +1,11 @@
 import {
+  type ArrangeMode,
   DATABASE_DIALECTS,
   type DatabaseDialect,
   Editor,
   generateDatabaseDdl,
+  type LayoutDirection,
+  planArrange,
 } from "@diagra/core";
 import { parseDocumentResult, serializeDocument } from "@diagra/io";
 import type { Document, Page, ValidationIssue } from "@diagra/ir";
@@ -27,6 +30,9 @@ export const USAGE = `Usage:
   diagra-cli ddl <document.jsonl> [--dialect postgresql|mysql|sqlite]
                  [--page <page id or name>] [--output <file.sql>]
                  [--check <file.sql>] [--strict]
+  diagra-cli arrange <document.jsonl> [--mode tidy|overlaps]
+                     [--direction LR|TB] [--page <page id or name>]
+                     [--write] [--check]
   diagra-cli format <document.jsonl> [--write] [--check]
   diagra-cli validate <document.jsonl>
   diagra-cli --version | --help
@@ -38,6 +44,10 @@ ddl       Print the deterministic schema DDL the editor's Database DDL panel
           --check compares the generated SQL with an existing file and exits
           1 when it is out of date.
           --strict exits 3 when the export reports warnings.
+arrange   Run the editor's Tidy layout (default) or Remove overlaps on one
+          page and print the canonical result. Without --page, the document
+          must have exactly one page. --write rewrites the file; --check
+          exits 1 when arranging would move anything.
 format    Print the canonical JSONL form. --write rewrites the file in place;
           --check exits 1 when the file is not canonical.
 validate  Parse and validate a document; prints warnings and errors.`;
@@ -55,6 +65,7 @@ interface ParsedArgs {
 }
 
 const VALUE_OPTIONS = new Set(["--dialect", "--page", "--output", "--check"]);
+const ARRANGE_OPTIONS = new Set(["--mode", "--direction", "--page"]);
 
 function ok(stdout: string, stderr = ""): CommandResult {
   return { exitCode: EXIT_OK, stdout, stderr };
@@ -215,6 +226,64 @@ function ddlCommand(io: CommandIo, args: readonly string[]): CommandResult {
   return ok(ddl.sql, stderr);
 }
 
+function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
+  const parsed = parseArgs(
+    args,
+    ARRANGE_OPTIONS,
+    new Set(["--write", "--check"]),
+  );
+  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (parsed.positional.length !== 1)
+    return fail(`arrange expects exactly one document path.\n\n${USAGE}`);
+  if (parsed.flags.has("--write") && parsed.flags.has("--check"))
+    return fail("--write and --check cannot be combined.");
+  const mode = parsed.options.get("--mode") ?? "tidy";
+  if (mode !== "tidy" && mode !== "overlaps")
+    return fail(`Unsupported mode "${mode}". Choose tidy or overlaps.`);
+  const direction = parsed.options.get("--direction") ?? "LR";
+  if (direction !== "LR" && direction !== "TB")
+    return fail(`Unsupported direction "${direction}". Choose LR or TB.`);
+  const path = parsed.positional[0] as string;
+  const loaded = loadDocument(io, path);
+  if (typeof loaded === "string") return fail(loaded);
+  const query = parsed.options.get("--page");
+  let page: Page | string;
+  if (query !== undefined) page = selectPage(loaded.document, query);
+  else if (loaded.document.pages.length === 1)
+    page = loaded.document.pages[0] as Page;
+  else page = "The document has several pages; choose one with --page.";
+  if (typeof page === "string") return fail(page);
+  const editor = new Editor({ document: loaded.document });
+  const commands = planArrange(
+    editor.store,
+    page.id,
+    editor.createShapeContext(1),
+    {
+      mode: mode as ArrangeMode,
+      direction: direction as LayoutDirection,
+    },
+  );
+  editor.apply(commands);
+  const arranged = serializeDocument(editor.getSnapshot());
+  if (parsed.flags.has("--check")) {
+    if (commands.length)
+      return {
+        exitCode: EXIT_DRIFT,
+        stdout: "",
+        stderr: `${loaded.warnings}${path}: arranging page "${page.name}" would move ${commands.length} layer(s).\n`,
+      };
+    return ok("", `${loaded.warnings}${path} is already arranged.\n`);
+  }
+  if (parsed.flags.has("--write")) {
+    io.writeText(path, arranged);
+    return ok(
+      "",
+      `${loaded.warnings}Arranged page "${page.name}" of ${path}: ${commands.length} layer update(s).\n`,
+    );
+  }
+  return ok(arranged, loaded.warnings);
+}
+
 function formatCommand(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, new Set(), new Set(["--write", "--check"]));
   if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
@@ -270,6 +339,8 @@ export function runCli(
   switch (command) {
     case "ddl":
       return ddlCommand(io, rest);
+    case "arrange":
+      return arrangeCommand(io, rest);
     case "format":
       return formatCommand(io, rest);
     case "validate":

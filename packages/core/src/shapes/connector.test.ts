@@ -541,3 +541,43 @@ describe("manual connector waypoints", () => {
     ).toBeNull();
   });
 });
+
+test("logical ERD references are dashed, enforced foreign keys are solid", () => {
+  const relation = (logical?: boolean) =>
+    element({
+      id: "r",
+      type: "erd.relation",
+      semantic: {
+        from: { table: "a" },
+        to: { table: "b" },
+        cardinality: "*:1",
+        ...(logical === undefined ? {} : { logical }),
+      },
+    });
+  expect(connectorDefaultDash(relation(true))).toBe("6 4");
+  expect(connectorDefaultDash(relation(false))).toBeUndefined();
+  expect(connectorDefaultDash(relation())).toBeUndefined();
+});
+
+test("orthogonal routes cross frames instead of detouring around them", () => {
+  const editor = makeEditor();
+  const from = editor.createElement("node.generic", {
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  const to = editor.createElement("node.generic", {
+    visual: { x: 600, y: 0, width: 100, height: 100 },
+  });
+  editor.createElement("frame", {
+    semantic: { name: "Between" },
+    visual: { x: 250, y: -200, width: 200, height: 500 },
+  });
+  const edge = editor.createElement("edge.generic", {
+    semantic: { from, to, routing: "orthogonal" },
+  });
+  const points = resolveConnector(
+    editor.store.get(edge)!,
+    editor.createShapeContext(),
+    readDirectEndpoints,
+  )?.points;
+  expect(points?.every((point) => point.y === 50)).toBe(true);
+});

@@ -38,6 +38,7 @@ export type ActionGroup =
   | "align"
   | "distribute"
   | "size"
+  | "layout"
   | "text"
   | "zoom"
   | "export";
@@ -78,6 +79,8 @@ export type ActionId =
   | "matchWidth"
   | "matchHeight"
   | "matchBoth"
+  | "tidyLayout"
+  | "removeOverlaps"
   | "editText"
   | "zoomIn"
   | "zoomOut"
@@ -167,6 +170,16 @@ function hasSelection({ editor }: ActionContext): boolean {
 
 function pageHasElements({ editor }: ActionContext): boolean {
   return editor.store.getPageElements(editor.currentPageId).length > 0;
+}
+
+/** Tidy layout and overlap removal need two layers on the page. */
+function arrangeablePage({ editor }: ActionContext): boolean {
+  return (
+    !editor.readOnly &&
+    editor.store
+      .getPageElements(editor.currentPageId)
+      .filter((element) => !element.type.startsWith("sequence.")).length > 1
+  );
 }
 
 /** Units of the selection that align/distribute/match can move. */
@@ -469,6 +482,25 @@ const ACTION_DEFINITIONS: readonly EditorAction[] = [
   matchSizeAction("matchWidth", "Match width", "width"),
   matchSizeAction("matchHeight", "Match height", "height"),
   matchSizeAction("matchBoth", "Match size", "both"),
+  {
+    id: "tidyLayout",
+    label: "Tidy layout",
+    shortcut: chord(MOD, ALT, "L"),
+    group: "layout",
+    enabled: arrangeablePage,
+    run: ({ editor }) => {
+      editor.arrangeLayout({ mode: "tidy" });
+    },
+  },
+  {
+    id: "removeOverlaps",
+    label: "Remove overlaps",
+    group: "layout",
+    enabled: arrangeablePage,
+    run: ({ editor }) => {
+      editor.arrangeLayout({ mode: "overlaps" });
+    },
+  },
   {
     id: "editText",
     label: "Edit text",

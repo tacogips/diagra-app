@@ -385,6 +385,9 @@ export function generateDatabaseDdl(
 
   for (const relation of relations) {
     const semantic = relation.semantic as ErdRelationSemantic;
+    // Logical references document a join path the database does not
+    // enforce; they deliberately produce no constraint.
+    if (semantic.logical === true) continue;
     if (semantic.cardinality === "*:*") {
       warnings.push(
         `${relation.id}: many-to-many relation requires an explicit junction table.`,

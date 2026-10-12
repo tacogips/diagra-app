@@ -266,3 +266,27 @@ test("discovers only Mermaid dialects represented on the page", () => {
   ]);
   expect(availableMermaidKinds(input, "other")).toEqual(["sequenceDiagram"]);
 });
+
+test("logical references export as dotted, non-identifying relationships", () => {
+  const users = element("users", "a1", "erd.table", {
+    tableName: "users",
+    columns: [{ id: "id", name: "id", dataType: "uuid", pk: true }],
+  });
+  const orders = element("orders", "a2", "erd.table", {
+    tableName: "orders",
+    columns: [{ id: "user", name: "user_id", dataType: "uuid" }],
+  });
+  const relation = element("placed-by", "a3", "erd.relation", {
+    from: { table: orders.id, column: "user" },
+    to: { table: users.id, column: "id" },
+    cardinality: "*:1",
+    logical: true,
+  });
+  const report = exportMermaid(
+    document([users, orders, relation]),
+    "page",
+    "erDiagram",
+  );
+  expect(report.code).toContain("E_orders }o..|| E_users : relates to");
+  expect(report.warnings).toEqual([]);
+});

@@ -37,6 +37,7 @@ import {
   planMatchSize,
   type SizeDimension,
 } from "./align.ts";
+import { type ArrangeOptions, planArrange } from "./arrange.ts";
 import {
   Camera,
   type CameraState,
@@ -1766,6 +1767,25 @@ export class Editor {
         axis,
         this.createShapeContext(),
       ),
+      applyOptions,
+    );
+  }
+
+  /**
+   * Tidy the layout or remove overlaps on the current page: the selection
+   * when two or more layers are selected, otherwise the whole page. One
+   * undo step; false when nothing moved.
+   */
+  arrangeLayout(
+    options: Omit<ArrangeOptions, "scope">,
+    applyOptions: ApplyOptions = {},
+  ): boolean {
+    const selected = [...this.selection.ids()];
+    return this.applyPlan(
+      planArrange(this.store, this.currentPageId, this.createShapeContext(), {
+        ...options,
+        scope: selected.length > 1 ? selected : [],
+      }),
       applyOptions,
     );
   }

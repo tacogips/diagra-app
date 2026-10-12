@@ -31,6 +31,7 @@ import {
   removeUmlMethod,
   serializeParameters,
   setErdDeferrability,
+  setErdLogical,
   setErdEndpointColumn,
   setErdColumnPair,
   setErdReferentialAction,
@@ -257,6 +258,31 @@ describe("erd table edits", () => {
 });
 
 describe("erd relation edits", () => {
+  test("logical relations drop constraint-only settings and can be enforced again", () => {
+    const relation = readErdRelation({
+      from: { table: "orders", column: "user_id" },
+      to: { table: "users", column: "id" },
+      cardinality: "*:1",
+      onDelete: "cascade",
+      deferrability: "initially-deferred",
+      label: "placed by",
+    });
+    const logical = setErdLogical(relation, true);
+    expect(logical).toEqual({
+      from: { table: "orders", column: "user_id" },
+      to: { table: "users", column: "id" },
+      cardinality: "*:1",
+      label: "placed by",
+      logical: true,
+    });
+    expect(setErdLogical(logical, false)).toEqual({
+      from: { table: "orders", column: "user_id" },
+      to: { table: "users", column: "id" },
+      cardinality: "*:1",
+      label: "placed by",
+    });
+  });
+
   test("an endpoint can point at a column or at the whole table", () => {
     const relation = readErdRelation({
       from: { table: "users" },

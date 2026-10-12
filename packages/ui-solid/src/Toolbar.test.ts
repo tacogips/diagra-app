@@ -48,6 +48,8 @@ test("toolbar action menus retain arrangement and export commands", () => {
     "alignTop",
     "alignVCenter",
     "alignBottom",
+    "tidyLayout",
+    "removeOverlaps",
     "exportSvg",
   ]);
 });

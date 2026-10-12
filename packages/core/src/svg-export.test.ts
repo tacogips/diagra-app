@@ -783,3 +783,31 @@ describe("editor helpers", () => {
     expect(editor.exportPageSvg({ padding: 0 })).toContain('viewBox="0 0');
   });
 });
+
+describe("frames as connector backdrops", () => {
+  const frame = element({
+    id: "domain",
+    type: "frame",
+    index: "a0",
+    semantic: { name: "Domain" },
+    visual: { x: 0, y: 0, width: 800, height: 400 },
+  });
+  const [users, orders, relation] = erdFixture() as [Element, Element, Element];
+
+  test("a frame on a page with connectors is painted beneath the lines", () => {
+    const svg = pageSvg([frame, users, orders, relation]);
+    const backdrop = svg.indexOf('data-layer="backdrops"');
+    expect(backdrop).toBeGreaterThan(-1);
+    expect(svg.indexOf('data-id="domain"')).toBeLessThan(
+      svg.indexOf('data-layer="connectors"'),
+    );
+    expect(svg.indexOf('data-layer="connectors"')).toBeLessThan(
+      svg.indexOf(`data-id="${users.id}"`),
+    );
+  });
+
+  test("without connectors the frame keeps its normal paint order", () => {
+    const svg = pageSvg([frame, users, orders]);
+    expect(svg).not.toContain('data-layer="backdrops"');
+  });
+});

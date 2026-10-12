@@ -446,6 +446,9 @@ function obstacleBoxes(
       category === "edge" ||
       category === "resource" ||
       candidate.type === "group" ||
+      // Frames are backdrop surfaces beneath connectors; their contents are
+      // the obstacles (see backdrops.ts).
+      candidate.type === "frame" ||
       context.isHidden?.(candidate.id) ||
       context.isMaskSource?.(candidate.id)
     )
@@ -820,8 +823,17 @@ export function connectorDecoration(element: Element): ConnectorDecoration {
 
 /** Semantic default line pattern; explicit visual styling may override it. */
 export function connectorDefaultDash(element: Element): string | undefined {
-  return element.type === "sequence.message" &&
+  if (
+    element.type === "sequence.message" &&
     readString(element.semantic, "kind") === "return"
-    ? "6 4"
-    : undefined;
+  )
+    return "6 4";
+  // A logical ERD reference is not a database constraint; dash it so it
+  // reads differently from an enforced foreign key.
+  if (
+    element.type === "erd.relation" &&
+    readField(element.semantic, "logical") === true
+  )
+    return "6 4";
+  return undefined;
 }

@@ -332,3 +332,23 @@ test("rejects an unknown page", () => {
     "page not found: missing",
   );
 });
+
+test("logical ER references export as dashed D2 connections", () => {
+  const parent = element("parent", "a1", "erd.table", {
+    tableName: "parent",
+    columns: [{ id: "id", name: "id", dataType: "uuid", pk: true }],
+  });
+  const child = element("child", "a2", "erd.table", {
+    tableName: "child",
+    columns: [{ id: "parent", name: "parent_id", dataType: "uuid" }],
+  });
+  const relation = element("ref", "a3", "erd.relation", {
+    from: { table: child.id, column: "parent" },
+    to: { table: parent.id, column: "id" },
+    cardinality: "*:1",
+    logical: true,
+  });
+  const report = exportD2(document([parent, child, relation]), "page");
+  expect(report.code).toContain("style.stroke-dash: 4");
+  expect(report.warnings).toEqual([]);
+});

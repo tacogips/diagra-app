@@ -1,6 +1,8 @@
 // The canvas: one CSS-transformed viewport holding four layers.
 //
-//   1. an SVG layer for connectors (drawn under everything, like ink)
+//   0. on pages with connectors, a DOM layer for frames, which are surfaces
+//      the connectors must stay visible on (see core backdrops.ts)
+//   1. an SVG layer for connectors (drawn under everything else, like ink)
 //   2. a DOM layer for box shapes
 //   3. an SVG overlay for selection outlines, handles and snap guides
 //   4. a DOM slot for whatever the shell mounts in page space (the inline
@@ -25,6 +27,7 @@ import {
   backdropEffectsCss,
   booleanGeometry,
   booleanMaskCss,
+  connectorBackdropIds,
   createSelectionResizeSnapshot,
   canRotateElement,
   canRotateSelection,
@@ -313,10 +316,24 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
     ),
   );
 
+  // Frames painted beneath the connector layer (see core backdrops.ts).
+  const backdropIds = createMemo(() =>
+    connectorBackdropIds(
+      elements(),
+      (id) => groupOf(props.editor.store, id) !== null,
+    ),
+  );
+
+  const backdropRoots = createMemo(() =>
+    elements().filter((element) => backdropIds().has(element.id)),
+  );
+
   const visualRoots = createMemo(() =>
     elements().filter(
       (element) =>
-        !isConnector(element) && !groupOf(props.editor.store, element.id),
+        !isConnector(element) &&
+        !groupOf(props.editor.store, element.id) &&
+        !backdropIds().has(element.id),
     ),
   );
 
@@ -766,6 +783,14 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           }px, ${signals.camera().y}px)`,
         }}
       >
+        <Show when={backdropRoots().length > 0}>
+          <div class="diagra-layer diagra-shape-layer diagra-backdrop-layer">
+            <For each={backdropRoots()}>
+              {(element) => renderVisualUnit(element)}
+            </For>
+          </div>
+        </Show>
+
         <svg class="diagra-layer diagra-connector-layer">
           <title>Connectors</title>
           <ConnectorMarkers />

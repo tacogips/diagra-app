@@ -26,6 +26,7 @@ import {
   type PageId,
   type Visual,
 } from "@diagra/ir";
+import { connectorBackdropIds } from "./backdrops.ts";
 import { type Box, boxCenter, rotatedBox, unionBoxes } from "./geometry.ts";
 import { croppedImageBox } from "./image-crop.ts";
 import { isRasterMaskSource } from "./clipping.ts";
@@ -1683,11 +1684,24 @@ export function renderElementsSvg(
       (rendered.has(element.id) || groups.has(element.id)) &&
       !groupParents.has(element.id),
   );
+  // Frames are surfaces: on a page with connectors they go beneath the
+  // connector layer so their fill cannot hide the lines (see backdrops.ts).
+  const backdropIds = connectorBackdropIds(
+    roots.filter((element) => rendered.has(element.id)),
+    (id) => groupParents.has(id),
+  );
+  const backdrops = roots
+    .filter((element) => backdropIds.has(element.id))
+    .map((element) => renderUnit(element, new Set()));
   const connectors = roots
     .filter((element) => renderedKinds.get(element.id) === "connector")
     .map((element) => renderUnit(element, new Set()));
   const shapes = roots
-    .filter((element) => renderedKinds.get(element.id) !== "connector")
+    .filter(
+      (element) =>
+        renderedKinds.get(element.id) !== "connector" &&
+        !backdropIds.has(element.id),
+    )
     .map((element) => renderUnit(element, new Set()));
   const margin = options.viewport ? 0 : padding;
   const x = bounds.x - margin;
@@ -1705,6 +1719,9 @@ export function renderElementsSvg(
     background === null
       ? ""
       : tag("rect", { x, y, width, height, fill: background }),
+    backdrops.length
+      ? wrap("g", { "data-layer": "backdrops" }, backdrops.join(""))
+      : "",
     wrap("g", { "data-layer": "connectors" }, connectors.join("")),
     wrap("g", { "data-layer": "shapes" }, shapes.join("")),
   ]

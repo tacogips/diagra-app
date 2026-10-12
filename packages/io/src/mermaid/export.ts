@@ -196,8 +196,10 @@ function erDiagram(elements: readonly Element[]): MermaidExportReport {
         message:
           "Foreign-key constraint timing is not expressible in Mermaid ER diagrams and was omitted.",
       });
+    // Mermaid's dotted (non-identifying) line marks a logical reference.
+    const notation = cardinality[semantic.cardinality] ?? "||--||";
     lines.push(
-      `  ${from} ${cardinality[semantic.cardinality] ?? "||--||"} ${to} : ${text(semantic.label, "relates to")}`,
+      `  ${from} ${semantic.logical === true ? notation.replace("--", "..") : notation} ${to} : ${text(semantic.label, "relates to")}`,
     );
     relationCount += 1;
   }

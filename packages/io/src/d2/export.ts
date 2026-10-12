@@ -689,6 +689,7 @@ export function exportD2(document: Document, pageId: string): D2ExportReport {
       const fields = [
         `source-arrowhead.shape: ${cardinalityShape(semantic.cardinality, 0)}`,
         `target-arrowhead.shape: ${cardinalityShape(semantic.cardinality, 1)}`,
+        ...(semantic.logical === true ? ["style.stroke-dash: 4"] : []),
       ];
       if (fromColumnIds[0] && !fromColumn)
         warnings.push({
