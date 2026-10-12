@@ -32,6 +32,7 @@ import {
   resizeRotatedBox,
   resizeHandlesFor,
   type Scheduler,
+  shortcutKey,
 } from "./interaction.ts";
 import { creationFor, GEO_TOOLS, TOOLS } from "./tools.ts";
 import type { ToolKind } from "./tools.ts";
@@ -2828,5 +2829,16 @@ describe("connector handles (design 3.4)", () => {
       to: c2,
       kind: "assoc",
     });
+  });
+});
+
+describe("shortcutKey", () => {
+  test("Option chords use the physical key macOS would otherwise rewrite", () => {
+    expect(shortcutKey({ key: "¬", code: "KeyL", altKey: true })).toBe("l");
+    expect(shortcutKey({ key: "©", code: "KeyG", altKey: true })).toBe("g");
+    expect(shortcutKey({ key: "Z", code: "KeyZ", altKey: false })).toBe("z");
+    expect(shortcutKey({ key: "]", code: "BracketRight", altKey: true })).toBe(
+      "]",
+    );
   });
 });

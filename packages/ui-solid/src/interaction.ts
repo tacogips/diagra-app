@@ -93,6 +93,19 @@ export const RESIZE_HANDLES = [
 
 export type ResizeHandle = (typeof RESIZE_HANDLES)[number];
 
+/**
+ * The letter a modifier chord was pressed with. macOS turns Option+letter
+ * into another character (Option+L is "¬", Option+G is "©"), so with Option
+ * held the physical key decides; otherwise the layout's character does.
+ */
+export function shortcutKey(
+  event: Pick<KeyboardEvent, "key" | "code" | "altKey">,
+): string {
+  if (event.altKey && /^Key[A-Z]$/.test(event.code))
+    return event.code.slice(3).toLowerCase();
+  return event.key.toLowerCase();
+}
+
 /** Derived-height engineering boxes expose only their authored width axis. */
 export function resizeHandlesFor(type: string): readonly ResizeHandle[] {
   return type === "erd.table" || type === "uml.class"
@@ -1850,7 +1863,7 @@ export function createInteraction(
   const onShortcut = (event: KeyboardEvent, key: string): boolean => {
     if (
       editor.readOnly &&
-      ["z", "y", "x", "v", "d", "g", "[", "]"].includes(key)
+      ["z", "y", "x", "v", "d", "g", "l", "[", "]"].includes(key)
     )
       return true;
     switch (key) {
@@ -1880,6 +1893,10 @@ export function createInteraction(
         return true;
       case "d":
         editor.duplicateSelection();
+        return true;
+      case "l":
+        if (!event.altKey) return false;
+        editor.arrangeLayout({ mode: "tidy" });
         return true;
       case "g":
         if (event.altKey) {
@@ -1953,7 +1970,7 @@ export function createInteraction(
     }
 
     if (modifier) {
-      if (onShortcut(event, key)) {
+      if (onShortcut(event, shortcutKey(event))) {
         event.preventDefault();
       }
       return;
