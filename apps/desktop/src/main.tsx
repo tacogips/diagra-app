@@ -19,6 +19,7 @@ import {
 } from "./cloud/settings.ts";
 import { CloudSession } from "./cloud/session.ts";
 import { createExportBackend, createFileBackend } from "./file/backend.ts";
+import { createLaunchBackend } from "./file/launch.ts";
 import { DocumentSession } from "./file/session.ts";
 import { seed } from "./seed.ts";
 import "./style.css";
@@ -59,6 +60,7 @@ render(
       cloud={cloud}
       filesAvailable={backend.available}
       exportBackend={exportBackend}
+      launchBackend={createLaunchBackend()}
       cloudSettings={cloudSettings}
       onCloudSettingsChange={(next) => {
         cloudSettings = next;

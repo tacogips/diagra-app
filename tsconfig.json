@@ -12,6 +12,8 @@
   "include": [
     "packages/*/src",
     "apps/desktop/src",
+    "apps/cli/src",
+    "apps/cli/scripts",
     "apps/desktop/vite.config.ts"
   ]
 }

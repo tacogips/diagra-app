@@ -7,6 +7,7 @@
 
 mod dialogs;
 mod fs;
+mod launch;
 mod recent;
 mod watch;
 
@@ -15,6 +16,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(recent::RecentState::default())
         .manage(watch::WatchState::default())
+        .manage(launch::LaunchState::from_args(std::env::args()))
         .invoke_handler(tauri::generate_handler![
             dialogs::pick_open_path,
             dialogs::pick_save_path,
@@ -26,7 +28,19 @@ pub fn run() {
             recent::recent_files_remove,
             watch::watch_document,
             watch::unwatch_document,
+            launch::take_launch_paths,
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to run Tauri application");
+        .build(tauri::generate_context!())
+        .expect("failed to build Tauri application")
+        .run(|_app, _event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = _event {
+                launch::request_open(
+                    _app,
+                    urls.into_iter()
+                        .filter_map(|url| url.to_file_path().ok())
+                        .collect(),
+                );
+            }
+        });
 }

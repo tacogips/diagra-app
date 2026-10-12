@@ -52,3 +52,6 @@ mise.local.toml
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Compiled diagra-cli sidecar (built by apps/cli/scripts/build-sidecar.ts)
+apps/desktop/src-tauri/binaries/

@@ -67,6 +67,50 @@ pointer, so they are covered by the manual checklist in
 mise installs Bun, Rust, and rust-analyzer. Install the native Tauri system
 libraries required by your operating system separately.
 
+## Install (macOS)
+
+Signed and notarized builds are published as GitHub releases and through the
+`tacogips/tap` Homebrew tap:
+
+```bash
+brew install --cask tacogips/tap/diagra
+```
+
+The cask installs `diagra.app` and links the bundled `diagra-cli` command.
+Open a document from a terminal with `open -a diagra path/to/file.jsonl`;
+Finder "Open With" also lists diagra for `.jsonl`, `.mmd` and `.mermaid`
+files without becoming their default application. A path passed while the app
+is running opens in the existing window (after the usual unsaved-changes
+prompt).
+
+Maintainers release with `mise run release-macos-dmg-local v<version>` after
+tagging and pushing `v<version>`; the tag must match the versions in
+`apps/desktop/src-tauri/tauri.conf.json` and `apps/cli/package.json`. The
+script reads `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` and
+`APPLE_TEAM_ID` from the environment, notarizes and staples the DMG, and
+uploads the DMG and a zipped app. `mise run bundle-macos` builds the same
+bundle locally.
+
+## Command line (`diagra-cli`)
+
+`apps/cli` is a headless command line over the same packages the editor
+uses, so repositories can keep a diagra document as the source of truth and
+check generated artifacts in CI or pre-commit hooks:
+
+```bash
+diagra-cli ddl schema.jsonl --dialect postgresql --strict --output schema.sql
+diagra-cli ddl schema.jsonl --dialect postgresql --strict --check schema.sql
+diagra-cli format schema.jsonl --check     # or --write
+diagra-cli validate schema.jsonl
+```
+
+`ddl` emits exactly what the inspector's Database DDL panel generates for one
+ERD page (`--page <id or name>` when several pages contain tables). `--check`
+exits 1 when the file is out of date, `--strict` exits 3 when the export
+reports warnings, and usage or parse errors exit 2. In a checkout, run it with
+`bun apps/cli/src/main.ts`; `mise run build-cli` compiles the standalone
+sidecar that the macOS bundle ships.
+
 ## Page ordering
 
 Page options include Move left and Move right. New pages append to the document;
