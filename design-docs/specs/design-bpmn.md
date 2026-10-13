@@ -16,6 +16,14 @@ unchanged. Only the verification gate was amended: rule 3 of section 11.1
 tests but was blocked by repo-wide typecheck diagnostics in half-finished
 files owned by sibling plans of the same wave.
 
+Revision (rendering-defect run, intake comm-006277, follow-up to 83717b5):
+end-to-end verification found flows hidden under pools and lanes, and
+placeholder task-type icons. Changed sections: 6.1 (task icon geometry,
+unfilled group, label offset origin), 6.2 (export passes the resolved box),
+new 6.4 (BPMN connector backdrops and routing obstacles), 11 (regression
+tests) and 13 (flows still pass beneath flow nodes). The rest of the
+baseline is unchanged.
+
 ## 1. Context and baseline
 
 - No `design-docs/` or `impl-plans/` existed on this branch. This is the
@@ -591,6 +599,27 @@ Rules:
   - The `taskType` icon sits top-left: user (person), service (gear), manual
     (hand), send (filled envelope), receive (hollow envelope), script
     (scroll), businessRule (table).
+    - Every primitive of the icon lies inside the local square x 6..22,
+      y 6..22 (16 units, 6-unit inset). Exactly one primitive per icon, its
+      main outline, has role `task-icon-<taskType>`. Any further detail
+      primitive has role `task-icon-<taskType>-detail`. The existing
+      role-count tests (`fixtures.test.ts` "bpmn-task-icon-user": 3,
+      `svg-export-bpmn.test.ts` one `bpmn-task-icon-user`) therefore stay
+      unchanged. `none` draws no icon. Only `bpmn.task` carries `taskType`.
+    - Shapes: user is a head circle plus a shoulders arc path; service is a
+      toothed gear outline with a hollow hub circle; manual is an open hand
+      outline (palm with four fingers and a thumb); send is an envelope body
+      filled with the stroke colour, its flap drawn in the task fill colour;
+      receive is the same envelope with `fill: "none"` and a stroke flap;
+      script is a scroll (wavy left and right edges) with three text lines;
+      businessRule is a rect with a header row filled with the stroke colour
+      and one row and one column divider.
+    - The art is original. Nothing is copied from bpmn-js or bpmn-font.
+    - Icon paths use only absolute `M`, `L`, `C`, `Q` and `Z` commands with
+      x y pairs, so tests can compute their bounds. Circles and rects are
+      `circle`/`rect` primitives.
+    - The activity label layout is unchanged. On the default 100 x 80 task
+      the label band starts at y 25, below the icon.
   - Bottom-centre markers: loop (circular arrow), parallel multi-instance
     (three vertical bars), sequential multi-instance (three horizontal bars),
     compensation (double rewind triangles).
@@ -639,9 +668,15 @@ Rules:
     Input and output add a hollow or filled arrow top-left.
   - Data store: a cylinder.
   - Text annotation: an open left bracket with the text beside it.
-  - Group: a dash-dot rounded rect with the name at the top.
+  - Group: a dash-dot rounded rect with the name at the top. The body has
+    `fill: "none"` unless `visual.style.fill` is set, so a group never hides
+    lanes or nodes it overlaps.
 - **Labels**
-  - Use `visual.labelBounds` when set.
+  - Use `visual.labelBounds` when set. `labelBounds` is absolute. The local
+    label position is `labelBounds` minus the origin of the `box` passed to
+    `bpmnNotation`, which is always the element's resolved absolute bounds.
+    `visual.x`/`visual.y` are not read, so a shape without stored x/y
+    renders its label at the same place on the canvas and in export.
   - Otherwise, events, gateways, data objects and data stores put the label
     centred below the shape (top = shape bottom + 7, width 90, wrapped).
   - Flows put the label at the connector `labelPoint`.
@@ -654,6 +689,11 @@ Rules:
 - `svg-export.ts` `renderShape` gains a `bpmn.*` branch calling
   `bpmnNotation`. `renderConnector` gets BPMN flow decorations from a
   `bpmnFlowDecoration(element)` helper in the notation module.
+  - `renderBpmnShape` passes the resolved absolute `box` to `bpmnNotation`
+    (not a box zeroed at 0,0) and keeps the `translate(box.x box.y)` group.
+    Primitive geometry is local and uses only `box.width`/`box.height`; the
+    origin is used only for the label offset (section 6.1 Labels). The
+    canvas `BpmnShapeView` already passes the resolved box.
 - `packages/ui-solid/src/shapes/ShapeView.tsx` gains a `BpmnShapeView`
   match. `ConnectorView.tsx` uses the same flow decoration helper.
 
@@ -683,6 +723,52 @@ Rules:
   - Options that would violate section 4 are disabled, and
     `updateBpmnSemantic` still rejects them when called programmatically.
   - The Analytic constructs are reachable here.
+
+### 6.4 Paint layers and routing obstacles (`packages/core/src/backdrops.ts`)
+
+Shapes paint above the connector layer, so lines never cover a node. Before
+this revision, `isConnectorBackdrop` lowered only ungrouped `frame`
+elements beneath the connectors. Opaque pool and lane bodies therefore
+painted over every sequence and message flow on the canvas and in export.
+
+Rule: `isConnectorBackdrop(element, isGrouped)` is true when the element is
+not grouped (`!isGrouped(element.id)`, as for frames today) and is one of:
+- `frame` (unchanged)
+- `bpmn.participant`, collapsed or not. A black-box pool then never hides a
+  message flow that docks on it. This keeps the predicate a type test.
+- `bpmn.lane`
+- `bpmn.subProcess` with `semantic.expanded === true`. A collapsed
+  sub-process is a node and stays a shape.
+- `bpmn.group`
+
+The predicate is the single source for three consumers, so editor, export
+and routing cannot diverge:
+- SVG export (`svg-export.ts`, `connectorBackdropIds`): these elements go
+  into `<g data-layer="backdrops">` before `<g data-layer="connectors">`.
+- The ui-solid canvas (`Canvas.tsx`, `connectorBackdropIds`): these elements
+  go into `diagra-backdrop-layer` before the connector svg.
+- Connector routing (`shapes/connector.ts` `obstacleBoxes`): these elements
+  are not obstacles. Flows route inside pools and lanes and across expanded
+  sub-processes. The nodes inside them stay obstacles.
+
+Paint order inside the backdrop layer is page z-order, as for frames. Both
+consumers filter the z-ordered element list. The importer emits pools,
+then lanes, then process contents in document order (`import.ts` add
+order), so a pool is below its lanes and lanes are below an expanded
+sub-process, and lane headers still draw over the pool body. In the editor
+the existing z-order is kept as authored. No new layer, z-index or
+reordering is added.
+
+Unchanged:
+- Tasks, events, gateways, call activities, collapsed sub-processes, data
+  objects, data stores, text annotations and boundary events stay in the
+  shapes layer above the connectors.
+- A backdrop exists only on a page with at least one connector
+  (`connectorBackdropIds`).
+- An element inside a diagra `group` keeps its group's paint order and
+  stays a routing obstacle. The BPMN importer never creates diagra groups.
+  `bpmn.group` is a BPMN artifact, not a diagra group.
+- Frame and ERD backdrop behaviour and their tests.
 
 ## 7. Lint (packages/core/src/bpmn/lint)
 
@@ -981,6 +1067,48 @@ Tests (one line each, colocated `*.test.ts`):
     - 1 exclusive X
     - 12 sequence-flow arrowheads
     - YES/NO labels
+  - rendering-defect regressions (section 6.4 and 6.1 revision):
+    - `packages/core/src/backdrops.test.ts` (new): `isConnectorBackdrop`
+      is true for ungrouped participant (collapsed and expanded), lane,
+      expanded sub-process and `bpmn.group`; false for task, event,
+      gateway, data object, text annotation, collapsed sub-process and any
+      grouped element.
+    - `packages/core/src/bpmn/svg-export-layers.test.ts` (new, so the two
+      parallel implementation slices do not share a test file) holds (a)
+      and (b); `packages/core/src/bpmn/svg-export-bpmn.test.ts` holds (c).
+      (a) an expanded
+      pool with two lanes, tasks, a sequence flow, a collapsed pool and a
+      message flow exports participant and lane bodies inside
+      `data-layer="backdrops"`, before `data-layer="connectors"`, which
+      holds every flow line and `bpmn-sequence-arrow`/`bpmn-message-arrow`;
+      tasks stay after the connectors. (b) `purchase-request.bpmn`, read
+      from `packages/io/src/__fixtures__/bpmn/` and imported with
+      `importBpmnXml` (`packages/core/package.json` already depends on
+      `@diagra/io`),
+      exports 12 sequence-flow lines and 12 `bpmn-sequence-arrow` polygons,
+      all after the last participant/lane body. (c) a shape without stored
+      `visual.x`/`visual.y` but with `labelBounds` places its label at the
+      same absolute point in export as `bpmnNotation` with the resolved box.
+    - `packages/core/src/shapes/connector.test.ts`: following the existing
+      "orthogonal routes cross frames" test, an orthogonal route between
+      two nodes with a pool and lane (and, separately, an expanded
+      sub-process and a `bpmn.group`) standing between them stays straight.
+      A collapsed sub-process in the same place still makes it detour.
+      This fails before the change, because those containers were
+      obstacles.
+    - `packages/core/src/bpmn/notation.test.ts`: each of the seven task
+      types yields a distinct icon (role `task-icon-<type>` and geometry);
+      every icon primitive lies within x 6..22, y 6..22 of the task box;
+      send's envelope body is filled with the stroke colour and receive's
+      is `none`; `none` yields no icon; group body fill is `none`.
+    - `packages/ui-solid/src/bpmn-backdrop.test.ts` (new): the canvas
+      partition, `connectorBackdropIds(elements, (id) => groupOf(store, id)
+      !== null)` exactly as `Canvas.tsx` calls it, puts pool and lanes in
+      the backdrop set and leaves tasks and flows out, preserving z-order.
+      ui-solid has no rendered-canvas frame backdrop test to follow, so this
+      tests the canvas's call into the shared predicate.
+    - Existing frame and ERD backdrop tests in `svg-export.test.ts` and
+      `connector.test.ts` pass unchanged.
   - one test per lint rule (positive and negative)
   - config parsing
   - the four fixture lint outcomes
@@ -1105,6 +1233,9 @@ Dependencies:
   `<id>_di`, and the docking points come from geometry. Semantic ids, shape
   and label bounds and interior waypoints are preserved.
 - Vertical pools import with a warning and render horizontally.
+- Flows paint above pools, lanes, expanded sub-processes and groups, but
+  below flow nodes (section 6.4). bpmn-js paints connections above every
+  shape. diagra keeps its rule that lines never cover a node's content.
 
 ## 14. Risks
 
