@@ -9,6 +9,20 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 3, after the wave-2 join, which
+  includes bpmn-04. If an owned path already exists, re-read and
+  inventory it instead of overwriting it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)".
+- G1 ownRegex:
+  `^packages/ui-solid/src/shapes/(BpmnShapeView\.tsx|bpmn-primitive\.ts|bpmn-primitive\.test\.ts|ShapeView\.tsx|ConnectorView\.tsx)\(`.
+- Focused owned test (strictly blocking):
+  `bun test packages/ui-solid/src/shapes/bpmn-primitive.test.ts`. G2
+  applies to `bun test packages/ui-solid`. A failure in an existing
+  shape or connector view test is caused by this plan and blocks.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-08-ui-solid-views/`.
+
 ## Intent
 
 Draw BPMN notation on the editor canvas from the same primitives the SVG
@@ -96,7 +110,7 @@ existing line code needs no change.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                       # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-08-ui-solid-views/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/shapes           # exit 0
 bun test packages/ui-solid/src/shapes/bpmn-primitive.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/ui-solid                              # exit 0

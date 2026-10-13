@@ -11,6 +11,24 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 3, after the wave-2 join, which
+  includes bpmn-03, bpmn-04, bpmn-05 and bpmn-06. If an owned path
+  already exists, re-read and inventory it instead of overwriting it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)".
+- G1 ownRegex:
+  `^packages/core/src/bpmn/(fixtures|reference-lint)\.test\.ts\(`.
+- Focused owned test (strictly blocking): the third "Verification"
+  command (both owned test files). G2 applies to the whole-repo
+  `bun test`.
+- If a focused assertion fails because production code in a wave-2 plan
+  is wrong (for example, a lint outcome or an SVG role count), do not
+  weaken the assertion and do not edit production code (non-goal).
+  Record it under Open issues with the failing assertion and the owning
+  plan, and stop. The orchestrator routes it.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-13-core-integration-tests/`.
+
 ## Intent
 
 Cross-package acceptance tests that need both the io importer and core
@@ -93,7 +111,7 @@ spaces; do not depend on attribute order.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                       # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-13-core-integration-tests/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts   # exit 0
 bun test packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts   # exit 0; reference tests not skipped locally
 bun test                                                # exit 0

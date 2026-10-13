@@ -9,6 +9,41 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: PARTIAL, continue. The s357 worker was terminated after a
+  network outage. Its work is in the working tree, uncommitted. Never
+  revert, regenerate, `git checkout`, `git stash` or delete it. Follow
+  the overview's "Continuation (session-359)" resume rules.
+- Already present (re-read and inventory, do not rewrite):
+  `packages/core/src/bpmn/notation.ts`, `notation.test.ts`, `routes.ts`,
+  `routes.test.ts`, `svg-export-bpmn.test.ts`, a modified
+  `packages/core/src/svg-export.ts`, and possibly `bpmn.*` branches in
+  `packages/core/src/shapes/connector.ts`. Intent notes:
+  `tmp/bpmn-operation-flow-s357/bpmn-04-core-notation-svg/edit-intents.md`.
+- Last observed own diagnostics
+  (`tmp/bpmn-operation-flow-s357/bpmn-07-collab/typecheck-final.log`;
+  re-run G1 because they may be stale):
+  - `notation.ts:229`: `Box | {x, y}` has no `width`/`height`. Narrow the
+    union in this file.
+  - `routes.ts`: `Vec` is not exported from `@diagra/ir`. Fix the import
+    inside `routes.ts`. Do NOT edit `packages/ir` (bpmn-01 is COMPLETE).
+- `packages/core/src/bpmn/index.ts` already contains
+  `export * from "./notation.ts";` and `export * from "./routes.ts";`.
+  Append only if missing. Never add a duplicate.
+- Create `impl-plans/progress/bpmn-04-core-notation-svg.md` with an
+  "Inventory (session-359)" section first.
+- G1 ownRegex:
+  `^(packages/core/src/bpmn/(notation|notation\.test|routes|routes\.test|svg-export-bpmn\.test)\.ts|packages/core/src/svg-export\.ts)\(`.
+  Shared paths follow G1 step 5: this plan owns the `notation.ts` and
+  `routes.ts` export lines, and the `bpmn.*` branches in
+  `connectorDecoration` and `connectorDefaultDash` in `connector.ts`.
+- Focused owned test (strictly blocking): the third "Verification"
+  command. G2 applies to `bun test packages/core` and
+  `bun test packages/ui-solid`. A failure in an existing SVG-export or
+  connector test is caused by this plan and blocks.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-04-core-notation-svg/`.
+
 ## Intent
 
 One shared notation module produces renderer-neutral primitives for every
@@ -231,8 +266,8 @@ context once per resolver call batch is not required; correctness first.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                    # exit 0 (ui-solid still compiles: MarkerKind unchanged)
-bunx biome check packages/core/src/bpmn packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts   # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-04-core-notation-svg/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; any ui-solid diagnostic naming MarkerKind or a connector.ts export is this plan's and blocks
+bunx biome check packages/core/src/bpmn/notation.ts packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts   # exit 0 (own and shared files only; session-359 gate)
 bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/core                               # exit 0
 bun test packages/ui-solid                           # exit 0

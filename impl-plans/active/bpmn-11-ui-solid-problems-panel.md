@@ -11,6 +11,20 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 3, after the wave-2 join, which
+  includes bpmn-03, bpmn-05 and bpmn-06. If an owned path already
+  exists, re-read and inventory it instead of overwriting it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)".
+- G1 ownRegex:
+  `^packages/ui-solid/src/(BpmnProblemsPanel\.tsx|bpmn-problems\.ts|bpmn-problems\.test\.ts|index\.ts)\(`.
+  `BpmnProblemsPanel.css` is checked by biome only.
+- Focused owned test (strictly blocking):
+  `bun test packages/ui-solid/src/bpmn-problems.test.ts`. G2 applies to
+  `bun test packages/ui-solid`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-11-ui-solid-problems-panel/`.
+
 ## Intent
 
 A BPMN problems panel for the desktop: lint findings of the active `bpmn`
@@ -109,7 +123,7 @@ Export `BpmnProblemsPanel`, `BpmnProblemsPanelProps`, `bpmnProblemRows`,
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                       # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-11-ui-solid-problems-panel/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/BpmnProblemsPanel.tsx packages/ui-solid/src/BpmnProblemsPanel.css packages/ui-solid/src/bpmn-problems.ts packages/ui-solid/src/bpmn-problems.test.ts packages/ui-solid/src/index.ts   # exit 0
 bun test packages/ui-solid/src/bpmn-problems.test.ts    # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/ui-solid                              # exit 0

@@ -9,6 +9,23 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 3, after the wave-2 join, which
+  includes bpmn-05 and bpmn-06. `docs/bpmn/purchase-request.jsonl` is
+  copied with `cp` from the bpmn-06 output
+  `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl`, which
+  exists only after the wave-2 join. If that file is missing, stop and
+  record an open issue. Never hand-write the copy. If an owned path
+  already exists, re-read and inventory it instead of overwriting it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)".
+- G1 ownRegex: `^packages/core/src/bpmn/docs-example\.test\.ts\(`.
+  The markdown and JSONL files are checked by the docs test and the
+  ASCII command.
+- Focused owned test (strictly blocking):
+  `bun test packages/core/src/bpmn/docs-example.test.ts`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-14-docs/`.
+
 ## Intent
 
 AI-ready documentation: how BPMN elements are stored in JSONL, the lint
@@ -142,13 +159,13 @@ Pitfalls:
 ## Verification
 
 Write every command's full output to
-`tmp/bpmn-operation-flow-s357/bpmn-14-docs/<name>.log` and record the exit
+`tmp/bpmn-operation-flow-s359/bpmn-14-docs/<name>.log` and record the exit
 code, counts and log path in the progress log.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun test packages/core/src/bpmn/docs-example.test.ts          # exit 0, pass count > 0 (expect >= 6), 0 fail
-bun run typecheck                                             # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-14-docs/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/docs-example.test.ts  # exit 0
 cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl   # exit 0
 ! LC_ALL=C grep -l '[^[:print:][:space:]]' docs/bpmn/format.md docs/bpmn/lint-rules.md docs/bpmn/ai-review-rules.md README.md packages/io/README.md   # exit 0, no output
@@ -164,5 +181,7 @@ worker):
 - All listed files exist.
 - `bun test packages/core/src/bpmn/docs-example.test.ts` exits 0 with a
   positive pass count and 0 failures.
-- typecheck, biome, `cmp` and the ASCII check exit 0.
+- typecheck passes gate G1 (no ownRegex match, no unattributed `error TS`
+  line; sibling diagnostics listed as non-blocking). biome on own files,
+  `cmp` and the ASCII check exit 0.
 - The progress log lists hashes, exit codes, pass counts and log paths.

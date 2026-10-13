@@ -10,6 +10,36 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: PARTIAL, continue. The s357 worker was terminated after a
+  network outage. Its work is in the working tree, uncommitted. Never
+  revert, regenerate, `git checkout`, `git stash` or delete it. Follow
+  the overview's "Continuation (session-359)" resume rules.
+- Already present (re-read and inventory, do not rewrite):
+  `packages/core/src/bpmn/lint/` with `index.ts`, `engine.ts`,
+  `config.ts`, `rules.ts`, `test-builder.ts`, `engine.test.ts`,
+  `config.test.ts`, `rules.test.ts`. Intent notes:
+  `tmp/bpmn-operation-flow-s357/bpmn-05-core-lint/edit-001-intent.md` ..
+  `edit-011-intent.md`. Check that all 23 rule ids are implemented and
+  each has a positive and a negative test.
+- Last observed own diagnostics (re-run G1 because they may be stale):
+  - `lint/engine.test.ts`: nine TS2783 "'id' is specified more than once"
+    at lines 14, 15, 17 and 28-33.
+  - `lint/engine.ts`: unused `BpmnLintRuleId`.
+- `packages/core/src/bpmn/index.ts` already contains
+  `export * from "./lint/index.ts";`. Append it only if missing.
+  `lint/index.ts` must not re-export `test-builder.ts`.
+- Create `impl-plans/progress/bpmn-05-core-lint.md` with an "Inventory
+  (session-359)" section first.
+- G1 ownRegex: `^packages/core/src/bpmn/lint/`. Shared path
+  `packages/core/src/bpmn/index.ts` follows G1 step 5: this plan owns
+  the `lint/index.ts` line.
+- Focused owned test (strictly blocking):
+  `bun test packages/core/src/bpmn/lint`. G2 applies to
+  `bun test packages/core`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-05-core-lint/`.
+
 ## Intent
 
 A bpmnlint-equivalent static analyser in `@diagra/core`: the 23 rule ids of
@@ -189,7 +219,7 @@ of that rule), built with `test-builder.ts`. Required specific cases:
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                  # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-05-core-lint/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/lint       # exit 0
 bun test packages/core/src/bpmn/lint               # exit 0, >= 46 rule tests (23 x positive/negative)
 bun test packages/core                             # exit 0

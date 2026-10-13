@@ -10,6 +10,26 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 4, after the wave-3 join, which
+  includes bpmn-11. bpmn-04 and bpmn-06 joined in wave 2. If an owned
+  path already exists, re-read and inventory it instead of overwriting
+  it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)". This plan
+  is alone in its wave, so every sibling diagnostic is from an earlier
+  wave. Route it through G1 step 4.
+- G1 ownRegex:
+  `^apps/desktop/src/(App\.tsx|file/session\.ts|file/session\.test\.ts)\(`.
+- Focused owned test (strictly blocking):
+  `bun test apps/desktop/src/file/session.test.ts`. G2 applies to
+  `bun test apps/desktop`.
+- The cargo fmt, cargo check and cargo test commands, the Tauri config
+  JSON parse, `bun --cwd=apps/desktop run build` and the src-tauri diff
+  check cover only this plan's files. They stay strictly blocking. Run
+  cargo with `CARGO_TERM_QUIET=true`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-15-desktop/`.
+
 ## Intent
 
 Desktop app support for BPMN:
@@ -128,7 +148,7 @@ the source" (session.test.ts:444):
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                       # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-15-desktop/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check apps/desktop/src/App.tsx apps/desktop/src/file/session.ts apps/desktop/src/file/session.test.ts   # exit 0
 bun test apps/desktop/src/file/session.test.ts          # exit 0, pass count > 0, 0 fail (owned tests incl. the 4 new .bpmn cases, design 11.1 rule 1)
 bun test apps/desktop                                   # exit 0 (existing session tests unchanged and passing)

@@ -10,6 +10,12 @@ Only the test-ownership contract was amended: section 3.5 evidence, section
 `packages/ir/src/registry.test.ts` and `packages/io/src/jsonl/golden.test.ts`
 pin the element-type list, and no slice owned them.
 
+Revision (continuation run 2, intake comm-006132): the baseline is
+unchanged. Only the verification gate was amended: rule 3 of section 11.1
+(parallel-wave typecheck and test race). bpmn-07 finished with passing
+tests but was blocked by repo-wide typecheck diagnostics in half-finished
+files owned by sibling plans of the same wave.
+
 ## 1. Context and baseline
 
 - No `design-docs/` or `impl-plans/` existed on this branch. This is the
@@ -1002,7 +1008,7 @@ Tests (one line each, colocated `*.test.ts`):
 
 ### 11.1 Test ownership contract
 
-Every implementation slice must satisfy two rules:
+Every implementation slice must satisfy three rules:
 1. It owns at least one bun test file it creates or extends. Its
    verification includes a `bun test <owned paths>` command that reports a
    positive pass count and 0 failures. Shell, grep, xmllint and cargo checks
@@ -1010,6 +1016,17 @@ Every implementation slice must satisfy two rules:
 2. Some existing tests or fixtures pin a list that the slice changes. Each
    of them is in exactly one slice's write set, and no two slices in the
    same wave share a write path.
+3. Parallel-wave gate. During a slice's implementation phase, whole-repo
+   `bun run typecheck` and `bun test` failures block the slice only when
+   at least one diagnostic or failing test is located in the slice's own
+   write set. Diagnostics and failures located only in files owned by
+   other slices of the same or a later wave are recorded in the slice's
+   progress log as non-blocking evidence, with their file list. The slice
+   still needs rule 1 (its own focused `bun test` with a positive pass
+   count and 0 failures). Whole-repo `bun run typecheck`,
+   `bunx biome check .` and `bun test` must pass at each wave's
+   integration review and at final acceptance; any remaining failure there
+   is routed to the slice that owns the failing file.
 
 Audit of existing tests that pin lists or exhaustively enumerate them
 (repository grep over `*.test.ts(x)` and `src-tauri`):

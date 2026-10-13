@@ -1,7 +1,8 @@
 # BPMN operation flow: implementation plan overview
 
 Source of truth: `design-docs/specs/design-bpmn.md` (accepted in Step 3,
-comm-006079). User decisions with defaults are in
+comm-006079; section 11.1 rule 3 added in session-359 and accepted in
+comm-006134). User decisions with defaults are in
 `design-docs/user-qa/bpmn-operation-flow.md` (Q1-Q3). Implement the
 defaults: lane delete cascades (Q1), desktop lint always uses recommended
 (Q2), `SCHEMA_VERSION` stays 1 (Q3).
@@ -13,6 +14,128 @@ execution `opus-luna-design-and-implement-review-loop-session-356`.
 Branch: `feat/bpmn-operation-flow` only. No worktrees, no private branches,
 no concurrent git operations by workers. The design and all plans are
 committed (orchestrator, serial) before the implementation fanout starts.
+
+## Continuation (session-359): read this first
+
+Workflow execution `opus-luna-design-and-implement-review-loop-session-359`
+(intake comm-006132, design comm-006133, design review comm-006134).
+The design is unchanged except for design-bpmn.md section 11.1 rule 3
+(parallel-wave gate). This revision changes only plan status and the
+implementation-phase gate. Tasks, writePaths, contracts and tests of every
+plan are unchanged.
+
+Plan status at the start of session-359:
+
+| planId | status | what the worker does |
+|---|---|---|
+| bpmn-01-ir-core-contract | COMPLETE (accepted by the s357 wave-1 integration review, `tmp/bpmn-operation-flow-s357/reconcile-wave1-r2/reconcile-summary.md`) | not dispatched; never reimplemented |
+| bpmn-02-fixtures | COMPLETE (same review) | not dispatched; never reimplemented |
+| bpmn-03-core-editing | PARTIAL, continue | resume from the working tree |
+| bpmn-04-core-notation-svg | PARTIAL, continue | resume from the working tree |
+| bpmn-05-core-lint | PARTIAL, continue | resume from the working tree |
+| bpmn-06-io-bpmn-xml | PARTIAL, continue | resume from the working tree |
+| bpmn-07-collab | IMPLEMENTED, awaiting gate | re-run verification under gates G1/G2 only |
+| bpmn-08 .. bpmn-15 | NOT STARTED | implement the plan |
+
+Resume rules for PARTIAL and IMPLEMENTED plans:
+- The s357 workers for 03/04/05/06 were terminated after a network outage.
+  Their files are in the working tree, uncommitted. Never revert,
+  regenerate, `git checkout`, `git stash` or delete them. Re-read each
+  owned file, inventory it against the plan's "File-level changes",
+  "Tests" and "Done criteria", and finish only what is missing or wrong.
+- Read the earlier worker's intent notes first:
+  `tmp/bpmn-operation-flow-s357/<planId>/edit-intent*.md` and the logs
+  beside them. They describe edits that may be half applied.
+- 03/04/05/06 have no progress log yet. Create
+  `impl-plans/progress/<planId>.md` with the usual sections and a first
+  "Inventory (session-359)" section: each owned path, its sha256 at
+  resume, and per plan task one of done / partial / missing.
+- bpmn-07 already has a progress log. Append a "Resume (session-359)"
+  section. Do not delete earlier sections.
+- Evidence for this session goes under `tmp/bpmn-operation-flow-s359/<planId>/`.
+  The s356 and s357 evidence directories stay as they are.
+
+### Parallel-wave gate (design 11.1 rule 3), applies to every plan
+
+In every plan's "Verification" block, the `bun run typecheck` line and
+every `bun test` line other than the focused owned-test line are
+evaluated with the gates below, not with a bare "exit 0". The focused
+owned-test line (design 11.1 rule 1) stays strictly blocking.
+
+Gate G1, owner-scoped typecheck:
+1. Run `bun run typecheck > tmp/bpmn-operation-flow-s359/<planId>/typecheck.log 2>&1`
+   and record the exit code.
+2. tsc prints one diagnostic per line as `<path>(<line>,<col>): error TS<n>: ...`.
+   Run `grep -E '<ownRegex>' tmp/bpmn-operation-flow-s359/<planId>/typecheck.log`
+   with the plan's `ownRegex` (in the plan's session-359 block). It must
+   print nothing. Any match blocks the plan.
+3. A line that starts with `error TS` has no file and cannot be attributed.
+   It blocks the plan.
+4. Every other diagnostic is listed in the progress log under "Sibling
+   diagnostics (non-blocking)" with its path and TS code, and classified:
+   - in a file owned by another plan of the same or a later wave:
+     non-blocking, routed to that owner at reconciliation;
+   - in a file owned by no plan or by a COMPLETE plan: check whether that
+     file imports a module in your writePaths and the diagnostic names a
+     symbol you added, removed or changed. If yes, it is yours and it
+     blocks. If no, it is non-blocking and routed at reconciliation.
+5. For a shared path (`packages/core/src/bpmn/index.ts`,
+   `packages/core/src/shapes/connector.ts`) a diagnostic belongs to the
+   plan that owns the line it points at: an `export * from` line belongs
+   to the plan that appended it, and a `connectorDecoration` or
+   `connectorDefaultDash` `bpmn.*` branch belongs to bpmn-04. A
+   diagnostic on another plan's line is non-blocking for you.
+
+Gate G2, owner-scoped package and whole-repo tests:
+1. The focused owned `bun test <owned files>` line must exit 0 with a
+   positive pass count and 0 failures. No exception.
+2. Every broader `bun test ...` line is run as
+   `bun test ... > tmp/bpmn-operation-flow-s359/<planId>/<name>.log 2>&1`,
+   and its exit code and pass/fail counts are recorded.
+3. If it fails, list the failing test files. bun prints a `<file>:` header
+   line before each file's results. One idiom (check the result against
+   the log):
+   `awk '/ fail$|tests? failed:$/{exit} /\.test\.tsx?:$/{f=$0} /^\(fail\)/{print f}' <log> | sort -u`.
+4. A failing test file in your writePaths blocks. A failing file owned by
+   no plan or by a COMPLETE plan blocks when the failure is caused by your
+   change (same import test as G1 step 4). Any other failing file is
+   recorded under "Sibling test failures (non-blocking)" with its path and
+   failing test names.
+
+Whole-repo `bun run typecheck`, `bunx biome check .` and `bun test` are
+mandatory and strictly blocking at the orchestrator's serial
+reconciliation after every wave and at final verification. Every failure
+found there is routed to the plan that owns the file, or by G1 step 4 to
+the plan whose change caused it.
+
+### Waves for session-359
+
+The wave numbers are unchanged. Wave 1 is accepted, so the run starts at
+wave 2. Every wave-2 dependency (bpmn-01, bpmn-02) is satisfied by COMPLETE
+status.
+- Wave 2: bpmn-03, bpmn-04, bpmn-05, bpmn-06 (continue), bpmn-07 (re-gate)
+- Wave 3: bpmn-08 .. bpmn-14
+- Wave 4: bpmn-15
+
+Dispatch manifest: `impl-plans/active/bpmn-operation-flow-s359-dispatch.json`
+(task id `bpmn-operation-flow-s359`, evidence root
+`tmp/bpmn-operation-flow-s359`). The s356 and s357 manifests are
+historical and must not be dispatched. In it, bpmn-01 and bpmn-02 are
+listed in `acceptedPlanIds` and are not dispatched.
+
+Pre-fanout commit (orchestrator, serial, before wave 2 starts): commit on
+`feat/bpmn-operation-flow` with explicit paths only (never `git add -A`,
+never `.reference/`):
+- `design-docs/specs/design-bpmn.md`
+- `impl-plans/active/*.md`
+- the s359 manifest
+- the accepted wave-1 paths: bpmn-01 and bpmn-02 writePaths, including
+  their progress logs
+
+`packages/core/src/bpmn/index.ts` and `packages/core/src/shapes/connector.ts`
+are bpmn-01 writePaths that already contain wave-2 lines. They are
+committed as they are in the working tree, with no partial staging. Wave-2
+partial files stay uncommitted until the wave-2 join.
 
 ## Continuation (session-357)
 
@@ -155,6 +278,11 @@ and only core dev-depends on io.
 ## Serial reconciliation (orchestrator only, after each wave join)
 
 1. `bun run typecheck`, `bunx biome check .`, `bun test` on the whole repo.
+   These are strictly blocking here (design 11.1 rule 3). Route each
+   diagnostic or failing test file to the plan that owns the file, or to
+   the plan whose change caused it (gate G1 step 4). Use the plans'
+   "Sibling diagnostics" and "Sibling test failures" lists as input.
+   Repair serially, or redispatch the owning plan with the evidence.
 2. Check `packages/core/src/bpmn/index.ts` has every expected export line
    exactly once.
 3. After wave 3 only:

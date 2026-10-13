@@ -9,7 +9,27 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
-## Continuation (session-357 redispatch): read this first
+## Session-359 status and gate: read this first
+
+- Status: COMPLETE. Accepted by the s357 wave-1 integration review
+  (`tmp/bpmn-operation-flow-s357/reconcile-wave1-r2/reconcile-summary.md`,
+  bpmn-02 snapshot 6/6 unchanged). Progress log:
+  `impl-plans/progress/bpmn-02-fixtures.md` (section "Completion
+  (session-359)").
+- Not dispatched in session-359 (listed in `acceptedPlanIds` of
+  `impl-plans/active/bpmn-operation-flow-s359-dispatch.json`). Never
+  rewrite, regenerate or revert the four `.bpmn` files or
+  `fixtures.test.ts`.
+- If the orchestrator ever redispatches it, the worker only re-verifies:
+  run "Verification" below under gates G1/G2
+  (`impl-plans/active/bpmn-00-overview.md`, "Parallel-wave gate"), and
+  append a "Re-verify (session-359)" section to the progress log.
+- G1 ownRegex: `^packages/io/src/__fixtures__/bpmn/`.
+- Focused owned test (strictly blocking):
+  `bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-02-fixtures/`.
+
+## Continuation (session-357 redispatch): historical
 
 The four `.bpmn` files are ALREADY WRITTEN in the working tree (uncommitted
 wave-1 work, hashes in `impl-plans/progress/bpmn-02-fixtures.md`). Do NOT
@@ -248,7 +268,7 @@ exit code, counts and log path in the progress log.
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts      # exit 0, pass count > 0 (expect >= 8), 0 fail
-bun run typecheck                                                 # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-02-fixtures/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/io/src/__fixtures__/bpmn/fixtures.test.ts   # exit 0
 for f in packages/io/src/__fixtures__/bpmn/*.bpmn; do xmllint --noout "$f" || exit 1; done; echo ok   # prints ok (supplementary evidence)
 ! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn/*.bpmn packages/io/src/__fixtures__/bpmn/fixtures.test.ts   # exit 0, no output

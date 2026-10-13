@@ -9,6 +9,40 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: PARTIAL, continue. The s357 worker was terminated after a
+  network outage. Its work is in the working tree, uncommitted. Never
+  revert, regenerate, `git checkout`, `git stash` or delete it. Follow
+  the overview's "Continuation (session-359)" resume rules.
+- Already present (re-read and inventory, do not rewrite):
+  `packages/io/src/bpmn/` with `xml.ts`, `import.ts`, `export.ts`,
+  `ids.ts`, `equivalence.ts`, `index.ts`, `xml.test.ts`,
+  `import.test.ts`, `export.test.ts`, `roundtrip.test.ts`,
+  `reference.test.ts`. Also present: a modified `packages/io/src/index.ts`,
+  and `packages/io/package.json`, which already has only the added
+  `"./bpmn": "./src/bpmn/index.ts"` export and no dependency change.
+  Intent notes:
+  `tmp/bpmn-operation-flow-s357/bpmn-06-io-bpmn-xml/edit-intents.md`.
+  Step 9 names three bugs that may be only partly fixed: sequence flows
+  wrongly classified as unsupported; formatting whitespace re-emitted as
+  text; unsupported fragments needing inherited namespace bindings on
+  export. Confirm each one with a test.
+- Missing: `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` is
+  not generated yet. Generate it only through the plan's import path,
+  never by hand. bpmn-14 copies it byte for byte.
+- Last observed own diagnostics (re-run G1 because they may be stale):
+  `import.ts` has unused `BPMNDI`, `DI` and `laneParent`.
+- Create `impl-plans/progress/bpmn-06-io-bpmn-xml.md` with an "Inventory
+  (session-359)" section first.
+- G1 ownRegex:
+  `^(packages/io/src/bpmn/|packages/io/src/index\.ts\()`.
+- Focused owned test (strictly blocking): `bun test packages/io/src/bpmn`.
+  G2 applies to `bun test packages/io` and `bun test`. A failure in
+  `golden.test.ts`, `bpmn-compat.test.ts` or the bpmn-02 fixtures test
+  blocks when this plan's `index.ts` export change causes it.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/`.
+
 ## Intent
 
 BPMN 2.0 XML interchange in `@diagra/io`, dependency-free:
@@ -270,9 +304,9 @@ copies this file byte-for-byte to `docs/bpmn/purchase-request.jsonl`.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                 # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/io/src/bpmn packages/io/src/index.ts   # exit 0 (package.json is outside biome's files.include)
-bun -e 'console.log(JSON.parse(require("fs").readFileSync("packages/io/package.json","utf8")).exports["./bpmn"])'   # prints ./src/bpmn/index.ts
+grep -q '"./bpmn": "./src/bpmn/index.ts"' packages/io/package.json   # exit 0
 bun test packages/io/src/bpmn                     # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/io                              # exit 0; reference tests run locally (not skipped) when .reference exists; includes golden.test.ts, bpmn-compat.test.ts and the bpmn-02 fixtures test, which this plan must not edit
 bun test                                          # exit 0

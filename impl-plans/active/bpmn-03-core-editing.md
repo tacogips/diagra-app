@@ -10,6 +10,41 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: PARTIAL, continue. The s357 worker was terminated after a
+  network outage. Its work is in the working tree, uncommitted. Never
+  revert, regenerate, `git checkout`, `git stash` or delete it. Follow
+  the overview's "Continuation (session-359)" resume rules.
+- Already present (re-read and inventory, do not rewrite):
+  `packages/core/src/bpmn/connection.ts`, `connection.test.ts`,
+  `containment.ts`, `containment.test.ts`, `editor-bpmn.test.ts`, and a
+  modified `packages/core/src/editor.ts`. The earlier worker's last
+  intents are Edits 1-11 in
+  `tmp/bpmn-operation-flow-s357/bpmn-03-core-editing/edit-intents-step6.md`.
+  Edit 10 (nested membership: subprocesses as parent candidates, no
+  self/descendant parent) and Edit 11 (nested-lane fixture: outer lane
+  240, pool 360, expected outer A 280, outer B y=280, pool 400) may be
+  half applied. Confirm each one in the code and tests.
+- `packages/core/src/bpmn/index.ts` already contains
+  `export * from "./connection.ts";` and
+  `export * from "./containment.ts";`. Append a line only if it is
+  missing. Never add a duplicate.
+- Create `impl-plans/progress/bpmn-03-core-editing.md` with an "Inventory
+  (session-359)" section first (per-task done/partial/missing,
+  sha256 per owned file).
+- G1 ownRegex:
+  `^(packages/core/src/bpmn/(connection|connection\.test|containment|containment\.test|editor-bpmn\.test)\.ts|packages/core/src/editor\.ts)\(`.
+  Diagnostics in `packages/core/src/bpmn/index.ts` follow G1 step 5: this
+  plan owns the `connection.ts` and `containment.ts` lines.
+- Focused owned test (strictly blocking): the third "Verification"
+  command. G2 applies to `bun test packages/core` and
+  `bun test packages/ui-solid packages/collab`. A failure in an existing
+  core, ui-solid or collab test that exercises `connectSmart`, `apply`
+  or `editor.ts` is caused by this plan's `editor.ts` change and blocks
+  (G2 step 4).
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-03-core-editing/`.
+
 ## Intent
 
 BPMN-correct editing in `@diagra/core`:
@@ -382,8 +417,8 @@ lane's descendants are shifted exactly once, by translations.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                    # exit 0
-bunx biome check packages/core/src/bpmn packages/core/src/editor.ts   # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-03-core-editing/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
+bunx biome check packages/core/src/bpmn/connection.ts packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts packages/core/src/editor.ts   # exit 0 (own files only; session-359 gate)
 bun test packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/core                               # exit 0 (existing core tests unchanged and passing)
 bun test packages/ui-solid packages/collab           # exit 0 (connectSmart and apply callers unaffected)

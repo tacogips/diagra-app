@@ -10,6 +10,25 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: NOT STARTED. Runs in wave 3, after the wave-2 join, which
+  includes bpmn-04, bpmn-05 and bpmn-06. If an owned path already exists,
+  re-read and inventory it instead of overwriting it.
+- Gates: overview "Parallel-wave gate (design 11.1 rule 3)".
+- G1 ownRegex:
+  `^apps/cli/src/(commands\.ts|main\.ts|bpmn-commands\.test\.ts)\(`.
+- Focused owned test (strictly blocking):
+  `bun test apps/cli/src/bpmn-commands.test.ts`. G2 applies to
+  `bun test apps/cli`. A failure in `commands.test.ts` is caused by this
+  plan (it edits `commands.ts`) and blocks. That test file stays
+  unedited.
+- The CLI fixture commands in "Verification" (draft lint exits 1,
+  complete lint gives empty stdout, `--help` lists lint and bpmn, the
+  reference import) test this plan's own behaviour and stay strictly
+  blocking.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-12-cli/`.
+
 ## Intent
 
 CI-ready commands in `diagra-cli`:
@@ -143,7 +162,7 @@ commands.test.ts).
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                       # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-12-cli/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check apps/cli/src                           # exit 0
 bun test apps/cli/src/bpmn-commands.test.ts             # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test apps/cli                                       # exit 0 (commands.test.ts unchanged; it asserts output fragments and exit codes, not the USAGE text)

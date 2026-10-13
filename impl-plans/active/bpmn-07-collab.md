@@ -10,6 +10,30 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Session-359 status and gate: read this first
+
+- Status: IMPLEMENTED, awaiting gate. In s357 the focused test passed
+  (3 pass, 0 fail) and `bun test packages/collab` passed (129 pass, 0
+  fail). The only blocker was the whole-repo `bun run typecheck` (exit 2):
+  16 diagnostics, all in files of bpmn-04, bpmn-05 and bpmn-06
+  (`impl-plans/progress/bpmn-07-collab.md`, "Blocker").
+- Session-359 work: re-gate only.
+  1. Re-hash `packages/collab/src/test-fixtures.ts` and
+     `packages/collab/src/bpmn.test.ts` and compare them with
+     `tmp/bpmn-operation-flow-s357/bpmn-07-collab/source-hashes.txt`. Log
+     any drift.
+  2. Run "Verification" below under gates G1/G2.
+  3. Append a "Resume (session-359)" section to the progress log with
+     commands, exit codes, counts, log paths and the "Sibling diagnostics
+     (non-blocking)" list. Tick the typecheck item when G1 passes.
+- Edit source only if G1 matches an owned file or the focused test
+  fails. Still no production collab change (non-goals).
+- G1 ownRegex: `^packages/collab/src/(test-fixtures|bpmn\.test)\.ts\(`.
+- Focused owned test (strictly blocking):
+  `bun test packages/collab/src/bpmn.test.ts`. G2 applies to
+  `bun test packages/collab`.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-07-collab/`.
+
 ## Intent
 
 Prove that BPMN documents round-trip through the Yjs binding and merge
@@ -81,7 +105,7 @@ Imitate the two-client merge tests in `binding.test.ts` and
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                   # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-07-collab/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/collab/src/test-fixtures.ts packages/collab/src/bpmn.test.ts   # exit 0
 bun test packages/collab/src/bpmn.test.ts           # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/collab                            # exit 0, includes the new tests; ydoc.test.ts unedited (it loops allFixtures() without a pinned count)

@@ -9,7 +9,34 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
-## Continuation (session-357 redispatch): read this first
+## Session-359 status and gate: read this first
+
+- Status: COMPLETE. Accepted by the s357 wave-1 integration review
+  (`tmp/bpmn-operation-flow-s357/reconcile-wave1-r2/reconcile-summary.md`:
+  typecheck, biome and whole-repo bun test 1668 pass / 0 fail, after the
+  comm-006117 adversarial repair). Progress log:
+  `impl-plans/progress/bpmn-01-ir-core-contract.md` (section "Completion
+  (session-359)").
+- Not dispatched in session-359 (listed in `acceptedPlanIds` of
+  `impl-plans/active/bpmn-operation-flow-s359-dispatch.json`). Never
+  reimplement, rewrite or revert any file of this plan.
+- If the orchestrator ever redispatches it, the worker only re-verifies:
+  run "Verification" below under gates G1/G2
+  (`impl-plans/active/bpmn-00-overview.md`, "Parallel-wave gate"), append
+  a "Re-verify (session-359)" section to the progress log, and edit no
+  source file unless G1 or the focused test attributes a failure to this
+  plan.
+- G1 ownRegex:
+  `^(packages/ir/src/|packages/core/src/bpmn/model(\.test)?\.ts\(|packages/core/src/index\.ts\(|packages/core/src/shapes/(bpmn|bpmn\.test|index|outline)\.ts\(|packages/io/src/jsonl/(bpmn-compat|golden)\.test\.ts\()`.
+  Diagnostics in `packages/core/src/bpmn/index.ts` and
+  `packages/core/src/shapes/connector.ts` go by G1 step 5. bpmn-01 owns
+  only the `model.ts` export line and the moved waypoint re-export.
+- Focused owned test (strictly blocking): the third command in
+  "Verification". G2 applies to the package-level and whole-repo
+  `bun test` lines.
+- Evidence: `tmp/bpmn-operation-flow-s359/bpmn-01-ir-core-contract/`.
+
+## Continuation (session-357 redispatch): historical
 
 Every file-level change below is ALREADY IMPLEMENTED in the working tree
 (uncommitted wave-1 work, see
@@ -466,7 +493,7 @@ How to make it byte-canonical (the main pitfall):
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-bun run typecheck                                   # exit 0
+bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-01-ir-core-contract/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ir/src packages/core/src/bpmn packages/core/src/shapes packages/core/src/index.ts packages/io/src/jsonl   # exit 0
 bun test packages/ir/src/bpmn.test.ts packages/ir/src/registry.test.ts packages/core/src/bpmn/model.test.ts packages/core/src/shapes/bpmn.test.ts packages/io/src/jsonl/bpmn-compat.test.ts packages/io/src/jsonl/golden.test.ts   # exit 0, pass count > 0, 0 fail (owned tests)
 bun test packages/ir packages/core/src/bpmn packages/core/src/shapes packages/io   # exit 0, 0 fail
