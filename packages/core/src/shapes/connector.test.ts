@@ -581,3 +581,32 @@ test("orthogonal routes cross frames instead of detouring around them", () => {
   )?.points;
   expect(points?.every((point) => point.y === 50)).toBe(true);
 });
+
+test("orthogonal routes still avoid a grouped frame painted above them", () => {
+  const editor = makeEditor();
+  const from = editor.createElement("node.generic", {
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  const to = editor.createElement("node.generic", {
+    visual: { x: 600, y: 0, width: 100, height: 100 },
+  });
+  const frame = editor.createElement("frame", {
+    semantic: { name: "Between" },
+    visual: { x: 250, y: -200, width: 200, height: 500 },
+  });
+  const note = editor.createElement("node.generic", {
+    visual: { x: 250, y: 600, width: 50, height: 50 },
+  });
+  // A grouped frame keeps its group's paint order, above the connector.
+  editor.createElement("group", { semantic: { memberIds: [frame, note] } });
+  const edge = editor.createElement("edge.generic", {
+    semantic: { from, to, routing: "orthogonal" },
+  });
+  const points = resolveConnector(
+    editor.store.get(edge)!,
+    editor.createShapeContext(),
+    readDirectEndpoints,
+  )?.points;
+  expect(points?.length).toBeGreaterThan(2);
+  expect(points?.every((point) => point.y === 50)).toBe(false);
+});

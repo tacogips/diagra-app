@@ -2834,11 +2834,36 @@ describe("connector handles (design 3.4)", () => {
 
 describe("shortcutKey", () => {
   test("Option chords use the physical key macOS would otherwise rewrite", () => {
-    expect(shortcutKey({ key: "¬", code: "KeyL", altKey: true })).toBe("l");
-    expect(shortcutKey({ key: "©", code: "KeyG", altKey: true })).toBe("g");
-    expect(shortcutKey({ key: "Z", code: "KeyZ", altKey: false })).toBe("z");
-    expect(shortcutKey({ key: "]", code: "BracketRight", altKey: true })).toBe(
-      "]",
+    expect(shortcutKey({ key: "¬", code: "KeyL", altKey: true }, true)).toBe(
+      "l",
+    );
+    expect(shortcutKey({ key: "©", code: "KeyG", altKey: true }, true)).toBe(
+      "g",
+    );
+    expect(shortcutKey({ key: "Z", code: "KeyZ", altKey: false }, true)).toBe(
+      "z",
+    );
+    expect(
+      shortcutKey({ key: "]", code: "BracketRight", altKey: true }, true),
+    ).toBe("]");
+  });
+
+  test("AltGr text input elsewhere never becomes a shortcut letter", () => {
+    // Polish AltGr+A arrives as Ctrl+Alt with key "ą".
+    const altGr = {
+      key: "ą",
+      code: "KeyA",
+      altKey: true,
+      getModifierState: (key: string) => key === "AltGraph",
+    };
+    expect(shortcutKey(altGr, false)).toBe("ą");
+    expect(shortcutKey(altGr, true)).toBe("ą");
+    // Ctrl+Alt without AltGr off macOS keeps the layout's character too.
+    expect(shortcutKey({ key: "g", code: "KeyG", altKey: true }, false)).toBe(
+      "g",
+    );
+    expect(shortcutKey({ key: "ą", code: "KeyA", altKey: true }, false)).toBe(
+      "ą",
     );
   });
 });

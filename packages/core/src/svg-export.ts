@@ -1686,8 +1686,10 @@ export function renderElementsSvg(
   );
   // Frames are surfaces: on a page with connectors they go beneath the
   // connector layer so their fill cannot hide the lines (see backdrops.ts).
+  // Every rendered element counts towards "has connectors" (a connector
+  // inside a group too, as on the canvas); only ungrouped frames qualify.
   const backdropIds = connectorBackdropIds(
-    roots.filter((element) => rendered.has(element.id)),
+    elements.filter((element) => rendered.has(element.id)),
     (id) => groupParents.has(id),
   );
   const backdrops = roots

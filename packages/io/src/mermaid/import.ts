@@ -179,6 +179,7 @@ function parseEr(
     from: string;
     to: string;
     cardinality: Cardinality;
+    logical: boolean;
     label?: string;
   }> = [];
   const ensure = (alias: string, label?: string): ErdDraft => {
@@ -261,6 +262,9 @@ function parseEr(
         from: relation[1] as string,
         to: relation[3] as string,
         cardinality,
+        // The dotted (non-identifying) line is how a logical reference is
+        // exported, so it reads back as one.
+        logical: (relation[2] as string).includes(".."),
         ...(relation[4]?.trim()
           ? { label: decodeText(relation[4].trim()) }
           : {}),
@@ -322,6 +326,7 @@ function parseEr(
         from: { table: from },
         to: { table: to },
         cardinality: relationship.cardinality,
+        ...(relationship.logical ? { logical: true } : {}),
         ...(relationship.label ? { label: relationship.label } : {}),
       },
       {},

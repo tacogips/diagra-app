@@ -123,3 +123,25 @@ describe("separateOverlaps", () => {
     ).toBe(false);
   });
 });
+
+test("separateOverlaps never leaves a box wedged between fixed boxes overlapping", () => {
+  const result = separateOverlaps(
+    [
+      { id: "left", x: 0, y: 0, width: 100, height: 100, fixed: true },
+      { id: "middle", x: 110, y: 0, width: 100, height: 100 },
+      { id: "right", x: 220, y: 0, width: 100, height: 100, fixed: true },
+    ],
+    32,
+  );
+  const middle = result.get("middle") as { x: number; y: number };
+  expect(result.get("left")).toEqual({ x: 0, y: 0 });
+  expect(result.get("right")).toEqual({ x: 220, y: 0 });
+  for (const fixed of [0, 220]) {
+    const apart =
+      middle.x + 100 + 32 <= fixed ||
+      fixed + 100 + 32 <= middle.x ||
+      middle.y + 100 + 32 <= 0 ||
+      100 + 32 <= middle.y;
+    expect(apart).toBe(true);
+  }
+});

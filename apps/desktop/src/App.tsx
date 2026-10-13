@@ -57,7 +57,7 @@ import type { CloudSession, CloudSessionState } from "./cloud/session.ts";
 import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
 import type { CloudSettings } from "./cloud/settings.ts";
 import type { ExportBackend } from "./file/backend.ts";
-import { type LaunchBackend, openRequestedDocument } from "./file/launch.ts";
+import { type LaunchBackend, watchOpenRequests } from "./file/launch.ts";
 import type { DocumentSession, SessionState } from "./file/session.ts";
 import {
   CANVAS_MIN_WIDTH,
@@ -285,11 +285,13 @@ export function App(props: AppProps): JSX.Element {
   onMount(() => {
     const launch = props.launchBackend;
     if (!launch) return;
-    const openRequested = (): void => {
-      void openRequestedDocument(launch, openRecent);
-    };
-    openRequested();
-    onCleanup(launch.onOpenRequested(openRequested));
+    // A file opened from the OS must never be loaded into a cloud room's
+    // document: hold it until the editor is back in file mode.
+    const requests = watchOpenRequests(launch, openRecent, () => !isCloud());
+    onCleanup(() => requests.stop());
+    createEffect(() => {
+      if (!isCloud()) requests.flush();
+    });
   });
 
   // ------------------------------------------------------------ editing

@@ -93,15 +93,31 @@ export const RESIZE_HANDLES = [
 
 export type ResizeHandle = (typeof RESIZE_HANDLES)[number];
 
+/** Whether this runs on macOS or iOS, where Option composes characters. */
+export function isApplePlatform(): boolean {
+  const nav = (globalThis as { navigator?: { platform?: string } }).navigator;
+  return /Mac|iPhone|iPad|iPod/.test(nav?.platform ?? "");
+}
+
 /**
  * The letter a modifier chord was pressed with. macOS turns Option+letter
- * into another character (Option+L is "¬", Option+G is "©"), so with Option
- * held the physical key decides; otherwise the layout's character does.
+ * into another character (Option+L is "¬", Option+G is "©"), so there, with
+ * Option held, the physical key decides. Elsewhere Ctrl+Alt is AltGr on
+ * many layouts (Polish AltGr+A is "ą"): that is text input, so the layout's
+ * character is kept and never collapses onto a shortcut letter.
  */
 export function shortcutKey(
-  event: Pick<KeyboardEvent, "key" | "code" | "altKey">,
+  event: Pick<KeyboardEvent, "key" | "code" | "altKey"> & {
+    readonly getModifierState?: (key: string) => boolean;
+  },
+  apple: boolean = isApplePlatform(),
 ): string {
-  if (event.altKey && /^Key[A-Z]$/.test(event.code))
+  if (
+    apple &&
+    event.altKey &&
+    !event.getModifierState?.("AltGraph") &&
+    /^Key[A-Z]$/.test(event.code)
+  )
     return event.code.slice(3).toLowerCase();
   return event.key.toLowerCase();
 }

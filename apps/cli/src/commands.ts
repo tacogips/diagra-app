@@ -5,7 +5,7 @@ import {
   Editor,
   generateDatabaseDdl,
   type LayoutDirection,
-  planArrange,
+  planArrangement,
 } from "@diagra/core";
 import { parseDocumentResult, serializeDocument } from "@diagra/io";
 import type { Document, Page, ValidationIssue } from "@diagra/ir";
@@ -102,7 +102,14 @@ function parseArgs(
     }
     if (!valueOptions.has(name)) return `Unknown option: ${name}`;
     const value = equals === -1 ? args[index + 1] : arg.slice(equals + 1);
-    if (value === undefined || value === "") return `${name} requires a value.`;
+    // A following option is a missing value, not a value: write
+    // `--output=--name` for a value that really starts with "--".
+    if (
+      value === undefined ||
+      value === "" ||
+      (equals === -1 && value.startsWith("--"))
+    )
+      return `${name} requires a value.`;
     if (equals === -1) index += 1;
     if (options.has(name)) return `${name} was given more than once.`;
     options.set(name, value);
@@ -164,6 +171,20 @@ function isDialect(value: string): value is DatabaseDialect {
   return (DATABASE_DIALECTS as readonly string[]).includes(value);
 }
 
+/** Write through the seam; a failure is an operational error, not drift. */
+function writeOutput(
+  io: CommandIo,
+  path: string,
+  text: string,
+): string | undefined {
+  try {
+    io.writeText(path, text);
+    return undefined;
+  } catch (cause) {
+    return `Cannot write ${path}: ${cause instanceof Error ? cause.message : String(cause)}`;
+  }
+}
+
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n/g, "\n");
 }
@@ -217,7 +238,8 @@ function ddlCommand(io: CommandIo, args: readonly string[]): CommandResult {
   }
   const outputPath = parsed.options.get("--output");
   if (outputPath !== undefined) {
-    io.writeText(outputPath, ddl.sql);
+    const failure = writeOutput(io, outputPath, ddl.sql);
+    if (failure) return fail(`${stderr}${failure}`);
     return ok(
       "",
       `${stderr}Wrote ${ddl.tableCount} table(s) and ${ddl.indexCount} index(es) to ${outputPath}.\n`,
@@ -254,7 +276,7 @@ function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
   else page = "The document has several pages; choose one with --page.";
   if (typeof page === "string") return fail(page);
   const editor = new Editor({ document: loaded.document });
-  const commands = planArrange(
+  const { commands, placed } = planArrangement(
     editor.store,
     page.id,
     editor.createShapeContext(1),
@@ -263,7 +285,7 @@ function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
       direction: direction as LayoutDirection,
     },
   );
-  editor.apply(commands);
+  editor.apply(commands, { placed });
   const arranged = serializeDocument(editor.getSnapshot());
   if (parsed.flags.has("--check")) {
     if (commands.length)
@@ -275,7 +297,8 @@ function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
     return ok("", `${loaded.warnings}${path} is already arranged.\n`);
   }
   if (parsed.flags.has("--write")) {
-    io.writeText(path, arranged);
+    const failure = writeOutput(io, path, arranged);
+    if (failure) return fail(`${loaded.warnings}${failure}`);
     return ok(
       "",
       `${loaded.warnings}Arranged page "${page.name}" of ${path}: ${commands.length} layer update(s).\n`,
@@ -296,7 +319,15 @@ function formatCommand(io: CommandIo, args: readonly string[]): CommandResult {
   if (typeof loaded === "string") return fail(loaded);
   const canonical = serializeDocument(loaded.document);
   if (parsed.flags.has("--check")) {
-    if (normalizeNewlines(io.readText(path)) !== canonical)
+    let current: string;
+    try {
+      current = io.readText(path);
+    } catch (cause) {
+      return fail(
+        `Cannot read ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+    if (normalizeNewlines(current) !== canonical)
       return {
         exitCode: EXIT_DRIFT,
         stdout: "",
@@ -305,7 +336,8 @@ function formatCommand(io: CommandIo, args: readonly string[]): CommandResult {
     return ok("", `${loaded.warnings}${path} is canonical.\n`);
   }
   if (parsed.flags.has("--write")) {
-    io.writeText(path, canonical);
+    const failure = writeOutput(io, path, canonical);
+    if (failure) return fail(`${loaded.warnings}${failure}`);
     return ok("", `${loaded.warnings}Formatted ${path}.\n`);
   }
   return ok(canonical, loaded.warnings);

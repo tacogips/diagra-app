@@ -37,7 +37,7 @@ import {
   planMatchSize,
   type SizeDimension,
 } from "./align.ts";
-import { type ArrangeOptions, planArrange } from "./arrange.ts";
+import { type ArrangeOptions, planArrangement } from "./arrange.ts";
 import {
   Camera,
   type CameraState,
@@ -116,6 +116,11 @@ export interface EditorOptions {
 export interface ApplyOptions {
   /** `"ignore"` skips the history entry, e.g. when seeding a document. */
   readonly history?: "record" | "ignore";
+  /**
+   * Elements whose final position the batch sets explicitly (Tidy layout).
+   * Moving or refitting their frame does not carry them a second time.
+   */
+  readonly placed?: ReadonlySet<ElementId>;
 }
 
 export interface CreateElementOptions {
@@ -985,7 +990,12 @@ export class Editor {
         ...planNumberTokens(draft, this.registry),
         ...planTextResize(draft, this.registry),
         ...planAspectRatios(draft, this.registry),
-        ...planFrameTranslations(this.store, draft, this.registry),
+        ...planFrameTranslations(
+          this.store,
+          draft,
+          this.registry,
+          options.placed,
+        ),
         ...planConstraints(this.store, draft, this.registry),
       ];
       const beforeLayout = new Store(draft.getSnapshot());
@@ -999,7 +1009,12 @@ export class Editor {
       if (constrainedAspect.length)
         derived.push(...planAutoLayout(draft, this.registry));
       derived.push(
-        ...planFrameTranslations(beforeLayout, draft, this.registry),
+        ...planFrameTranslations(
+          beforeLayout,
+          draft,
+          this.registry,
+          options.placed,
+        ),
       );
       derived.push(...planConstraints(beforeLayout, draft, this.registry));
     }
@@ -1781,13 +1796,29 @@ export class Editor {
     applyOptions: ApplyOptions = {},
   ): boolean {
     const selected = [...this.selection.ids()];
-    return this.applyPlan(
-      planArrange(this.store, this.currentPageId, this.createShapeContext(), {
-        ...options,
-        scope: selected.length > 1 ? selected : [],
-      }),
+    return this.arrangePage(
+      this.currentPageId,
+      { ...options, scope: selected.length > 1 ? selected : [] },
       applyOptions,
     );
+  }
+
+  /** Tidy or de-overlap any page as one undoable batch; false if nothing moved. */
+  arrangePage(
+    pageId: PageId,
+    options: ArrangeOptions,
+    applyOptions: ApplyOptions = {},
+  ): boolean {
+    if (this.readOnly) return false;
+    const { commands, placed } = planArrangement(
+      this.store,
+      pageId,
+      this.createShapeContext(1),
+      options,
+    );
+    if (!commands.length) return false;
+    this.apply(commands, { ...applyOptions, placed });
+    return true;
   }
 
   matchSelectionSize(

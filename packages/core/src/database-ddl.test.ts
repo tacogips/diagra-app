@@ -606,3 +606,34 @@ test("logical relations are drawn but emit no foreign key or uniqueness", () => 
     }
   }
 });
+
+test("an empty table's name cannot break out of its skip comment", () => {
+  const editor = makeEditor();
+  editor.createElement("erd.table", {
+    id: "evil",
+    semantic: {
+      tableName: "x\nDROP TABLE victim; --\r\u2028DROP TABLE victim;",
+      columns: [],
+    },
+    visual: { x: 0, y: 0, width: 200 },
+  });
+  for (const dialect of ["postgresql", "mysql", "sqlite"] as const) {
+    const { sql } = generateDatabaseDdl(editor, editor.currentPageId, dialect);
+    for (const line of sql.split(/[\n\r\v\f\u0085\u2028\u2029]/))
+      expect(
+        line.trim() === "" ||
+          line.startsWith("--") ||
+          line === "PRAGMA foreign_keys = ON;",
+      ).toBe(true);
+  }
+  const database = new Database(":memory:");
+  database.run("CREATE TABLE victim (id INTEGER)");
+  database.exec(
+    generateDatabaseDdl(editor, editor.currentPageId, "sqlite").sql,
+  );
+  expect(
+    database
+      .query("SELECT name FROM sqlite_master WHERE name = 'victim'")
+      .all(),
+  ).toHaveLength(1);
+});

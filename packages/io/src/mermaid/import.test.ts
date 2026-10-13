@@ -207,3 +207,38 @@ test("warns for unmatched and open blocks without producing invalid IR", () => {
   expect(validateDocument(er.document)).toEqual([]);
   expect(validateDocument(sequence.document)).toEqual([]);
 });
+
+test("dotted ER relationships round-trip as logical references", () => {
+  const source = `erDiagram
+  USERS {
+    uuid id PK
+  }
+  ORDERS {
+    uuid user_id
+  }
+  ORDERS }o..|| USERS : placed by
+  ORDERS }o--|| USERS : billed to
+`;
+  const imported = importMermaid(source, {
+    documentId: "erd-doc",
+    pageId: "schema",
+    title: "Store schema",
+  });
+  expect(imported.warnings).toEqual([]);
+  expect(validateDocument(imported.document)).toEqual([]);
+  const relations = imported.document.elements.filter(
+    (element) => element.type === "erd.relation",
+  );
+  const byLabel = new Map(
+    relations.map((element) => [
+      (element.semantic as { label?: string }).label,
+      element.semantic as { logical?: boolean },
+    ]),
+  );
+  expect(byLabel.get("placed by")?.logical).toBe(true);
+  expect(byLabel.get("billed to")?.logical).toBeUndefined();
+
+  const code = exportMermaid(imported.document, "schema", "erDiagram").code;
+  expect(code).toContain("}o..|| E_mermaid-table-users : placed by");
+  expect(code).toContain("}o--|| E_mermaid-table-users : billed to");
+});

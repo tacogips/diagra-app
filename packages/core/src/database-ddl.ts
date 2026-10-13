@@ -108,8 +108,9 @@ function typeFor(
   return "TEXT";
 }
 
+/** Flatten text for a `--` line comment: any line break would end it. */
 function comment(value: string): string {
-  return value.replace(/[\n\r]+/g, " ");
+  return value.replace(/[\n\r\v\f\u0085\u2028\u2029]+/g, " ");
 }
 
 const ACTION_SQL: Readonly<Record<ReferentialAction, string>> = {
@@ -482,7 +483,7 @@ export function generateDatabaseDdl(
   const statements = tables.map((table) => {
     if (!table.semantic.columns.length) {
       warnings.push(`${table.semantic.tableName}: table has no columns.`);
-      return `-- Skipped empty table ${quoteIdentifier(table.semantic.tableName, dialect)}.`;
+      return `-- Skipped empty table ${comment(quoteIdentifier(table.semantic.tableName, dialect))}.`;
     }
     const definitions = table.semantic.columns.map((column) => {
       const parts = [

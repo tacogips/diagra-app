@@ -82,6 +82,31 @@ if ! git ls-remote --exit-code --tags origin "refs/tags/$release_tag" >/dev/null
   exit 1
 fi
 
+# Build exactly the commit the tag names: a dirty tree or a moved tag would
+# otherwise publish binaries that do not match the tagged source.
+if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+  echo "error: the working tree is not clean; commit or stash changes before releasing" >&2
+  git status --short >&2
+  exit 1
+fi
+
+head_commit="$(git rev-parse HEAD)"
+local_tag_commit="$(git rev-parse "refs/tags/$release_tag^{commit}")"
+# An annotated tag lists its peeled commit as "<tag>^{}"; a lightweight tag
+# lists the commit directly.
+remote_tag_commit="$(git ls-remote origin "refs/tags/$release_tag^{}" | awk '{print $1}')"
+if [ -z "$remote_tag_commit" ]; then
+  remote_tag_commit="$(git ls-remote origin "refs/tags/$release_tag" | awk '{print $1}')"
+fi
+if [ "$head_commit" != "$local_tag_commit" ]; then
+  echo "error: HEAD ($head_commit) is not the commit tagged $release_tag ($local_tag_commit)" >&2
+  exit 1
+fi
+if [ "$remote_tag_commit" != "$local_tag_commit" ]; then
+  echo "error: origin's $release_tag ($remote_tag_commit) differs from the local tag ($local_tag_commit)" >&2
+  exit 1
+fi
+
 app_version="$(bun -e 'console.log((await Bun.file("apps/desktop/src-tauri/tauri.conf.json").json()).version)')"
 cli_version="$(bun -e 'console.log((await Bun.file("apps/cli/package.json").json()).version)')"
 if [ "v$app_version" != "$release_tag" ] || [ "v$cli_version" != "$release_tag" ]; then

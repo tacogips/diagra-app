@@ -159,3 +159,97 @@ test("a multi-layer selection limits arranging to the selected layers", () => {
   expect(anyOverlap([x, y])).toBe(false);
   expect([z.x, z.y]).toEqual([15, 15]);
 });
+
+test("refitting a frame leaves an already placed child where it is", () => {
+  const editor = makeEditor();
+  editor.createElement("frame", {
+    id: "frame",
+    semantic: { name: "Frame" },
+    visual: { x: 100, y: 100, width: 400, height: 300 },
+  });
+  editor.createElement("node.generic", {
+    id: "node",
+    semantic: { label: "n" },
+    visual: { x: 150, y: 160, width: 50, height: 50 },
+  });
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(true);
+  const [frame, node] = boxes(editor, ["frame", "node"]) as [Box, Box];
+  expect([node.x, node.y]).toEqual([150, 160]);
+  expect(contains(frame, node)).toBe(true);
+  // Fixed point: the refit must not drift the frame and child every run.
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(false);
+});
+
+test("a frame holding a locked layer stays put and keeps that layer inside", () => {
+  const editor = makeEditor();
+  editor.createElement("frame", {
+    id: "frame",
+    semantic: { name: "Frame" },
+    visual: { x: 100, y: 100, width: 400, height: 300 },
+  });
+  editor.createElement("node.generic", {
+    id: "pinned",
+    semantic: { label: "p" },
+    visual: { x: 150, y: 160, width: 50, height: 50, locked: true },
+  });
+  table(editor, "loose", 0, 0);
+  editor.arrangeLayout({ mode: "tidy" });
+  const [frame, pinned, loose] = boxes(editor, [
+    "frame",
+    "pinned",
+    "loose",
+  ]) as [Box, Box, Box];
+  expect([pinned.x, pinned.y]).toEqual([150, 160]);
+  expect(contains(frame, pinned)).toBe(true);
+  expect(anyOverlap([frame, loose])).toBe(false);
+});
+
+test("tidy positions layers whose coordinates were omitted", () => {
+  const editor = makeEditor();
+  for (const id of ["a", "b"])
+    editor.createElement("erd.table", {
+      id,
+      semantic: {
+        tableName: id,
+        columns: [{ id: "id", name: "id", dataType: "uuid", pk: true }],
+      },
+      visual: { width: 200 },
+    });
+  editor.apply([
+    { type: "replaceVisual", id: "a", visual: { width: 200 } },
+    { type: "replaceVisual", id: "b", visual: { width: 200 } },
+  ]);
+  expect(anyOverlap(boxes(editor, ["a", "b"]))).toBe(true);
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(true);
+  expect(anyOverlap(boxes(editor, ["a", "b"]))).toBe(false);
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(false);
+});
+
+test("content of a grouped frame moves with the frame", () => {
+  const editor = makeEditor();
+  editor.createElement("frame", {
+    id: "frame",
+    semantic: { name: "Frame" },
+    visual: { x: 1000, y: 1000, width: 300, height: 300 },
+  });
+  editor.createElement("node.generic", {
+    id: "child",
+    semantic: { label: "c" },
+    visual: { x: 1050, y: 1060, width: 50, height: 50 },
+  });
+  editor.createElement("node.generic", {
+    id: "label",
+    semantic: { label: "l" },
+    visual: { x: 1000, y: 1320, width: 80, height: 30 },
+  });
+  editor.selection.set(["frame", "label"]);
+  expect(editor.groupSelection()).not.toBeNull();
+  editor.selection.set([]);
+  table(editor, "other", 0, 0);
+
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(true);
+  const [frame, child] = boxes(editor, ["frame", "child"]) as [Box, Box];
+  expect(contains(frame, child)).toBe(true);
+  expect([child.x - frame.x, child.y - frame.y]).toEqual([50, 60]);
+  expect(editor.arrangeLayout({ mode: "tidy" })).toBe(false);
+});

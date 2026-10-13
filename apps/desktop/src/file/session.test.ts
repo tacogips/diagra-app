@@ -900,3 +900,134 @@ describe("handing the editor to another document mode", () => {
     expect(harness.session.state().filePath).toBeNull();
   });
 });
+
+describe("overlapping open requests", () => {
+  /** Hold every read of `path` until the returned function is called. */
+  function holdReads(backend: MockBackend, path: string): () => void {
+    const read = backend.readDocument.bind(backend);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    backend.readDocument = (requested: string) =>
+      requested === path ? gate.then(() => read(requested)) : read(requested);
+    return release;
+  }
+
+  function documentText(editor: Editor, title: string): string {
+    return serializeDocument({ ...editor.getSnapshot(), title });
+  }
+
+  test("an older open that settles last cannot replace the newer document or its edits", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    backend.files.set("/docs/a.jsonl", documentText(editor, "A"));
+    backend.files.set("/docs/b.jsonl", documentText(editor, "B"));
+    const releaseA = holdReads(backend, "/docs/a.jsonl");
+
+    const openingA = session.openPath("/docs/a.jsonl");
+    expect(await session.openPath("/docs/b.jsonl")).toBe(true);
+    addShape(editor, "edit to B");
+    await harness.settle();
+    expect(session.state().dirty).toBe(true);
+    const watchesBefore = backend.watched.length;
+
+    releaseA();
+    expect(await openingA).toBe(false);
+    expect(editor.getSnapshot().title).toBe("B");
+    expect(session.state().filePath).toBe("/docs/b.jsonl");
+    expect(session.state().dirty).toBe(true);
+    expect(session.state().recent.map((entry) => entry.path)).toEqual([
+      "/docs/b.jsonl",
+    ]);
+    expect(backend.watched.length).toBe(watchesBefore);
+  });
+
+  test("a new document retires an open still reading", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    backend.files.set("/docs/a.jsonl", documentText(editor, "A"));
+    const releaseA = holdReads(backend, "/docs/a.jsonl");
+
+    const openingA = session.openPath("/docs/a.jsonl");
+    await session.newDocument();
+    releaseA();
+    expect(await openingA).toBe(false);
+    expect(session.state().filePath).toBeNull();
+    expect(editor.getSnapshot().title).not.toBe("A");
+  });
+
+  test("an open still reading when the cloud takes the editor never loads", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    backend.files.set("/docs/a.jsonl", documentText(editor, "A"));
+    const releaseA = holdReads(backend, "/docs/a.jsonl");
+    const before = editor.getSnapshot().title;
+
+    const openingA = session.openPath("/docs/a.jsonl");
+    session.suspend();
+    releaseA();
+    expect(await openingA).toBe(false);
+    expect(editor.getSnapshot().title).toBe(before);
+    expect(session.state().filePath).toBeNull();
+  });
+});
+
+describe("opening while another mode owns the editor", () => {
+  test("a suspended session refuses to open a file into the editor", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    backend.files.set(
+      "/docs/a.jsonl",
+      serializeDocument({ ...editor.getSnapshot(), title: "A" }),
+    );
+    session.suspend();
+    const before = editor.getSnapshot();
+
+    expect(await session.openPath("/docs/a.jsonl")).toBe(false);
+    backend.openAnswers.push("/docs/a.jsonl");
+    expect(await session.open()).toBe(false);
+    expect(editor.getSnapshot()).toEqual(before);
+    expect(session.state().filePath).toBeNull();
+    expect(session.state().error).toContain("cloud document");
+    // The dialog was never shown either.
+    expect(backend.openAnswers).toEqual(["/docs/a.jsonl"]);
+  });
+});
+
+describe("overlapping imports", () => {
+  test("an import overtaken while the old watch stops never loads", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    backend.files.set(
+      "/docs/a.jsonl",
+      serializeDocument({ ...editor.getSnapshot(), title: "A" }),
+    );
+    expect(await session.openPath("/docs/a.jsonl")).toBe(true);
+    const imported = { ...editor.getSnapshot(), title: "Imported" };
+
+    const importing = session.importDocument(imported, "diagram.mmd");
+    session.suspend();
+    expect(await importing).toBe(false);
+    expect(editor.getSnapshot().title).toBe("A");
+  });
+
+  test("a newer open wins over an import still stopping the old watch", async () => {
+    const harness = createHarness();
+    const { backend, editor, session } = harness;
+    for (const name of ["a", "b"])
+      backend.files.set(
+        `/docs/${name}.jsonl`,
+        serializeDocument({ ...editor.getSnapshot(), title: name }),
+      );
+    expect(await session.openPath("/docs/a.jsonl")).toBe(true);
+    const imported = { ...editor.getSnapshot(), title: "Imported" };
+
+    const importing = session.importDocument(imported, "diagram.mmd");
+    const opening = session.openPath("/docs/b.jsonl");
+    expect(await importing).toBe(false);
+    expect(await opening).toBe(true);
+    expect(editor.getSnapshot().title).toBe("b");
+    expect(session.state().filePath).toBe("/docs/b.jsonl");
+  });
+});

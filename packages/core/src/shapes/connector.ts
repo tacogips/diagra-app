@@ -29,6 +29,7 @@ import {
   unionBoxes,
   type Vec,
 } from "../geometry.ts";
+import { groupedIds, isConnectorBackdrop } from "../backdrops.ts";
 import { avoidOrthogonalObstacles } from "../orthogonal-routing.ts";
 import { flattenStroke } from "../stroke-path.ts";
 import type { ShapeContext, ShapeUtil } from "../shape-util.ts";
@@ -438,6 +439,7 @@ function obstacleBoxes(
   context: ShapeContext,
 ): readonly Box[] {
   const elements = context.elementsOnPage?.(element.page) ?? [];
+  const grouped = groupedIds(elements);
   const boxes: Box[] = [];
   for (const candidate of elements) {
     if (candidate.id === element.id || endpointIds.has(candidate.id)) continue;
@@ -446,9 +448,10 @@ function obstacleBoxes(
       category === "edge" ||
       category === "resource" ||
       candidate.type === "group" ||
-      // Frames are backdrop surfaces beneath connectors; their contents are
-      // the obstacles (see backdrops.ts).
-      candidate.type === "frame" ||
+      // Backdrop frames are painted beneath connectors; their contents are
+      // the obstacles. A grouped frame keeps its group's paint order and so
+      // can hide a line: it stays an obstacle (see backdrops.ts).
+      isConnectorBackdrop(candidate, (id) => grouped.has(id)) ||
       context.isHidden?.(candidate.id) ||
       context.isMaskSource?.(candidate.id)
     )

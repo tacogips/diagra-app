@@ -10,6 +10,8 @@ export function planFrameTranslations(
   before: Store,
   after: Store,
   registry: ShapeUtilRegistry,
+  /** Elements whose final position the batch already set; never carried. */
+  placed?: ReadonlySet<ElementId>,
 ): Command[] {
   const parents = new Map<ElementId, ElementId>();
   const context = createShapeContext(before, registry, 1);
@@ -19,7 +21,7 @@ export function planFrameTranslations(
   const commands: Command[] = [];
   const visited = new Set<ElementId>();
   const visit = (id: ElementId): void => {
-    if (visited.has(id)) return;
+    if (visited.has(id) || placed?.has(id)) return;
     visited.add(id);
     const parentId = parents.get(id);
     if (!parentId) return;

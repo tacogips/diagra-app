@@ -13,10 +13,35 @@ import {
   type ElementId,
   getElementTypeDefinition,
 } from "@diagra/ir";
+import { memberIdsOf } from "./group.ts";
+
+/** Ids named as members by any group among `elements`. */
+export function groupedIds(
+  elements: readonly Element[],
+): ReadonlySet<ElementId> {
+  const grouped = new Set<ElementId>();
+  for (const element of elements)
+    for (const member of memberIdsOf(element))
+      if (member !== element.id) grouped.add(member);
+  return grouped;
+}
 
 /**
- * Ids of the frames to paint beneath connectors, given the visible
- * elements of a page in z-order. Empty when the page has no connector.
+ * Whether `element` is painted as a backdrop on a page that has connectors:
+ * an ungrouped frame. Connector routing uses the same test, so a frame it
+ * ignores as an obstacle is always one painted beneath the lines.
+ */
+export function isConnectorBackdrop(
+  element: Element,
+  isGrouped: (id: ElementId) => boolean,
+): boolean {
+  return element.type === "frame" && !isGrouped(element.id);
+}
+
+/**
+ * Ids of the frames to paint beneath connectors, given every visible
+ * element of a page in z-order (group members included, so a connector
+ * inside a group counts). Empty when the page has no connector.
  */
 export function connectorBackdropIds(
   elements: readonly Element[],
@@ -28,7 +53,7 @@ export function connectorBackdropIds(
   if (!hasConnector) return new Set();
   return new Set(
     elements
-      .filter((element) => element.type === "frame" && !isGrouped(element.id))
+      .filter((element) => isConnectorBackdrop(element, isGrouped))
       .map((element) => element.id),
   );
 }

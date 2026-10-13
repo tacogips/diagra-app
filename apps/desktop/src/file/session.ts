@@ -133,6 +133,13 @@ export class DocumentSession {
   private lastSavedText: string | null = null;
   /** Bumped by every document load; see `write` and `performWrite`. */
   private documentGeneration = 0;
+  /**
+   * Bumped by every open request and by anything else that replaces the
+   * document. An open whose number is no longer current when its read
+   * settles was overtaken and must not touch the editor, the dirty flag, the
+   * recent list or the watch; see `openPath`.
+   */
+  private openRequest = 0;
   private loading = false;
   /** True while another mode owns the editor; see `suspend`. */
   private suspended = false;
@@ -186,6 +193,7 @@ export class DocumentSession {
 
   /** Discard the open file and start from an empty document. */
   async newDocument(): Promise<void> {
+    this.openRequest += 1;
     this.cancelAutosave();
     await this.stopWatching();
     this.load(emptyLocalDocument());
@@ -200,11 +208,22 @@ export class DocumentSession {
     });
   }
 
-  /** Import a detached document; no previous file may receive its autosave. */
-  async importDocument(document: Document, name: string): Promise<void> {
+  /**
+   * Import a detached document; no previous file may receive its autosave.
+   * Returns false when refused (a cloud room owns the editor) or overtaken by
+   * a newer open, import or hand-over while the old watch was stopping.
+   */
+  async importDocument(document: Document, name: string): Promise<boolean> {
     assertValidDocument(document);
+    if (this.refuseWhileSuspended()) {
+      return false;
+    }
+    const request = ++this.openRequest;
     this.cancelAutosave();
     await this.stopWatching();
+    if (request !== this.openRequest || this.suspended || this.disposed) {
+      return false;
+    }
     this.load(document);
     this.lastSavedText = null;
     this.patch({
@@ -215,10 +234,14 @@ export class DocumentSession {
       status: "idle",
       error: null,
     });
+    return true;
   }
 
   /** Ask for a file and open it. Returns false when cancelled or failed. */
   async open(): Promise<boolean> {
+    if (this.refuseWhileSuspended()) {
+      return false;
+    }
     let path: string | null;
     try {
       path = await this.backend.pickOpenPath();
@@ -233,6 +256,16 @@ export class DocumentSession {
   }
 
   async openPath(path: string): Promise<boolean> {
+    // While a cloud room owns the editor, loading a file would write it
+    // straight into the shared document.
+    if (this.refuseWhileSuspended()) {
+      return false;
+    }
+    const request = ++this.openRequest;
+    // Overtaken by a newer open, a new or imported document, or a hand-over
+    // to another mode: this request must leave everything alone.
+    const stale = (): boolean =>
+      request !== this.openRequest || this.suspended || this.disposed;
     this.cancelAutosave();
     this.patch({ status: "loading", error: null });
 
@@ -246,18 +279,25 @@ export class DocumentSession {
       if (isMissingFile(error)) {
         await this.forgetRecent(path);
       }
-      this.fail(`could not open ${baseName(path)}: ${describe(error)}`);
+      if (!stale()) {
+        this.fail(`could not open ${baseName(path)}: ${describe(error)}`);
+      }
+      return false;
+    }
+    if (stale()) {
       return false;
     }
 
     if (isMermaidPath(path)) {
       try {
         const { importMermaid } = await import("@diagra/io/mermaid/import");
+        if (stale()) {
+          return false;
+        }
         const imported = importMermaid(diskText, { title: mermaidTitle(path) });
         // Mermaid is an interchange source, not our persistence format. Keep
         // the imported document detached so autosave can never rewrite it.
-        await this.importDocument(imported.document, baseName(path));
-        return true;
+        return await this.importDocument(imported.document, baseName(path));
       } catch (error) {
         this.fail(`could not import ${baseName(path)}: ${describe(error)}`);
         return false;
@@ -287,7 +327,12 @@ export class DocumentSession {
       status: "idle",
       error: null,
     });
-    await this.rememberRecent(path);
+    await this.rememberRecent(path, stale);
+    if (stale()) {
+      // A newer document replaced this one while the recent list was
+      // updating; its watch, not ours, is the one that must stay.
+      return true;
+    }
     await this.startWatching(path);
     return true;
   }
@@ -386,6 +431,7 @@ export class DocumentSession {
       return;
     }
     this.suspended = true;
+    this.openRequest += 1;
     this.cancelAutosave();
     // Retire anything already queued for the document being handed over.
     this.documentGeneration += 1;
@@ -579,9 +625,15 @@ export class DocumentSession {
     }
   }
 
-  private async rememberRecent(path: string): Promise<void> {
+  private async rememberRecent(
+    path: string,
+    stale: () => boolean = () => false,
+  ): Promise<void> {
     try {
-      this.patch({ recent: await this.backend.addRecent(path) });
+      const recent = await this.backend.addRecent(path);
+      if (!stale()) {
+        this.patch({ recent });
+      }
     } catch {
       // Same as above: the recent list is a convenience.
     }
@@ -593,6 +645,17 @@ export class DocumentSession {
     } catch {
       // Same as above.
     }
+  }
+
+  /** Report and refuse a file open while another mode owns the editor. */
+  private refuseWhileSuspended(): boolean {
+    if (!this.suspended) {
+      return false;
+    }
+    this.fail(
+      "close the cloud document before opening a file; opening it now would replace the shared document",
+    );
+    return true;
   }
 
   private fail(message: string): void {

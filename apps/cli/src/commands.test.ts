@@ -162,3 +162,45 @@ test("arrange --write tidies overlapping tables and --check is then clean", () =
     "FOREIGN KEY",
   );
 });
+
+test("a value option followed by another option is missing its value", () => {
+  const io = memoryIo({ "doc.jsonl": ERD });
+  const result = runCli(
+    ["ddl", "doc.jsonl", "--output", "--strict"],
+    io,
+    "test",
+  );
+  expect(result.exitCode).toBe(EXIT_ERROR);
+  expect(result.stderr).toContain("--output requires a value.");
+  expect(io.files.has("--strict")).toBe(false);
+
+  // The `=` form still allows a value that starts with "--".
+  const explicit = runCli(
+    ["ddl", "doc.jsonl", "--output=--strict"],
+    io,
+    "test",
+  );
+  expect(explicit.exitCode).toBe(EXIT_OK);
+  expect(io.files.get("--strict")).toContain('CREATE TABLE "users"');
+});
+
+test("write failures exit with the error code, not the drift code", () => {
+  const failing: CommandIo = {
+    readText: (path) => {
+      if (path === "doc.jsonl") return ERD;
+      throw new Error("ENOENT");
+    },
+    writeText: () => {
+      throw new Error("ENOSPC: no space left on device");
+    },
+  };
+  for (const args of [
+    ["ddl", "doc.jsonl", "--output", "schema.sql"],
+    ["format", "doc.jsonl", "--write"],
+    ["arrange", "doc.jsonl", "--write"],
+  ]) {
+    const result = runCli(args, failing, "test");
+    expect(result.exitCode).toBe(EXIT_ERROR);
+    expect(result.stderr).toContain("ENOSPC");
+  }
+});

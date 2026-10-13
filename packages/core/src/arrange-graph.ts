@@ -480,5 +480,67 @@ export function separateOverlaps(
     }
     if (!moved) break;
   }
+  settle(items, gap);
   return new Map(items.map((item) => [item.id, { x: item.x, y: item.y }]));
+}
+
+interface SettleItem {
+  readonly id: string;
+  x: number;
+  y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly fixed: boolean;
+}
+
+/** Closer than `gap` on both axes, i.e. what `separateOverlaps` resolves. */
+function crowds(a: SettleItem, b: SettleItem, gap: number): boolean {
+  return (
+    a.x + a.width + gap > b.x &&
+    b.x + b.width + gap > a.x &&
+    a.y + a.height + gap > b.y &&
+    b.y + b.height + gap > a.y
+  );
+}
+
+/**
+ * Guarantee the result: pairwise pushing can oscillate when a box is wedged
+ * between fixed ones. Fixed boxes are placed first, then every movable box in
+ * reading order keeps its position if it is clear, or else takes the nearest
+ * clear slot beside an already placed box (falling back to just right of
+ * everything, which is always clear).
+ */
+function settle(items: SettleItem[], gap: number): void {
+  const placed: SettleItem[] = items.filter((item) => item.fixed);
+  for (const item of items) {
+    if (item.fixed) continue;
+    const clear = (x: number, y: number): boolean =>
+      !placed.some((other) => crowds({ ...item, x, y }, other, gap));
+    if (!clear(item.x, item.y)) {
+      const candidates: [number, number][] = [];
+      for (const other of placed) {
+        candidates.push(
+          [item.x, other.y + other.height + gap],
+          [other.x + other.width + gap, item.y],
+          [item.x, other.y - item.height - gap],
+          [other.x - item.width - gap, item.y],
+        );
+      }
+      let best: [number, number] = [
+        Math.max(...placed.map((other) => other.x + other.width)) + gap,
+        item.y,
+      ];
+      let bestCost = Math.abs(best[0] - item.x);
+      for (const [x, y] of candidates) {
+        const cost = Math.abs(x - item.x) + Math.abs(y - item.y);
+        if (cost < bestCost && clear(x, y)) {
+          best = [x, y];
+          bestCost = cost;
+        }
+      }
+      item.x = best[0];
+      item.y = best[1];
+    }
+    placed.push(item);
+  }
 }

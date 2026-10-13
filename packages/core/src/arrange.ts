@@ -62,7 +62,17 @@ interface Unit {
   /** Container id (a frame) or PAGE. */
   readonly container: string;
   box: Box;
+  /** Cannot move: locked, or a frame holding a locked layer. */
   readonly fixed: boolean;
+}
+
+export interface Arrangement {
+  readonly commands: Command[];
+  /**
+   * Every element whose final position the commands decide, moved or not.
+   * Apply with `{ placed }` so refitting a frame does not carry them again.
+   */
+  readonly placed: ReadonlySet<ElementId>;
 }
 
 function isConnector(element: Element): boolean {
@@ -110,17 +120,31 @@ function union(boxes: readonly Box[]): Box | null {
 }
 
 /**
- * Commands that tidy or de-overlap a page (or the scoped layers on it).
- * Empty when nothing would move. Apply as one undoable batch.
+ * Commands that tidy or de-overlap a page (or the scoped layers on it), and
+ * the elements they position. Empty when nothing would move. Apply as one
+ * undoable batch with `{ placed }`, so refitting a frame does not carry
+ * children that were deliberately left where they are.
  */
-export function planArrange(
+export function planArrangement(
   store: Store,
   pageId: PageId,
   context: ShapeContext,
   options: ArrangeOptions,
-): Command[] {
+): Arrangement {
   const elements = store.getPageElements(pageId);
   const parents = frameParents(store, pageId, context);
+  // A frame holding a locked layer anywhere below it cannot move: the
+  // locked layer would stay behind (the editor refuses to move it).
+  const pinned = new Set<ElementId>();
+  for (const element of elements) {
+    if (!element.visual.locked) continue;
+    for (
+      let frame = parents.get(element.id);
+      frame !== undefined;
+      frame = parents.get(frame)
+    )
+      pinned.add(frame);
+  }
   const units = new Map<ElementId, Unit>();
   const containerOf = (id: ElementId): string => {
     const frame = parents.get(id);
@@ -143,7 +167,9 @@ export function planArrange(
       element: unitElement,
       container,
       box: { ...box },
-      fixed: leafElements(store, [id]).some((leaf) => leaf.visual.locked),
+      fixed: leafElements(store, [id]).some(
+        (leaf) => leaf.visual.locked || pinned.has(leaf.id),
+      ),
     });
   }
 
@@ -271,8 +297,9 @@ export function planArrange(
         }
       }
     }
-    // Fit the frame around its arranged content.
-    if (frame && !frame.fixed && members.length) {
+    // Fit the frame around its arranged content. A frame pinned by a locked
+    // descendant still fits (it stays put at the next level up).
+    if (frame && !frame.element.visual.locked && members.length) {
       const content = union(
         (childrenOf.get(container) ?? []).map((unit) => unit.box),
       );
@@ -309,19 +336,38 @@ export function planArrange(
     }
   }
 
-  // Translate positioned leaves by their unit's accumulated delta; frames
-  // whose geometry was refitted get their final box instead.
+  // Translate leaves by their unit's accumulated delta (an omitted
+  // coordinate renders at 0); frames whose geometry was refitted get their
+  // final box instead. Connectors follow their endpoints.
   const commands: Command[] = [];
+  // Only units inside a container this pass arranged are positioned here.
+  // Content of a frame nested in a group (not a unit itself) is never
+  // arranged and must keep following its frame through the editor.
+  const arranged = (unit: Unit): boolean => {
+    for (let current = unit; current.container !== PAGE; ) {
+      const parent = units.get(current.container);
+      if (!parent) return false;
+      current = parent;
+    }
+    return true;
+  };
+  const placed = new Set<ElementId>();
+  for (const unit of units.values())
+    if (arranged(unit))
+      for (const leaf of leafElements(store, [unit.id]))
+        if (!isConnector(leaf)) placed.add(leaf.id);
   for (const [id, { dx, dy }] of delta) {
     const unit = units.get(id) as Unit;
+    if (dx === 0 && dy === 0) continue;
     for (const leaf of leafElements(store, [unit.id])) {
-      if (resized.has(leaf.id)) continue;
-      if (leaf.visual.x === undefined || leaf.visual.y === undefined) continue;
-      if (dx === 0 && dy === 0) continue;
+      if (resized.has(leaf.id) || isConnector(leaf)) continue;
       commands.push({
         type: "updateVisual",
         id: leaf.id,
-        visual: { x: leaf.visual.x + dx, y: leaf.visual.y + dy },
+        visual: {
+          x: (leaf.visual.x ?? 0) + dx,
+          y: (leaf.visual.y ?? 0) + dy,
+        },
       });
     }
   }
@@ -340,5 +386,5 @@ export function planArrange(
       },
     });
   }
-  return commands;
+  return { commands, placed };
 }

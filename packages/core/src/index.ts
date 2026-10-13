@@ -70,7 +70,8 @@ export { connectorBackdropIds } from "./backdrops.ts";
 export {
   type ArrangeMode,
   type ArrangeOptions,
-  planArrange,
+  type Arrangement,
+  planArrangement,
 } from "./arrange.ts";
 export {
   type LayeredLayoutOptions,

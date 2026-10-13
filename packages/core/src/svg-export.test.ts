@@ -806,6 +806,35 @@ describe("frames as connector backdrops", () => {
     );
   });
 
+  test("a connector inside a group still lowers an ungrouped frame", () => {
+    // The whole diagram is grouped; an opaque frame sits above the group.
+    const group = element({
+      id: "diagram",
+      type: "group",
+      index: "b0",
+      semantic: { memberIds: [users.id, orders.id, relation.id] },
+      visual: {},
+    });
+    const overlay = { ...frame, index: "z0" };
+    const svg = pageSvg([users, orders, relation, group, overlay]);
+    expect(svg).toContain('data-layer="backdrops"');
+    expect(svg.indexOf('data-id="domain"')).toBeLessThan(
+      svg.indexOf('data-id="diagram"'),
+    );
+  });
+
+  test("a grouped frame keeps its group's paint order", () => {
+    const group = element({
+      id: "boxed",
+      type: "group",
+      index: "b0",
+      semantic: { memberIds: [frame.id, users.id] },
+      visual: {},
+    });
+    const svg = pageSvg([frame, users, orders, relation, group]);
+    expect(svg).not.toContain('data-layer="backdrops"');
+  });
+
   test("without connectors the frame keeps its normal paint order", () => {
     const svg = pageSvg([frame, users, orders]);
     expect(svg).not.toContain('data-layer="backdrops"');
