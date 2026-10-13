@@ -12,7 +12,7 @@
 // arithmetic on. Rather than throw at the user, the whole page is renumbered
 // into the requested order.
 
-import type { Element, ElementId, PageId } from "@diagra/ir";
+import type { Element, ElementId, PageId } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import {
   compareFractional,

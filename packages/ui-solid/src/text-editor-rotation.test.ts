@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import { editRegionAt } from "./interaction.ts";
 import { textEditorRotation } from "./text-editor-rotation.ts";
 

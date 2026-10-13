@@ -77,7 +77,7 @@ DOM; see packages/ui-solid/src/erd-table-view.test.ts).
 ### shapes/BpmnShapeView.tsx (new)
 
 - Props `{ element: Element; box: Box }`.
-- Renders one `<svg class="diagra-bpmn" width=box.width
+- Renders one `<svg class="nodetto-bpmn" width=box.width
   height=box.height style="overflow: visible; position: absolute; left: 0;
   top: 0">` and one child per primitive of `bpmnNotation(element, box)`
   using `primitiveAttributes` (text: one `<tspan x dy>` per line).
@@ -123,7 +123,7 @@ existing line code needs no change.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-08-ui-solid-views/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/shapes           # exit 0
 bun test packages/ui-solid/src/shapes/bpmn-primitive.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

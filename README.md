@@ -1,10 +1,10 @@
-# diagra
+# Nodetto
 
 A diagram editor for ER diagrams, UML class diagrams, sequence diagrams,
 and freeform drawing, with a semantic JSONL file format and real-time
 collaboration.
 
-This repository is **diagra-app**, the public half of the project:
+This repository is **nodetto-app**, the public half of the project:
 
 - Shared editor packages (`packages/*`): Diagram IR, framework-agnostic
   editor core, JSONL and import/export adapters, Yjs client binding, and
@@ -13,11 +13,11 @@ This repository is **diagra-app**, the public half of the project:
   local JSONL files and, when signed in, cloud documents.
 
 The cloud edition (Cloudflare Workers sync server, hosted web SPA, auth,
-infrastructure) lives in the private `diagra-cloud` repository, which
+infrastructure) lives in the private `nodetto-cloud` repository, which
 consumes this repository as a git submodule. Do not add server-side code
 or deployment config here.
 
-The full product design lives in the private `diagra-cloud` repository (`design-docs/specs/product-design.md`).
+The full product design lives in the private `nodetto-cloud` repository (`design-docs/specs/product-design.md`).
 
 ## Layout
 
@@ -73,12 +73,12 @@ Signed and notarized builds are published as GitHub releases and through the
 `tacogips/tap` Homebrew tap:
 
 ```bash
-brew install --cask tacogips/tap/diagra
+brew install --cask tacogips/tap/nodetto
 ```
 
-The cask installs `diagra.app` and links the bundled `diagra-cli` command.
-Open a document from a terminal with `open -a diagra path/to/file.jsonl`;
-Finder "Open With" also lists diagra for `.jsonl`, `.mmd` and `.mermaid`
+The cask installs `nodetto.app` and links the bundled `nodetto-cli` command.
+Open a document from a terminal with `open -a nodetto path/to/file.jsonl`;
+Finder "Open With" also lists nodetto for `.jsonl`, `.mmd` and `.mermaid`
 files without becoming their default application. A path passed while the app
 is running opens in the existing window (after the usual unsaved-changes
 prompt).
@@ -91,21 +91,21 @@ script reads `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD` and
 uploads the DMG and a zipped app. `mise run bundle-macos` builds the same
 bundle locally.
 
-## Command line (`diagra-cli`)
+## Command line (`nodetto-cli`)
 
 `apps/cli` is a headless command line over the same packages the editor
-uses, so repositories can keep a diagra document as the source of truth and
+uses, so repositories can keep a nodetto document as the source of truth and
 check generated artifacts in CI or pre-commit hooks:
 
 ```bash
-diagra-cli ddl schema.jsonl --dialect postgresql --strict --output schema.sql
-diagra-cli ddl schema.jsonl --dialect postgresql --strict --check schema.sql
-diagra-cli format schema.jsonl --check     # or --write
-diagra-cli arrange schema.jsonl --write    # Tidy layout; --mode overlaps, --check
-diagra-cli validate schema.jsonl
-diagra-cli lint process.jsonl --format text
-diagra-cli bpmn import process.bpmn --output process.jsonl
-diagra-cli bpmn export process.jsonl --page process --check process.bpmn
+nodetto-cli ddl schema.jsonl --dialect postgresql --strict --output schema.sql
+nodetto-cli ddl schema.jsonl --dialect postgresql --strict --check schema.sql
+nodetto-cli format schema.jsonl --check     # or --write
+nodetto-cli arrange schema.jsonl --write    # Tidy layout; --mode overlaps, --check
+nodetto-cli validate schema.jsonl
+nodetto-cli lint process.jsonl --format text
+nodetto-cli bpmn import process.bpmn --output process.jsonl
+nodetto-cli bpmn export process.jsonl --page process --check process.bpmn
 ```
 
 `ddl` emits exactly what the inspector's Database DDL panel generates for one
@@ -134,7 +134,7 @@ keep their own layout and sequence diagrams are left alone. Arrange > Remove
 overlaps instead nudges only overlapping layers apart along the shorter axis,
 growing frames that must contain them. Both are one undo step, deterministic,
 snap to whole units and are fixed points: running them again moves nothing.
-Connectors re-route automatically. `diagra-cli arrange` runs the same command
+Connectors re-route automatically. `nodetto-cli arrange` runs the same command
 headlessly.
 
 On pages with connectors, frames are painted beneath the connector layer and
@@ -283,7 +283,7 @@ dangling syntax. The same adapter imports `erDiagram`, `classDiagram`, and
 layouts and line-addressed warnings for unsupported statements. Desktop Open
 and the hosted file picker accept `.mmd`/`.mermaid`. Imports are intentionally
 dirty and detached, so autosave cannot replace Mermaid source with JSONL; Save
-asks for a Diagra document path.
+asks for a Nodetto document path.
 
 ## Sequence authoring
 
@@ -326,8 +326,8 @@ from the same notation module.
 
 Open a `.bpmn` file for detached import, or use **Import BPMN...** and
 **Export BPMN...** in the desktop File menu. XML-only or unsupported content
-is retained with import warnings. Use `diagra-cli lint` for CI checks and
-`diagra-cli bpmn import|export` for BPMN 2.0 XML interchange. The [AI review
+is retained with import warnings. Use `nodetto-cli lint` for CI checks and
+`nodetto-cli bpmn import|export` for BPMN 2.0 XML interchange. The [AI review
 guideline](docs/bpmn/ai-review-rules.md) is an original starting point for
 `.claude/rules/`; [purchase-request.jsonl](docs/bpmn/purchase-request.jsonl)
 is the example document.

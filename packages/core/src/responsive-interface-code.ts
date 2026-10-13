@@ -1,4 +1,4 @@
-import type { ElementId, FrameSemantic } from "@diagra/ir";
+import type { ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { generateInterfaceCode, type InterfaceCode } from "./interface-code.ts";
 import { collectResponsiveFamily } from "./responsive-family.ts";
@@ -50,7 +50,7 @@ function responsiveCss(
       ? (breakpoints[0]?.code.linkedCss ?? "")
       : (breakpoints[0]?.code.css ?? "");
   return [
-    ".diagra-responsive-view { display: none; }",
+    ".nodetto-responsive-view { display: none; }",
     `.${breakpoints[0]?.className} { display: block; }`,
     ...breakpoints.map((breakpoint) =>
       linked ? breakpoint.code.linkedCss : breakpoint.code.css,
@@ -79,7 +79,7 @@ export function generateResponsiveInterfaceCode(
               name: member.name,
               ...(member.platform ? { platform: member.platform } : {}),
               width: member.width,
-              className: `diagra-breakpoint-${encoded(member.rootId)}`,
+              className: `nodetto-breakpoint-${encoded(member.rootId)}`,
               code,
             },
           ]
@@ -90,7 +90,7 @@ export function generateResponsiveInterfaceCode(
   const html = breakpoints
     .map(
       (breakpoint) =>
-        `<div class="diagra-responsive-view ${breakpoint.className}" data-breakpoint-width="${breakpoint.width}" data-breakpoint-root="${escapeAttribute(breakpoint.rootId)}">\n${breakpoint.code.html
+        `<div class="nodetto-responsive-view ${breakpoint.className}" data-breakpoint-width="${breakpoint.width}" data-breakpoint-root="${escapeAttribute(breakpoint.rootId)}">\n${breakpoint.code.html
           .split("\n")
           .map((line) => `  ${line}`)
           .join("\n")}\n</div>`,

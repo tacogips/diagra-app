@@ -54,7 +54,7 @@ test("generates one valid adaptive native family with unique symbols", () => {
     new Set(report?.breakpoints.map((item) => item.composeFunctionName)).size,
   ).toBe(3);
   expect(occurrences(report?.swiftUi, "import SwiftUI")).toBe(1);
-  expect(occurrences(report?.swiftUi, "private struct DiagraPolygon")).toBe(1);
+  expect(occurrences(report?.swiftUi, "private struct NodettoPolygon")).toBe(1);
   expect(report?.swiftUi).toContain("if proxy.size.width >= 1440");
   expect(report?.swiftUi).toContain("} else if proxy.size.width >= 768 {");
   expect(report?.swiftUi).toContain("} else {");
@@ -70,7 +70,7 @@ test("generates one valid adaptive native family with unique symbols", () => {
   expect(report?.jetpackCompose).toContain("BoxWithConstraints {");
   expect(report?.jetpackCompose).toContain("maxWidth >= 1440.dp");
   expect(report?.jetpackCompose).toContain("maxWidth >= 768.dp");
-  expect(report?.jetpackCompose).toContain("else -> DiagraBreakpoint");
+  expect(report?.jetpackCompose).toContain("else -> NodettoBreakpoint");
   const manifest = JSON.parse(report?.manifest ?? "{}") as {
     breakpoints?: { platform?: string; manifest?: { root?: string } }[];
     swiftDispatcher?: string;
@@ -86,8 +86,8 @@ test("generates one valid adaptive native family with unique symbols", () => {
     "tablet",
     "desktop",
   ]);
-  expect(manifest.swiftDispatcher).toMatch(/^DiagraAdaptive.+View$/);
-  expect(manifest.composeDispatcher).toMatch(/^DiagraAdaptive.+Screen$/);
+  expect(manifest.swiftDispatcher).toMatch(/^NodettoAdaptive.+View$/);
+  expect(manifest.composeDispatcher).toMatch(/^NodettoAdaptive.+Screen$/);
   expect(editor.getSnapshot()).toEqual(before);
 });
 

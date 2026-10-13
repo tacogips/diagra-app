@@ -1,7 +1,7 @@
 # bpmn-14-docs progress
 
 - Workflow mode: `issue-resolution`.
-- Issue reference: no GitHub issue; workflow input `Continue (2): BPMN 2.0 operation flow (business process) diagrams in diagra`, session-359. Assigned plan: `impl-plans/active/bpmn-14-docs.md`.
+- Issue reference: no GitHub issue; workflow input `Continue (2): BPMN 2.0 operation flow (business process) diagrams in nodetto`, session-359. Assigned plan: `impl-plans/active/bpmn-14-docs.md`.
 - Dependency readiness: `bpmn-05-core-lint` and `bpmn-06-io-bpmn-xml` are admitted by runtime `acceptedPlanIds`; `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` exists.
 - Codex-agent references: none for this plan.
 
@@ -61,7 +61,7 @@ The README exit-code paragraph now follows design section 8: `lint` has exits 0/
 | `bun test packages/core/src/bpmn/docs-example.test.ts` | exit 0; 7 pass, 0 fail, 30 expects | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/docs-test-adv1.log` |
 | `! LC_ALL=C grep -l '[^[:print:][:space:]]' docs/bpmn/format.md docs/bpmn/lint-rules.md docs/bpmn/ai-review-rules.md README.md packages/io/README.md` | exit 0; no matches | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/ascii-adv1.log` |
 | `! grep -nE 'lint[^.]*--strict|--strict[^.]*lint' README.md` | exit 0; no lint/strict association | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/no-lint-strict-adv1.log` |
-| `grep -n 'diagra-cli lint' README.md && grep -n 'diagra-cli bpmn export' README.md` | exit 0; both examples present | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/command-examples-adv1.log` |
+| `grep -n 'nodetto-cli lint' README.md && grep -n 'nodetto-cli bpmn export' README.md` | exit 0; both examples present | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/command-examples-adv1.log` |
 | `cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` | exit 0; byte-identical | `tmp/bpmn-operation-flow-s359/bpmn-14-docs/cmp-adv1.log` |
 
 Current README SHA-256: `4d9c0d0b3d8a55a8a6c3d165f8d1ce01be7e7d833f528c42e6950b0db9588eb0`. Current `packages/io/README.md` SHA-256: `e3523193533cde9cc575ccadb241620893bf38dd02d83decd57dccf9ee3a09a3`.

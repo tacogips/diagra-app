@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { connectorBackdropIds, Editor, groupOf } from "@diagra/core";
+import { connectorBackdropIds, Editor, groupOf } from "@nodetto/core";
 
 function editorWithFlow() {
   const editor = new Editor();

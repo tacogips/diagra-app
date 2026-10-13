@@ -5,8 +5,8 @@
 // enabled exactly when running it would change something.
 
 import { describe, expect, test } from "bun:test";
-import { createDefaultRegistry, Editor } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import {
   type ActionContext,
   type ActionId,

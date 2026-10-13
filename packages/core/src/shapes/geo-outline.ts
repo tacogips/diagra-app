@@ -6,7 +6,7 @@
 // stroke is not clipped by the box edge; an unknown kind falls back to the
 // rectangle, matching the registry's forward-compatibility rule.
 
-import type { GeoKind } from "@diagra/ir";
+import type { GeoKind } from "@nodetto/ir";
 
 export type GeoOutline =
   | {

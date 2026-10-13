@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createDefaultRegistry, Editor } from "@diagra/core";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
 import {
   assetFileName,
   rasterDimensions,

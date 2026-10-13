@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
-import { validateDocument } from "@diagra/ir";
+import { Editor } from "@nodetto/core";
+import { validateDocument } from "@nodetto/ir";
 import { createInteraction, type Interaction } from "./interaction.ts";
 import { ACTION_MENUS, BPMN_TOOL_MENU, TOOL_MENUS } from "./Toolbar.tsx";
 import {

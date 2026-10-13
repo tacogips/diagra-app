@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { GroupSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { GroupSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import {
   boxPolygon,
   clipCss,
@@ -68,7 +68,7 @@ describe("layer masks", () => {
     expect(svg).toContain("<polygon");
     expect(svg).toContain(`data-id="${content}"`);
     const code = generateInterfaceCode(editor, frame);
-    expect(code?.html).not.toContain(`data-diagra-id="${mask}"`);
+    expect(code?.html).not.toContain(`data-nodetto-id="${mask}"`);
     expect(code?.css).toContain("clip-path: polygon(");
 
     const target = editor.createElement("frame", {
@@ -168,7 +168,7 @@ describe("layer masks", () => {
     expect(decodeURIComponent(css ?? "")).toContain("viewBox=");
     const svg = editor.exportPageSvg({ padding: 0 });
     expect(svg).toContain('mask-type="luminance"');
-    expect(svg).toContain('mask="url(#diagra-raster-mask-0)"');
+    expect(svg).toContain('mask="url(#nodetto-raster-mask-0)"');
     const handoff = inspectDesign(editor, group);
     expect(handoff?.css).toContain("mask-image: url(");
     expect(handoff?.css).toContain("mask-mode: luminance;");

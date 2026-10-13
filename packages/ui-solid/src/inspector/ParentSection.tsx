@@ -4,8 +4,8 @@ import {
   expandContainers,
   frameParents,
   groupOf,
-} from "@diagra/core";
-import type { Element, FrameSemantic, Visual } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, FrameSemantic, Visual } from "@nodetto/ir";
 import { createSignal, For, type JSX, Show } from "solid-js";
 import {
   Field,
@@ -173,7 +173,7 @@ export function ParentSection(props: {
           props.element.visual.textResize === "auto-height"
         }
       >
-        <div class="diagra-field-grid">
+        <div class="nodetto-field-grid">
           <For
             each={
               [
@@ -222,7 +222,7 @@ export function ParentSection(props: {
       <Show
         when={!groupOf(props.editor.store, props.element.id)}
         fallback={
-          <p class="diagra-inspector-note">
+          <p class="nodetto-inspector-note">
             Select the containing group to move it between artboards.
           </p>
         }
@@ -246,7 +246,7 @@ export function ParentSection(props: {
           />
         </Field>
         <Show when={message()}>
-          <p role="status" class="diagra-inspector-note">
+          <p role="status" class="nodetto-inspector-note">
             {message()}
           </p>
         </Show>
@@ -271,7 +271,7 @@ export function ParentSection(props: {
           </Show>
           <button
             type="button"
-            class="diagra-inspector-button"
+            class="nodetto-inspector-button"
             onClick={() =>
               props.editor.reorderFrameMember(props.element.id, -1)
             }
@@ -283,7 +283,7 @@ export function ParentSection(props: {
           </button>
           <button
             type="button"
-            class="diagra-inspector-button"
+            class="nodetto-inspector-button"
             onClick={() => props.editor.reorderFrameMember(props.element.id, 1)}
           >
             Later in{" "}

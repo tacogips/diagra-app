@@ -1,5 +1,5 @@
 // JSONL serialization: IR document -> deterministic newline-delimited JSON.
-// See the product design (diagra-cloud repo), section 6.
+// See the product design (nodetto-cloud repo), section 6.
 
 import {
   comparePageOrder,
@@ -11,7 +11,7 @@ import {
   type Page,
   type UnknownRecord,
   type Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { compareStrings, stringifyCanonical } from "./canonical.ts";
 import { setField } from "./objects.ts";
 import {

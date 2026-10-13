@@ -14,15 +14,15 @@
 //   - `loading` is set while the editor is being replaced, so the diffs a
 //     load produces never mark the fresh document dirty.
 
-import { type Editor, newElementId } from "@diagra/core";
+import { type Editor, newElementId } from "@nodetto/core";
 import {
   assertValidDocument,
   type Document,
   formatIssue,
   SCHEMA_VERSION,
-} from "@diagra/ir";
-import { parseDocumentResult, serializeDocument } from "@diagra/io";
-import type { BpmnImportWarning } from "@diagra/io";
+} from "@nodetto/ir";
+import { parseDocumentResult, serializeDocument } from "@nodetto/io";
+import type { BpmnImportWarning } from "@nodetto/io";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
 export type SessionStatus = "idle" | "loading" | "saving";
@@ -307,7 +307,7 @@ export class DocumentSession {
 
     if (isMermaidPath(path)) {
       try {
-        const { importMermaid } = await import("@diagra/io/mermaid/import");
+        const { importMermaid } = await import("@nodetto/io/mermaid/import");
         if (stale()) {
           return false;
         }
@@ -323,7 +323,7 @@ export class DocumentSession {
 
     if (isBpmnPath(path)) {
       try {
-        const { importBpmnXml } = await import("@diagra/io/bpmn");
+        const { importBpmnXml } = await import("@nodetto/io/bpmn");
         if (stale()) {
           return false;
         }

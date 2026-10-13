@@ -5,7 +5,7 @@
 // in and handed back, because the canvas reads them too.
 
 import { type JSX, onCleanup, onMount } from "solid-js";
-import { MIN_ZOOM, MAX_ZOOM } from "@diagra/core";
+import { MIN_ZOOM, MAX_ZOOM } from "@nodetto/core";
 import { NumberInput } from "./NumberInput.tsx";
 import { createEditorSignals } from "./adapter.ts";
 import { stepMenuIndex } from "./menu-navigation.ts";
@@ -60,7 +60,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
   const button = (id: ActionId, label: string): JSX.Element => (
     <button
       type="button"
-      class="diagra-zoom-button"
+      class="nodetto-zoom-button"
       title={actionTitle(getAction(id))}
       disabled={!isEnabled(id)}
       onClick={(event) => {
@@ -84,8 +84,8 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
   ): JSX.Element => (
     <button
       type="button"
-      class="diagra-zoom-button diagra-zoom-toggle"
-      classList={{ "diagra-active": on() }}
+      class="nodetto-zoom-button nodetto-zoom-toggle"
+      classList={{ "nodetto-active": on() }}
       aria-pressed={on()}
       title={title}
       onClick={(event) => {
@@ -98,10 +98,10 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
   );
 
   return (
-    <div class="diagra-zoom-controls" role="toolbar" aria-label="Zoom">
-      <div class="diagra-zoom-group">
+    <div class="nodetto-zoom-controls" role="toolbar" aria-label="Zoom">
+      <div class="nodetto-zoom-group">
         {button("zoomOut", "-")}
-        <div class="diagra-zoom-level">
+        <div class="nodetto-zoom-level">
           <NumberInput
             label="Zoom percent"
             value={Math.round(signals.camera().z * 10000) / 100}
@@ -121,7 +121,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
         {button("zoomFit", "Fit")}
       </div>
       <details
-        class="diagra-view-menu"
+        class="nodetto-view-menu"
         ref={viewMenu}
         onKeyDown={(event) => {
           // Menu navigation must not also nudge or pan the canvas.
@@ -166,7 +166,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
         >
           View
         </summary>
-        <div class="diagra-view-menu-body">
+        <div class="nodetto-view-menu-body">
           {button("zoomReset", "Reset to 100%")}
           {button("zoomSelection", "Fit selection")}
           {toggle(

@@ -4,7 +4,7 @@ import {
   type SequenceMessageSemantic,
   type SequenceParticipantSemantic,
   validateDocument,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { compareFractional } from "./fractional.ts";
 import { makeEditor } from "./test-helpers.ts";
 

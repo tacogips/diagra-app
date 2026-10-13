@@ -5,8 +5,8 @@ import {
   layerName,
   selectLayerRow,
   selectLayerSearchMatches,
-} from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import {
   createMemo,
   createEffect,
@@ -88,12 +88,12 @@ export function Layers(props: {
     () => new Map(rows().map((row) => [row.element.id, row])),
   );
   return (
-    <nav class="diagra-layers" aria-label="Layers">
-      <details class="diagra-navigation-group">
+    <nav class="nodetto-layers" aria-label="Layers">
+      <details class="nodetto-navigation-group">
         <summary>Components</summary>
         <ComponentLibrary editor={props.editor} showHeading={false} />
       </details>
-      <details class="diagra-navigation-group">
+      <details class="nodetto-navigation-group">
         <summary>Styles and tokens</summary>
         <fieldset
           disabled={readOnly()}
@@ -105,7 +105,7 @@ export function Layers(props: {
         </fieldset>
       </details>
       <details
-        class="diagra-navigation-group"
+        class="nodetto-navigation-group"
         open={props.commentPlacementActive}
       >
         <summary>Comments</summary>
@@ -178,12 +178,12 @@ export function Layers(props: {
               };
               return (
                 <div
-                  class="diagra-layer-row"
+                  class="nodetto-layer-row"
                   style={{ "padding-left": `${8 + row().depth * 14}px` }}
                 >
                   <Show
                     when={row().hasChildren}
-                    fallback={<span class="diagra-layer-spacer" />}
+                    fallback={<span class="nodetto-layer-spacer" />}
                   >
                     <button
                       type="button"
@@ -220,7 +220,7 @@ export function Layers(props: {
                         nameButtons.set(id, button);
                       }}
                       type="button"
-                      class="diagra-layer-name"
+                      class="nodetto-layer-name"
                       aria-pressed={signals.selection().has(id)}
                       title={
                         row().matchDetail ??
@@ -310,7 +310,7 @@ export function Layers(props: {
                   <Show when={props.viewport}>
                     <button
                       type="button"
-                      class="diagra-layer-icon"
+                      class="nodetto-layer-icon"
                       aria-label={`Locate ${layerName(row().element)} on canvas`}
                       title="Select this layer and fit its visible artwork"
                       onClick={() => {
@@ -334,7 +334,7 @@ export function Layers(props: {
                   </Show>
                   <button
                     type="button"
-                    class="diagra-layer-icon"
+                    class="nodetto-layer-icon"
                     title={
                       row().element.visual.hidden ? "Show layer" : "Hide layer"
                     }
@@ -361,7 +361,7 @@ export function Layers(props: {
                   </button>
                   <button
                     type="button"
-                    class="diagra-layer-icon"
+                    class="nodetto-layer-icon"
                     title={
                       row().element.visual.locked
                         ? "Unlock layer"
@@ -401,7 +401,7 @@ export function Layers(props: {
       <Show when={rows().length === 0}>
         <p>{query().trim() ? "No matches" : "No layers"}</p>
       </Show>
-      <div class="diagra-layer-actions">
+      <div class="nodetto-layer-actions">
         <button
           type="button"
           onClick={() => props.editor.reorderSelection("front")}

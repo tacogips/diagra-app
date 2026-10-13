@@ -6,7 +6,7 @@
 // Connectors have no position and are skipped; they follow their
 // endpoints anyway.
 
-import type { Element, ElementId } from "@diagra/ir";
+import type { Element, ElementId } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import type { Box } from "./geometry.ts";
 import { leafElements, selectionUnits } from "./group.ts";

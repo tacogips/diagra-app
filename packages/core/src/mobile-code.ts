@@ -11,7 +11,7 @@ import type {
   ImageSemantic,
   PathSemantic,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Box } from "./geometry.ts";
 import { linearGradientVector } from "./gradient.ts";
@@ -88,7 +88,7 @@ function resourceName(element: Element): string {
     .toLowerCase()
     .replace(/[^a-z0-9_]+/g, "_")
     .replace(/^_+|_+$/g, "");
-  return `diagra_${safe || "asset"}`;
+  return `nodetto_${safe || "asset"}`;
 }
 
 function hexColor(value: string | undefined, fallback = "#000000"): string {
@@ -362,7 +362,7 @@ function swiftRasterMaskModifier(
 ): string | null {
   const mask = rasterMaskPlacement(editor, element);
   if (!mask) return null;
-  return `.mask(DiagraRasterMask(asset: ${swiftString(mask.resource)}, x: ${number(mask.x)}, y: ${number(mask.y)}, width: ${number(mask.width)}, height: ${number(mask.height)}, cropX: ${number(mask.cropX)}, cropY: ${number(mask.cropY)}, cropWidth: ${number(mask.cropWidth)}, cropHeight: ${number(mask.cropHeight)}, rotation: ${number(mask.rotation)}, luminance: ${mask.luminance}))`;
+  return `.mask(NodettoRasterMask(asset: ${swiftString(mask.resource)}, x: ${number(mask.x)}, y: ${number(mask.y)}, width: ${number(mask.width)}, height: ${number(mask.height)}, cropX: ${number(mask.cropX)}, cropY: ${number(mask.cropY)}, cropWidth: ${number(mask.cropWidth)}, cropHeight: ${number(mask.cropHeight)}, rotation: ${number(mask.rotation)}, luminance: ${mask.luminance}))`;
 }
 
 function composeRasterMaskModifier(
@@ -371,7 +371,7 @@ function composeRasterMaskModifier(
 ): string | null {
   const mask = rasterMaskPlacement(editor, element);
   if (!mask) return null;
-  return `.diagraRasterMask(resource = R.drawable.${mask.resource}, x = ${number(mask.x)}f, y = ${number(mask.y)}f, width = ${number(mask.width)}f, height = ${number(mask.height)}f, cropX = ${number(mask.cropX)}f, cropY = ${number(mask.cropY)}f, cropWidth = ${number(mask.cropWidth)}f, cropHeight = ${number(mask.cropHeight)}f, rotation = ${number(mask.rotation)}f, luminance = ${mask.luminance})`;
+  return `.nodettoRasterMask(resource = R.drawable.${mask.resource}, x = ${number(mask.x)}f, y = ${number(mask.y)}f, width = ${number(mask.width)}f, height = ${number(mask.height)}f, cropX = ${number(mask.cropX)}f, cropY = ${number(mask.cropY)}f, cropWidth = ${number(mask.cropWidth)}f, cropHeight = ${number(mask.cropHeight)}f, rotation = ${number(mask.rotation)}f, luminance = ${mask.luminance})`;
 }
 
 function swiftMaskModifier(editor: Editor, element: Element): string | null {
@@ -379,7 +379,7 @@ function swiftMaskModifier(editor: Editor, element: Element): string | null {
   if (raster) return raster;
   const points = normalizedMaskPoints(editor, element);
   if (!points?.length) return null;
-  return `.mask(DiagraPolygon(points: [${points
+  return `.mask(NodettoPolygon(points: [${points
     .map((point) => `.init(x: ${number(point.x)}, y: ${number(point.y)})`)
     .join(", ")}]))`;
 }
@@ -413,7 +413,7 @@ function swiftBooleanModifier(editor: Editor, element: Element): string | null {
           .join(", ")}]`,
     )
     .join(", ");
-  return `.mask(DiagraBooleanMask(polygons: [${value}]))`;
+  return `.mask(NodettoBooleanMask(polygons: [${value}]))`;
 }
 
 function composeMaskModifier(editor: Editor, element: Element): string | null {
@@ -459,9 +459,9 @@ function swiftShapeName(element: Element, style: VisualStyle): string {
   return geo === "ellipse"
     ? "Ellipse()"
     : geo === "diamond"
-      ? "DiagraPolygon(points: [.init(x: 0.5, y: 0), .init(x: 1, y: 0.5), .init(x: 0.5, y: 1), .init(x: 0, y: 0.5)])"
+      ? "NodettoPolygon(points: [.init(x: 0.5, y: 0), .init(x: 1, y: 0.5), .init(x: 0.5, y: 1), .init(x: 0, y: 0.5)])"
       : geo === "triangle"
-        ? "DiagraPolygon(points: [.init(x: 0.5, y: 0), .init(x: 1, y: 1), .init(x: 0, y: 1)])"
+        ? "NodettoPolygon(points: [.init(x: 0.5, y: 0), .init(x: 1, y: 1), .init(x: 0, y: 1)])"
         : style.cornerRadii
           ? `UnevenRoundedRectangle(topLeadingRadius: ${number(corners.topLeft)}, bottomLeadingRadius: ${number(corners.bottomLeft)}, bottomTrailingRadius: ${number(corners.bottomRight)}, topTrailingRadius: ${number(corners.topRight)})`
           : `RoundedRectangle(cornerRadius: ${number(style.cornerRadius ?? 0)})`;
@@ -897,7 +897,7 @@ function swiftCode(
 ): string {
   const rootName = (tree.root.semantic as FrameSemantic).name;
   const structName =
-    options.swiftViewName ?? `Diagra${identifier(rootName, "Design")}View`;
+    options.swiftViewName ?? `Nodetto${identifier(rootName, "Design")}View`;
   const render = (
     element: Element,
     parent: Element | null,
@@ -928,7 +928,7 @@ function swiftCode(
     ) {
       const container = layout
         ? layout.wrap
-          ? `DiagraFlowLayout(axis: .${layout.direction}, itemSpacing: ${number(layout.gap)}, lineSpacing: ${number(layout.crossGap ?? layout.gap)}, crossAlignment: ${layout.align === "start" ? "0" : layout.align === "end" ? "1" : "0.5"})`
+          ? `NodettoFlowLayout(axis: .${layout.direction}, itemSpacing: ${number(layout.gap)}, lineSpacing: ${number(layout.crossGap ?? layout.gap)}, crossAlignment: ${layout.align === "start" ? "0" : layout.align === "end" ? "1" : "0.5"})`
           : layout.direction === "horizontal"
             ? `HStack(alignment: .${layout.align === "start" ? "top" : layout.align === "end" ? "bottom" : "center"}, spacing: ${number(layout.gap)})`
             : `VStack(alignment: .${layout.align === "start" ? "leading" : layout.align === "end" ? "trailing" : "center"}, spacing: ${number(layout.gap)})`
@@ -1018,7 +1018,7 @@ function swiftCode(
       ? []
       : [
           "",
-          "private struct DiagraRasterMask: View {",
+          "private struct NodettoRasterMask: View {",
           "    let asset: String; let x: CGFloat; let y: CGFloat; let width: CGFloat; let height: CGFloat; let cropX: CGFloat; let cropY: CGFloat; let cropWidth: CGFloat; let cropHeight: CGFloat; let rotation: CGFloat; let luminance: Bool",
           "    var body: some View {",
           "        GeometryReader { proxy in",
@@ -1036,7 +1036,7 @@ function swiftCode(
           "    }",
           "}",
           "",
-          "private struct DiagraBooleanMask: View {",
+          "private struct NodettoBooleanMask: View {",
           "    let polygons: [[CGPoint]]",
           "    var body: some View {",
           "        Canvas { context, size in",
@@ -1052,7 +1052,7 @@ function swiftCode(
           "    }",
           "}",
           "",
-          "private struct DiagraPolygon: Shape {",
+          "private struct NodettoPolygon: Shape {",
           "    let points: [CGPoint]",
           "    func path(in rect: CGRect) -> Path {",
           "        var path = Path()",
@@ -1066,7 +1066,7 @@ function swiftCode(
           "    }",
           "}",
           "",
-          "private struct DiagraFlowLayout: Layout {",
+          "private struct NodettoFlowLayout: Layout {",
           "    let axis: Axis",
           "    let itemSpacing: CGFloat",
           "    let lineSpacing: CGFloat",
@@ -1121,7 +1121,7 @@ function composeCode(
   const rootName = (tree.root.semantic as FrameSemantic).name;
   const functionName =
     options.composeFunctionName ??
-    `Diagra${identifier(rootName, "Design")}Screen`;
+    `Nodetto${identifier(rootName, "Design")}Screen`;
   const usesFlowLayout = tree.included.some(
     (element) => layoutOf(element)?.wrap === true,
   );
@@ -1324,7 +1324,7 @@ function composeCode(
     "}",
     "",
     "@Composable",
-    "private fun Modifier.diagraRasterMask(resource: Int, x: Float, y: Float, width: Float, height: Float, cropX: Float, cropY: Float, cropWidth: Float, cropHeight: Float, rotation: Float, luminance: Boolean): Modifier {",
+    "private fun Modifier.nodettoRasterMask(resource: Int, x: Float, y: Float, width: Float, height: Float, cropX: Float, cropY: Float, cropWidth: Float, cropHeight: Float, rotation: Float, luminance: Boolean): Modifier {",
     "    val painter = painterResource(resource)",
     "    val filter = if (luminance) ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, .2126f, .7152f, .0722f, 0f, 0f))) else null",
     "    return drawWithContent {",
@@ -1534,8 +1534,8 @@ export function generateAdaptiveMobileInterfaceCode(
         name: member.name,
         ...(member.platform ? { platform: member.platform } : {}),
         width: member.width,
-        swiftViewName: `DiagraBreakpoint${suffix}View`,
-        composeFunctionName: `DiagraBreakpoint${suffix}Screen`,
+        swiftViewName: `NodettoBreakpoint${suffix}View`,
+        composeFunctionName: `NodettoBreakpoint${suffix}Screen`,
       };
     },
   );
@@ -1552,8 +1552,8 @@ export function generateAdaptiveMobileInterfaceCode(
     return report;
   });
   const familySuffix = stableNativeSuffix(family.sourceRootId);
-  const swiftDispatcherName = `DiagraAdaptive${familySuffix}View`;
-  const composeDispatcherName = `DiagraAdaptive${familySuffix}Screen`;
+  const swiftDispatcherName = `NodettoAdaptive${familySuffix}View`;
+  const composeDispatcherName = `NodettoAdaptive${familySuffix}Screen`;
   const notes = [
     "Adaptive native output preserves every designer-authored artboard as a separate view and chooses one from the available container width.",
     ...family.notes,

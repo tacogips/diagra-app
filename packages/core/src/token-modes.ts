@@ -1,4 +1,4 @@
-import type { DesignTokenSemantic } from "@diagra/ir";
+import type { DesignTokenSemantic } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import type { Editor } from "./editor.ts";
 import { designTokenModes } from "./token-values.ts";

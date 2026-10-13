@@ -2,7 +2,7 @@ import {
   connectorWaypointToPage,
   type Document,
   type Element,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   parseXml,
   serializeXml,

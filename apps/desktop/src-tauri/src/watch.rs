@@ -152,8 +152,8 @@ mod tests {
     #[test]
     fn matches_the_exact_path() {
         assert!(path_matches(
-            Path::new("/tmp/diagra/a.jsonl"),
-            Path::new("/tmp/diagra/a.jsonl"),
+            Path::new("/tmp/nodetto/a.jsonl"),
+            Path::new("/tmp/nodetto/a.jsonl"),
             None
         ));
     }
@@ -161,17 +161,17 @@ mod tests {
     #[test]
     fn matches_the_canonical_path() {
         assert!(path_matches(
-            Path::new("/private/tmp/diagra/a.jsonl"),
-            Path::new("/tmp/diagra/a.jsonl"),
-            Some(Path::new("/private/tmp/diagra/a.jsonl"))
+            Path::new("/private/tmp/nodetto/a.jsonl"),
+            Path::new("/tmp/nodetto/a.jsonl"),
+            Some(Path::new("/private/tmp/nodetto/a.jsonl"))
         ));
     }
 
     #[test]
     fn matches_the_file_name_within_the_watched_directory() {
         assert!(path_matches(
-            Path::new("/private/tmp/diagra/a.jsonl"),
-            Path::new("/tmp/diagra/a.jsonl"),
+            Path::new("/private/tmp/nodetto/a.jsonl"),
+            Path::new("/tmp/nodetto/a.jsonl"),
             None
         ));
     }
@@ -179,8 +179,8 @@ mod tests {
     #[test]
     fn ignores_a_sibling_file() {
         assert!(!path_matches(
-            Path::new("/tmp/diagra/b.jsonl"),
-            Path::new("/tmp/diagra/a.jsonl"),
+            Path::new("/tmp/nodetto/b.jsonl"),
+            Path::new("/tmp/nodetto/a.jsonl"),
             None
         ));
     }
@@ -190,8 +190,8 @@ mod tests {
         // Atomic writes land on `.a.jsonl.<nanos>-<n>.tmp` first; only the
         // rename onto the target should reach the frontend.
         assert!(!path_matches(
-            Path::new("/tmp/diagra/.a.jsonl.17-0.tmp"),
-            Path::new("/tmp/diagra/a.jsonl"),
+            Path::new("/tmp/nodetto/.a.jsonl.17-0.tmp"),
+            Path::new("/tmp/nodetto/a.jsonl"),
             None
         ));
     }
@@ -199,8 +199,8 @@ mod tests {
     #[test]
     fn watched_directory_is_the_parent() {
         assert_eq!(
-            watched_directory(Path::new("/tmp/diagra/a.jsonl")),
-            PathBuf::from("/tmp/diagra")
+            watched_directory(Path::new("/tmp/nodetto/a.jsonl")),
+            PathBuf::from("/tmp/nodetto")
         );
     }
 

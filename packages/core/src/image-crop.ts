@@ -1,4 +1,4 @@
-import type { ImageCrop } from "@diagra/ir";
+import type { ImageCrop } from "@nodetto/ir";
 import type { Box } from "./geometry.ts";
 
 export const MIN_IMAGE_CROP = 0.01;

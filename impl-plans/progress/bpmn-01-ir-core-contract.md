@@ -58,13 +58,13 @@ The sibling `bpmn-02-fixtures` worker added four BPMN XML fixtures under `packag
 ## Open issues
 
 - Historical note: the two test gates were blocked in session-356. Session-357 amended this plan's `writePaths` to include both pinned-list tests and the canonical BPMN fixture; the Resume evidence below records their passing reruns.
-- No GitHub issue exists. Intake reference is workflow issue `BPMN 2.0 operation flow (business process) diagrams in diagra`, communications `comm-006074..comm-006083`, execution `opus-luna-design-and-implement-review-loop-session-356`.
+- No GitHub issue exists. Intake reference is workflow issue `BPMN 2.0 operation flow (business process) diagrams in nodetto`, communications `comm-006074..comm-006083`, execution `opus-luna-design-and-implement-review-loop-session-356`.
 
 ## Done checklist
 
 - [x] Add final `bpmn` page kind, typed semantic payloads, and 16 structural registry definitions.
 - [x] Add `Visual.labelBounds`, canonical JSONL key ordering/rounding, and reference-type warnings without BPMN legality errors.
-- [x] Move waypoint conversion functions into `@diagra/ir`; core locally imports and re-exports them.
+- [x] Move waypoint conversion functions into `@nodetto/ir`; core locally imports and re-exports them.
 - [x] Add the read-only BPMN model, one-line barrel, 12 node/container/annotation ShapeUtils, 4 connector utils, and BPMN outlines.
 - [x] Add focused IR/model/shape/JSONL tests; owned focused tests pass.
 - [x] Keep migrations unchanged and progress hashes/test counts recorded.

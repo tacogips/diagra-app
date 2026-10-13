@@ -1,4 +1,4 @@
-import type { TypographyStyleValue } from "@diagra/ir";
+import type { TypographyStyleValue } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { colorTokens } from "./color-tokens.ts";
 import { numberTokens } from "./number-tokens.ts";
@@ -7,18 +7,18 @@ import { designTokenModes, pageTokenMode } from "./token-values.ts";
 
 /** Encode every code point, avoiding collisions and unsafe user-controlled CSS. */
 export function colorTokenCssName(id: string): string {
-  return `--diagra-color-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
+  return `--nodetto-color-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
 }
 
 export function numberTokenCssName(id: string): string {
-  return `--diagra-number-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
+  return `--nodetto-number-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
 }
 
 export function textStyleCssName(
   id: string,
   field: keyof TypographyStyleValue,
 ): string {
-  return `--diagra-type-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}-${field.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)}`;
+  return `--nodetto-type-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}-${field.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)}`;
 }
 
 export function typographyCssValue(

@@ -1,4 +1,4 @@
-import type { FreehandPoint } from "@diagra/ir";
+import type { FreehandPoint } from "@nodetto/ir";
 import type { Box, Vec } from "./geometry.ts";
 
 export interface PressureStrokeSample extends Vec {

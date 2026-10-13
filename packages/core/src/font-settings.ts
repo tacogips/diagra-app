@@ -2,7 +2,7 @@ import type {
   FontFeatureSetting,
   FontVariationAxis,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 function safeSettings(
   settings:

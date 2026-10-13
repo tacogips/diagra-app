@@ -1,4 +1,4 @@
-import { type Editor, layerName, renameLayer } from "@diagra/core";
+import { type Editor, layerName, renameLayer } from "@nodetto/core";
 
 /** A transient draft that cannot overwrite a concurrent rename or another document. */
 export function layerRenameDraft(editor: Editor, id: string) {

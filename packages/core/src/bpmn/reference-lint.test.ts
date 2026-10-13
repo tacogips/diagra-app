@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { importBpmnXml } from "@diagra/io";
+import { importBpmnXml } from "@nodetto/io";
 import { lintBpmnPage, recommendedLintConfig } from "./lint/index.ts";
 
 const repositoryRoot = resolve(import.meta.dir, "../../../..");

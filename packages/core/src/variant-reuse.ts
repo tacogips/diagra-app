@@ -3,7 +3,7 @@ import type {
   ElementId,
   FrameSemantic,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { componentOverrides } from "./component-overrides.ts";
 import { expandContainers } from "./frame-tree.ts";

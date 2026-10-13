@@ -7,13 +7,13 @@ import {
   umlAttributesHeight,
   umlMethodsHeight,
   umlNameHeight,
-} from "@diagra/core";
+} from "@nodetto/core";
 import type {
   Element,
   UmlAttribute,
   UmlClassSemantic,
   UmlMethod,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { fillPaintStyle, strokeBorderStyle } from "./visual.ts";
 
@@ -54,7 +54,7 @@ export function UmlClassView(props: UmlClassViewProps): JSX.Element {
   const semantic = () => semanticOf(props.element);
   return (
     <div
-      class="diagra-uml-class"
+      class="nodetto-uml-class"
       data-smart-paint="box"
       style={{
         ...fillPaintStyle(props.element.visual),
@@ -62,26 +62,26 @@ export function UmlClassView(props: UmlClassViewProps): JSX.Element {
       }}
     >
       <div
-        class="diagra-uml-name"
+        class="nodetto-uml-name"
         style={{ height: `${umlNameHeight(props.element.semantic)}px` }}
       >
         <Show when={semantic().stereotype}>
           {(stereotype) => (
-            <span class="diagra-uml-stereotype">{`«${stereotype()}»`}</span>
+            <span class="nodetto-uml-stereotype">{`«${stereotype()}»`}</span>
           )}
         </Show>
-        <span class="diagra-uml-title">{semantic().name}</span>
+        <span class="nodetto-uml-title">{semantic().name}</span>
       </div>
       <div
-        class="diagra-uml-compartment"
+        class="nodetto-uml-compartment"
         style={{ height: `${umlAttributesHeight(props.element.semantic)}px` }}
       >
         <For each={semantic().attributes}>
           {(attribute) => (
             <div
-              class="diagra-uml-row"
+              class="nodetto-uml-row"
               style={{ height: `${UML_CLASS_ROW_HEIGHT}px` }}
-              classList={{ "diagra-uml-static": attribute.static === true }}
+              classList={{ "nodetto-uml-static": attribute.static === true }}
             >
               {attributeText(attribute)}
             </div>
@@ -89,17 +89,17 @@ export function UmlClassView(props: UmlClassViewProps): JSX.Element {
         </For>
       </div>
       <div
-        class="diagra-uml-compartment"
+        class="nodetto-uml-compartment"
         style={{ height: `${umlMethodsHeight(props.element.semantic)}px` }}
       >
         <For each={semantic().methods}>
           {(method) => (
             <div
-              class="diagra-uml-row"
+              class="nodetto-uml-row"
               style={{ height: `${UML_CLASS_ROW_HEIGHT}px` }}
               classList={{
-                "diagra-uml-static": method.static === true,
-                "diagra-uml-abstract": method.abstract === true,
+                "nodetto-uml-static": method.static === true,
+                "nodetto-uml-abstract": method.abstract === true,
               }}
             >
               {methodText(method)}

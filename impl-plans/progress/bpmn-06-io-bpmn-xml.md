@@ -17,7 +17,7 @@
 - Exported foreign attributes/children and unsupported raw fragments. Participant process references remain stable across import/export/import.
 - Fixed reference-fixture paths to the four local `.reference` files. Added regressions for foreign/unsupported XML, nested default flows, mixed-content whitespace, malformed ampersands, and the canonical JSONL fixture.
 - Generated `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` only with the plan's importer + `serializeDocument` command; `roundtrip.test.ts` pins it byte-for-byte.
-- The `@diagra/io` package export is `./bpmn` only; no dependency or lockfile change. `rg` found no `@diagra/core` import in `packages/io/src`; `git status --short .reference` was empty.
+- The `@nodetto/io` package export is `./bpmn` only; no dependency or lockfile change. `rg` found no `@nodetto/core` import in `packages/io/src`; `git status --short .reference` was empty.
 
 ## G1/G2 evidence (session-359 current source)
 
@@ -28,7 +28,7 @@
 - Whole test suite: `bun test` exited 0, 1763 pass, 0 fail, 10519 expects. Log: `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/all-tests-final-r4.log`.
 - Reference test: `bun test packages/io/src/bpmn/reference.test.ts` exited 0, 1 pass, 0 fail, 8 expects. Log: `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/reference-final-r4.log`. The `.reference/bpmn-article/docs` directory exists, so the test's `skipIf` guard was false and all four files ran locally.
 - Export check: `grep -q '"./bpmn": "./src/bpmn/index.ts"' packages/io/package.json` exited 0. `git diff -- packages/io/package.json` touches only the `exports` object. `git diff --stat -- bun.lock` is empty.
-- Dependency boundary: `if rg -n '@diagra/core' packages/io/src; then exit 1; else ...; fi` exited 0 with no matches.
+- Dependency boundary: `if rg -n '@nodetto/core' packages/io/src; then exit 1; else ...; fi` exited 0 with no matches.
 - Reference tracking: `git status --short .reference` exited 0 with no output.
 
 ## Review and downstream boundary
@@ -61,7 +61,7 @@ Implementation-phase criteria for bpmn-06 are complete. The all-repository Biome
 - `bun test packages/io/src/bpmn/reference.test.ts`: exit 0, 1 pass, 0 fail, 448 expects; `.reference` was present, so no skip; log `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/reference-ti-r3.log`.
 - `bun test packages/io`: exit 0, 163 pass, 0 fail, 2993 expects; log `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/io-tests-ti-r3.log`.
 - `bun test`: exit 0, 1783 pass, 0 fail, 11790 expects; log `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/all-tests-ti-r3.log`.
-- Contract shell gate confirmed the `./bpmn` package export, no `bun.lock` diff, no tracked `.reference` content, and no `@diagra/core` imports under `packages/io/src` (exit 0).
+- Contract shell gate confirmed the `./bpmn` package export, no `bun.lock` diff, no tracked `.reference` content, and no `@nodetto/core` imports under `packages/io/src` (exit 0).
 - No whole-repository Biome run, formal review, integration review, staging, commit or push is claimed; those remain later workflow steps.
 
 ## Adversarial revisions (comm-006189, session-359)
@@ -88,7 +88,7 @@ Implementation-phase criteria for bpmn-06 are complete. The all-repository Biome
 - `bun test`: exit 0, 1788 pass, 0 fail, 11829 expects; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/all-tests-adv-r3.log`.
 - `bun run typecheck`: exit 0; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/typecheck-adv-r4.log`.
 - `bunx biome check packages/io/src/bpmn packages/io/src/index.ts`: exit 0; 12 files checked; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/biome-adv-r3.log`.
-- IO boundary and plan contract checks: no `@diagra/core` import in `packages/io/src`; canonical JSONL exists; package export is present; `bun.lock` is unchanged; `.reference` is untracked. Commands and output: `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/core-boundary-adv-r3.log` (for grep) and shell contract returned exit 0.
+- IO boundary and plan contract checks: no `@nodetto/core` import in `packages/io/src`; canonical JSONL exists; package export is present; `bun.lock` is unchanged; `.reference` is untracked. Commands and output: `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/core-boundary-adv-r3.log` (for grep) and shell contract returned exit 0.
 - Current implementation and required behavioral verification are complete for this plan. Formal independent test-integrity/adversarial review, serial integration review, exact-file staging, commit and push remain downstream workflow steps and are not claimed here.
 
 ### Final self-check follow-up
@@ -100,4 +100,4 @@ Implementation-phase criteria for bpmn-06 are complete. The all-repository Biome
   - `bun test`: exit 0, 1788 pass, 0 fail, 11831 expects; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/all-tests-adv-r4.log`.
   - `bun run typecheck`: exit 0; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/typecheck-adv-r6.log`.
   - `bunx biome check packages/io/src/bpmn packages/io/src/index.ts`: exit 0, 12 files; `tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/biome-adv-r4.log`.
-  - IO boundary and contract checks rerun at final source: no `@diagra/core` imports, fixture pin present, package export present, `bun.lock` unchanged, `.reference` untracked; logs `core-boundary-adv-r4.log` and contract shell returned exit 0.
+  - IO boundary and contract checks rerun at final source: no `@nodetto/core` imports, fixture pin present, package export present, `bun.lock` unchanged, `.reference` untracked; logs `core-boundary-adv-r4.log` and contract shell returned exit 0.

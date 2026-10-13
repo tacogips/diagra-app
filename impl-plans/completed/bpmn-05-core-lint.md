@@ -56,11 +56,11 @@
 
 ## Intent
 
-A bpmnlint-equivalent static analyser in `@diagra/core`: the 23 rule ids of
+A bpmnlint-equivalent static analyser in `@nodetto/core`: the 23 rule ids of
 bpmnlint, recommended severities, `.bpmnlintrc`-style config, deterministic
 findings. The CLI (bpmn-12) and the desktop problems panel (bpmn-11)
 consume it. Behaviour is ported from bpmnlint's documented semantics as
-pinned in design 7.3, never from its source text. Messages are diagra's
+pinned in design 7.3, never from its source text. Messages are nodetto's
 own wording.
 
 ## Non-goals
@@ -232,7 +232,7 @@ of that rule), built with `test-builder.ts`. Required specific cases:
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-05-core-lint/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/lint       # exit 0
 bun test packages/core/src/bpmn/lint               # exit 0, >= 46 rule tests (23 x positive/negative)

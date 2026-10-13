@@ -2,7 +2,7 @@ import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { layerName } from "./layer-name.ts";
 

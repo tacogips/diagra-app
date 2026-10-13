@@ -68,7 +68,7 @@ test("nested layout CSS isolates frame rules and reports class mappings", () => 
   expect(report?.css).toContain(`.${first?.className} > :nth-child(1)`);
   expect(report?.css).toContain(`.${second?.className} > :nth-child(1)`);
   expect(second?.childOrder).toEqual([leaf.id]);
-  expect(report?.css).not.toContain(".diagra-layout {");
+  expect(report?.css).not.toContain(".nodetto-layout {");
 });
 
 test("frame identifiers cannot introduce CSS selector syntax", () => {
@@ -91,7 +91,7 @@ test("frame identifiers cannot introduce CSS selector syntax", () => {
   };
   editor.apply([{ type: "createElement", element: frame }]);
   const report = inspectDesign(editor, frame.id)?.layout;
-  expect(report?.className).toMatch(/^diagra-layout-[a-f0-9-]+$/);
+  expect(report?.className).toMatch(/^nodetto-layout-[a-f0-9-]+$/);
   expect(report?.css).not.toContain("body");
   expect(report?.frames[0]?.id).toBe(frame.id);
 });

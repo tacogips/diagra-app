@@ -1,11 +1,11 @@
 // JSONL record shapes and their declared key orders.
-// See the product design (diagra-cloud repo), section 6.
+// See the product design (nodetto-cloud repo), section 6.
 
 import {
   ACCESSIBILITY_KEY_ORDER,
   type KeyOrder,
   VISUAL_KEY_ORDER,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 export const DOCUMENT_KIND = "document";
 export const PAGE_KIND = "page";

@@ -1,4 +1,4 @@
-import { MAX_CONNECTOR_WAYPOINTS } from "@diagra/ir";
+import { MAX_CONNECTOR_WAYPOINTS } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { Checkbox, Field, NumberInput, SelectInput } from "./controls.tsx";
 
@@ -116,7 +116,7 @@ export function ConnectorRoutingFields(
       <Show when={routing() === "manual"}>
         <For each={waypoints()}>
           {(waypoint, index) => (
-            <div class="diagra-inspector-stack">
+            <div class="nodetto-inspector-stack">
               <strong>Waypoint {index() + 1}</strong>
               <Field label="Along %">
                 <NumberInput
@@ -132,7 +132,7 @@ export function ConnectorRoutingFields(
                   onCommit={(v) => updateWaypoint(index(), { v })}
                 />
               </Field>
-              <div class="diagra-inspector-actions">
+              <div class="nodetto-inspector-actions">
                 <button
                   type="button"
                   disabled={index() === 0}

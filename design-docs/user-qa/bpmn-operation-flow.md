@@ -18,7 +18,7 @@ Should deleting a lane also delete the nodes in it?
 ## Q2. Lint config in the desktop app
 
 - Default: the desktop problems panel always uses the bpmnlint recommended
-  set. `.bpmnlintrc` and `--config` apply to `diagra-cli lint` only.
+  set. `.bpmnlintrc` and `--config` apply to `nodetto-cli lint` only.
 - Alternative: store a per-page or per-document rules override in
   `extensions` and make it editable in the inspector.
 

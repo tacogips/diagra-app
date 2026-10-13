@@ -17,7 +17,7 @@ import type {
   FrameSemantic,
   PageId,
   Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { compareFractional } from "./fractional.ts";
 import type { Vec } from "./geometry.ts";

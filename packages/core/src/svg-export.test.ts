@@ -6,7 +6,7 @@
 // any of the promises the format makes still fails.
 
 import { describe, expect, test } from "bun:test";
-import { type Element, GEO_KINDS } from "@diagra/ir";
+import { type Element, GEO_KINDS } from "@nodetto/ir";
 import { createShapeContext } from "./hit-test.ts";
 import { createDefaultRegistry } from "./shapes/index.ts";
 import { Store } from "./store.ts";
@@ -122,11 +122,11 @@ describe("document shape", () => {
   test("every marker is defined exactly once", () => {
     const svg = pageSvg([...erdFixture()]);
     for (const id of [
-      "diagra-arrow",
-      "diagra-triangle",
-      "diagra-diamond-open",
-      "diagra-diamond-filled",
-      "diagra-dot",
+      "nodetto-arrow",
+      "nodetto-triangle",
+      "nodetto-diamond-open",
+      "nodetto-diamond-filled",
+      "nodetto-dot",
     ]) {
       expect(occurrences(svg, `<marker id="${id}"`)).toBe(1);
     }
@@ -241,8 +241,8 @@ describe("elements", () => {
 
   test("a relation carries its dot markers and cardinality", () => {
     const svg = pageSvg([...erdFixture()]);
-    expect(svg).toContain('marker-start="url(#diagra-dot)"');
-    expect(svg).toContain('marker-end="url(#diagra-dot)"');
+    expect(svg).toContain('marker-start="url(#nodetto-dot)"');
+    expect(svg).toContain('marker-end="url(#nodetto-dot)"');
     expect(svg).toContain(">1:*</text>");
   });
 
@@ -302,7 +302,7 @@ describe("elements", () => {
     expect(svg).toContain('data-id="call" data-type="sequence.message"');
     expect(svg).toContain(">Request</text>");
     expect(svg).toContain(
-      '<g data-id="return" data-type="sequence.message"><line x1="340" y1="182" x2="60" y2="182" fill="none" stroke="#1d2a2e" stroke-width="1.5" marker-end="url(#diagra-arrow)" stroke-dasharray="6 4" />',
+      '<g data-id="return" data-type="sequence.message"><line x1="340" y1="182" x2="60" y2="182" fill="none" stroke="#1d2a2e" stroke-width="1.5" marker-end="url(#nodetto-arrow)" stroke-dasharray="6 4" />',
     );
     expect(svg).toContain(
       '<g data-id="active" data-type="sequence.activation">',
@@ -395,7 +395,7 @@ describe("elements", () => {
             { start: 0, end: 4, kind: "bold" },
             { start: 5, end: 11, kind: "italic" },
             { start: 12, end: 16, kind: "code" },
-            { start: 17, end: 21, kind: "link", href: "https://diagra.app" },
+            { start: 17, end: 21, kind: "link", href: "https://nodetto.app" },
           ],
         },
         visual: { x: 0, y: 0, width: 300, height: 40 },
@@ -405,7 +405,7 @@ describe("elements", () => {
     expect(svg).toContain('<tspan font-style="italic">italic</tspan>');
     expect(svg).toContain("ui-monospace");
     expect(svg).toContain(
-      '<a href="https://diagra.app" rel="noopener noreferrer"><tspan text-decoration="underline"',
+      '<a href="https://nodetto.app" rel="noopener noreferrer"><tspan text-decoration="underline"',
     );
   });
 

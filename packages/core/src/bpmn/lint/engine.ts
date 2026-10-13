@@ -1,4 +1,4 @@
-import type { Document, PageId } from "@diagra/ir";
+import type { Document, PageId } from "@nodetto/ir";
 import { buildBpmnModel } from "../model.ts";
 import {
   BPMN_LINT_RULE_IDS,

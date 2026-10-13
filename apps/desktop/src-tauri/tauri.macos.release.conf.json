@@ -17,7 +17,7 @@
       "icons/icon.png"
     ],
     "externalBin": [
-      "binaries/diagra-cli"
+      "binaries/nodetto-cli"
     ],
     "macOS": {
       "minimumSystemVersion": "12.0",
@@ -28,8 +28,8 @@
         "ext": [
           "jsonl"
         ],
-        "name": "Diagra document",
-        "description": "diagra JSONL diagram document",
+        "name": "Nodetto document",
+        "description": "nodetto JSONL diagram document",
         "role": "Editor",
         "rank": "Alternate",
         "mimeType": "application/jsonl"

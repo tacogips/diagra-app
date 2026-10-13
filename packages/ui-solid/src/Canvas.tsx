@@ -22,7 +22,7 @@ import type {
   ShapeContext,
   Vec,
   ViewportSize,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   backdropEffectsCss,
   booleanGeometry,
@@ -43,12 +43,12 @@ import {
   resolveConnector,
   rasterGroupMaskCss,
   unionBoxes,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   batch,
   createMemo,
@@ -97,7 +97,7 @@ const CONNECT_HANDLE_RADIUS = 5;
 const CONNECT_HANDLE_OFFSET = 14;
 const GRID_SPACING = 24;
 
-export interface DiagraCanvasProps {
+export interface NodettoCanvasProps {
   readonly editor: Editor;
   readonly tool: ToolKind;
   readonly onToolChange?: (tool: ToolKind) => void;
@@ -210,7 +210,7 @@ function connectHandleCenter(box: Box, side: ConnectSide, offset: number): Vec {
   }
 }
 
-export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
+export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
     signals.rev();
@@ -566,7 +566,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
     at: Vec,
   ): JSX.Element => (
     <circle
-      class="diagra-endpoint-handle"
+      class="nodetto-endpoint-handle"
       cx={at.x}
       cy={at.y}
       r={ENDPOINT_HANDLE_RADIUS / zoom()}
@@ -727,13 +727,13 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
   return (
     <div
       ref={container}
-      class="diagra-canvas"
+      class="nodetto-canvas"
       classList={{
-        [`diagra-tool-${props.tool.replace(":", "-")}`]: true,
-        "diagra-grid-hidden": !props.showGrid,
-        "diagra-space-pan": interaction.temporaryHand(),
-        "diagra-connecting": interaction.pending() !== null,
-        "diagra-image-drop-active": imageDropActive(),
+        [`nodetto-tool-${props.tool.replace(":", "-")}`]: true,
+        "nodetto-grid-hidden": !props.showGrid,
+        "nodetto-space-pan": interaction.temporaryHand(),
+        "nodetto-connecting": interaction.pending() !== null,
+        "nodetto-image-drop-active": imageDropActive(),
       }}
       tabindex="0"
       style={{
@@ -776,7 +776,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
       onDrop={(event) => void importDrop(event)}
     >
       <div
-        class="diagra-viewport"
+        class="nodetto-viewport"
         style={{
           transform: `scale(${signals.camera().z}) translate(${
             signals.camera().x
@@ -784,14 +784,14 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
         }}
       >
         <Show when={backdropRoots().length > 0}>
-          <div class="diagra-layer diagra-shape-layer diagra-backdrop-layer">
+          <div class="nodetto-layer nodetto-shape-layer nodetto-backdrop-layer">
             <For each={backdropRoots()}>
               {(element) => renderVisualUnit(element)}
             </For>
           </div>
         </Show>
 
-        <svg class="diagra-layer diagra-connector-layer">
+        <svg class="nodetto-layer nodetto-connector-layer">
           <title>Connectors</title>
           <ConnectorMarkers />
           <For each={connectors()}>
@@ -819,7 +819,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <Show when={interaction.pending()}>
             {(pending) => (
               <line
-                class="diagra-pending-connection"
+                class="nodetto-pending-connection"
                 x1={pending().from.x}
                 y1={pending().from.y}
                 x2={pending().to.x}
@@ -829,18 +829,18 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           </Show>
         </svg>
 
-        <div class="diagra-layer diagra-shape-layer">
+        <div class="nodetto-layer nodetto-shape-layer">
           <For each={visualRoots()}>
             {(element) => renderVisualUnit(element)}
           </For>
         </div>
 
-        <svg class="diagra-layer diagra-overlay-layer">
+        <svg class="nodetto-layer nodetto-overlay-layer">
           <title>Selection</title>
           <Show when={interaction.marquee()}>
             {(rect) => (
               <rect
-                class="diagra-marquee"
+                class="nodetto-marquee"
                 x={rect().x}
                 y={rect().y}
                 width={rect().width}
@@ -852,7 +852,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <For each={selectionBoxes()}>
             {(box) => (
               <rect
-                class="diagra-selection-outline"
+                class="nodetto-selection-outline"
                 transform={
                   box.rotation
                     ? `rotate(${box.rotation} ${box.x + box.width / 2} ${box.y + box.height / 2})`
@@ -869,7 +869,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <Show when={hoverBox()}>
             {(box) => (
               <rect
-                class="diagra-hover-target"
+                class="nodetto-hover-target"
                 transform={
                   box().rotation
                     ? `rotate(${box().rotation} ${box().x + box().width / 2} ${box().y + box().height / 2})`
@@ -886,7 +886,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <For each={interaction.guides()}>
             {(guide) => (
               <line
-                class="diagra-snap-guide"
+                class="nodetto-snap-guide"
                 x1={guide.axis === "x" ? guide.at : guide.from}
                 y1={guide.axis === "x" ? guide.from : guide.at}
                 x2={guide.axis === "x" ? guide.at : guide.to}
@@ -898,7 +898,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <Show when={selectionResizeTarget()}>
             {(target) => (
               <rect
-                class="diagra-selection-outline"
+                class="nodetto-selection-outline"
                 x={target().box.x}
                 y={target().box.y}
                 width={target().box.width}
@@ -912,7 +912,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
               <For each={target().handles}>
                 {(handle) => (
                   <rect
-                    class="diagra-handle"
+                    class="nodetto-handle"
                     transform={
                       target().rotation
                         ? `rotate(${target().rotation} ${target().box.x + target().box.width / 2} ${target().box.y + target().box.height / 2})`
@@ -937,7 +937,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
               <For each={target().handles}>
                 {(handle) => (
                   <rect
-                    class="diagra-handle"
+                    class="nodetto-handle"
                     x={handleCenter(target().box, handle).x - handleSize() / 2}
                     y={handleCenter(target().box, handle).y - handleSize() / 2}
                     width={handleSize()}
@@ -955,7 +955,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           <Show when={rotateTarget()}>
             {(target) => (
               <circle
-                class="diagra-handle"
+                class="nodetto-handle"
                 cx={target().x}
                 cy={target().y}
                 r={6 / zoom()}
@@ -988,7 +988,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
                     );
                   return (
                     <circle
-                      class="diagra-connect-handle"
+                      class="nodetto-connect-handle"
                       cx={at().x}
                       cy={at().y}
                       r={CONNECT_HANDLE_RADIUS / zoom()}
@@ -1010,7 +1010,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
                 <Show when={handles().bend}>
                   {(bend) => (
                     <circle
-                      class="diagra-handle"
+                      class="nodetto-handle"
                       cx={bend().x}
                       cy={bend().y}
                       r={5 / zoom()}
@@ -1028,7 +1028,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
                 <For each={handles().waypoints ?? []}>
                   {(waypoint, index) => (
                     <circle
-                      class="diagra-handle"
+                      class="nodetto-handle"
                       cx={waypoint.x}
                       cy={waypoint.y}
                       r={5 / zoom()}
@@ -1131,7 +1131,7 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
           </Show>
         </svg>
 
-        <div class={`diagra-layer ${SLOT_LAYER_CLASS}`}>{props.children}</div>
+        <div class={`nodetto-layer ${SLOT_LAYER_CLASS}`}>{props.children}</div>
       </div>
       <Show when={!readOnly() && props.tool === "draw.freehand"}>
         <FreehandInput editor={props.editor} />
@@ -1144,14 +1144,14 @@ export function DiagraCanvas(props: DiagraCanvasProps): JSX.Element {
         />
       </Suspense>
       <Show when={imageDropActive() || imageImportBusy()}>
-        <div class="diagra-image-drop-overlay" role="status">
+        <div class="nodetto-image-drop-overlay" role="status">
           {imageImportBusy()
             ? "Importing images…"
             : "Drop PNG, JPEG, WebP or GIF images"}
         </div>
       </Show>
       <Show when={imageImportError()}>
-        <div class="diagra-image-drop-error" role="alert">
+        <div class="nodetto-image-drop-error" role="alert">
           <span>{imageImportError()}</span>
           <button type="button" onClick={() => setImageImportError("")}>
             Dismiss

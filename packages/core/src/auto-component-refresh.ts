@@ -1,4 +1,4 @@
-import type { FrameSemantic } from "@diagra/ir";
+import type { FrameSemantic } from "@nodetto/ir";
 import { applyCommands, type Command } from "./commands.ts";
 import { planComponentRefresh } from "./component-refresh.ts";
 import { componentStructureMatches } from "./component-structure.ts";

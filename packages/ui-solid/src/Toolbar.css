@@ -1,4 +1,4 @@
-.diagra-compact-toolbar {
+.nodetto-compact-toolbar {
   display: flex;
   flex: 0 0 auto;
   flex-wrap: wrap;
@@ -11,9 +11,9 @@
   background: #fff;
 }
 
-.diagra-toolbar-primary,
-.diagra-toolbar-utilities,
-.diagra-local-history {
+.nodetto-toolbar-primary,
+.nodetto-toolbar-utilities,
+.nodetto-local-history {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -21,65 +21,65 @@
   min-width: 0;
 }
 
-.diagra-toolbar-primary {
+.nodetto-toolbar-primary {
   flex: 1 1 250px;
 }
-.diagra-toolbar-utilities,
-.diagra-local-history {
+.nodetto-toolbar-utilities,
+.nodetto-local-history {
   flex: 0 0 auto;
 }
 
-.diagra-toolbar-icon,
-.diagra-toolbar-chevron,
-.diagra-toolbar-menu button,
-.diagra-toolbar-menu select,
-.diagra-image-import-compact .diagra-tool-button {
+.nodetto-toolbar-icon,
+.nodetto-toolbar-chevron,
+.nodetto-toolbar-menu button,
+.nodetto-toolbar-menu select,
+.nodetto-image-import-compact .nodetto-tool-button {
   min-height: 30px;
   border: 0;
   border-radius: 0;
-  color: var(--diagra-ink);
+  color: var(--nodetto-ink);
   background: transparent;
   font: inherit;
   font-size: .8rem;
   cursor: pointer;
 }
 
-.diagra-toolbar-icon,
-.diagra-image-import-compact .diagra-tool-button {
+.nodetto-toolbar-icon,
+.nodetto-image-import-compact .nodetto-tool-button {
   display: grid;
   width: 30px;
   place-items: center;
   padding: 4px;
 }
 
-.diagra-toolbar-icon svg,
-.diagra-toolbar-chevron svg,
-.diagra-image-import-compact svg {
+.nodetto-toolbar-icon svg,
+.nodetto-toolbar-chevron svg,
+.nodetto-image-import-compact svg {
   width: 17px;
   height: 17px;
   fill: currentColor;
 }
 
-.diagra-toolbar-split {
+.nodetto-toolbar-split {
   display: flex;
   align-items: stretch;
   padding-right: 4px;
   border-right: 1px solid #dfe3e6;
 }
-.diagra-toolbar-split .diagra-toolbar-icon {
+.nodetto-toolbar-split .nodetto-toolbar-icon {
   border-right: 0;
 }
-.diagra-toolbar-chevron {
+.nodetto-toolbar-chevron {
   display: grid;
   width: 16px;
   place-items: center;
   padding: 2px;
 }
-.diagra-toolbar-menu-wrap {
+.nodetto-toolbar-menu-wrap {
   flex: none;
 }
 
-.diagra-toolbar-menu {
+.nodetto-toolbar-menu {
   position: fixed;
   z-index: 20;
   display: grid;
@@ -92,44 +92,44 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
 }
 
-.diagra-toolbar-menu button,
-.diagra-toolbar-menu select {
+.nodetto-toolbar-menu button,
+.nodetto-toolbar-menu select {
   padding: 6px 8px;
   border-color: transparent;
   text-align: left;
 }
 
-.diagra-toolbar-menu button:hover:not(:disabled),
-.diagra-toolbar-icon:hover:not(:disabled),
-.diagra-toolbar-chevron:hover:not(:disabled),
-.diagra-image-import-compact .diagra-tool-button:hover:not(:disabled) {
+.nodetto-toolbar-menu button:hover:not(:disabled),
+.nodetto-toolbar-icon:hover:not(:disabled),
+.nodetto-toolbar-chevron:hover:not(:disabled),
+.nodetto-image-import-compact .nodetto-tool-button:hover:not(:disabled) {
   background: #f1f3f4;
 }
 
-.diagra-toolbar-menu button:disabled,
-.diagra-toolbar-icon:disabled,
-.diagra-toolbar-chevron:disabled,
-.diagra-image-import-compact .diagra-tool-button:disabled {
+.nodetto-toolbar-menu button:disabled,
+.nodetto-toolbar-icon:disabled,
+.nodetto-toolbar-chevron:disabled,
+.nodetto-image-import-compact .nodetto-tool-button:disabled {
   color: #9aa2a8;
   cursor: default;
 }
 
-.diagra-toolbar-menu .diagra-active,
-.diagra-toolbar-icon[aria-pressed="true"] {
+.nodetto-toolbar-menu .nodetto-active,
+.nodetto-toolbar-icon[aria-pressed="true"] {
   color: #fff;
   background: #303a40;
 }
 
-.diagra-toolbar-more-menu section {
+.nodetto-toolbar-more-menu section {
   display: grid;
   gap: 1px;
   padding: 4px 0;
   border-bottom: 1px solid #dfe3e6;
 }
-.diagra-toolbar-more-menu section:last-child {
+.nodetto-toolbar-more-menu section:last-child {
   border-bottom: 0;
 }
-.diagra-toolbar-more-menu h2 {
+.nodetto-toolbar-more-menu h2 {
   margin: 0;
   padding: 2px 8px;
   color: #667078;
@@ -138,16 +138,16 @@
   text-transform: uppercase;
 }
 
-.diagra-image-import-compact {
+.nodetto-image-import-compact {
   position: relative;
   display: flex;
   align-items: center;
 }
-.diagra-image-import-compact .diagra-tool-group {
+.nodetto-image-import-compact .nodetto-tool-group {
   display: contents;
 }
-.diagra-image-import-compact .diagra-image-import-status,
-.diagra-image-import-compact [role="alert"] {
+.nodetto-image-import-compact .nodetto-image-import-status,
+.nodetto-image-import-compact [role="alert"] {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
@@ -162,15 +162,15 @@
 }
 
 @media (max-width: 420px) {
-  .diagra-toolbar-primary {
+  .nodetto-toolbar-primary {
     flex-basis: 100%;
   }
-  .diagra-toolbar-utilities {
+  .nodetto-toolbar-utilities {
     width: 100%;
   }
 
-  .diagra-image-import-compact .diagra-image-import-status,
-  .diagra-image-import-compact [role="alert"] {
+  .nodetto-image-import-compact .nodetto-image-import-status,
+  .nodetto-image-import-compact [role="alert"] {
     right: auto;
     left: 0;
   }

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Document, Element } from "@diagra/ir";
+import type { Document, Element } from "@nodetto/ir";
 import { availableMermaidKinds, exportMermaid } from "./export.ts";
 
 function element(

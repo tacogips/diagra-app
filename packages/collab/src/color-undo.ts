@@ -1,4 +1,4 @@
-import type { Element } from "@diagra/ir";
+import type { Element } from "@nodetto/ir";
 
 export const COLOR_FIELDS = ["fill", "stroke", "color"] as const;
 export interface ColorUndo {

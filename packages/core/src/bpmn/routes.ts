@@ -1,4 +1,4 @@
-import type { Element } from "@diagra/ir";
+import type { Element } from "@nodetto/ir";
 import type { Editor } from "../editor.ts";
 import type { Vec } from "../geometry.ts";
 import { endpointReaderFor, resolveConnector } from "../shapes/connector.ts";

@@ -6,8 +6,8 @@ import {
   planStrokeWorldClosed as planStrokeClosed,
   strokeWorldPoints as strokePagePoints,
   splitStrokeSegment,
-} from "@diagra/core";
-import type { Element, FreehandPoint, FreehandSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, FreehandPoint, FreehandSemantic } from "@nodetto/ir";
 import { createSignal, For, type JSX, Show } from "solid-js";
 import { Field, NumberInput, Section } from "./controls.tsx";
 

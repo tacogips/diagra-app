@@ -6,7 +6,7 @@ import type {
   GeoShapeSemantic,
   ImageSemantic,
   TextNoteSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { inspectDesign } from "./handoff.ts";
 import { collectInterfaceTree } from "./interface-tree.ts";
@@ -29,7 +29,7 @@ function encoded(value: string): string {
 }
 
 function nodeClass(id: ElementId): string {
-  return `diagra-node-${encoded(id)}`;
+  return `nodetto-node-${encoded(id)}`;
 }
 
 function escapeText(value: string): string {
@@ -136,10 +136,10 @@ function declarationBody(
     geometry.push(`overflow: ${semantic.clipContent ? "hidden" : "visible"};`);
     if (semantic.safeArea) {
       geometry.push(
-        `--diagra-safe-area-top: ${px(semantic.safeArea.top)};`,
-        `--diagra-safe-area-right: ${px(semantic.safeArea.right)};`,
-        `--diagra-safe-area-bottom: ${px(semantic.safeArea.bottom)};`,
-        `--diagra-safe-area-left: ${px(semantic.safeArea.left)};`,
+        `--nodetto-safe-area-top: ${px(semantic.safeArea.top)};`,
+        `--nodetto-safe-area-right: ${px(semantic.safeArea.right)};`,
+        `--nodetto-safe-area-bottom: ${px(semantic.safeArea.bottom)};`,
+        `--nodetto-safe-area-left: ${px(semantic.safeArea.left)};`,
       );
     }
   }
@@ -175,7 +175,7 @@ function imageHtml(element: Element, classNames: string): string {
   const explicit = Boolean(element.accessibility);
   const alt = explicit ? "" : semantic.alt;
   const hiddenMedia = explicit ? ' aria-hidden="true"' : "";
-  return `<div class="${classNames}" data-diagra-id="${escapeAttribute(element.id)}" data-diagra-type="image.raster"${accessibilityHtmlAttributes(element, explicit ? semantic.alt : undefined)}><img class="${nodeClass(element.id)}__media" src="${escapeAttribute(semantic.src)}" alt="${escapeAttribute(alt)}"${hiddenMedia}></div>`;
+  return `<div class="${classNames}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="image.raster"${accessibilityHtmlAttributes(element, explicit ? semantic.alt : undefined)}><img class="${nodeClass(element.id)}__media" src="${escapeAttribute(semantic.src)}" alt="${escapeAttribute(alt)}"${hiddenMedia}></div>`;
 }
 
 function imageRule(element: Element): string {
@@ -297,7 +297,7 @@ export function generateInterfaceCode(
     const platform = frameSemantic?.platform
       ? ` data-platform="${frameSemantic.platform}"`
       : "";
-    const open = `<${tag} class="${classes}" data-diagra-id="${escapeAttribute(element.id)}" data-diagra-type="${escapeAttribute(element.type)}"${platform}${accessibilityHtmlAttributes(element, frameSemantic?.name)}>`;
+    const open = `<${tag} class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="${escapeAttribute(element.type)}"${platform}${accessibilityHtmlAttributes(element, frameSemantic?.name)}>`;
     const text = elementText(editor, element);
     const renderedText =
       element.type === "text.note" ? richTextHtml(element) : escapeText(text);
@@ -352,7 +352,7 @@ export function generateInterfaceCode(
     "Database/UML boxes remain semantic approximations. Use the manifest for application data modeling.",
     ...((root.semantic as FrameSemantic).safeArea
       ? [
-          "Safe-area insets are emitted as --diagra-safe-area-* CSS custom properties; map them to env(safe-area-inset-*) where the host viewport supports display cutouts.",
+          "Safe-area insets are emitted as --nodetto-safe-area-* CSS custom properties; map them to env(safe-area-inset-*) where the host viewport supports display cutouts.",
         ]
       : []),
     ...(omittedConnectors.length

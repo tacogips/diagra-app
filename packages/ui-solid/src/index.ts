@@ -3,7 +3,7 @@
 
 export { createEditorSignals, type EditorSignals } from "./adapter.ts";
 export { HelpHint } from "./HelpHint.tsx";
-export { type DiagraCanvasProps, DiagraCanvas } from "./Canvas.tsx";
+export { type NodettoCanvasProps, NodettoCanvas } from "./Canvas.tsx";
 export {
   createInteraction,
   type Interaction,

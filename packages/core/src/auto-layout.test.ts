@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { FrameLayout, FrameSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { FrameLayout, FrameSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { frameParents } from "./frame-tree.ts";
 import { rotateElement } from "./rotation.ts";
 import { document, element, makeEditor } from "./test-helpers.ts";

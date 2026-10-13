@@ -6,8 +6,8 @@
 
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { createDefaultRegistry, Editor } from "@diagra/core";
-import { serializeDocument } from "@diagra/io";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
+import { serializeDocument } from "@nodetto/io";
 import { seed } from "../seed.ts";
 import type {
   FileBackend,

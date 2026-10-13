@@ -1,6 +1,6 @@
-import { bpmnNotation, type NotationPrimitive } from "@diagra/core";
-import type { Box } from "@diagra/core";
-import type { Element } from "@diagra/ir";
+import { bpmnNotation, type NotationPrimitive } from "@nodetto/core";
+import type { Box } from "@nodetto/core";
+import type { Element } from "@nodetto/ir";
 import { For, type JSX, Match, Switch } from "solid-js";
 import { primitiveAttributes } from "./bpmn-primitive.ts";
 
@@ -55,7 +55,7 @@ export function BpmnShapeView(props: BpmnShapeViewProps): JSX.Element {
   const primitives = () => bpmnNotation(props.element, props.box);
   return (
     <svg
-      class="diagra-bpmn"
+      class="nodetto-bpmn"
       width={props.box.width}
       height={props.box.height}
       viewBox={`0 0 ${props.box.width} ${props.box.height}`}

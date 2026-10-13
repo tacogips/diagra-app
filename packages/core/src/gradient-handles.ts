@@ -1,4 +1,4 @@
-import type { ElementId, FillGradient } from "@diagra/ir";
+import type { ElementId, FillGradient } from "@nodetto/ir";
 import { CommandError } from "./commands.ts";
 import type { Editor } from "./editor.ts";
 import type { Box, Vec } from "./geometry.ts";

@@ -1,4 +1,4 @@
-import type { Element } from "@diagra/ir";
+import type { Element } from "@nodetto/ir";
 
 const NCNAME = /^[A-Za-z_][A-Za-z0-9._-]*$/;
 const PREFIX: Readonly<Record<string, string>> = {

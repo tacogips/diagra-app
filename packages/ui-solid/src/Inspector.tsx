@@ -8,8 +8,8 @@
 // typed into a field must never reach a canvas or window shortcut. History
 // chords from non-editable controls may bubble to the shell's history owner.
 
-import type { Editor } from "@diagra/core";
-import { leafElements, layerName, renameLayer } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
+import { leafElements, layerName, renameLayer } from "@nodetto/core";
 import { BatchRenameSection } from "./inspector/BatchRenameSection.tsx";
 import { ReplaceNoteTextSection } from "./inspector/ReplaceNoteTextSection.tsx";
 import { BpmnSection } from "./inspector/BpmnSection.tsx";
@@ -17,7 +17,7 @@ import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   createMemo,
   type JSX,
@@ -159,7 +159,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
 
   return (
     <aside
-      class="diagra-inspector"
+      class="nodetto-inspector"
       aria-label="Inspector"
       on:keydown={stopPanelKeyDown}
       on:keyup={stop}
@@ -211,7 +211,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
         </Show>
 
         <Show when={selectedIds().length > 1}>
-          <p class="diagra-inspector-summary">
+          <p class="nodetto-inspector-summary">
             {`${selectedIds().length} elements selected`}
           </p>
           <SelectionGeometrySection editor={props.editor} />
@@ -300,11 +300,11 @@ export function Inspector(props: InspectorProps): JSX.Element {
         <Show when={single()}>
           {(element) => (
             <>
-              <details class="diagra-inspector-details">
+              <details class="nodetto-inspector-details">
                 <summary>Frame membership</summary>
                 <ParentSection editor={props.editor} element={element()} />
               </details>
-              <details class="diagra-inspector-details">
+              <details class="nodetto-inspector-details">
                 <summary>Accessibility</summary>
                 <Suspense>
                   <AccessibilitySection

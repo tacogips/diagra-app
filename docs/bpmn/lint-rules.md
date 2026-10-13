@@ -1,7 +1,7 @@
 # BPMN lint rules
 
 The linter uses the bpmnlint rule ids and recommended severities. Messages
-are Diagra wording. `warn` is displayed as `warning`.
+are Nodetto wording. `warn` is displayed as `warning`.
 
 | Rule id | Recommended severity | Description |
 | --- | --- | --- |
@@ -47,14 +47,14 @@ invalid JSON are configuration errors.
 }
 ```
 
-For `diagra-cli lint`, an explicit `--config <file>` takes precedence. If it
+For `nodetto-cli lint`, an explicit `--config <file>` takes precedence. If it
 is absent, the CLI reads `.bpmnlintrc` from the working directory when present;
 otherwise it uses recommended. The desktop problems panel always uses
 recommended and has no per-document config.
 
 ## Known differences
 
-- Rule messages use Diagra wording; the ids and recommended severities match
+- Rule messages use Nodetto wording; the ids and recommended severities match
   bpmnlint.
 - The text summary has no leading symbol.
 - The desktop always uses recommended; config files apply to the CLI only.

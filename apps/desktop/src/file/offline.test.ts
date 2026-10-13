@@ -8,8 +8,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { createDefaultRegistry, Editor } from "@diagra/core";
-import { serializeDocument } from "@diagra/io";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
+import { serializeDocument } from "@nodetto/io";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 import { DocumentSession } from "./session.ts";
 
@@ -60,7 +60,7 @@ function restoreGlobal(
 
 describe("local document files", () => {
   test("opens, edits, saves, and reopens a real JSONL file without network access", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "diagra-offline-"));
+    const directory = await mkdtemp(join(tmpdir(), "nodetto-offline-"));
     const documentPath = join(directory, "local-only.jsonl");
     const fetchDescriptor = Object.getOwnPropertyDescriptor(
       globalThis,

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { FillGradient } from "@diagra/ir";
+import type { FillGradient } from "@nodetto/ir";
 import { generateMobileInterfaceCode } from "./mobile-code.ts";
 import { makeEditor } from "./test-helpers.ts";
 
@@ -36,10 +36,10 @@ test("generates native auto-layout containers without mutating the artboard", ()
   const before = JSON.stringify(editor.getSnapshot());
   const revision = editor.revision;
   const code = generateMobileInterfaceCode(editor, frame.id);
-  expect(code?.swiftUi).toContain("struct DiagraIPhoneHomeView: View");
+  expect(code?.swiftUi).toContain("struct NodettoIPhoneHomeView: View");
   expect(code?.swiftUi).toContain("VStack(alignment: .center, spacing: 12)");
   expect(code?.swiftUi).toContain(".frame(width: 390, height: 844)");
-  expect(code?.jetpackCompose).toContain("fun DiagraIPhoneHomeScreen()");
+  expect(code?.jetpackCompose).toContain("fun NodettoIPhoneHomeScreen()");
   expect(code?.jetpackCompose).toContain("Column(");
   expect(code?.jetpackCompose).toContain(
     "verticalArrangement = Arrangement.spacedBy(12.dp)",
@@ -81,9 +81,9 @@ test("generates native wrapping containers with independent line spacing", () =>
   );
   const code = generateMobileInterfaceCode(editor, frame.id);
   expect(code?.swiftUi).toContain(
-    "DiagraFlowLayout(axis: .horizontal, itemSpacing: 8, lineSpacing: 14, crossAlignment: 0.5)",
+    "NodettoFlowLayout(axis: .horizontal, itemSpacing: 8, lineSpacing: 14, crossAlignment: 0.5)",
   );
-  expect(code?.swiftUi).toContain("private struct DiagraFlowLayout: Layout");
+  expect(code?.swiftUi).toContain("private struct NodettoFlowLayout: Layout");
   expect(code?.swiftUi).toContain(".frame(maxWidth: .infinity)");
   expect(code?.jetpackCompose).toContain("FlowRow(");
   expect(code?.jetpackCompose).toContain(
@@ -318,7 +318,7 @@ test("preserves absolute child geometry and native typography", () => {
       marks: [
         { start: 0, end: 4, kind: "bold" },
         { start: 0, end: 4, kind: "underline" },
-        { start: 6, end: 11, kind: "link", href: "https://diagra.app" },
+        { start: 6, end: 11, kind: "link", href: "https://nodetto.app" },
       ],
     },
     visual: {
@@ -362,7 +362,7 @@ test("preserves absolute child geometry and native typography", () => {
   expect(code?.jetpackCompose).toContain("textAlign = TextAlign.End");
   expect(code?.jetpackCompose).toContain("buildAnnotatedString {");
   expect(code?.jetpackCompose).toContain(
-    'addStringAnnotation(tag = "URL", annotation = "https://diagra.app", start = 6, end = 11)',
+    'addStringAnnotation(tag = "URL", annotation = "https://nodetto.app", start = 6, end = 11)',
   );
 });
 
@@ -395,7 +395,7 @@ test("generates exact normalized image crop transforms and asset references", ()
   expect(code?.assets).toEqual([
     {
       elementId: image.id,
-      resourceName: "diagra_hero_image",
+      resourceName: "nodetto_hero_image",
       mediaType: "image/png",
     },
   ]);
@@ -523,7 +523,7 @@ test("generates native convex group masks without painting the mask source", () 
     })),
   );
   const code = generateMobileInterfaceCode(editor, frame.id);
-  expect(code?.swiftUi).toContain(".mask(DiagraPolygon(points:");
+  expect(code?.swiftUi).toContain(".mask(NodettoPolygon(points:");
   expect(code?.jetpackCompose).toContain(".clip(GenericShape");
   expect(code?.swiftUi).not.toContain("avatar-mask");
   expect(code?.jetpackCompose).not.toContain("avatar-mask");
@@ -567,7 +567,7 @@ test("generates native alpha and luminance raster group masks", () => {
   );
   const code = generateMobileInterfaceCode(editor, frame.id);
   expect(code?.swiftUi).toContain(
-    'DiagraRasterMask(asset: "diagra_photo_mask"',
+    'NodettoRasterMask(asset: "nodetto_photo_mask"',
   );
   expect(code?.swiftUi).toContain("cropX: 0.1");
   expect(code?.swiftUi).toContain("luminance: true");
@@ -582,7 +582,7 @@ test("generates native alpha and luminance raster group masks", () => {
     ".position(x: proxy.size.width * x + viewportWidth / 2, y: proxy.size.height * y + viewportHeight / 2)",
   );
   expect(code?.jetpackCompose).toContain(
-    ".diagraRasterMask(resource = R.drawable.diagra_photo_mask",
+    ".nodettoRasterMask(resource = R.drawable.nodetto_photo_mask",
   );
   expect(code?.jetpackCompose).toContain("luminance = true");
   expect(code?.jetpackCompose).toContain("BlendMode.DstIn");
@@ -591,7 +591,7 @@ test("generates native alpha and luminance raster group masks", () => {
   expect(code?.assets).toEqual([
     {
       elementId: mask.id,
-      resourceName: "diagra_photo_mask",
+      resourceName: "nodetto_photo_mask",
       mediaType: "image/png",
     },
   ]);

@@ -1,4 +1,4 @@
-import type { FrameSemantic } from "@diagra/ir";
+import type { FrameSemantic } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { expandContainers, frameParents } from "./frame-tree.ts";
 import { createShapeContext } from "./hit-test.ts";

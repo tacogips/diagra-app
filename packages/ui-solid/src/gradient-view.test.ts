@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { gradientCss, gradientId, strokeGradientId } from "@diagra/core";
-import type { FillGradient, Visual } from "@diagra/ir";
+import { gradientCss, gradientId, strokeGradientId } from "@nodetto/core";
+import type { FillGradient, Visual } from "@nodetto/ir";
 import {
   fillPaint,
   fillPaintStyle,

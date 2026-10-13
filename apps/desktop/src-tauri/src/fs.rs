@@ -1,7 +1,7 @@
 // Byte transport for document files.
 //
 // Nothing in this module understands JSONL. The frontend owns parsing and
-// serialization (`@diagra/io`); Rust only moves the exact bytes it is
+// serialization (`@nodetto/io`); Rust only moves the exact bytes it is
 // handed, so the file format can change without a Rust release.
 
 use std::fs::{self, File};
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn temp_sibling_lives_next_to_the_target() {
-        let target = Path::new("/tmp/diagra/document.jsonl");
+        let target = Path::new("/tmp/nodetto/document.jsonl");
 
         let temp = temp_sibling(target).expect("target has a file name");
 

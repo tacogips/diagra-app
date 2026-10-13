@@ -1,4 +1,4 @@
-import type { Element, SequenceParticipantSemantic } from "@diagra/ir";
+import type { Element, SequenceParticipantSemantic } from "@nodetto/ir";
 import type { JSX } from "solid-js";
 import { fillPaintStyle, labelStyle, strokeBorderStyle } from "./visual.ts";
 
@@ -9,11 +9,11 @@ export function SequenceParticipantView(props: {
     props.element.semantic as Partial<SequenceParticipantSemantic>;
   return (
     <div
-      class="diagra-sequence-participant"
+      class="nodetto-sequence-participant"
       style={labelStyle(props.element.visual)}
     >
       <div
-        class="diagra-sequence-participant-head"
+        class="nodetto-sequence-participant-head"
         data-smart-paint="box"
         data-smart-text
         style={{
@@ -30,7 +30,7 @@ export function SequenceParticipantView(props: {
         </span>
         <strong>{semantic().name ?? "Participant"}</strong>
       </div>
-      <div class="diagra-sequence-lifeline" />
+      <div class="nodetto-sequence-lifeline" />
     </div>
   );
 }

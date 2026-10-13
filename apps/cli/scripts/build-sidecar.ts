@@ -1,7 +1,7 @@
 /**
- * Compile diagra-cli into a standalone executable that the desktop bundle
+ * Compile nodetto-cli into a standalone executable that the desktop bundle
  * ships as a Tauri sidecar (`bundle.externalBin`). Tauri expects the file at
- * `binaries/diagra-cli-<rust target triple>` under src-tauri.
+ * `binaries/nodetto-cli-<rust target triple>` under src-tauri.
  */
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -22,7 +22,7 @@ function hostTriple(): string {
   return host;
 }
 
-const triple = process.env.DIAGRA_SIDECAR_TARGET ?? hostTriple();
+const triple = process.env.NODETTO_SIDECAR_TARGET ?? hostTriple();
 const bunTarget = BUN_TARGETS[triple];
 if (!bunTarget) throw new Error(`No Bun compile target for ${triple}.`);
 const root = resolve(import.meta.dir, "..");
@@ -30,7 +30,7 @@ const extension = triple.includes("windows") ? ".exe" : "";
 const outfile = resolve(
   root,
   "../desktop/src-tauri/binaries",
-  `diagra-cli-${triple}${extension}`,
+  `nodetto-cli-${triple}${extension}`,
 );
 mkdirSync(dirname(outfile), { recursive: true });
 const build = Bun.spawnSync(

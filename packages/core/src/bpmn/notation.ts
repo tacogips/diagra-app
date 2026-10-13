@@ -1,4 +1,4 @@
-import type { Element, ElementId } from "@diagra/ir";
+import type { Element, ElementId } from "@nodetto/ir";
 import type { Box, Vec } from "../geometry.ts";
 import { wrapTextLines } from "../text-layout.ts";
 

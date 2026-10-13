@@ -3,13 +3,13 @@
 // Row indices for `focusRow` run through the attributes first and then the
 // methods, matching the order the class box draws them in.
 
-import { type Editor, newElementId } from "@diagra/core";
+import { type Editor, newElementId } from "@nodetto/core";
 import {
   type Element,
   UML_VISIBILITIES,
   type UmlClassSemantic,
   type UmlVisibility,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { createEffect, Index, type JSX, on } from "solid-js";
 import {
   Checkbox,
@@ -94,9 +94,9 @@ export function UmlClassSection(props: UmlClassSectionProps): JSX.Element {
         />
       </Field>
 
-      <h4 class="diagra-inspector-subtitle">Attributes</h4>
-      <div class="diagra-rows" role="table" aria-label="Attributes">
-        <div class="diagra-row diagra-row-uml diagra-row-head" role="row">
+      <h4 class="nodetto-inspector-subtitle">Attributes</h4>
+      <div class="nodetto-rows" role="table" aria-label="Attributes">
+        <div class="nodetto-row nodetto-row-uml nodetto-row-head" role="row">
           <span title="Visibility">Vis</span>
           <span>Name</span>
           <span>Type</span>
@@ -105,7 +105,7 @@ export function UmlClassSection(props: UmlClassSectionProps): JSX.Element {
         </div>
         <Index each={semantic().attributes}>
           {(attribute, index) => (
-            <div class="diagra-row diagra-row-uml" role="row">
+            <div class="nodetto-row nodetto-row-uml" role="row">
               <SelectInput
                 label="Visibility"
                 value={attribute().visibility ?? "+"}
@@ -167,18 +167,18 @@ export function UmlClassSection(props: UmlClassSectionProps): JSX.Element {
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => write(addUmlAttribute(semantic(), newElementId()))}
       >
         Add attribute
       </button>
 
-      <h4 class="diagra-inspector-subtitle">Methods</h4>
-      <div class="diagra-rows" role="table" aria-label="Methods">
+      <h4 class="nodetto-inspector-subtitle">Methods</h4>
+      <div class="nodetto-rows" role="table" aria-label="Methods">
         <Index each={semantic().methods}>
           {(method, index) => (
-            <div class="diagra-method" role="row">
-              <div class="diagra-row diagra-row-uml">
+            <div class="nodetto-method" role="row">
+              <div class="nodetto-row nodetto-row-uml">
                 <SelectInput
                   label="Visibility"
                   value={method().visibility ?? "+"}
@@ -223,7 +223,7 @@ export function UmlClassSection(props: UmlClassSectionProps): JSX.Element {
                   }
                 />
               </div>
-              <div class="diagra-method-detail">
+              <div class="nodetto-method-detail">
                 <TextInput
                   label="Parameters"
                   placeholder="a: T, b: U"
@@ -265,7 +265,7 @@ export function UmlClassSection(props: UmlClassSectionProps): JSX.Element {
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => write(addUmlMethod(semantic(), newElementId()))}
       >
         Add method

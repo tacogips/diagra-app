@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { CollabBinding } from "@diagra/collab";
-import { Editor } from "@diagra/core";
+import { CollabBinding } from "@nodetto/collab";
+import { Editor } from "@nodetto/core";
 import * as Y from "yjs";
 import { textEditDraft } from "../../../packages/ui-solid/src/text-edit-draft.ts";
 import { layerRenameDraft } from "../../../packages/ui-solid/src/layer-rename.ts";

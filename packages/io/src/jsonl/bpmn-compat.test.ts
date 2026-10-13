@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseDocument, parseDocumentResult } from "./parse.ts";
 import { serializeDocument } from "./serialize.ts";
-import { hasErrors, type Document } from "@diagra/ir";
+import { hasErrors, type Document } from "@nodetto/ir";
 
 const FIXTURES = join(import.meta.dir, "..", "__fixtures__");
 

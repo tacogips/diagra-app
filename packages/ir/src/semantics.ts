@@ -1,5 +1,5 @@
 // Semantic payloads for the v1 element type registry.
-// See the product design (diagra-cloud repo), section 5.2.
+// See the product design (nodetto-cloud repo), section 5.2.
 
 import type {
   ElementId,

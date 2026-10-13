@@ -20,7 +20,7 @@
 // (design 7.1), and introducing it here would change the document shape the
 // server and every other client agree on.
 
-import { type Element, isPlainObject, type Page } from "@diagra/ir";
+import { type Element, isPlainObject, type Page } from "@nodetto/ir";
 import * as Y from "yjs";
 import { pageFields, toY } from "./ydoc.ts";
 

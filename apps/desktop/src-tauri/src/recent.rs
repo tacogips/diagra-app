@@ -76,10 +76,29 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+// The bundle identifier changed with the Nodetto rename. Copy the old
+// recent-files store only when the new store does not exist.
+fn migrate_legacy_store(directory: &Path) -> Result<(), String> {
+    if store_path(directory).exists() {
+        return Ok(());
+    }
+    let Some(parent) = directory.parent() else {
+        return Ok(());
+    };
+    let legacy = parent.join("me.tacogips.diagra");
+    if store_path(&legacy).is_file() {
+        save(directory, &load(&legacy))?;
+    }
+    Ok(())
+}
+
 fn config_directory(app: &AppHandle) -> Result<PathBuf, String> {
-    app.path()
+    let directory = app
+        .path()
         .app_config_dir()
-        .map_err(|error| format!("failed to resolve the app config directory: {error}"))
+        .map_err(|error| format!("failed to resolve the app config directory: {error}"))?;
+    migrate_legacy_store(&directory)?;
+    Ok(directory)
 }
 
 #[tauri::command]
@@ -184,7 +203,7 @@ mod tests {
     #[test]
     fn save_creates_a_missing_directory() {
         let directory = tempdir().expect("temp dir");
-        let nested = directory.path().join("config").join("diagra");
+        let nested = directory.path().join("config").join("nodetto");
 
         save(&nested, &[entry("/a.jsonl", 1)]).expect("save succeeds");
 
@@ -204,6 +223,22 @@ mod tests {
         fs::write(store_path(directory.path()), "{not json").expect("seed store");
 
         assert_eq!(load(directory.path()), Vec::new());
+    }
+
+    #[test]
+    fn rename_preserves_recent_files_without_overwriting_the_new_store() {
+        let root = tempdir().expect("temp dir");
+        let legacy = root.path().join("me.tacogips.diagra");
+        let current = root.path().join("me.tacogips.nodetto");
+        let old_entries = vec![entry("/old.jsonl", 1)];
+        save(&legacy, &old_entries).expect("seed old store");
+        migrate_legacy_store(&current).expect("migrate");
+        assert_eq!(load(&current), old_entries);
+        let new_entries = vec![entry("/new.jsonl", 2)];
+        save(&current, &new_entries).expect("save new store");
+        migrate_legacy_store(&current).expect("repeat migration");
+        assert_eq!(load(&current), new_entries);
+        assert_eq!(load(&legacy), old_entries);
     }
 
     #[test]

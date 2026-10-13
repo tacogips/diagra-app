@@ -1,14 +1,14 @@
-.diagra-image-import-error {
+.nodetto-image-import-error {
   display: flex;
   align-items: flex-start;
   gap: 6px;
 }
 
-.diagra-image-import-error > span {
+.nodetto-image-import-error > span {
   min-width: 0;
 }
 
-.diagra-image-error-dismiss {
+.nodetto-image-error-dismiss {
   display: grid;
   place-items: center;
   flex: 0 0 24px;
@@ -17,20 +17,20 @@
   padding: 4px;
   border: 0;
   border-radius: 0;
-  color: var(--diagra-ink);
+  color: var(--nodetto-ink);
   background: transparent;
   cursor: pointer;
 }
 
-.diagra-image-error-dismiss svg {
+.nodetto-image-error-dismiss svg {
   width: 16px;
   height: 16px;
 }
 
-.diagra-image-error-dismiss:hover {
+.nodetto-image-error-dismiss:hover {
   background: #eef0f2;
 }
 
-.diagra-image-error-dismiss:focus-visible {
+.nodetto-image-error-dismiss:focus-visible {
   outline: 2px solid #5d7480;
 }

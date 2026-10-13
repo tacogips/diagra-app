@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { insideClip, layerClipPolygons, visibleBounds } from "./clipping.ts";
 import { makeEditor } from "./test-helpers.ts";
 
@@ -35,7 +35,7 @@ test("clipping preserves full geometry but limits picking and export bounds", ()
   expect(editor.hitTest({ x: 120, y: 40 })).toBeNull();
   const svg = editor.exportPageSvg({ padding: 0 });
   expect(svg).toContain('clipPathUnits="userSpaceOnUse"');
-  expect(svg).toContain('clip-path="url(#diagra-clip-0)"');
+  expect(svg).toContain('clip-path="url(#nodetto-clip-0)"');
   expect(svg).toContain('viewBox="0 0 100 100"');
 });
 

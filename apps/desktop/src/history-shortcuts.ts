@@ -1,4 +1,4 @@
-import { isEditableTarget } from "@diagra/ui-solid";
+import { isEditableTarget } from "@nodetto/ui-solid";
 
 /** Shell fallback; native text undo and already-handled canvas keys keep ownership. */
 export function handleHistoryShortcut(

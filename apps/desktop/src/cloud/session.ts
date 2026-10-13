@@ -17,9 +17,9 @@ import {
   observePresence,
   type PresencePeer,
   publishPresence,
-} from "@diagra/collab";
-import type { Editor } from "@diagra/core";
-import type { Document, ElementId } from "@diagra/ir";
+} from "@nodetto/collab";
+import type { Editor } from "@nodetto/core";
+import type { Document, ElementId } from "@nodetto/ir";
 import type { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import { type CloudApi, type CloudRole, cloudApi } from "./api.ts";

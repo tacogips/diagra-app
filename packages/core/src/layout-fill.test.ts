@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { document, element, makeEditor } from "./test-helpers.ts";
 import { rotateElement } from "./rotation.ts";
 

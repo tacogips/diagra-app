@@ -24,7 +24,8 @@ test("CSS names are safe and distinct for punctuation, Unicode and hostile IDs",
   ];
   const names = ids.map(colorTokenCssName);
   expect(new Set(names).size).toBe(ids.length);
-  for (const name of names) expect(name).toMatch(/^--diagra-color-[0-9a-f-]+$/);
+  for (const name of names)
+    expect(name).toMatch(/^--nodetto-color-[0-9a-f-]+$/);
 });
 
 test("measurement handoff emits safe variables and linked numeric CSS", () => {

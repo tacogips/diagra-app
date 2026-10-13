@@ -1,5 +1,5 @@
-import { freehandGeometry, gradientId, strokeGradientId } from "@diagra/core";
-import type { Element } from "@diagra/ir";
+import { freehandGeometry, gradientId, strokeGradientId } from "@nodetto/core";
+import type { Element } from "@nodetto/ir";
 import { type JSX, Show } from "solid-js";
 import { SvgFillGradient } from "./SvgFillGradient.tsx";
 import { svgStyle } from "./visual.ts";

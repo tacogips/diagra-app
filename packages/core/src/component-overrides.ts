@@ -3,7 +3,7 @@ import type {
   FrameSemantic,
   TextMark,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import {
   COMPONENT_GEOMETRY_FIELDS,

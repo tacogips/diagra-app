@@ -8,7 +8,7 @@ defaults: lane delete cascades (Q1), desktop lint always uses recommended
 (Q2), `SCHEMA_VERSION` stays 1 (Q3).
 
 Issue: no GitHub issue. Workflow input "BPMN 2.0 operation flow (business
-process) diagrams in diagra" (comm-006074 .. comm-006079), workflow
+process) diagrams in nodetto" (comm-006074 .. comm-006079), workflow
 execution `opus-luna-design-and-implement-review-loop-session-356`.
 
 Branch: `feat/bpmn-operation-flow` only. No worktrees, no private branches,
@@ -212,7 +212,7 @@ every byte is printable ASCII or whitespace.
 
 ## User intent (one paragraph)
 
-diagra users author BPMN 2.0 operation flows the way the Future Tech Blog
+nodetto users author BPMN 2.0 operation flows the way the Future Tech Blog
 article does with bpmn.io: typed BPMN elements stored semantically in JSONL,
 BPMN-correct editing, a bpmnlint-equivalent linter in the editor and the
 CLI, BPMN 2.0 XML import/export interoperable with bpmn.io, BPMN rendering
@@ -248,7 +248,7 @@ bpmn-09 because it edits `interaction.ts`), slice 3 = bpmn-04, slice 4 =
 bpmn-05, slice 5 = bpmn-02 + bpmn-06, slice 6 = bpmn-07, slice 7 =
 bpmn-08..11, slice 8 = bpmn-12, slice 9 = bpmn-15, slice 10 = bpmn-14.
 Cross-package fixture tests (lint outcomes, SVG structure, reference lint
-multisets) are bpmn-13, because `@diagra/io` cannot import `@diagra/core`
+multisets) are bpmn-13, because `@nodetto/io` cannot import `@nodetto/core`
 and only core dev-depends on io.
 
 ## Shared files and ownership rules
@@ -322,20 +322,20 @@ and only core dev-depends on io.
   `applyCommands`, `Editor.apply` command validation, History, clipboard,
   imports or collab paths (design 4.3).
 - No new npm or cargo dependencies. No bpmn.io packages. No XML library.
-  `bun.lock` must not change except for the `@diagra/io` package.json
+  `bun.lock` must not change except for the `@nodetto/io` package.json
   `exports` edit, which does not touch the lockfile.
 - Nothing from `.reference/` is copied into the repository: no labels,
   ids, text, geometry or files. All fixtures are original (bpmn-02).
 - No emojis anywhere. Strict TypeScript (no `any`, no `@ts-ignore`).
   Biome style: 2-space indent, double quotes.
-- No PNG/PDF export and no generic `diagra-cli export` command.
+- No PNG/PDF export and no generic `nodetto-cli export` command.
 - No version bumps, tags, main-branch pushes, releases or Homebrew changes.
 - Public repo: no server code, auth, secrets, endpoints or deploy config.
 
 ## Final verification (orchestrator, after wave 4)
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck                      # exit 0
 bunx biome check .                     # exit 0
 bun test                               # exit 0, 0 fail

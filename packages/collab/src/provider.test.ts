@@ -23,10 +23,10 @@ describe("parseEndpoint", () => {
       protocol: "ws",
       basePath: "",
     });
-    expect(parseEndpoint("https://example.com/diagra/")).toEqual({
+    expect(parseEndpoint("https://example.com/nodetto/")).toEqual({
       host: "example.com",
       protocol: "wss",
-      basePath: "/diagra",
+      basePath: "/nodetto",
     });
   });
 
@@ -212,8 +212,8 @@ describe("createDocProvider", () => {
   });
 
   test("escapes the document id and honours a mount path", () => {
-    expect(documentSocketPath("a/b", "/diagra")).toBe(
-      "/diagra/ws/documents/a%2Fb",
+    expect(documentSocketPath("a/b", "/nodetto")).toBe(
+      "/nodetto/ws/documents/a%2Fb",
     );
   });
 

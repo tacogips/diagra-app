@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
-import type { BpmnEventSemantic, BpmnTaskSemantic, Document } from "@diagra/ir";
+import { Editor } from "@nodetto/core";
+import type {
+  BpmnEventSemantic,
+  BpmnTaskSemantic,
+  Document,
+} from "@nodetto/ir";
 import * as Y from "yjs";
 import { CollabBinding } from "./binding.ts";
 import { bpmnDocument } from "./test-fixtures.ts";

@@ -11,7 +11,7 @@
 // item, an outside press, Escape, or an outside wheel. Internal scrolling
 // keeps actions reachable in short hosts; scrolling the parent closes its submenu.
 
-import type { Vec } from "@diagra/core";
+import type { Vec } from "@nodetto/core";
 import { clampToHost, menuLimits, placeSubmenu } from "./menu-geometry.ts";
 export { clampToHost } from "./menu-geometry.ts";
 import { stepMenuIndex } from "./menu-navigation.ts";
@@ -365,7 +365,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
     const container =
       activeSub() !== null && openSubmenu() !== null ? submenu : menu;
     const target = container?.querySelector<HTMLButtonElement>(
-      ".diagra-menu-active",
+      ".nodetto-menu-active",
     );
     if (target && !target.disabled) {
       target.focus({ preventScroll: true });
@@ -375,7 +375,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
 
   return (
     <div
-      class="diagra-context-menu"
+      class="nodetto-context-menu"
       role="menu"
       tabIndex={-1}
       ref={menu}
@@ -398,7 +398,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
       <For each={entries()}>
         {(entry, index) => {
           if (entry.kind === "separator") {
-            return <div class="diagra-menu-separator" role="separator" />;
+            return <div class="nodetto-menu-separator" role="separator" />;
           }
           if (entry.kind === "action") {
             return (
@@ -406,8 +406,8 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
                 type="button"
                 tabIndex={-1}
                 role="menuitem"
-                class="diagra-menu-item"
-                classList={{ "diagra-menu-active": active() === index() }}
+                class="nodetto-menu-item"
+                classList={{ "nodetto-menu-active": active() === index() }}
                 disabled={!isEnabled(entry.action)}
                 title={actionTitle(entry.action)}
                 onPointerEnter={() => {
@@ -416,25 +416,25 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
                 }}
                 onClick={() => run(entry.action)}
               >
-                <span class="diagra-menu-label">{entry.action.label}</span>
+                <span class="nodetto-menu-label">{entry.action.label}</span>
                 <Show when={entry.action.shortcut}>
                   {(shortcut) => (
-                    <span class="diagra-menu-shortcut">{shortcut()}</span>
+                    <span class="nodetto-menu-shortcut">{shortcut()}</span>
                   )}
                 </Show>
               </button>
             );
           }
           return (
-            <div class="diagra-menu-submenu-host">
+            <div class="nodetto-menu-submenu-host">
               <button
                 type="button"
                 tabIndex={-1}
                 role="menuitem"
                 aria-haspopup="menu"
                 aria-expanded={openSubmenu() === index()}
-                class="diagra-menu-item"
-                classList={{ "diagra-menu-active": active() === index() }}
+                class="nodetto-menu-item"
+                classList={{ "nodetto-menu-active": active() === index() }}
                 disabled={!submenuEnabled(entry.items)}
                 onPointerEnter={() => {
                   setActive(index());
@@ -442,13 +442,13 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
                 }}
                 onClick={() => openSubmenuAt(index(), true)}
               >
-                <span class="diagra-menu-label">{entry.label}</span>
-                <span class="diagra-menu-shortcut">&gt;</span>
+                <span class="nodetto-menu-label">{entry.label}</span>
+                <span class="nodetto-menu-shortcut">&gt;</span>
               </button>
               <Show when={openSubmenu() === index()}>
                 <Portal>
                   <div
-                    class="diagra-context-menu diagra-submenu"
+                    class="nodetto-context-menu nodetto-submenu"
                     style={{
                       position: "fixed",
                       left: `${submenuPosition().x}px`,
@@ -470,16 +470,16 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
                           type="button"
                           tabIndex={-1}
                           role="menuitem"
-                          class="diagra-menu-item"
+                          class="nodetto-menu-item"
                           classList={{
-                            "diagra-menu-active": activeSub() === subIndex(),
+                            "nodetto-menu-active": activeSub() === subIndex(),
                           }}
                           disabled={!isEnabled(action)}
                           title={actionTitle(action)}
                           onPointerEnter={() => setActiveSub(subIndex())}
                           onClick={() => run(action)}
                         >
-                          <span class="diagra-menu-label">{action.label}</span>
+                          <span class="nodetto-menu-label">{action.label}</span>
                         </button>
                       )}
                     </For>

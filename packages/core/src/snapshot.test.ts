@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
-import { type Document, hasErrors, validateDocument } from "@diagra/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
+import { type Document, hasErrors, validateDocument } from "@nodetto/ir";
 import { Store } from "./store.ts";
 import {
   document,

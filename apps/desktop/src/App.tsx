@@ -22,14 +22,14 @@ import {
   type NewReviewMessage,
   type Vec,
   bpmnRouteResolver,
-} from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import {
   type ActionContext,
   ContextMenu,
   BpmnProblemsPanel,
   createEditorSignals,
-  DiagraCanvas,
+  NodettoCanvas,
   getAction,
   HelpHint,
   Inspector,
@@ -43,7 +43,7 @@ import {
   Toolbar,
   type ToolKind,
   ZoomControls,
-} from "@diagra/ui-solid";
+} from "@nodetto/ui-solid";
 import {
   createEffect,
   createSignal,
@@ -114,7 +114,7 @@ export interface InspectorFocus {
 const DISCARD_PROMPT = "Discard unsaved changes?";
 /** Presence is a pointer trail; 20 Hz is plenty and keeps the socket quiet. */
 const CURSOR_THROTTLE_MS = 50;
-/** `--diagra-canvas` in style.css; exports carry the same ground. */
+/** `--nodetto-canvas` in style.css; exports carry the same ground. */
 const CANVAS_BACKGROUND = "#f6f4ee";
 const EXPORT_EXTENSION = "svg";
 
@@ -576,7 +576,7 @@ export function App(props: AppProps): JSX.Element {
     const page = props.editor.store.getPage(props.editor.currentPageId);
     if (page?.kind !== "bpmn") return;
     try {
-      const { exportBpmnXml } = await import("@diagra/io/bpmn");
+      const { exportBpmnXml } = await import("@nodetto/io/bpmn");
       const { xml } = exportBpmnXml(
         props.editor.store.getSnapshot(),
         props.editor.currentPageId,
@@ -656,7 +656,7 @@ export function App(props: AppProps): JSX.Element {
         !settingsMenu?.contains(event.target) &&
         !(
           event.target instanceof Element &&
-          event.target.closest(".diagra-help-tooltip")
+          event.target.closest(".nodetto-help-tooltip")
         )
       ) {
         setCloudPanelExpanded(false);
@@ -760,7 +760,7 @@ export function App(props: AppProps): JSX.Element {
   return (
     <div class="app-shell" classList={{ "app-cloud-mode": isCloud() }}>
       <header class="app-header" ref={headerHost}>
-        <span class="app-title">diagra</span>
+        <span class="app-title">nodetto</span>
         <details class="app-file-menu" ref={fileMenu}>
           <summary
             class="app-file-button"
@@ -1062,7 +1062,7 @@ export function App(props: AppProps): JSX.Element {
           onPointerMove={onCanvasPointerMove}
           onPointerLeave={onCanvasPointerLeave}
         >
-          <DiagraCanvas
+          <NodettoCanvas
             editor={props.editor}
             tool={tool()}
             onToolChange={setActiveTool}
@@ -1102,7 +1102,7 @@ export function App(props: AppProps): JSX.Element {
                 />
               )}
             </Show>
-          </DiagraCanvas>
+          </NodettoCanvas>
           <Show when={isCloud()}>
             <PresenceOverlay editor={props.editor} peers={cloud().peers} />
           </Show>

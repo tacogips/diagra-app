@@ -79,14 +79,14 @@
     "reconciliation": "Whole-repo bun run typecheck, bunx biome check . and bun test are strictly blocking after every wave and at final verification. Failures are routed to the owning plan or the plan that caused them."
   },
   "reviewContext": {
-    "issueReference": "No GitHub issue. Workflow input 'Continue (2): BPMN 2.0 operation flow (business process) diagrams in diagra'. Continuation run 2 of sessions 356/357 (design and plans 86f955f; test-ownership amendment c7775b8). Execution opus-luna-design-and-implement-review-loop-session-359: intake comm-006132, design comm-006133, design review comm-006134 (accepted).",
-    "userProblem": "diagra users cannot author and manage BPMN 2.0 operation flows the way the Future Tech Blog article does with bpmn.io: typed semantic BPMN elements in JSONL, BPMN-correct editing, bpmnlint-equivalent lint in the editor and in CI, BPMN 2.0 XML interchange with bpmn.io, BPMN rendering in SVG export, and AI-ready documentation.",
+    "issueReference": "No GitHub issue. Workflow input 'Continue (2): BPMN 2.0 operation flow (business process) diagrams in nodetto'. Continuation run 2 of sessions 356/357 (design and plans 86f955f; test-ownership amendment c7775b8). Execution opus-luna-design-and-implement-review-loop-session-359: intake comm-006132, design comm-006133, design review comm-006134 (accepted).",
+    "userProblem": "nodetto users cannot author and manage BPMN 2.0 operation flows the way the Future Tech Blog article does with bpmn.io: typed semantic BPMN elements in JSONL, BPMN-correct editing, bpmnlint-equivalent lint in the editor and in CI, BPMN 2.0 XML interchange with bpmn.io, BPMN rendering in SVG export, and AI-ready documentation.",
     "requiredOutcomes": [
       "A 'bpmn' page kind with a Descriptive BPMN palette; 16 bpmn.* registry types with typed semantic payloads, validation, key order and a Yjs collab round trip; SCHEMA_VERSION stays 1 (user-QA Q3 default).",
       "BPMN notation (pool/lane headers, task icons, event borders and filled/hollow icons, gateway markers, flow styles, labels below events and gateways) rendered from one shared notation module in both the ui-solid canvas and the core SVG export; the original purchase-request fixture SVG has the pinned role counts.",
       "Editor intent methods reject or correct BPMN-invalid connections (message flow inside one pool, sequence flow across pools, incoming flow to a start event, outgoing flow from an end event), with tests; containment, pool/lane movement and lane stacking.",
       "bpmnlint-equivalent lint with the 23 bpmnlint rule ids, recommended severities and .bpmnlintrc-style config; the draft fixture reports exactly label-required, no-implicit-end and no-implicit-start; the complete, swapped and inverted fixtures lint clean.",
-      "diagra-cli lint, bpmn import and bpmn export (--check like ddl --check, --format json, deterministic exit codes 0/1/2/3).",
+      "nodetto-cli lint, bpmn import and bpmn export (--check like ddl --check, --format json, deterministic exit codes 0/1/2/3).",
       "Dependency-free BPMN 2.0 XML import/export in packages/io; import->export->import is semantically lossless; unsupported constructs import with warnings; the four local reference files import (test skipped when .reference is absent).",
       "Desktop: Add BPMN page, a problems panel that selects offending elements, Import BPMN.../Export BPMN... menu entries, .bpmn opening as a detached import, the open-dialog filter and the macOS file association.",
       "README and docs/bpmn (format, lint rules, AI review guideline) plus an original purchase-request example document.",
@@ -94,7 +94,7 @@
       "Whole-repo bun run typecheck, bunx biome check . and bun test pass at final verification; cargo check/fmt pass for the Rust change."
     ],
     "nonGoals": [
-      "PNG/PDF export or a generic diagra-cli export command",
+      "PNG/PDF export or a generic nodetto-cli export command",
       "bpmn-js, bpmnlint, bpmn-moddle or any XML library dependency",
       "choreography, conversation and transaction semantics (preserved as raw XML only)",
       "executable/Camunda attributes beyond opaque preservation",
@@ -119,13 +119,13 @@
     ],
     "designDecisionsAndRationale": [
       "BPMN elements are first-class registry types with semantic payloads (not styled shapes), so AI tools can read and diff semantics separately from visual data (design 3.2).",
-      "Waypoint-basis math moves from core connector.ts into @diagra/ir, because @diagra/io needs it and cannot import @diagra/core (design 5.2).",
+      "Waypoint-basis math moves from core connector.ts into @nodetto/ir, because @nodetto/io needs it and cannot import @nodetto/core (design 5.2).",
       "One renderer-neutral notation module feeds both the SVG export and the ui-solid views, so canvas and export cannot diverge and tests can count roles. MarkerKind is unchanged (design 6.1, 6.2).",
       "Connection legality lives in Editor intent methods, so imports, undo, clipboard and collab keep accepting stored documents (design 4.3).",
       "A hand-written, non-validating XML parser with a deterministic serializer that rejects DOCTYPE; no dependency (design 5.1, 14).",
       "The export route resolver is injected through options.routeOf, so io does not depend on core (design 5.3).",
-      "Lint rule semantics are ported from the bpmnlint documentation and pinned by tests; messages use diagra's own wording (design 7.3, 13).",
-      "Cross-package fixture acceptance tests live in @diagra/core, because only core dev-depends on @diagra/io (bpmn-13).",
+      "Lint rule semantics are ported from the bpmnlint documentation and pinned by tests; messages use nodetto's own wording (design 7.3, 13).",
+      "Cross-package fixture acceptance tests live in @nodetto/core, because only core dev-depends on @nodetto/io (bpmn-13).",
       "Test ownership (design 11.1 rules 1-2): every plan owns a focused bun test; pinned-list tests have exactly one owner.",
       "Parallel-wave gate (design 11.1 rule 3): owner-scoped implementation gates keep sibling in-progress files from blocking a finished plan (the s357 bpmn-07 case). Whole-repo gates move to reconciliation and final verification, where ownership routing is serial.",
       "User-QA defaults: lane delete cascades (Q1), desktop lint always uses recommended (Q2), SCHEMA_VERSION stays 1 with no migration (Q3)."
@@ -362,7 +362,7 @@
         }
       ],
       "artifactRoots": [],
-      "continuation": "PARTIAL. Resume from the working tree (notation/routes modules and tests, svg-export-bpmn.test.ts, modified svg-export.ts, possibly connector.ts branches). Last observed own diagnostics: notation.ts:229 Box union width/height; routes.ts imports Vec, which is not exported from @diagra/ir (fix in routes.ts; do not edit packages/ir). Create the progress log with an 'Inventory (session-359)' section first.",
+      "continuation": "PARTIAL. Resume from the working tree (notation/routes modules and tests, svg-export-bpmn.test.ts, modified svg-export.ts, possibly connector.ts branches). Last observed own diagnostics: notation.ts:229 Box union width/height; routes.ts imports Vec, which is not exported from @nodetto/ir (fix in routes.ts; do not edit packages/ir). Create the progress log with an 'Inventory (session-359)' section first.",
       "ownTypecheckRegex": "^(packages/core/src/bpmn/(notation|notation\\.test|routes|routes\\.test|svg-export-bpmn\\.test)\\.ts|packages/core/src/svg-export\\.ts)\\(",
       "acceptanceCriteria": [
         "A renderer-neutral notation module (bpmnNotation, bpmnFlowDecoration) produces primitives with the pinned role classes for every BPMN element and flow decoration; svg-export maps them.",
@@ -406,7 +406,7 @@
       "acceptanceCriteria": [
         "BPMN_LINT_RULE_IDS has exactly the 23 bpmnlint rule ids with recommended severities, asserted in a test.",
         ".bpmnlintrc-style config (extends recommended, per-rule off/warn/error); plugin:* extends is a config error; rule options are accepted and ignored.",
-        "Findings are deterministic and use diagra's own messages; every rule id has positive and negative tests in rules.test.ts.",
+        "Findings are deterministic and use nodetto's own messages; every rule id has positive and negative tests in rules.test.ts.",
         "packages/core/src/bpmn/index.ts has the lint line once.",
         "The progress log records G1 and G2 evidence under tmp/bpmn-operation-flow-s359/bpmn-05-core-lint/."
       ],
@@ -444,7 +444,7 @@
         "importBpmnXml preserves ids, semantics, lanes, flows, labels and positions; unsupported and foreign content is preserved with warnings; exportBpmnXml writes spec-valid, byte-deterministic BPMN 2.0 XML with the bpmn/bpmndi/dc/di namespaces.",
         "Import -> export -> import is semantically lossless via bpmnSemanticProjection; the generated purchase-request.jsonl is pinned by the round-trip test.",
         "The reference test imports all four .reference files locally and skips when .reference is absent.",
-        "@diagra/io does not import @diagra/core; the package.json diff touches only exports; .reference is not tracked.",
+        "@nodetto/io does not import @nodetto/core; the package.json diff touches only exports; .reference is not tracked.",
         "The progress log records G1 and G2 evidence under tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/."
       ],
       "verification": [
@@ -457,7 +457,7 @@
         "bun test packages/io",
         "bun test",
         "test -f packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
-        "! grep -rn '@diagra/core' packages/io/src",
+        "! grep -rn '@nodetto/core' packages/io/src",
         "test -z \"$(git status --short .reference)\"",
         "test -z \"$(git diff --stat bun.lock)\""
       ]
@@ -657,8 +657,8 @@
       "artifactRoots": [],
       "ownTypecheckRegex": "^apps/cli/src/(commands\\.ts|main\\.ts|bpmn-commands\\.test\\.ts)\\(",
       "acceptanceCriteria": [
-        "diagra-cli lint <document.jsonl|file.bpmn> [--page] [--config] [--format text|json] with deterministic, bpmnlint-like output and a summary line.",
-        "diagra-cli bpmn import [--output] [--strict] and bpmn export [--page] [--output | --check] [--strict]; --check mirrors ddl --check.",
+        "nodetto-cli lint <document.jsonl|file.bpmn> [--page] [--config] [--format text|json] with deterministic, bpmnlint-like output and a summary line.",
+        "nodetto-cli bpmn import [--output] [--strict] and bpmn export [--page] [--output | --check] [--strict]; --check mirrors ddl --check.",
         "Exit codes: 0 clean, 1 error findings or --check drift, 2 usage/parse/config error, 3 --strict warnings.",
         "Draft fixture lint exits 1 with exactly label-required, no-implicit-end and no-implicit-start; complete fixture exits 0 with empty output; commands.test.ts is unchanged; --help lists lint and bpmn.",
         "The progress log records G1 and G2 evidence under tmp/bpmn-operation-flow-s359/bpmn-12-cli/."
@@ -737,7 +737,7 @@
       "artifactRoots": [],
       "ownTypecheckRegex": "^packages/core/src/bpmn/docs-example\\.test\\.ts\\(",
       "acceptanceCriteria": [
-        "README has a BPMN operation flows section and diagra-cli lint / bpmn import|export examples with exit codes matching the bpmn-12 USAGE.",
+        "README has a BPMN operation flows section and nodetto-cli lint / bpmn import|export examples with exit codes matching the bpmn-12 USAGE.",
         "docs/bpmn/format.md documents every bpmn.* type with sample JSONL records; lint-rules.md lists all 23 rule ids with severities, a .bpmnlintrc example, config discovery and divergences.",
         "docs/bpmn/ai-review-rules.md is an original .claude/rules guideline; purchase-request.jsonl is a byte-identical cp of the bpmn-06 io fixture (stop with an open issue if that fixture is missing).",
         "packages/core/src/bpmn/docs-example.test.ts passes with a positive pass count and 0 failures, covering parse, byte equality, clean recommended lint, the rule-table ids equal to BPMN_LINT_RULE_IDS, all 16 types named in format.md, ASCII docs and the README mentions.",

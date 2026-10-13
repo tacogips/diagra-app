@@ -8,7 +8,7 @@ import {
   replaceMarkedTextRange,
   replaceMarkedTextRanges,
 } from "./rich-text.ts";
-import type { TextMark } from "@diagra/ir";
+import type { TextMark } from "@nodetto/ir";
 
 test("bulk range replacement agrees with exact sequential edits across mark boundaries", () => {
   const previous = "abc abc abc";

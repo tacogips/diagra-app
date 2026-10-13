@@ -3,8 +3,8 @@ import {
   parseDocument,
   parseDocumentResult,
   serializeDocument,
-} from "@diagra/io";
-import type { FillGradient } from "@diagra/ir";
+} from "@nodetto/io";
+import type { FillGradient } from "@nodetto/ir";
 import { bindSelectionColor, createColorToken } from "./color-tokens.ts";
 import {
   angularGradientPatches,

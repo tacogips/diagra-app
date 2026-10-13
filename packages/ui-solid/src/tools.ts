@@ -4,8 +4,8 @@
 // without allocation. Creation tools name what they place; `select`,
 // `hand` and `edge` name a gesture instead.
 
-import { FRAME_PRESETS } from "@diagra/core";
-import type { GeoKind, ParticipantKind, Visual } from "@diagra/ir";
+import { FRAME_PRESETS } from "@nodetto/core";
+import type { GeoKind, ParticipantKind, Visual } from "@nodetto/ir";
 
 export const GEO_TOOLS = [
   "geo:rect",

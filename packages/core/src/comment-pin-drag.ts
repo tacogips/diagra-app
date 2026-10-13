@@ -1,4 +1,4 @@
-import type { ElementId } from "@diagra/ir";
+import type { ElementId } from "@nodetto/ir";
 import { isReviewComment, moveReviewComment } from "./comments.ts";
 import type { Editor } from "./editor.ts";
 import type { Vec } from "./geometry.ts";

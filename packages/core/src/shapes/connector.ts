@@ -19,7 +19,7 @@ import {
   MAX_CONNECTOR_WAYPOINTS,
   connectorWaypointFromPage,
   connectorWaypointToPage,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   type Box,
   boxCenter,
@@ -109,7 +109,10 @@ function withRoute(
   };
 }
 
-export { connectorWaypointFromPage, connectorWaypointToPage } from "@diagra/ir";
+export {
+  connectorWaypointFromPage,
+  connectorWaypointToPage,
+} from "@nodetto/ir";
 
 function projectedPointOnSegment(point: Vec, from: Vec, to: Vec): Vec {
   const dx = to.x - from.x;

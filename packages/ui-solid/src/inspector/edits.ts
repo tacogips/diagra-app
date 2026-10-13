@@ -4,7 +4,7 @@
 // of these for a new payload with exactly one thing changed, and writes it
 // back whole through `updateSemantic`. Item ids are never touched by an
 // edit, which is what keeps a rename a field change for the Y.Array
-// reconciliation in `@diagra/collab`, and what keeps the tests here free of
+// reconciliation in `@nodetto/collab`, and what keeps the tests here free of
 // the DOM.
 
 import type {
@@ -20,7 +20,7 @@ import type {
   UmlClassSemantic,
   UmlMethod,
   UmlParameter,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 // ---------------------------------------------------------------- generic
 

@@ -1,7 +1,7 @@
 # AI review rules for BPMN operation flows
 
 Save this original guideline as `.claude/rules/bpmn-operation-flow.md` in a
-project that stores operation flows as Diagra JSONL.
+project that stores operation flows as Nodetto JSONL.
 
 ## Conformance target
 
@@ -39,7 +39,7 @@ process model.
    receive action consistently.
 3. Check that the visual layout supports the process meaning and that labels
    remain readable. Do not infer semantics from color or coordinates alone.
-4. Run `diagra-cli lint <document.jsonl>` in CI. Treat error findings as a
+4. Run `nodetto-cli lint <document.jsonl>` in CI. Treat error findings as a
    required correction; review warnings and document intentional exceptions.
 5. Review `.bpmn` interchange warnings when importing XML. Preserve unknown
    content for follow-up instead of silently deleting it.

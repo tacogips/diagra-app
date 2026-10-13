@@ -1,4 +1,4 @@
-import type { ElementId } from "@diagra/ir";
+import type { ElementId } from "@nodetto/ir";
 import { frameParents } from "./frame-tree.ts";
 import { memberIdsOf } from "./group.ts";
 import type { ShapeContext } from "./shape-util.ts";

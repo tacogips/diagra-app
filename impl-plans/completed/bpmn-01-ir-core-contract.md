@@ -77,7 +77,7 @@ Pin the shared BPMN data contract every other plan builds on:
 - the `bpmn` page kind and the 16 `bpmn.*` element types with typed
   semantic payloads, registry validation and key order
 - `Visual.labelBounds`
-- the waypoint-basis math, moved into `@diagra/ir` (io needs it, io cannot
+- the waypoint-basis math, moved into `@nodetto/ir` (io needs it, io cannot
   import core)
 - the core read-only model view (`packages/core/src/bpmn/model.ts`)
 - core shape utils and outlines for the BPMN types
@@ -265,11 +265,11 @@ In `VISUAL_KEY_ORDER` (keyOrder.ts:83):
   number }` and the ir `ConnectorWaypoint` type.
 - In connector.ts delete the two bodies and add exactly two lines:
   `import { connectorWaypointFromPage, connectorWaypointToPage } from
-  "@diagra/ir";` (connector.ts still calls both internally, at
+  "@nodetto/ir";` (connector.ts still calls both internally, at
   connector.ts:207 and connector.ts:529; a bare `export ... from` creates
   no local binding) and `export { connectorWaypointFromPage,
-  connectorWaypointToPage } from "@diagra/ir";`. If connector.ts already
-  imports from `@diagra/ir`, add the two names to that existing import
+  connectorWaypointToPage } from "@nodetto/ir";`. If connector.ts already
+  imports from `@nodetto/ir`, add the two names to that existing import
   instead of a new import line. Every existing import of these names from
   core must keep compiling. Change nothing else in connector.ts.
 - `packages/ir/src/index.ts` uses named exports: add named exports for both
@@ -506,7 +506,7 @@ How to make it byte-canonical (the main pitfall):
 ## Verification (record exit codes and counts in the progress log)
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-01-ir-core-contract/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ir/src packages/core/src/bpmn packages/core/src/shapes packages/core/src/index.ts packages/io/src/jsonl   # exit 0
 bun test packages/ir/src/bpmn.test.ts packages/ir/src/registry.test.ts packages/core/src/bpmn/model.test.ts packages/core/src/shapes/bpmn.test.ts packages/io/src/jsonl/bpmn-compat.test.ts packages/io/src/jsonl/golden.test.ts   # exit 0, pass count > 0, 0 fail (owned tests)

@@ -1,4 +1,4 @@
-import type { Document, Element, ElementId } from "@diagra/ir";
+import type { Document, Element, ElementId } from "@nodetto/ir";
 import { buildBpmnModel, isBpmnActivity, isBpmnFlowNode } from "./model.ts";
 
 export type BpmnFlowType =

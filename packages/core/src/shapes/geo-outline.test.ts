@@ -4,7 +4,7 @@
 // so a change here is a change to every rendered document.
 
 import { describe, expect, test } from "bun:test";
-import { GEO_KINDS } from "@diagra/ir";
+import { GEO_KINDS } from "@nodetto/ir";
 import { geoOutline } from "./geo-outline.ts";
 
 const WIDTH = 160;

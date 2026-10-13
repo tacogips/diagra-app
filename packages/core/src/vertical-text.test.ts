@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { makeEditor } from "./test-helpers.ts";
 
 test("text vertical alignment exports, persists and undoes", () => {

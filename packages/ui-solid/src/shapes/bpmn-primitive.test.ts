@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { bpmnNotation, type NotationPrimitive } from "@diagra/core";
-import type { Element } from "@diagra/ir";
+import { bpmnNotation, type NotationPrimitive } from "@nodetto/core";
+import type { Element } from "@nodetto/ir";
 import { primitiveAttributes } from "./bpmn-primitive.ts";
 
 describe("BPMN SVG primitive mapping", () => {

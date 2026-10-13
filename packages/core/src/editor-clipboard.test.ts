@@ -5,7 +5,7 @@
 // selection, and that the offset grows per paste rather than per element.
 
 import { describe, expect, test } from "bun:test";
-import type { Element, ElementId } from "@diagra/ir";
+import type { Element, ElementId } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import {
   counterIds,

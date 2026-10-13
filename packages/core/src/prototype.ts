@@ -10,7 +10,7 @@ import {
   getElementTypeDefinition,
   type PrototypeTrigger,
   type VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { resolvedCornerRadii } from "./corner-radii.ts";
 import type { Editor } from "./editor.ts";
 import { backdropEffectsCss, effectsCss } from "./effects.ts";

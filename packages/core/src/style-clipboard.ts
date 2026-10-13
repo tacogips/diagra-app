@@ -1,4 +1,4 @@
-import { getElementTypeDefinition, type VisualStyle } from "@diagra/ir";
+import { getElementTypeDefinition, type VisualStyle } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Command } from "./commands.ts";
 import { leafElements } from "./group.ts";

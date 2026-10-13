@@ -193,7 +193,7 @@ interaction.test.ts.
   fresh editor whose current page has `kind: "bpmn"`, place the tool at
   an empty point through the harness -> no throw, exactly one new element
   whose type starts with `bpmn.`, and
-  `validateDocument(editor.getSnapshot())` (`@diagra/ir`,
+  `validateDocument(editor.getSnapshot())` (`@nodetto/ir`,
   packages/ir/src/validate.ts:675) reports no issue with severity
   `"error"` (warnings allowed)
 - `BPMN_TOOL_MENU.tools` lists exactly the `BPMN_TOOLS` ids in order;
@@ -211,7 +211,7 @@ interaction.test.ts.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-09-ui-solid-palette/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/tools.ts packages/ui-solid/src/Toolbar.tsx packages/ui-solid/src/interaction.ts packages/ui-solid/src/PageTabs.tsx packages/ui-solid/src/bpmn-palette.test.ts   # exit 0
 bun test packages/ui-solid/src/bpmn-palette.test.ts     # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

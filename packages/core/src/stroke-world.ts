@@ -1,4 +1,4 @@
-import type { Element, FreehandPoint, FreehandSemantic } from "@diagra/ir";
+import type { Element, FreehandPoint, FreehandSemantic } from "@nodetto/ir";
 import { boxCenter, rotatePoint, type Vec } from "./geometry.ts";
 import { freehandGeometry } from "./shapes/freehand.ts";
 import {

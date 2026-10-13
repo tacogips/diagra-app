@@ -45,7 +45,7 @@
 
 ## Intent
 
-CI-ready commands in `diagra-cli`:
+CI-ready commands in `nodetto-cli`:
 - `lint <document.jsonl|file.bpmn> [--page <id|name>] [--config <file>] [--format text|json]`
 - `bpmn import <file.bpmn> [--output <doc.jsonl>] [--strict]`
 - `bpmn export <document.jsonl> [--page <id|name>] [--output <file.bpmn> | --check <file.bpmn>] [--strict]`
@@ -175,14 +175,14 @@ commands.test.ts).
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-12-cli/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check apps/cli/src                           # exit 0
 bun test apps/cli/src/bpmn-commands.test.ts             # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test apps/cli                                       # exit 0 (commands.test.ts unchanged; it asserts output fragments and exit codes, not the USAGE text)
 bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn; echo "exit=$?"   # 3 rows, exit=1
 bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request.bpmn; echo "exit=$?"         # no output, exit=0
-bun apps/cli/src/main.ts bpmn import .reference/bpmn-article/docs/purchase_request/purchase_request.bpmn > /tmp/diagra-bpmn-ref.jsonl; echo "exit=$?"   # exit=0 (local only)
+bun apps/cli/src/main.ts bpmn import .reference/bpmn-article/docs/purchase_request/purchase_request.bpmn > /tmp/nodetto-bpmn-ref.jsonl; echo "exit=$?"   # exit=0 (local only)
 bun apps/cli/src/main.ts lint .reference/bpmn-article/docs/purchase_request_draft/purchase_request_draft.bpmn; echo "exit=$?"   # 3 rows (label-required, no-implicit-end, no-implicit-start), exit=1 (local only)
 ```
 

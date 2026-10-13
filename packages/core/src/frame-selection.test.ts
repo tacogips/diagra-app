@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { FrameSemantic, GroupSemantic } from "@diagra/ir";
+import type { FrameSemantic, GroupSemantic } from "@nodetto/ir";
 import { frameParents } from "./frame-tree.ts";
 import { document, element, makeEditor } from "./test-helpers.ts";
 

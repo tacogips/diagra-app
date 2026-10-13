@@ -4,7 +4,7 @@ import type {
   GuideAxis,
   PageGuideSemantic,
   PageId,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { newElementId } from "./ids.ts";
 

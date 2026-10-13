@@ -1,4 +1,4 @@
-import { HelpHint } from "@diagra/ui-solid";
+import { HelpHint } from "@nodetto/ui-solid";
 import { createEffect, createSignal, For, onCleanup, Show } from "solid-js";
 import type { CloudApi, CloudApiOptions, CloudShareInfo } from "./api.ts";
 import type { CloudSessionState } from "./session.ts";

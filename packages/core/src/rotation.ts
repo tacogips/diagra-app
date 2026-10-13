@@ -1,4 +1,4 @@
-import type { Element, ElementId, FrameSemantic } from "@diagra/ir";
+import type { Element, ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import type { Editor } from "./editor.ts";
 import { expandContainers, frameParents } from "./frame-tree.ts";

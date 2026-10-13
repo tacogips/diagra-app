@@ -3,7 +3,7 @@ import {
   parseDocument,
   parseDocumentResult,
   serializeDocument,
-} from "@diagra/io";
+} from "@nodetto/io";
 import {
   bindSelectionNumber,
   createNumberToken,
@@ -13,7 +13,7 @@ import {
   updateNumberToken,
 } from "./number-tokens.ts";
 import { resolveNumberToken } from "./token-values.ts";
-import type { FrameSemantic } from "@diagra/ir";
+import type { FrameSemantic } from "@nodetto/ir";
 import { componentOverrides } from "./component-overrides.ts";
 import { inspectDesign } from "./handoff.ts";
 import { numberTokenCssName } from "./token-handoff.ts";

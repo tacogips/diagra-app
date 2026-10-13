@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
-import type { Document, Element, Page } from "@diagra/ir";
+import { Editor } from "@nodetto/core";
+import type { Document, Element, Page } from "@nodetto/ir";
 import { bpmnProblemRows, focusBpmnProblem } from "./bpmn-problems.ts";
 
 const BPMN_PAGE: Page = { id: "bpmn-page", name: "Order flow", kind: "bpmn" };

@@ -45,7 +45,7 @@ The final `bun run typecheck` reports:
 - `packages/core/src/bpmn/lint/engine.ts`: unused `BpmnLintRuleId`
 - `packages/core/src/bpmn/notation.ts`: `Box | { x: number; y: number }` has no
   `width` / `height` at line 229
-- `packages/core/src/bpmn/routes.ts`: `Vec` is not exported from `@diagra/ir`
+- `packages/core/src/bpmn/routes.ts`: `Vec` is not exported from `@nodetto/ir`
 - `packages/io/src/bpmn/import.ts`: unused `BPMNDI`, `DI`, and `laneParent`
 
 These paths are outside bpmn-07's declared write paths and belong to other

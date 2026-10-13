@@ -1,4 +1,4 @@
-import type { FillGradient, GradientStop } from "@diagra/ir";
+import type { FillGradient, GradientStop } from "@nodetto/ir";
 
 function fmt(value: number): string {
   return String(Number(value.toFixed(4)));
@@ -174,7 +174,7 @@ export function gradientCss(gradient: FillGradient): string {
 
 /** Collision-free XML/CSS identifier derived from an arbitrary element ID. */
 export function gradientId(id: string): string {
-  return `diagra-gradient-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
+  return `nodetto-gradient-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
 }
 
 export function strokeGradientId(id: string): string {

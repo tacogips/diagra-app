@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { Editor, buildBpmnModel } from "@diagra/core";
+import { Editor, buildBpmnModel } from "@nodetto/core";
 import {
   disabledEventPositions,
   withDefinitionKinds,

@@ -11,7 +11,7 @@ import {
   type ArrangeMode,
   type LayoutDirection,
   planArrangement,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   exportBpmnXml,
   importBpmnXml,
@@ -19,8 +19,8 @@ import {
   serializeDocument,
   type BpmnExportReport,
   type BpmnImportReport,
-} from "@diagra/io";
-import type { Document, Page, ValidationIssue } from "@diagra/ir";
+} from "@nodetto/io";
+import type { Document, Page, ValidationIssue } from "@nodetto/ir";
 
 /** Result of one command: text for stdout/stderr plus a process exit code. */
 export interface CommandResult {
@@ -39,20 +39,20 @@ export const EXIT_ERROR = 2;
 export const EXIT_WARNINGS = 3;
 
 export const USAGE = `Usage:
-  diagra-cli ddl <document.jsonl> [--dialect postgresql|mysql|sqlite]
+  nodetto-cli ddl <document.jsonl> [--dialect postgresql|mysql|sqlite]
                  [--page <page id or name>] [--output <file.sql>]
                  [--check <file.sql>] [--strict]
-  diagra-cli arrange <document.jsonl> [--mode tidy|overlaps]
+  nodetto-cli arrange <document.jsonl> [--mode tidy|overlaps]
                      [--direction LR|TB] [--page <page id or name>]
                      [--write] [--check]
-  diagra-cli format <document.jsonl> [--write] [--check]
-  diagra-cli validate <document.jsonl>
-  diagra-cli lint <document.jsonl|file.bpmn> [--page <page id or name>]
+  nodetto-cli format <document.jsonl> [--write] [--check]
+  nodetto-cli validate <document.jsonl>
+  nodetto-cli lint <document.jsonl|file.bpmn> [--page <page id or name>]
                  [--config <file>] [--format text|json]
-  diagra-cli bpmn import <file.bpmn> [--output <doc.jsonl>] [--strict]
-  diagra-cli bpmn export <document.jsonl> [--page <page id or name>]
+  nodetto-cli bpmn import <file.bpmn> [--output <doc.jsonl>] [--strict]
+  nodetto-cli bpmn export <document.jsonl> [--page <page id or name>]
                   [--output <file.bpmn> | --check <file.bpmn>] [--strict]
-  diagra-cli --version | --help
+  nodetto-cli --version | --help
 
 ddl       Print the deterministic schema DDL the editor's Database DDL panel
           generates for one ERD page. Without --page, the document must
@@ -159,7 +159,7 @@ function loadDocument(
   }
   const result = parseDocumentResult(text);
   const report = result.issues.map(formatIssue).join("\n");
-  if (!result.ok) return `${path} is not a valid diagra document:\n${report}`;
+  if (!result.ok) return `${path} is not a valid nodetto document:\n${report}`;
   return { document: result.document, warnings: report ? `${report}\n` : "" };
 }
 
@@ -450,7 +450,7 @@ function bpmnExport(io: CommandIo, args: readonly string[]): CommandResult {
       return {
         exitCode: EXIT_DRIFT,
         stdout: "",
-        stderr: `${warnings}${checkPath} is out of date with ${path} (page "${page.name}"). Regenerate it with diagra-cli bpmn export --output.\n`,
+        stderr: `${warnings}${checkPath} is out of date with ${path} (page "${page.name}"). Regenerate it with nodetto-cli bpmn export --output.\n`,
       };
     return ok("", `${warnings}${checkPath} is up to date.\n`);
   }
@@ -535,7 +535,7 @@ function ddlCommand(io: CommandIo, args: readonly string[]): CommandResult {
       return {
         exitCode: EXIT_DRIFT,
         stdout: "",
-        stderr: `${stderr}${checkPath} is out of date with ${path} (page "${page.name}", ${dialect}). Regenerate it with diagra-cli ddl --output.\n`,
+        stderr: `${stderr}${checkPath} is out of date with ${path} (page "${page.name}", ${dialect}). Regenerate it with nodetto-cli ddl --output.\n`,
       };
     return ok("", `${stderr}${checkPath} is up to date.\n`);
   }
@@ -634,7 +634,7 @@ function formatCommand(io: CommandIo, args: readonly string[]): CommandResult {
       return {
         exitCode: EXIT_DRIFT,
         stdout: "",
-        stderr: `${loaded.warnings}${path} is not in canonical form. Run diagra-cli format --write.\n`,
+        stderr: `${loaded.warnings}${path} is not in canonical form. Run nodetto-cli format --write.\n`,
       };
     return ok("", `${loaded.warnings}${path} is canonical.\n`);
   }
@@ -686,7 +686,7 @@ export function runCli(
       return bpmnCommand(io, rest);
     case "--version":
     case "-V":
-      return ok(`diagra-cli ${version}\n`);
+      return ok(`nodetto-cli ${version}\n`);
     case "--help":
     case "-h":
     case "help":

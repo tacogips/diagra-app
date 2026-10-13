@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { validateDocument } from "@diagra/ir";
+import { validateDocument } from "@nodetto/ir";
 import { exportMermaid } from "./export.ts";
 import { MermaidParseError, importMermaid } from "./import.ts";
 

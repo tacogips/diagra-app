@@ -1,7 +1,7 @@
 {
-  "name": "@diagra/desktop",
-  "version": "0.1.0",
-  "description": "diagra desktop client (Tauri 2): local JSONL files and cloud documents",
+  "name": "@nodetto/desktop",
+  "version": "0.2.3",
+  "description": "nodetto desktop client (Tauri 2): local JSONL files and cloud documents",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,11 +12,11 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@diagra/collab": "workspace:*",
-    "@diagra/core": "workspace:*",
-    "@diagra/io": "workspace:*",
-    "@diagra/ir": "workspace:*",
-    "@diagra/ui-solid": "workspace:*",
+    "@nodetto/collab": "workspace:*",
+    "@nodetto/core": "workspace:*",
+    "@nodetto/io": "workspace:*",
+    "@nodetto/ir": "workspace:*",
+    "@nodetto/ui-solid": "workspace:*",
     "@tauri-apps/api": "^2.0.0",
     "solid-js": "^1.9.0",
     "y-protocols": "^1.0.7",

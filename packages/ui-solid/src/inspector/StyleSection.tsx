@@ -5,7 +5,7 @@
 // "Default" clears a field (a `null` in the patch) so the stylesheet rules
 // apply again, which is the only way back to "no explicit style".
 
-import type { Editor, StylePatch } from "@diagra/core";
+import type { Editor, StylePatch } from "@nodetto/core";
 import type {
   BlendMode,
   CornerRadii,
@@ -14,8 +14,8 @@ import type {
   FontVariationAxis,
   LayerEffect,
   VisualStyle,
-} from "@diagra/ir";
-import { BLEND_MODES } from "@diagra/ir";
+} from "@nodetto/ir";
+import { BLEND_MODES } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import {
   Field,
@@ -175,7 +175,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       title="Style"
       help="Style changes apply to every selected leaf. Choose Default to clear an explicit value and use document defaults."
     >
-      <div class="diagra-effect-actions">
+      <div class="nodetto-effect-actions">
         <button
           type="button"
           disabled={effects().length >= 8}
@@ -216,7 +216,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       </div>
       <For each={effects()}>
         {(effect, index) => (
-          <div class="diagra-effect-entry">
+          <div class="nodetto-effect-entry">
             <label>
               <input
                 type="checkbox"
@@ -468,7 +468,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
             </Show>
             <button
               type="button"
-              class="diagra-inspector-button"
+              class="nodetto-inspector-button"
               onClick={() => {
                 const radii = cornerRadii();
                 write(
@@ -551,7 +551,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         />
       </Field>
       <Field label="Join">
-        <div class="diagra-inline-fields">
+        <div class="nodetto-inline-fields">
           <SelectInput
             label="Stroke join"
             value={style().strokeJoin ?? ""}
@@ -576,10 +576,10 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         </div>
       </Field>
       <Field label="Opacity">
-        <div class="diagra-opacity">
+        <div class="nodetto-opacity">
           <input
             type="range"
-            class="diagra-range"
+            class="nodetto-range"
             aria-label="Opacity"
             min={0}
             max={100}
@@ -590,7 +590,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
               write({ opacity: percent >= 100 ? null : percent / 100 });
             }}
           />
-          <span class="diagra-opacity-value">{`${opacityPercent()}%`}</span>
+          <span class="nodetto-opacity-value">{`${opacityPercent()}%`}</span>
         </div>
       </Field>
       <Field label="Blend">
@@ -647,7 +647,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       </Field>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() =>
           write({
             fontFamily: null,
@@ -732,10 +732,10 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         />
       </Field>
       <Field label="Variable axes">
-        <div class="diagra-effect-entry">
+        <div class="nodetto-effect-entry">
           <For each={style().fontVariations ?? []}>
             {(setting, index) => (
-              <div class="diagra-effect-actions">
+              <div class="nodetto-effect-actions">
                 <TextInput
                   label={`Variation axis ${index() + 1} tag`}
                   value={setting.tag}
@@ -781,10 +781,10 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         </div>
       </Field>
       <Field label="OpenType features">
-        <div class="diagra-effect-entry">
+        <div class="nodetto-effect-entry">
           <For each={style().fontFeatures ?? []}>
             {(setting, index) => (
-              <div class="diagra-effect-actions">
+              <div class="nodetto-effect-actions">
                 <TextInput
                   label={`OpenType feature ${index() + 1} tag`}
                   value={setting.tag}
@@ -832,12 +832,12 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         </div>
       </Field>
       <Field label="Align">
-        <div class="diagra-segmented" role="group" aria-label="Text align">
+        <div class="nodetto-segmented" role="group" aria-label="Text align">
           <For each={ALIGNMENTS}>
             {(alignment) => (
               <button
                 type="button"
-                class="diagra-segment"
+                class="nodetto-segment"
                 title={`${alignment.label} (click again for default)`}
                 aria-pressed={style().textAlign === alignment.value}
                 onClick={() =>

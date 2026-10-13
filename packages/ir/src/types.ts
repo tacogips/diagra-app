@@ -1,5 +1,5 @@
 // Diagram IR: canonical semantic + visual data model.
-// See the product design (diagra-cloud repo), section 5.1.
+// See the product design (nodetto-cloud repo), section 5.1.
 //
 // This module is runtime-agnostic: no DOM, no framework imports.
 

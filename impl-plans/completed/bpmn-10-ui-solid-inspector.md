@@ -132,7 +132,7 @@ per-type `Switch` (Inspector.tsx:~225-280). No other change.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-10-ui-solid-inspector/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/inspector/BpmnSection.tsx packages/ui-solid/src/inspector/bpmn-edits.ts packages/ui-solid/src/inspector/bpmn-edits.test.ts packages/ui-solid/src/Inspector.tsx   # exit 0
 bun test packages/ui-solid/src/inspector/bpmn-edits.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

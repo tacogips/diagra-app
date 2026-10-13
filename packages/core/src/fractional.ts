@@ -9,7 +9,7 @@
 // picked at random rather than exactly halfway. Two peers inserting at the
 // same slot then produce different keys instead of colliding.
 
-import type { FractionalIndex } from "@diagra/ir";
+import type { FractionalIndex } from "@nodetto/ir";
 
 /** Ordered so that string comparison matches digit value. */
 const DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test } from "bun:test";
-import { parseDocument, parseDocumentResult } from "@diagra/io";
-import { ELEMENT_TYPES, hasErrors } from "@diagra/ir";
+import { parseDocument, parseDocumentResult } from "@nodetto/io";
+import { ELEMENT_TYPES, hasErrors } from "@nodetto/ir";
 import {
   BPMN_LINT_RULE_IDS,
   lintBpmnPage,
@@ -76,6 +76,6 @@ test("BPMN documentation is ASCII only", () => {
 
 test("README documents BPMN lint and export commands", () => {
   const readme = readText("README.md");
-  expect(readme).toContain("diagra-cli lint");
-  expect(readme).toContain("diagra-cli bpmn export");
+  expect(readme).toContain("nodetto-cli lint");
+  expect(readme).toContain("nodetto-cli bpmn export");
 });

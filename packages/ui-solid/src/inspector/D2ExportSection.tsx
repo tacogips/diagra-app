@@ -1,6 +1,6 @@
-import type { Editor } from "@diagra/core";
-import { exportD2 } from "@diagra/io";
-import type { PageId } from "@diagra/ir";
+import type { Editor } from "@nodetto/core";
+import { exportD2 } from "@nodetto/io";
+import type { PageId } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
@@ -68,7 +68,7 @@ export function D2ExportSection(props: {
   };
 
   return (
-    <details class="diagra-inspector-section">
+    <details class="nodetto-inspector-section">
       <summary>D2 export</summary>
       <button
         type="button"

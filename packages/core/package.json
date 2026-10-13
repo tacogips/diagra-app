@@ -1,5 +1,5 @@
 {
-  "name": "@diagra/core",
+  "name": "@nodetto/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,10 +7,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@diagra/ir": "workspace:*",
+    "@nodetto/ir": "workspace:*",
     "polygon-clipping": "0.15.7"
   },
   "devDependencies": {
-    "@diagra/io": "workspace:*"
+    "@nodetto/io": "workspace:*"
   }
 }

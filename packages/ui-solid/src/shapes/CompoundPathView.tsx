@@ -2,8 +2,8 @@ import {
   compoundPathGeometry,
   gradientId,
   strokeGradientId,
-} from "@diagra/core";
-import type { Element, PathSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, PathSemantic } from "@nodetto/ir";
 import { type JSX, Show } from "solid-js";
 import { SvgFillGradient } from "./SvgFillGradient.tsx";
 import { svgStyle } from "./visual.ts";

@@ -15,9 +15,9 @@ import {
   endpointReaderFor,
   resolveConnector,
   type Vec,
-} from "@diagra/core";
-import { exportD2, exportMermaid } from "@diagra/io";
-import type { ElementId } from "@diagra/ir";
+} from "@nodetto/core";
+import { exportD2, exportMermaid } from "@nodetto/io";
+import type { ElementId } from "@nodetto/ir";
 import {
   createInteraction,
   type EditRegion,
@@ -2492,7 +2492,7 @@ describe("edit requests (design 3.3)", () => {
     editor.selection.clear();
     const inSlot = {
       closest: (selector: string) =>
-        selector === ".diagra-slot-layer" ? {} : null,
+        selector === ".nodetto-slot-layer" ? {} : null,
     };
     interaction.onPointerDown(
       pointer({ clientX: 50, clientY: 50, target: inSlot }),

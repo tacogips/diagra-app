@@ -3,7 +3,7 @@ import {
   colorTokens,
   type Editor,
   selectionColorBindings,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { Field, Section } from "./controls.tsx";

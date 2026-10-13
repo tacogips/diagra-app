@@ -1,9 +1,9 @@
-import type { BpmnModel } from "@diagra/core";
+import type { BpmnModel } from "@nodetto/core";
 import type {
   BpmnEventDefinition,
   BpmnEventDefinitionKind,
   BpmnEventPosition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 function record(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null

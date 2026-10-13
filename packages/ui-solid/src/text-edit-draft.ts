@@ -1,4 +1,4 @@
-import type { Editor } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
 
 /** Guard a textarea draft without treating unrelated peer edits as conflicts. */
 export function textEditDraft(editor: Editor, id: string) {

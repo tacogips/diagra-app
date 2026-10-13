@@ -7,8 +7,8 @@ import {
   type PrototypeSmartPaint,
   type PrototypeSmartStep,
   roundedRectPath,
-} from "@diagra/core";
-import type { FillGradient, PrototypeTransition } from "@diagra/ir";
+} from "@nodetto/core";
+import type { FillGradient, PrototypeTransition } from "@nodetto/ir";
 
 type AnimationTarget = Pick<Element, "animate"> &
   Partial<Pick<Element, "querySelectorAll">>;

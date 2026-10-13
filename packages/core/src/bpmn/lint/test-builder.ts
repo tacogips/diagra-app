@@ -1,4 +1,4 @@
-import type { Document, Element, PageId } from "@diagra/ir";
+import type { Document, Element, PageId } from "@nodetto/ir";
 
 export interface BpmnElementSpec {
   readonly id: string;

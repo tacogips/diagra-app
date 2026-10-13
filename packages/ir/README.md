@@ -1,8 +1,8 @@
-# @diagra/ir
+# @nodetto/ir
 
 The Diagram IR: the canonical, render-independent data model every other
 package agrees on. Implements sections 5 and 6 of the product design
-(`design-docs/specs/product-design.md` in the private `diagra-cloud` repo).
+(`design-docs/specs/product-design.md` in the private `nodetto-cloud` repo).
 
 Runtime-agnostic by contract — it must run in a browser, the Tauri webview,
 Node/Bun, and Cloudflare Workers. No DOM, no framework, no dependencies.
@@ -21,7 +21,7 @@ columns ...") from `visual` (position, size, style). Rendering is derived
 from the semantic payload; the file never stores pixels-as-meaning.
 
 `Visual.rotation` is clockwise **degrees** about the element's own centre.
-Degrees rather than radians so that the 0.01 rounding `@diagra/io` applies
+Degrees rather than radians so that the 0.01 rounding `@nodetto/io` applies
 to it stays imperceptible; renderers convert.
 
 `Document.elements` is a flat list, not nested under `Page`. The design's
@@ -41,7 +41,7 @@ mirrors the file.
   is meaningless), `detach` for containers (a group survives losing a
   member).
 - `keyOrder` — the declared serialization order for the payload. The IR
-  declares it; `@diagra/io` applies it.
+  declares it; `@nodetto/io` applies it.
 
 Renderers and `ShapeUtil`s live in `core` / `ui-solid`; only data lives here.
 
@@ -57,7 +57,7 @@ for that). The severity split is the forward-compatibility contract:
   a record by definition, so an unregistered type does not get a free pass.
 - **warning** — usable, but this build cannot fully interpret it: an unknown
   element type, an unknown field on `visual` or `visual.style`, a reference
-  to an absent element. A file written by a newer diagra still loads, and
+  to an absent element. A file written by a newer nodetto still loads, and
   still round-trips.
 
 `visual` and `visual.style` warn identically on unmodelled keys. Note that

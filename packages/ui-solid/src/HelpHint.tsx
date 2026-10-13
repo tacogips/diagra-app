@@ -44,7 +44,7 @@ export function HelpHint(props: { readonly text: string }): JSX.Element {
     const dismiss = (event: Event) => {
       if (
         event.target instanceof Element &&
-        event.target.closest(".diagra-help-tooltip")
+        event.target.closest(".nodetto-help-tooltip")
       )
         return;
       keepOpen();
@@ -66,7 +66,7 @@ export function HelpHint(props: { readonly text: string }): JSX.Element {
       <button
         ref={trigger}
         type="button"
-        class="diagra-help-hint"
+        class="nodetto-help-hint"
         aria-label={`Help: ${props.text}`}
         aria-describedby={position() ? id : undefined}
         onMouseEnter={(event) => open(event.currentTarget)}
@@ -107,7 +107,7 @@ export function HelpHint(props: { readonly text: string }): JSX.Element {
               }}
               id={id}
               role="tooltip"
-              class="diagra-help-tooltip"
+              class="nodetto-help-tooltip"
               style={{ left: `${point().left}px`, top: `${point().top}px` }}
             >
               {props.text}

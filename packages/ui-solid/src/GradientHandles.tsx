@@ -9,8 +9,8 @@ import {
   setElementFillGradient,
   setElementStrokeGradient,
   type Vec,
-} from "@diagra/core";
-import type { Element, FillGradient } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, FillGradient } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX, onCleanup } from "solid-js";
 
 export function GradientHandles(props: {
@@ -128,7 +128,7 @@ export function GradientHandles(props: {
       }}
     >
       <line
-        class="diagra-gradient-axis"
+        class="nodetto-gradient-axis"
         x1={geometry().start.x}
         y1={geometry().start.y}
         x2={geometry().end.x}
@@ -138,7 +138,7 @@ export function GradientHandles(props: {
       <For each={geometry().stops}>
         {(point, index) => (
           <circle
-            class="diagra-gradient-stop-handle"
+            class="nodetto-gradient-stop-handle"
             cx={point.x}
             cy={point.y}
             r={stopRadius()}
@@ -153,7 +153,7 @@ export function GradientHandles(props: {
         )}
       </For>
       <circle
-        class="diagra-gradient-geometry-handle"
+        class="nodetto-gradient-geometry-handle"
         cx={geometry().start.x}
         cy={geometry().start.y}
         r={handleRadius()}
@@ -167,7 +167,7 @@ export function GradientHandles(props: {
         </title>
       </circle>
       <circle
-        class="diagra-gradient-geometry-handle"
+        class="nodetto-gradient-geometry-handle"
         cx={geometry().end.x}
         cy={geometry().end.y}
         r={handleRadius()}

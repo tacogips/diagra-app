@@ -1,6 +1,6 @@
 // Reference-graph helpers shared by deletes, clipboard and export.
 //
-// The `@diagra/ir` registry is the only thing that knows which fields of a
+// The `@nodetto/ir` registry is the only thing that knows which fields of a
 // semantic payload point at other elements, and it reports them as dotted
 // paths (`from.table`, `memberIds[2]`). Everything that has to *edit* those
 // paths lives here: the delete expansion rewrites them to drop a reference,
@@ -13,7 +13,7 @@ import {
   type ElementReference,
   getElementTypeDefinition,
   isPlainObject,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 const ARRAY_SEGMENT = /^(.+)\[(\d+)\]$/;
 

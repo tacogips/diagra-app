@@ -40,7 +40,7 @@
   re-run G1 because they may be stale):
   - `notation.ts:229`: `Box | {x, y}` has no `width`/`height`. Narrow the
     union in this file.
-  - `routes.ts`: `Vec` is not exported from `@diagra/ir`. Fix the import
+  - `routes.ts`: `Vec` is not exported from `@nodetto/ir`. Fix the import
     inside `routes.ts`. Do NOT edit `packages/ir` (bpmn-01 is COMPLETE).
 - `packages/core/src/bpmn/index.ts` already contains
   `export * from "./notation.ts";` and `export * from "./routes.ts";`.
@@ -279,7 +279,7 @@ context once per resolver call batch is not required; correctness first.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-04-core-notation-svg/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; any ui-solid diagnostic naming MarkerKind or a connector.ts export is this plan's and blocks
 bunx biome check packages/core/src/bpmn/notation.ts packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts   # exit 0 (own and shared files only; session-359 gate)
 bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
@@ -291,7 +291,7 @@ bun test packages/ui-solid                           # exit 0
 
 - `git diff packages/core/src/shapes/connector.ts` shows changes only
   inside `connectorDecoration` and `connectorDefaultDash` (bpmn-01's
-  `@diagra/ir` import of the two waypoint functions, its re-export line and
+  `@nodetto/ir` import of the two waypoint functions, its re-export line and
   the removal of the two moved function bodies excepted; bpmn-01 lands in
   wave 1, so compare against the post-bpmn-01 state recorded in the
   bpmn-01 progress log).

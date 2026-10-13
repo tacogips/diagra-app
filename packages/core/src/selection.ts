@@ -4,7 +4,7 @@
 // listen to the store so a deleted element cannot stay selected and hand a
 // stale id to the next command.
 
-import type { ElementId } from "@diagra/ir";
+import type { ElementId } from "@nodetto/ir";
 import { type Box, unionBoxes } from "./geometry.ts";
 import type { ShapeContext, ShapeUtilRegistry } from "./shape-util.ts";
 import type { Store, StoreDiff } from "./store.ts";

@@ -2,7 +2,7 @@ import {
   type Editor,
   previewNoteTextReplacement,
   replaceSelectedNoteText,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
@@ -33,7 +33,7 @@ export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
   });
   return (
     <details
-      class="diagra-inspector-section"
+      class="nodetto-inspector-section"
       onToggle={(event) => {
         if (event.target === event.currentTarget)
           setOpen(event.currentTarget.open);
@@ -66,7 +66,7 @@ export function ReplaceNoteTextSection(props: { editor: Editor }): JSX.Element {
       </p>
       <For each={preview().rows.slice(0, 5)}>
         {(row) => (
-          <details class="diagra-note-replacement-preview">
+          <details class="nodetto-note-replacement-preview">
             <summary>
               {Array.from(row.name).slice(0, 80).join("")}
               {Array.from(row.name).length > 80 ? "..." : ""} ({row.matches}{" "}

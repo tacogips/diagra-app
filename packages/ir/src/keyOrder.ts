@@ -1,6 +1,6 @@
 // Declared key orders for deterministic serialization.
 //
-// The IR declares the order; `@diagra/io` applies it. Keys listed in `keys`
+// The IR declares the order; `@nodetto/io` applies it. Keys listed in `keys`
 // are emitted first in that order; any remaining key (including fields this
 // build does not model) is emitted afterwards sorted lexicographically, so
 // unknown fields are preserved and still land in a stable position.

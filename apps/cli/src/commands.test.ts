@@ -129,7 +129,7 @@ test("invalid documents and arguments exit with the error code", () => {
     runCli(["ddl", "bad.jsonl", "--dialect", "oracle"], io, "test").stderr,
   ).toContain('Unsupported dialect "oracle"');
   expect(runCli(["frobnicate"], io, "test").exitCode).toBe(EXIT_ERROR);
-  expect(runCli(["--version"], io, "1.2.3").stdout).toBe("diagra-cli 1.2.3\n");
+  expect(runCli(["--version"], io, "1.2.3").stdout).toBe("nodetto-cli 1.2.3\n");
 });
 
 test("arrange --write tidies overlapping tables and --check is then clean", () => {

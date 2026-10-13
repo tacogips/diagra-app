@@ -118,7 +118,7 @@ Imitate the two-client merge tests in `binding.test.ts` and
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-07-collab/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/collab/src/test-fixtures.ts packages/collab/src/bpmn.test.ts   # exit 0
 bun test packages/collab/src/bpmn.test.ts           # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

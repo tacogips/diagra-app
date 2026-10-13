@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { FrameSemantic } from "@diagra/ir";
+import type { FrameSemantic } from "@nodetto/ir";
 import { componentOverrides } from "./component-overrides.ts";
 import { makeEditor } from "./test-helpers.ts";
 

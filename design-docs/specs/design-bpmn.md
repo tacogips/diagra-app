@@ -1,7 +1,7 @@
 # BPMN 2.0 Operation Flow Pages
 
 Status: design baseline for branch `feat/bpmn-operation-flow`.
-Issue: "BPMN 2.0 operation flow (business process) diagrams in diagra"
+Issue: "BPMN 2.0 operation flow (business process) diagrams in nodetto"
 (workflow intake comm-006074 / comm-006075; no GitHub issue number).
 
 Revision (continuation run, intake comm-006094): the baseline is unchanged.
@@ -46,8 +46,8 @@ baseline is unchanged.
     `Page.sqlDialect`, were added without a version bump.
   - Unknown element types load with a `type.unknown` warning. An unknown page
     kind is a `value.enum` error.
-  - `packages/io` depends only on `@diagra/ir`, and `@diagra/core`
-    dev-depends on `@diagra/io`. The io adapters therefore cannot import core.
+  - `packages/io` depends only on `@nodetto/ir`, and `@nodetto/core`
+    dev-depends on `@nodetto/io`. The io adapters therefore cannot import core.
   - There is no XML parser anywhere in the workspace.
   - Connectors are created through `Editor.connectSmart`
     (`packages/core/src/editor.ts:2505`). Nothing rejects a connection based
@@ -64,7 +64,7 @@ baseline is unchanged.
   - The open-dialog filter is in `apps/desktop/src-tauri/src/dialogs.rs:14`.
     macOS file associations are in
     `apps/desktop/src-tauri/tauri.macos.release.conf.json`.
-  - `diagra-cli` uses a flat switch (`apps/cli/src/commands.ts:365`) with
+  - `nodetto-cli` uses a flat switch (`apps/cli/src/commands.ts:365`) with
     exit codes 0 OK, 1 drift, 2 error/usage and 3 strict warnings. `ddl`
     implements `--output`, `--check` (`normalizeNewlines`) and `--strict`.
 - Reference material in `.reference/bpmn-article` (local-only, unlicensed) is
@@ -89,7 +89,7 @@ Non-goals:
 - choreography, conversation and transaction semantics
 - executable or Camunda attributes (they are preserved opaquely only)
 - vertical pools (imported with a warning and drawn horizontally)
-- PNG/PDF export and a generic `diagra-cli export`
+- PNG/PDF export and a generic `nodetto-cli export`
 - a native Tauri menu
 - a desktop-editable lint config
 - bpmn.io runtime dependencies
@@ -497,7 +497,7 @@ Mapping:
 
 To share the waypoint basis without a cycle, move
 `connectorWaypointToPage`/`connectorWaypointFromPage` (pure math, part of
-the stored format) into `@diagra/ir`. `@diagra/core` re-exports them under
+the stored format) into `@nodetto/ir`. `@nodetto/core` re-exports them under
 the same names. Existing callers are unchanged.
 
 ### 5.3 Export (`exportBpmnXml(document, pageId, options?): BpmnExportReport`)
@@ -746,7 +746,7 @@ and routing cannot diverge:
 - SVG export (`svg-export.ts`, `connectorBackdropIds`): these elements go
   into `<g data-layer="backdrops">` before `<g data-layer="connectors">`.
 - The ui-solid canvas (`Canvas.tsx`, `connectorBackdropIds`): these elements
-  go into `diagra-backdrop-layer` before the connector svg.
+  go into `nodetto-backdrop-layer` before the connector svg.
 - Connector routing (`shapes/connector.ts` `obstacleBoxes`): these elements
   are not obstacles. Flows route inside pools and lanes and across expanded
   sub-processes. The nodes inside them stay obstacles.
@@ -765,9 +765,9 @@ Unchanged:
   shapes layer above the connectors.
 - A backdrop exists only on a page with at least one connector
   (`connectorBackdropIds`).
-- An element inside a diagra `group` keeps its group's paint order and
-  stays a routing obstacle. The BPMN importer never creates diagra groups.
-  `bpmn.group` is a BPMN artifact, not a diagra group.
+- An element inside a nodetto `group` keeps its group's paint order and
+  stays a routing obstacle. The BPMN importer never creates nodetto groups.
+  `bpmn.group` is a BPMN artifact, not a nodetto group.
 - Frame and ERD backdrop behaviour and their tests.
 
 ## 7. Lint (packages/core/src/bpmn/lint)
@@ -787,7 +787,7 @@ The engine works on the `bpmn/model.ts` view:
 Findings are sorted by element document order (page element index order),
 then rule id. Severity `warn` in the config prints as `warning`.
 
-Messages are diagra's own wording. Rule ids equal bpmnlint's.
+Messages are nodetto's own wording. Rule ids equal bpmnlint's.
 
 ### 7.2 Config (`bpmn/lint/config.ts`)
 
@@ -928,7 +928,7 @@ codes.
 - **File menu** (`App.tsx`):
   - "Import BPMN..." opens a picked `.bpmn` as a detached imported document,
     using the Mermaid path (`session.ts` `isBpmnPath`, dynamic import of
-    `@diagra/io` BPMN import). Autosave therefore never overwrites the
+    `@nodetto/io` BPMN import). Autosave therefore never overwrites the
     `.bpmn`.
   - "Export BPMN..." is enabled when the active page is `bpmn`. It writes
     `exportBpmnXml` with the core route resolver through
@@ -957,7 +957,7 @@ codes.
   with a sample record per type), `parent` membership and the `bpmnXml`
   extension.
 - `docs/bpmn/lint-rules.md` lists each rule id, its recommended severity and
-  diagra's original description. It also shows a `.bpmnlintrc` example.
+  nodetto's original description. It also shows a `.bpmnlintrc` example.
 - `docs/bpmn/ai-review-rules.md` is an original example guideline that can
   be dropped into `.claude/rules/`. It covers:
   - the conformance target (Descriptive palette, Analytic constructs
@@ -967,7 +967,7 @@ codes.
     labels, message throw labels in "send" form and catch labels in
     "receive" form, matching throw/catch pairs
   - lane per role
-  - a review checklist pairing semantic checks with `diagra-cli lint`
+  - a review checklist pairing semantic checks with `nodetto-cli lint`
 - `docs/bpmn/purchase-request.jsonl` is the original example document,
   identical to the complete fixture.
 - `packages/io/README.md` gets a BPMN adapter note.
@@ -1026,7 +1026,7 @@ Tests (one line each, colocated `*.test.ts`):
   - The inverted variant only differs in the YES/NO flow names.
   - Every fixture byte is ASCII.
 - docs (`packages/core/src/bpmn/docs-example.test.ts`; it lives in core
-  because only core can import both `@diagra/io` and the linter):
+  because only core can import both `@nodetto/io` and the linter):
   - `docs/bpmn/purchase-request.jsonl` parses with no error-level issues and
     equals `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` byte
     for byte.
@@ -1084,7 +1084,7 @@ Tests (one line each, colocated `*.test.ts`):
       tasks stay after the connectors. (b) `purchase-request.bpmn`, read
       from `packages/io/src/__fixtures__/bpmn/` and imported with
       `importBpmnXml` (`packages/core/package.json` already depends on
-      `@diagra/io`),
+      `@nodetto/io`),
       exports 12 sequence-flow lines and 12 `bpmn-sequence-arrow` polygons,
       all after the last participant/lane body. (c) a shape without stored
       `visual.x`/`visual.y` but with `labelBounds` places its label at the
@@ -1186,7 +1186,7 @@ Owned bun tests per slice:
 - docs: `packages/core/src/bpmn/docs-example.test.ts`. It needs only the
   core lint and the io fixtures, which are in earlier waves. It does not
   need the CLI, which may be built in the same wave as the docs. Running
-  `diagra-cli lint` on the example is therefore orchestrator reconciliation
+  `nodetto-cli lint` on the example is therefore orchestrator reconciliation
   evidence, not a docs-slice gate.
 - All other slices already own new `*.test.ts` files (section 11).
 
@@ -1226,7 +1226,7 @@ Dependencies:
 
 - Deleting a lane deletes its member nodes (cascade). bpmn-js keeps them in
   the pool. Undo restores them. See user-QA Q1.
-- Lint messages are diagra's own wording. Rule ids and severities match
+- Lint messages are nodetto's own wording. Rule ids and severities match
   bpmnlint recommended. The text summary line has no leading symbol.
 - Desktop lint always uses recommended. Config files apply to the CLI only.
 - BPMNDI ids and edge docking points are regenerated on export. They are
@@ -1235,7 +1235,7 @@ Dependencies:
 - Vertical pools import with a warning and render horizontally.
 - Flows paint above pools, lanes, expanded sub-processes and groups, but
   below flow nodes (section 6.4). bpmn-js paints connections above every
-  shape. diagra keeps its rule that lines never cover a node's content.
+  shape. nodetto keeps its rule that lines never cover a node's content.
 
 ## 14. Risks
 

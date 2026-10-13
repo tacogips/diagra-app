@@ -222,7 +222,7 @@ and `join(import.meta.dir, ...)`.
 
 Constraints:
 - Import only `bun:test`, `node:fs` and `node:path`. Do NOT import
-  `@diagra/io`, its BPMN parser (bpmn-06, wave 2, does not exist yet) or
+  `@nodetto/io`, its BPMN parser (bpmn-06, wave 2, does not exist yet) or
   any npm package. Use string and regex scanning only.
 - Test the files as they are. If an assertion fails, the fixture contract
   above is the authority: fix the fixture only when it deviates from the
@@ -280,7 +280,7 @@ Write every command's full output to
 exit code, counts and log path in the progress log.
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts      # exit 0, pass count > 0 (expect >= 8), 0 fail
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-02-fixtures/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/io/src/__fixtures__/bpmn/fixtures.test.ts   # exit 0

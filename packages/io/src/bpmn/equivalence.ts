@@ -1,4 +1,4 @@
-import type { Document, Element } from "@diagra/ir";
+import type { Document, Element } from "@nodetto/ir";
 import { bpmnExportId } from "./ids.ts";
 
 function stable(value: unknown): unknown {

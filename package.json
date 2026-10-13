@@ -1,7 +1,7 @@
 {
-  "name": "diagra-app",
+  "name": "nodetto-app",
   "version": "0.1.0",
-  "description": "diagra standalone diagram editor and shared editor packages",
+  "description": "nodetto standalone diagram editor and shared editor packages",
   "private": true,
   "type": "module",
   "workspaces": ["packages/*", "apps/*"],

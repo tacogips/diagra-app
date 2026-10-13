@@ -12,7 +12,7 @@
 // visited set: a group that lists itself, or two that list each other, is
 // a file to open, not a reason to hang.
 
-import type { Element, ElementId, PageId } from "@diagra/ir";
+import type { Element, ElementId, PageId } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import {
   compareFractional,

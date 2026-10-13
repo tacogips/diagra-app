@@ -1,4 +1,9 @@
-import type { Document, Element, ElementId, FractionalIndex } from "@diagra/ir";
+import type {
+  Document,
+  Element,
+  ElementId,
+  FractionalIndex,
+} from "@nodetto/ir";
 import { applyCommands, type Command } from "../commands.ts";
 import { buildBpmnModel } from "./model.ts";
 import type { Store } from "../store.ts";

@@ -45,7 +45,7 @@ session-359 final verification.
 | [bpmn-09-ui-solid-palette](completed/bpmn-09-ui-solid-palette.md) | Palette and Add BPMN page |
 | [bpmn-10-ui-solid-inspector](completed/bpmn-10-ui-solid-inspector.md) | Inspector BPMN section |
 | [bpmn-11-ui-solid-problems-panel](completed/bpmn-11-ui-solid-problems-panel.md) | Problems panel |
-| [bpmn-12-cli](completed/bpmn-12-cli.md) | `diagra-cli lint` and `bpmn import/export` |
+| [bpmn-12-cli](completed/bpmn-12-cli.md) | `nodetto-cli lint` and `bpmn import/export` |
 | [bpmn-13-core-integration-tests](completed/bpmn-13-core-integration-tests.md) | Cross-package fixture tests |
 | [bpmn-14-docs](completed/bpmn-14-docs.md) | README and `docs/bpmn/` |
 | [bpmn-15-desktop](completed/bpmn-15-desktop.md) | Desktop menus, `.bpmn` open, dialog filter, file association |

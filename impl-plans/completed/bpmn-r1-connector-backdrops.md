@@ -43,7 +43,7 @@ Broaden that one predicate. It is the single source for three consumers,
 which need no code change:
 - `packages/core/src/svg-export.ts:1815` (`connectorBackdropIds` puts
   backdrops in `<g data-layer="backdrops">` before `<g data-layer="connectors">`)
-- `packages/ui-solid/src/Canvas.tsx:321` (`diagra-backdrop-layer` before the
+- `packages/ui-solid/src/Canvas.tsx:321` (`nodetto-backdrop-layer` before the
   connector svg)
 - `packages/core/src/shapes/connector.ts:417` (`obstacleBoxes` skips
   backdrops, so routes cross pools and lanes)
@@ -102,8 +102,8 @@ sharedPaths: none.
   - Do not test `element.type.startsWith("bpmn.")`. Tasks, events,
     gateways, data objects, data stores, text annotations, call activities,
     boundary events and collapsed sub-processes must stay false.
-  - Do not confuse `bpmn.group` (a BPMN artifact type) with the diagra
-    `group` type. The diagra `group` stays false, as today.
+  - Do not confuse `bpmn.group` (a BPMN artifact type) with the nodetto
+    `group` type. The nodetto `group` stays false, as today.
   - Keep the `!isGrouped` check for every type.
 
 ### packages/core/src/backdrops.test.ts (new)
@@ -128,7 +128,7 @@ with `isGrouped = () => false` unless stated otherwise:
 Imitate `packages/core/src/bpmn/svg-export-bpmn.test.ts` (Store,
 `createDefaultRegistry`, `renderPageSvg`, `document`/`element`/`TEST_PAGE`)
 and `packages/core/src/bpmn/fixtures.test.ts` (fixture loading with
-`readFileSync` + `importBpmnXml` from `@diagra/io`, `repositoryRoot`
+`readFileSync` + `importBpmnXml` from `@nodetto/io`, `repositoryRoot`
 resolved from `import.meta.dir`). Locate layers by string index in the SVG:
 `backdrops = svg.indexOf('data-layer="backdrops"')`, `connectors =
 svg.indexOf('data-layer="connectors"')`, `shapes =
@@ -197,7 +197,7 @@ Do not change any existing test in this file.
 The canvas partition is the memo in `Canvas.tsx:320-338`:
 `connectorBackdropIds(elements, (id) => groupOf(store, id) !== null)`. There
 is no rendered-canvas frame backdrop test to imitate, so test that exact call
-through `@diagra/core`. Build the document with `Editor` +
+through `@nodetto/core`. Build the document with `Editor` +
 `createPage({kind: "bpmn"})` (imitate `packages/ui-solid/src/bpmn-palette.test.ts:editorOnBpmnPage`)
 or with `new Editor({document})` and explicit elements. Read
 `store.getPageElements(pageId)` as Canvas does:
@@ -207,12 +207,12 @@ or with `new Editor({document})` and explicit elements. Read
   lanes (mirrors `backdropRoots`)
 - the visual roots (non-connector, ungrouped, not in the set) are exactly
   the two tasks (mirrors `visualRoots`; use `isConnector`/`groupOf` from
-  `@diagra/core` only if exported there, otherwise compare against the
+  `@nodetto/core` only if exported there, otherwise compare against the
   element category)
 - the same page without the flow -> empty set (backdrops only with a
   connector)
 
-Only import from `@diagra/core` / `@diagra/ir`; do not import `Canvas.tsx`
+Only import from `@nodetto/core` / `@nodetto/ir`; do not import `Canvas.tsx`
 (it needs a DOM).
 
 ## Invariants

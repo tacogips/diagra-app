@@ -1,9 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "diagra",
-  "mainBinaryName": "diagra",
-  "version": "0.2.2",
-  "identifier": "me.tacogips.diagra",
+  "productName": "Nodetto",
+  "mainBinaryName": "nodetto",
+  "version": "0.2.3",
+  "identifier": "me.tacogips.nodetto",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "diagra",
+        "title": "Nodetto",
         "width": 1100,
         "height": 760,
         "minWidth": 720,

@@ -64,7 +64,7 @@ if (!(await reachable(`http://localhost:${PORT}/json/version`))) {
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-gpu",
-      `--user-data-dir=${process.env["TMPDIR"] ?? "/tmp"}/diagra-canvas-checklist`,
+      `--user-data-dir=${process.env["TMPDIR"] ?? "/tmp"}/nodetto-canvas-checklist`,
       "--window-size=1400,900",
       URL,
     ],
@@ -216,19 +216,19 @@ async function wheel(pt, deltaY, deltaX = 0, modifiers = 0) {
 }
 
 // --- helpers reading real rendered DOM ---
-const shapesJs = `Array.from(document.querySelectorAll('.diagra-shape')).map(n => ({
+const shapesJs = `Array.from(document.querySelectorAll('.nodetto-shape')).map(n => ({
   id: n.dataset.elementId, type: n.dataset.elementType,
   left: parseFloat(n.style.left), top: parseFloat(n.style.top),
   width: parseFloat(n.style.width), height: parseFloat(n.style.height) }))`;
 const stateJs = `({
   shapes: ${shapesJs},
-  connectors: document.querySelectorAll('.diagra-connector').length,
-  outlines: document.querySelectorAll('.diagra-selection-outline').length,
-  handles: document.querySelectorAll('.diagra-handle').length,
-  transform: document.querySelector('.diagra-viewport').style.transform,
-  undoDisabled: Array.from(document.querySelectorAll('.diagra-tool-button')).find(b=>b.title==='Undo').disabled,
-  redoDisabled: Array.from(document.querySelectorAll('.diagra-tool-button')).find(b=>b.title==='Redo').disabled,
-  pending: document.querySelectorAll('.diagra-pending-connection').length,
+  connectors: document.querySelectorAll('.nodetto-connector').length,
+  outlines: document.querySelectorAll('.nodetto-selection-outline').length,
+  handles: document.querySelectorAll('.nodetto-handle').length,
+  transform: document.querySelector('.nodetto-viewport').style.transform,
+  undoDisabled: Array.from(document.querySelectorAll('.nodetto-tool-button')).find(b=>b.title==='Undo').disabled,
+  redoDisabled: Array.from(document.querySelectorAll('.nodetto-tool-button')).find(b=>b.title==='Redo').disabled,
+  pending: document.querySelectorAll('.nodetto-pending-connection').length,
 })`;
 const state = () => evaluate(stateJs);
 const cam = async () => {
@@ -270,12 +270,12 @@ async function reload() {
   await send("Page.navigate", { url: URL });
   await sleep(900);
   canvasRect = await evaluate(
-    `(() => { const r = document.querySelector('.diagra-canvas').getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; })()`,
+    `(() => { const r = document.querySelector('.nodetto-canvas').getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; })()`,
   );
 }
 async function toolbar(label) {
   await evaluate(
-    `Array.from(document.querySelectorAll('.diagra-tool-button')).find(b => b.textContent.trim() === ${JSON.stringify(label)}).click()`,
+    `Array.from(document.querySelectorAll('.nodetto-tool-button')).find(b => b.textContent.trim() === ${JSON.stringify(label)}).click()`,
   );
   await sleep(30);
 }
@@ -299,7 +299,7 @@ await step(1, "Launch shows the seeded diagram", async () => {
   );
   assert(s.connectors === 3, `connectors=${s.connectors}`);
   const unsupported = await evaluate(
-    `document.querySelectorAll('.diagra-unknown').length`,
+    `document.querySelectorAll('.nodetto-unknown').length`,
   );
   assert(unsupported === 0, "an element rendered as unsupported");
   return "9 shapes, 3 connectors, no unsupported placeholders";
@@ -309,7 +309,7 @@ await step(1, "Launch shows the seeded diagram", async () => {
 await step(2, "Drag empty canvas pans and the grid tracks it", async () => {
   const before = await cam();
   const bgBefore = await evaluate(
-    `document.querySelector('.diagra-canvas').style.backgroundPosition`,
+    `document.querySelector('.nodetto-canvas').style.backgroundPosition`,
   );
   await drag(
     { x: canvasRect.left + 950, y: canvasRect.top + 120 },
@@ -317,7 +317,7 @@ await step(2, "Drag empty canvas pans and the grid tracks it", async () => {
   );
   const after = await cam();
   const bgAfter = await evaluate(
-    `document.querySelector('.diagra-canvas').style.backgroundPosition`,
+    `document.querySelector('.nodetto-canvas').style.backgroundPosition`,
   );
   assert(
     near(after.x - before.x, 60, 3) && near(after.y - before.y, 40, 3),
@@ -559,7 +559,7 @@ await step(
       "the new shape was not selected",
     );
     const active = await evaluate(
-      `document.querySelector('.diagra-tool-button.diagra-active').textContent.trim()`,
+      `document.querySelector('.nodetto-tool-button.nodetto-active').textContent.trim()`,
     );
     assert(active === "Select", `active tool is ${active}`);
     return "ellipse centred on the click, selected, tool back to Select";
@@ -573,7 +573,7 @@ await step(
     await click({ x: canvasRect.left + 900, y: canvasRect.top + 480 });
     const header = await evaluate(
       `(() => { const t = Array.from(document.querySelectorAll('[data-element-type="erd.table"]')).pop();
-      return { name: t.querySelector('.diagra-erd-header').textContent.trim(), rows: t.querySelectorAll('.diagra-erd-row').length }; })()`,
+      return { name: t.querySelector('.nodetto-erd-header').textContent.trim(), rows: t.querySelectorAll('.nodetto-erd-row').length }; })()`,
     );
     assert(
       header.name === "table" && header.rows === 1,
@@ -583,7 +583,7 @@ await step(
     await click({ x: canvasRect.left + 1150, y: canvasRect.top + 480 });
     const cls = await evaluate(
       `(() => { const c = Array.from(document.querySelectorAll('[data-element-type="uml.class"]')).pop();
-      return c.querySelector('.diagra-uml-title').textContent.trim(); })()`,
+      return c.querySelector('.nodetto-uml-title').textContent.trim(); })()`,
     );
     assert(cls === "Class", `class name ${cls}`);
     await toolbar("Node");
@@ -621,7 +621,7 @@ await step(
       `connectors ${before} -> ${s.connectors}`,
     );
     const line = await evaluate(
-      `(() => { const g = Array.from(document.querySelectorAll('.diagra-connector')).pop().querySelector('line');
+      `(() => { const g = Array.from(document.querySelectorAll('.nodetto-connector')).pop().querySelector('line');
       return { x1:+g.getAttribute('x1'), y1:+g.getAttribute('y1'), x2:+g.getAttribute('x2'), y2:+g.getAttribute('y2'), marker: g.getAttribute('marker-end') }; })()`,
     );
     const a = geos[0];
@@ -635,7 +635,7 @@ await step(
       `end not on b's border: ${line.x2} vs ${b.left}`,
     );
     assert(
-      /diagra-arrow/.test(line.marker ?? ""),
+      /nodetto-arrow/.test(line.marker ?? ""),
       `no arrowhead: ${line.marker}`,
     );
     return "rubber band shown, arrow drawn border-to-border with an arrowhead";
@@ -673,13 +673,13 @@ await step(
     const s0 = await state();
     const table = s0.shapes.find((x) => x.type === "erd.table");
     const lineBefore = await evaluate(
-      `(() => { const l = document.querySelector('.diagra-connector line'); return { x1:+l.getAttribute('x1'), y1:+l.getAttribute('y1') }; })()`,
+      `(() => { const l = document.querySelector('.nodetto-connector line'); return { x1:+l.getAttribute('x1'), y1:+l.getAttribute('y1') }; })()`,
     );
     await click(await pageToScreen(centerOf(table)));
     const from = await pageToScreen(centerOf(table));
     await drag(from, { x: from.x, y: from.y + 120 });
     const lineAfter = await evaluate(
-      `(() => { const l = document.querySelector('.diagra-connector line'); return { x1:+l.getAttribute('x1'), y1:+l.getAttribute('y1') }; })()`,
+      `(() => { const l = document.querySelector('.nodetto-connector line'); return { x1:+l.getAttribute('x1'), y1:+l.getAttribute('y1') }; })()`,
     );
     const moved = (await state()).shapes.find((x) => x.id === table.id);
     assert(
@@ -784,7 +784,7 @@ await step(
       `after edit: undo=${s.undoDisabled} redo=${s.redoDisabled}`,
     );
     await evaluate(
-      `Array.from(document.querySelectorAll('.diagra-tool-button')).find(b=>b.title==='Undo').click()`,
+      `Array.from(document.querySelectorAll('.nodetto-tool-button')).find(b=>b.title==='Undo').click()`,
     );
     await sleep(50);
     s = await state();
@@ -830,7 +830,7 @@ await step(
     assert(s.undoDisabled === true, "the abandoned gesture left an undo step");
     assert(s.outlines === 0, "the selection was not cleared");
     const active = await evaluate(
-      `document.querySelector('.diagra-tool-button.diagra-active').textContent.trim()`,
+      `document.querySelector('.nodetto-tool-button.nodetto-active').textContent.trim()`,
     );
     assert(active === "Select", `active tool is ${active}`);
     return "shape snapped back from +150,+90, Undo stayed disabled, selection cleared, tool back to Select";

@@ -1,5 +1,5 @@
 // Yjs client binding: IR <-> Y.Doc mapping, sync provider, awareness.
-// Client side only; the sync server lives in the private diagra-cloud repo.
+// Client side only; the sync server lives in the private nodetto-cloud repo.
 
 export { CollabBinding, type CollabBindingOptions } from "./binding.ts";
 export { syncElementToY, syncPageToY } from "./diff.ts";

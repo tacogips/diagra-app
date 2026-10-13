@@ -2,7 +2,7 @@ import {
   erdEndpointColumnIds,
   type ErdRelationSemantic,
   type ErdTableSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { newElementId } from "./ids.ts";
 import { parseErdDefinition } from "./erd-definition.ts";

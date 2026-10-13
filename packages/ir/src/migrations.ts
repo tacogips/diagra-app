@@ -77,7 +77,7 @@ export function migrateSnapshot(
   }
   if (start > target) {
     throw new SchemaMigrationError(
-      `document schemaVersion ${start} is newer than the supported version ${target}; upgrade diagra to open it`,
+      `document schemaVersion ${start} is newer than the supported version ${target}; upgrade nodetto to open it`,
       start,
       target,
     );

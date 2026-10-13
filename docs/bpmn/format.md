@@ -1,6 +1,6 @@
 # BPMN JSONL format
 
-A BPMN operation flow is a normal Diagra JSONL document with a page whose
+A BPMN operation flow is a normal Nodetto JSONL document with a page whose
 `pageKind` is `bpmn`. Element meaning is stored in `semantic`; coordinates,
 style and optional BPMN label bounds are stored in `visual`. This separation
 lets a reader inspect or diff process meaning without interpreting drawing

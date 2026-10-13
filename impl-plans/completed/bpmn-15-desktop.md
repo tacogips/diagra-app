@@ -84,12 +84,12 @@ sharedPaths: none.
 - `isBpmnPath(path)`: `/\.bpmn$/i`; `bpmnTitle(path)` strips the
   extension (imitate `isMermaidPath`/`mermaidTitle`, session.ts:91-96).
 - `SessionState` (session.ts:34) gains `readonly importWarnings: readonly
-  BpmnImportWarning[]` (type-only import from `@diagra/io`), initial `[]`.
+  BpmnImportWarning[]` (type-only import from `@nodetto/io`), initial `[]`.
   Every load path that is not a BPMN import sets it to `[]` (the
   `openPath` JSONL branch and `importDocument`'s patch).
 - In `openPath`, next to the Mermaid branch (session.ts:291-305): for
   `isBpmnPath(path)`, `const { importBpmnXml } = await
-  import("@diagra/io/bpmn")`, check `stale()` again, import with `{title:
+  import("@nodetto/io/bpmn")`, check `stale()` again, import with `{title:
   bpmnTitle(path)}`, `await this.importDocument(report.document,
   baseName(path))`, and on success `this.patch({ importWarnings:
   report.warnings })`. A `BpmnParseError` -> `this.fail("could not import
@@ -110,11 +110,11 @@ sharedPaths: none.
   `props.exportBackend.pickExportPath(name, "bpmn")` then `writeText`;
   browser: `downloadText(name, xml, "application/xml")`; errors through
   the existing `setExportError`. Load `exportBpmnXml` with a dynamic
-  `await import("@diagra/io/bpmn")` inside `exportBpmn` (Mermaid pattern,
+  `await import("@nodetto/io/bpmn")` inside `exportBpmn` (Mermaid pattern,
   keeps the startup bundle small); import `bpmnRouteResolver` statically
-  from `@diagra/core`.
+  from `@nodetto/core`.
 - Mount `<BpmnProblemsPanel editor={props.editor} viewport={viewport}
-  importWarnings={file().importWarnings} />` (from `@diagra/ui-solid`)
+  importWarnings={file().importWarnings} />` (from `@nodetto/ui-solid`)
   inside a `<Show>` that is true when the current page kind is `bpmn`
   (reactive via the existing editor signals used in App.tsx), placed in
   the side area next to the Inspector (App.tsx:~1137). Follow the
@@ -161,7 +161,7 @@ the source" (session.test.ts:444):
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-15-desktop/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check apps/desktop/src/App.tsx apps/desktop/src/file/session.ts apps/desktop/src/file/session.test.ts   # exit 0
 bun test apps/desktop/src/file/session.test.ts          # exit 0, pass count > 0, 0 fail (owned tests incl. the 4 new .bpmn cases, design 11.1 rule 1)
@@ -170,7 +170,7 @@ CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.tom
 CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml   # exit 0
 CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml dialogs   # exit 0
 bun -e 'JSON.parse(require("fs").readFileSync("apps/desktop/src-tauri/tauri.macos.release.conf.json","utf8"))'   # exit 0 (valid JSON)
-bun --cwd=apps/desktop run build                         # exit 0 (vite resolves @diagra/io/bpmn)
+bun --cwd=apps/desktop run build                         # exit 0 (vite resolves @nodetto/io/bpmn)
 ```
 
 ## Done criteria

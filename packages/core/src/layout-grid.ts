@@ -1,4 +1,4 @@
-import type { AxisLayoutGrid, FrameSemantic, LayoutGrid } from "@diagra/ir";
+import type { AxisLayoutGrid, FrameSemantic, LayoutGrid } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { newElementId } from "./ids.ts";
 

@@ -8,8 +8,8 @@
 // starting state, not the user's first edit, so their first undo must not
 // empty the page.
 
-import type { Command, Editor } from "@diagra/core";
-import type { Element } from "@diagra/ir";
+import type { Command, Editor } from "@nodetto/core";
+import type { Element } from "@nodetto/ir";
 
 export function seed(editor: Editor): void {
   const elements: Element[] = [];

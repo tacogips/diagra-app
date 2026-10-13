@@ -1,8 +1,8 @@
-# @diagra/desktop
+# @nodetto/desktop
 
-The Tauri 2 desktop client. It builds an `Editor` from `@diagra/core`, seeds a
+The Tauri 2 desktop client. It builds an `Editor` from `@nodetto/core`, seeds a
 demo document that exercises every element type the phase-0 renderer knows,
-and mounts the `@diagra/ui-solid` canvas.
+and mounts the `@nodetto/ui-solid` canvas.
 
 ```bash
 mise run dev                    # Tauri window (Rust toolchain required)

@@ -4,8 +4,8 @@
 // transparent unless the document gives the note a fill, so a note sits on
 // the canvas like writing rather than like another shape.
 
-import { richTextSegments, textNoteText } from "@diagra/core";
-import type { Element, TextMark } from "@diagra/ir";
+import { richTextSegments, textNoteText } from "@nodetto/core";
+import type { Element, TextMark } from "@nodetto/ir";
 import { For, type JSX } from "solid-js";
 import {
   fillPaintStyle,
@@ -45,7 +45,7 @@ export function textMarkStyle(marks: readonly TextMark[]): JSX.CSSProperties {
       : {}),
     ...(kinds.has("link")
       ? {
-          color: "var(--diagra-accent)",
+          color: "var(--nodetto-accent)",
           "text-decoration-line": kinds.has("strike")
             ? "underline line-through"
             : "underline",
@@ -90,10 +90,10 @@ export function TextNoteView(props: TextNoteViewProps): JSX.Element {
   const segments = () => richTextSegments(props.element.semantic);
   return (
     <div
-      class="diagra-text-note"
+      class="nodetto-text-note"
       data-smart-paint="box"
       data-smart-text
-      classList={{ "diagra-text-note-empty": text() === "" }}
+      classList={{ "nodetto-text-note-empty": text() === "" }}
       style={textNoteStyle(props.element)}
     >
       <span

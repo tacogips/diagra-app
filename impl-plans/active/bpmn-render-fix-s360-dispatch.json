@@ -36,7 +36,7 @@
       "No new layer, z-index, sort or reordering; backdrop paint order stays page z-order.",
       "No change to frame behaviour, the !isGrouped rule or the connector-required rule in connectorBackdropIds.",
       "No new NotationPrimitive kind or field; no change to activity label layout, markers, event icons, gateway markers, participant/lane/flow decorations or bpmnLabelBox.",
-      "No PNG/PDF export or generic diagra-cli export command.",
+      "No PNG/PDF export or generic nodetto-cli export command.",
       "No bpmn-js, bpmnlint, bpmn-moddle or other new dependency.",
       "No fixture edits under packages/io/src/__fixtures__/; no edits to packages/core/src/bpmn/fixtures.test.ts.",
       "No redesign of other BPMN features; no version bumps, tags, releases or main-branch pushes."
@@ -66,7 +66,7 @@
     "supportedEdgeCases": [
       "Collapsed black-box pools with docked message flows.",
       "Nested lanes and expanded sub-processes inside lanes, painted in page z-order (pool below lanes below sub-process).",
-      "Grouped elements (diagra group) keep group paint order and stay routing obstacles.",
+      "Grouped elements (nodetto group) keep group paint order and stay routing obstacles.",
       "Pages without connectors have no backdrops.",
       "Shapes without stored visual.x/visual.y but with labelBounds render their label at the same absolute point on canvas and in export.",
       "visual.style.stroke overrides the filled send icon colour; visual.style.fill overrides the unfilled group body."

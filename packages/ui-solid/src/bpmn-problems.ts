@@ -3,8 +3,8 @@ import {
   recommendedLintConfig,
   type Editor,
   type ViewportSize,
-} from "@diagra/core";
-import type { Document, Element, ElementId, PageId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Document, Element, ElementId, PageId } from "@nodetto/ir";
 
 export interface BpmnProblemRow {
   readonly key: string;

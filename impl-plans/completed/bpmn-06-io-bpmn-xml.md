@@ -59,9 +59,9 @@
 
 ## Intent
 
-BPMN 2.0 XML interchange in `@diagra/io`, dependency-free:
+BPMN 2.0 XML interchange in `@nodetto/io`, dependency-free:
 - a small non-validating XML parser and a deterministic serializer
-- `importBpmnXml`: `.bpmn` -> one diagra document with one `bpmn` page,
+- `importBpmnXml`: `.bpmn` -> one nodetto document with one `bpmn` page,
   keeping XML ids, semantics, lanes, flows, labels, positions, and
   preserving unsupported and foreign content with warnings
 - `exportBpmnXml`: a `bpmn` page -> spec-valid BPMN 2.0 XML that bpmn.io
@@ -72,7 +72,7 @@ BPMN 2.0 XML interchange in `@diagra/io`, dependency-free:
 ## Non-goals
 
 - No dependency (no XML library, no bpmn-moddle).
-- No dependency on `@diagra/core` (io depends only on `@diagra/ir`); the
+- No dependency on `@nodetto/core` (io depends only on `@nodetto/ir`); the
   route resolver is injected through `options.routeOf`.
 - No lint (bpmn-05), no CLI (bpmn-12), no desktop (bpmn-15).
 - Choreography, conversation and transaction are preserved as raw XML
@@ -119,8 +119,8 @@ export function bpmnSemanticProjection(document: Document, pageId: PageId): unkn
 - Re-export all of the above from `packages/io/src/index.ts` (named
   exports, imitate the Mermaid block) and from `packages/io/src/bpmn/index.ts`.
 - `packages/io/package.json` `exports`: add `"./bpmn": "./src/bpmn/index.ts"`
-  (the desktop dynamically imports `@diagra/io/bpmn`, like
-  `@diagra/io/mermaid/import`).
+  (the desktop dynamically imports `@nodetto/io/bpmn`, like
+  `@nodetto/io/mermaid/import`).
 - Import determinism: `document.id = options.documentId ?? "bpmn-document"`,
   page id `"bpmn-page"`, page name = first participant name, else process
   name, else `options.title`, else `"BPMN"`. Element ids are the XML ids
@@ -176,7 +176,7 @@ Key rules:
   horizontally.
 - Edge waypoints: interior points (all except first and last) ->
   `routingWaypoints` via `connectorWaypointFromPage(point, fromCentre,
-  toCentre)` from `@diagra/ir` with `routing: "manual"`; no interior points
+  toCentre)` from `@nodetto/ir` with `routing: "manual"`; no interior points
   -> `routing: "straight"` (a manual route without waypoints carries no
   information); more than `MAX_CONNECTOR_WAYPOINTS` (32) -> keep the first
   32 and warn.
@@ -242,7 +242,7 @@ copies this file byte-for-byte to `docs/bpmn/purchase-request.jsonl`.
 
 ## Pitfalls
 
-- io must not import `@diagra/core` (would create a cycle; core
+- io must not import `@nodetto/core` (would create a cycle; core
   dev-depends on io).
 - Do not drop unknown content silently; every skipped construct produces a
   warning and is stored raw.
@@ -317,20 +317,20 @@ copies this file byte-for-byte to `docs/bpmn/purchase-request.jsonl`.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-06-io-bpmn-xml/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/io/src/bpmn packages/io/src/index.ts   # exit 0 (package.json is outside biome's files.include)
 grep -q '"./bpmn": "./src/bpmn/index.ts"' packages/io/package.json   # exit 0
 bun test packages/io/src/bpmn                     # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/io                              # exit 0; reference tests run locally (not skipped) when .reference exists; includes golden.test.ts, bpmn-compat.test.ts and the bpmn-02 fixtures test, which this plan must not edit
 bun test                                          # exit 0
-grep -rn "@diagra/core" packages/io/src           # no output
+grep -rn "@nodetto/core" packages/io/src           # no output
 git status --short .reference                     # no output
 ```
 
 ## Done criteria
 
-- All contract symbols exported from `@diagra/io` and `@diagra/io/bpmn`.
+- All contract symbols exported from `@nodetto/io` and `@nodetto/io/bpmn`.
 - Generated `purchase-request.jsonl` exists and the round-trip test pins
   it.
 - Reference test passes locally (record "N pass, 0 skip" for it in the

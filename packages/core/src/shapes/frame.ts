@@ -4,7 +4,7 @@ import {
   unevenRoundedBoxContains,
 } from "../corner-radii.ts";
 import type { ShapeUtil } from "../shape-util.ts";
-import type { FramePlatform, FrameSemantic, SafeAreaInsets } from "@diagra/ir";
+import type { FramePlatform, FrameSemantic, SafeAreaInsets } from "@nodetto/ir";
 
 export interface FramePreset {
   readonly name: string;

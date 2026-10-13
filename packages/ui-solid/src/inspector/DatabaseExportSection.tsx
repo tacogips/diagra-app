@@ -3,8 +3,8 @@ import {
   type DatabaseDialect,
   type Editor,
   generateDatabaseDdl,
-} from "@diagra/core";
-import type { PageId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { PageId } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
@@ -77,7 +77,7 @@ export function DatabaseExportSection(props: {
     }
   };
   return (
-    <details class="diagra-inspector-section">
+    <details class="nodetto-inspector-section">
       <summary>Database DDL</summary>
       <label>
         SQL dialect

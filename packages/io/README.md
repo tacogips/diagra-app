@@ -1,7 +1,7 @@
-# @diagra/io
+# @nodetto/io
 
 Persistence and interchange adapters. Adapters consume and produce
-`@diagra/ir` documents only - no editor state, no Yjs, no DOM, no framework.
+`@nodetto/ir` documents only - no editor state, no Yjs, no DOM, no framework.
 
 Phase 1 (design section 11) ships JSONL in and out. Mermaid semantic import
 and export are available for ER, UML class and sequence content; SVG/PNG
@@ -15,7 +15,7 @@ import {
   availableMermaidKinds,
   exportMermaid,
   importMermaid,
-} from "@diagra/io";
+} from "@nodetto/io";
 
 const kinds = availableMermaidKinds(document, pageId);
 const report = exportMermaid(document, pageId, kinds[0]);
@@ -34,7 +34,7 @@ Mermaid cannot express them as one ER attribute key.
 `importMermaid` accepts `erDiagram`, `classDiagram`, and `sequenceDiagram`
 source up to 1 MiB, returns a new validated document with deterministic IDs and
 an editable initial layout, and reports unsupported or lossy statements with
-source line numbers. It understands the subset emitted by Diagra plus common
+source line numbers. It understands the subset emitted by Nodetto plus common
 explicit Mermaid declarations, aliases, relationships, class members,
 messages, and activation statements. Import callers must treat Mermaid as an
 interchange source rather than a persistence target; the desktop and hosted
@@ -43,7 +43,7 @@ shells therefore load `.mmd` and `.mermaid` as dirty, detached documents.
 ## D2
 
 ```ts
-import { exportD2 } from "@diagra/io";
+import { exportD2 } from "@nodetto/io";
 
 const report = exportD2(document, pageId);
 ```
@@ -70,7 +70,7 @@ preserved as interchange metadata and reported with warnings.
 ## JSONL
 
 ```ts
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 
 const document = parseDocument(await readFile(path, "utf8"));
 await writeFile(path, serializeDocument(document));
@@ -112,7 +112,7 @@ for ERD, UML class, sequence, freeform and forward-compatible documents.
 
 ## Forward compatibility
 
-Nothing a newer diagra writes is dropped on the way back out, with one
+Nothing a newer nodetto writes is dropped on the way back out, with one
 qualification for numeric literals that JavaScript itself cannot represent -
 see "Numeric fidelity" below:
 

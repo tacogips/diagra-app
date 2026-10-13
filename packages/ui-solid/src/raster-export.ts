@@ -1,5 +1,5 @@
 import { rasterStage } from "./raster-stage.ts";
-import { type Editor, layerName } from "@diagra/core";
+import { type Editor, layerName } from "@nodetto/core";
 
 export const RASTER_SCALES = [0.5, 0.75, 1, 1.5, 2, 3, 4] as const;
 

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { importBpmnXml, parseDocumentResult } from "@diagra/io";
+import { importBpmnXml, parseDocumentResult } from "@nodetto/io";
 import {
   EXIT_DRIFT,
   EXIT_ERROR,
@@ -204,6 +204,6 @@ test("bpmn strict warnings and unknown subcommands use the documented exits", ()
 
 test("help lists lint and bpmn and protected CLI command tests stay untouched", () => {
   const result = cli(["--help"], memoryIo({}));
-  expect(result.stdout).toContain("diagra-cli lint");
-  expect(result.stdout).toContain("diagra-cli bpmn import");
+  expect(result.stdout).toContain("nodetto-cli lint");
+  expect(result.stdout).toContain("nodetto-cli bpmn import");
 });

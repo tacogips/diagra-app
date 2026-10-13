@@ -1,5 +1,5 @@
-import { type Box, boxCenter } from "@diagra/core";
-import { type Element, getElementTypeDefinition } from "@diagra/ir";
+import { type Box, boxCenter } from "@nodetto/core";
+import { type Element, getElementTypeDefinition } from "@nodetto/ir";
 
 /** An inset editor must pivot about its owning layer, not its own center. */
 export function textEditorRotation(

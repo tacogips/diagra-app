@@ -1,4 +1,7 @@
-import type { PrototypeOverlayPosition, PrototypeTransition } from "@diagra/ir";
+import type {
+  PrototypeOverlayPosition,
+  PrototypeTransition,
+} from "@nodetto/ir";
 
 export interface PrototypeOverlayEntry {
   readonly key: string;

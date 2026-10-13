@@ -22,8 +22,8 @@
 // in-memory docs in `binding.test.ts` and by two websockets against a real
 // Durable Object in the cloud repo's `collab-binding.test.ts`.
 
-import type { Editor, StoreCommit, StoreDiff } from "@diagra/core";
-import type { Element, ElementId, Page, PageId } from "@diagra/ir";
+import type { Editor, StoreCommit, StoreDiff } from "@nodetto/core";
+import type { Element, ElementId, Page, PageId } from "@nodetto/ir";
 import * as Y from "yjs";
 import { syncElementToY, syncPageToY } from "./diff.ts";
 import { captureColors, type ColorUndo } from "./color-undo.ts";

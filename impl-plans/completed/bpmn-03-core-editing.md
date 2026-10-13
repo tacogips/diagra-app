@@ -61,7 +61,7 @@
 
 ## Intent
 
-BPMN-correct editing in `@diagra/core`:
+BPMN-correct editing in `@nodetto/core`:
 - connection resolution that rejects or corrects connections
 - Editor intent methods `connectBpmn`, the `connectSmart` delegation,
   `reconnectBpmnFlow`, `updateBpmnSemantic`, `addBpmnLane`, and an
@@ -430,7 +430,7 @@ lane's descendants are shifted exactly once, by translations.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-03-core-editing/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/connection.ts packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts packages/core/src/editor.ts   # exit 0 (own files only; session-359 gate)
 bun test packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

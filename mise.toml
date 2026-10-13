@@ -44,11 +44,11 @@ description = "Build the app through the Tauri CLI"
 run = "CARGO_TERM_QUIET=true bun --cwd=apps/desktop run tauri build"
 
 [tasks.build-cli]
-description = "Compile the diagra-cli sidecar into apps/desktop/src-tauri/binaries"
+description = "Compile the nodetto-cli sidecar into apps/desktop/src-tauri/binaries"
 run = "bun apps/cli/scripts/build-sidecar.ts"
 
 [tasks.bundle-macos]
-description = "Build the macOS .app and .dmg with the bundled diagra-cli (signs only when APPLE_SIGNING_IDENTITY is set)"
+description = "Build the macOS .app and .dmg with the bundled nodetto-cli (signs only when APPLE_SIGNING_IDENTITY is set)"
 run = '''
 bun run build
 bun apps/cli/scripts/build-sidecar.ts

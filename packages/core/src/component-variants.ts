@@ -2,7 +2,7 @@ import type {
   ComponentVariantProperty,
   ElementId,
   FrameSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { newElementId } from "./ids.ts";
 

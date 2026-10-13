@@ -46,8 +46,8 @@
 ## Intent
 
 Cross-package acceptance tests that need both the io importer and core
-lint/rendering. They live in `@diagra/core` because only core
-dev-depends on `@diagra/io` (packages/core/package.json); io cannot import
+lint/rendering. They live in `@nodetto/core` because only core
+dev-depends on `@nodetto/io` (packages/core/package.json); io cannot import
 core. They pin acceptance criteria 2 (SVG structure of the original
 purchase-request fixture) and 4 (exact lint outcomes).
 
@@ -72,7 +72,7 @@ sharedPaths: none.
 ### packages/core/src/bpmn/fixtures.test.ts
 
 Load each fixture from `packages/io/src/__fixtures__/bpmn/` (resolve from
-`import.meta.dir`) with `importBpmnXml` from `@diagra/io`.
+`import.meta.dir`) with `importBpmnXml` from `@nodetto/io`.
 
 Tests (input -> expected):
 - complete -> `lintBpmnPage(doc, pageId, recommendedLintConfig())` is
@@ -124,7 +124,7 @@ spaces; do not depend on attribute order.
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-13-core-integration-tests/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts   # exit 0
 bun test packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts   # exit 0; reference tests not skipped locally

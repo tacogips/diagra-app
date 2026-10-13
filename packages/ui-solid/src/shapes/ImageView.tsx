@@ -2,8 +2,8 @@ import {
   cornerRadiiCss,
   croppedImageBox,
   resolvedCornerRadii,
-} from "@diagra/core";
-import type { Element, ImageSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, ImageSemantic } from "@nodetto/ir";
 import type { JSX } from "solid-js";
 import { strokeBorderStyle } from "./visual.ts";
 

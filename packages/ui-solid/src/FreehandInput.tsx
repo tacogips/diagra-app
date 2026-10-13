@@ -2,8 +2,8 @@ import {
   type Editor,
   FreehandGesture,
   pressureStrokeOutline,
-} from "@diagra/core";
-import type { FreehandPoint } from "@diagra/ir";
+} from "@nodetto/core";
+import type { FreehandPoint } from "@nodetto/ir";
 import { createMemo, createSignal, type JSX, onCleanup } from "solid-js";
 export function FreehandInput(props: { editor: Editor }): JSX.Element {
   const [points, setPoints] = createSignal<readonly FreehandPoint[]>([]);

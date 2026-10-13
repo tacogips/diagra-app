@@ -9,7 +9,7 @@ import {
   type ElementId,
   type PageId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Box, Vec } from "./geometry.ts";
 import type {
   RasterMaskSampler,

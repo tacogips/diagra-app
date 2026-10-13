@@ -1,4 +1,4 @@
-import type { Editor, ViewportSize } from "@diagra/core";
+import type { Editor, ViewportSize } from "@nodetto/core";
 import { type JSX, lazy, Suspense } from "solid-js";
 
 const LayersPanel = lazy(() =>
@@ -23,7 +23,7 @@ export function Layers(props: {
   return (
     <Suspense
       fallback={
-        <nav class="diagra-layers" aria-label="Layers">
+        <nav class="nodetto-layers" aria-label="Layers">
           <h2>Layers</h2>
         </nav>
       }

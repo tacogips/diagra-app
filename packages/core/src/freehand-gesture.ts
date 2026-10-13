@@ -1,4 +1,4 @@
-import type { FreehandPoint } from "@diagra/ir";
+import type { FreehandPoint } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { freehandGeometry } from "./shapes/freehand.ts";
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
-import { importBpmnXml } from "@diagra/io";
+import { importBpmnXml } from "@nodetto/io";
 import { Store } from "../store.ts";
 import { document, element, TEST_PAGE } from "../test-helpers.ts";
 import { createDefaultRegistry } from "../shapes/index.ts";

@@ -4,7 +4,7 @@ import type {
   GeoKind,
   GeoShapeSemantic,
   PathSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { resolvedCornerRadii, roundedRectPolygon } from "../corner-radii.ts";
 import type { Box, Vec } from "../geometry.ts";
 import type { ShapeContext } from "../shape-util.ts";

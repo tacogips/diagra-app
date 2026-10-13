@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { applyIrToDoc } from "@diagra/collab";
-import { createDefaultRegistry, Editor } from "@diagra/core";
-import { serializeDocument } from "@diagra/io";
+import { applyIrToDoc } from "@nodetto/collab";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
+import { serializeDocument } from "@nodetto/io";
 import { Awareness } from "y-protocols/awareness";
 import type * as Y from "yjs";
 import type { FileBackend } from "../file/backend.ts";

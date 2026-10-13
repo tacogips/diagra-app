@@ -22,7 +22,7 @@ mise run dev
 ```
 
 Use a scratch directory outside the repository, for example
-`~/diagra-manual/`.
+`~/nodetto-manual/`.
 
 ## Procedure
 
@@ -30,13 +30,13 @@ Use a scratch directory outside the repository, for example
 
 1. In the fresh window, drag a couple of shapes onto the canvas and move one
    of them.
-2. `Save As` -> `~/diagra-manual/roundtrip.jsonl`.
-3. Copy the file: `cp ~/diagra-manual/roundtrip.jsonl ~/diagra-manual/roundtrip.expected`.
+2. `Save As` -> `~/nodetto-manual/roundtrip.jsonl`.
+3. Copy the file: `cp ~/nodetto-manual/roundtrip.jsonl ~/nodetto-manual/roundtrip.expected`.
 4. Quit the app completely, then relaunch it.
 5. `Open` -> `roundtrip.jsonl`. The canvas must show exactly what you saved:
    same shapes, same positions, same labels.
 6. Press `Cmd/Ctrl + S` without editing anything.
-7. `diff ~/diagra-manual/roundtrip.jsonl ~/diagra-manual/roundtrip.expected`
+7. `diff ~/nodetto-manual/roundtrip.jsonl ~/nodetto-manual/roundtrip.expected`
    must print nothing.
 
 Pass criterion: identical canvas and an empty `diff`.

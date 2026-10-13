@@ -1,8 +1,8 @@
 # bpmn-10-ui-solid-inspector progress
 
-Plan: `impl-plans/active/bpmn-10-ui-solid-inspector.md`  
-Mode: issue-resolution  
-Issue reference: No GitHub issue. Workflow input: “Continue (2): BPMN 2.0 operation flow (business process) diagrams in diagra”; session-359.  
+Plan: `impl-plans/active/bpmn-10-ui-solid-inspector.md`
+Mode: issue-resolution
+Issue reference: No GitHub issue. Workflow input: “Continue (2): BPMN 2.0 operation flow (business process) diagrams in nodetto”; session-359.
 Dependency: `bpmn-03-core-editing` is accepted in the runtime-owned `acceptedPlanIds`.
 
 ## Implementation

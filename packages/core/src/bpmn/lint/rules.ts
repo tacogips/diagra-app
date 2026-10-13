@@ -1,4 +1,4 @@
-import type { Element } from "@diagra/ir";
+import type { Element } from "@nodetto/ir";
 import type { BpmnModel } from "../model.ts";
 import type { BpmnLintContext, BpmnLintRuleId } from "./config.ts";
 

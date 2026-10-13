@@ -1,5 +1,5 @@
 {
-  "name": "@diagra/ui-solid",
+  "name": "@nodetto/ui-solid",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,9 +7,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@diagra/core": "workspace:*",
-    "@diagra/io": "workspace:*",
-    "@diagra/ir": "workspace:*",
+    "@nodetto/core": "workspace:*",
+    "@nodetto/io": "workspace:*",
+    "@nodetto/ir": "workspace:*",
     "solid-js": "^1.9.0"
   }
 }

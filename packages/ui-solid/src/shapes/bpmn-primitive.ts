@@ -1,4 +1,4 @@
-import type { NotationPrimitive } from "@diagra/core";
+import type { NotationPrimitive } from "@nodetto/core";
 
 export type BpmnSvgTag = "rect" | "circle" | "path" | "polygon" | "text";
 

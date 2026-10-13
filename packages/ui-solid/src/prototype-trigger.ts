@@ -1,4 +1,4 @@
-import type { PrototypeTrigger } from "@diagra/ir";
+import type { PrototypeTrigger } from "@nodetto/ir";
 
 export type PrototypeInput =
   | "click"

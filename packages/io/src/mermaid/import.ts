@@ -11,7 +11,7 @@ import {
   type UmlAssociationKind,
   type UmlAttribute,
   type UmlMethod,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { MermaidDiagramKind } from "./export.ts";
 
 const MAX_MERMAID_BYTES = 1024 * 1024;

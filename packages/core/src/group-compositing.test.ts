@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { GroupSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { GroupSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { generateInterfaceCode } from "./interface-code.ts";
 import { generateMobileInterfaceCode } from "./mobile-code.ts";
 import { prototypeScreen } from "./prototype.ts";

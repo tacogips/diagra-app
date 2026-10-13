@@ -1,7 +1,7 @@
 // Z-order: the permutation first, then the keys that realise it.
 
 import { describe, expect, test } from "bun:test";
-import type { Element, ElementId } from "@diagra/ir";
+import type { Element, ElementId } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { isFractionalKey } from "./fractional.ts";
 import { Store } from "./store.ts";

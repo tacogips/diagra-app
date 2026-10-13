@@ -1,5 +1,5 @@
 // Documents the OS asked the app to open: command-line paths and, on macOS,
-// open-documents events (`open -a diagra file.jsonl`, Finder "Open With").
+// open-documents events (`open -a nodetto file.jsonl`, Finder "Open With").
 // Rust queues the paths until the frontend takes them, so a request that
 // arrives before the webview is listening is not lost.
 

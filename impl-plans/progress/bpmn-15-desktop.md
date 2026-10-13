@@ -2,7 +2,7 @@
 
 Status: implementation complete; ready for test-integrity and adversarial review.
 Plan: `impl-plans/active/bpmn-15-desktop.md`.
-Issue: workflow input `Continue (2): BPMN 2.0 operation flow (business process) diagrams in diagra`; no GitHub issue.
+Issue: workflow input `Continue (2): BPMN 2.0 operation flow (business process) diagrams in nodetto`; no GitHub issue.
 
 ## G1 - TypeScript and owned diagnostics
 

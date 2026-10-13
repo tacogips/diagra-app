@@ -1,4 +1,4 @@
-import type { Document, Element, ElementId, PageId } from "@diagra/ir";
+import type { Document, Element, ElementId, PageId } from "@nodetto/ir";
 import { compareFractional } from "../fractional.ts";
 
 export type BpmnScopeId = string;

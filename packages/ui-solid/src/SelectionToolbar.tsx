@@ -9,7 +9,7 @@
 // Colour swatches write through `setSelectionStyle`; every other button is
 // an entry of the shared action table.
 
-import type { Editor, Vec } from "@diagra/core";
+import type { Editor, Vec } from "@nodetto/core";
 import {
   createEffect,
   createMemo,
@@ -207,7 +207,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
     return (
       <button
         type="button"
-        class="diagra-float-button"
+        class="nodetto-float-button"
         title={actionTitle(action)}
         disabled={!isEnabled(action)}
         onClick={() => runAction(action, props.context)}
@@ -221,15 +221,15 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
     field: "fill" | "stroke",
     palette: readonly Swatch[],
   ): JSX.Element => (
-    <div class="diagra-swatch-row" role="group" aria-label={`${field} colour`}>
+    <div class="nodetto-swatch-row" role="group" aria-label={`${field} colour`}>
       <For each={palette}>
         {(swatch) => (
           <button
             type="button"
-            class="diagra-swatch"
+            class="nodetto-swatch"
             classList={{
-              "diagra-swatch-none": swatch.value === null,
-              "diagra-swatch-stroke": field === "stroke",
+              "nodetto-swatch-none": swatch.value === null,
+              "nodetto-swatch-stroke": field === "stroke",
             }}
             title={`${field === "fill" ? "Fill" : "Stroke"}: ${swatch.label}`}
             style={
@@ -249,7 +249,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
   return (
     <Show when={visible()}>
       <div
-        class="diagra-selection-toolbar"
+        class="nodetto-selection-toolbar"
         role="toolbar"
         aria-label="Selection"
         ref={measure}
@@ -261,20 +261,20 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         // handlers, and must not count as "pressed on the canvas" either.
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <div class="diagra-float-group">
+        <div class="nodetto-float-group">
           {button("duplicate", "Dup")}
           {button("delete", "Del")}
         </div>
-        <details class="diagra-selection-disclosure" onKeyDown={disclosureKey}>
+        <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Colors</summary>
-          <div class="diagra-selection-disclosure-body diagra-float-colours">
+          <div class="nodetto-selection-disclosure-body nodetto-float-colours">
             {swatches("fill", FILL_PALETTE)}
             {swatches("stroke", STROKE_PALETTE)}
           </div>
         </details>
-        <details class="diagra-selection-disclosure" onKeyDown={disclosureKey}>
+        <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Arrange</summary>
-          <div class="diagra-selection-disclosure-body">
+          <div class="nodetto-selection-disclosure-body">
             {button("bringToFront", "Front")}
             {button("sendToBack", "Back")}
             {button("frameSelection", "Frame")}
@@ -292,10 +292,10 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
             </Show>
           </div>
         </details>
-        <div class="diagra-float-group">
+        <div class="nodetto-float-group">
           <button
             type="button"
-            class="diagra-float-button"
+            class="nodetto-float-button"
             title="More options in the Inspector"
             onClick={() => props.onMore()}
           >

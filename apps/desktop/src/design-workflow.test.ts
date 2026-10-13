@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
-import { CollabBinding } from "@diagra/collab";
-import { Editor, generateDatabaseDdl, prototypeScreen } from "@diagra/core";
-import { parseDocument, serializeDocument } from "@diagra/io";
-import { type FrameSemantic, validateDocument } from "@diagra/ir";
+import { CollabBinding } from "@nodetto/collab";
+import { Editor, generateDatabaseDdl, prototypeScreen } from "@nodetto/core";
+import { parseDocument, serializeDocument } from "@nodetto/io";
+import { type FrameSemantic, validateDocument } from "@nodetto/ir";
 import * as Y from "yjs";
 
 test("web/mobile design and database work survive synchronization, peer-local undo and JSONL reopen", () => {

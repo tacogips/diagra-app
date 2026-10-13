@@ -2,7 +2,7 @@ import {
   type Editor,
   createSelectionResizeSnapshot,
   resizeSelection,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { Field, NumberInput, Section } from "./controls.tsx";
@@ -47,7 +47,7 @@ export function SelectionGeometrySection(props: {
       title="Selection geometry"
       help="Dimensions scale the whole selection, including spacing. Artboard contents follow constraints and auto layout."
     >
-      <div class="diagra-field-grid">
+      <div class="nodetto-field-grid">
         <Field label="X">
           <NumberInput
             label="Selection X"
@@ -93,7 +93,7 @@ export function SelectionGeometrySection(props: {
         Preserve selection proportions
       </label>
       <Show when={!snapshot()}>
-        <p class="diagra-muted">
+        <p class="nodetto-muted">
           This selection cannot be resized together. Select unlocked, visible
           resizable layers; connectors cannot be independent resize targets.
         </p>

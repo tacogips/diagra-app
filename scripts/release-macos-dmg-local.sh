@@ -110,7 +110,7 @@ fi
 app_version="$(bun -e 'console.log((await Bun.file("apps/desktop/src-tauri/tauri.conf.json").json()).version)')"
 cli_version="$(bun -e 'console.log((await Bun.file("apps/cli/package.json").json()).version)')"
 if [ "v$app_version" != "$release_tag" ] || [ "v$cli_version" != "$release_tag" ]; then
-  echo "error: $release_tag does not match app $app_version / diagra-cli $cli_version" >&2
+  echo "error: $release_tag does not match app $app_version / nodetto-cli $cli_version" >&2
   exit 1
 fi
 
@@ -120,13 +120,13 @@ rm -rf target/release/bundle/macos target/release/bundle/dmg
 
 bun install --frozen-lockfile
 bun run build
-# The bundled diagra-cli sidecar (bundle.externalBin in the release config).
+# The bundled nodetto-cli sidecar (bundle.externalBin in the release config).
 bun apps/cli/scripts/build-sidecar.ts
 CARGO_TERM_QUIET=true bun run tauri build \
   --config src-tauri/tauri.macos.release.conf.json \
   --bundles app,dmg
 
-app_path="target/release/bundle/macos/diagra.app"
+app_path="target/release/bundle/macos/Nodetto.app"
 dmg_path=""
 for candidate in target/release/bundle/dmg/*.dmg; do
   if [ -f "$candidate" ]; then
@@ -152,7 +152,7 @@ xcrun stapler validate "$dmg_path"
 spctl --assess --type execute --verbose=4 "$app_path"
 spctl --assess --type open --context context:primary-signature --verbose=4 "$dmg_path"
 
-mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/diagra-release-mount.XXXXXX")"
+mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/nodetto-release-mount.XXXXXX")"
 image_attached=false
 cleanup_mount() {
   if [ "$image_attached" = true ]; then
@@ -164,7 +164,7 @@ trap cleanup_mount EXIT
 
 hdiutil attach -nobrowse -readonly -mountpoint "$mount_dir" "$dmg_path" >/dev/null
 image_attached=true
-mounted_app_path="$mount_dir/diagra.app"
+mounted_app_path="$mount_dir/Nodetto.app"
 test -d "$mounted_app_path"
 codesign --verify --deep --strict --verbose=2 "$mounted_app_path"
 xcrun stapler validate "$mounted_app_path"
@@ -174,13 +174,13 @@ image_attached=false
 rmdir "$mount_dir"
 trap - EXIT
 
-app_zip_path="target/release/bundle/macos/diagra.app.zip"
+app_zip_path="target/release/bundle/macos/Nodetto.app.zip"
 ditto -c -k --keepParent "$app_path" "$app_zip_path"
 
-release_notes="Signed and notarized macOS app and DMG. The app bundles the diagra-cli command line tool (Contents/MacOS/diagra-cli)."
+release_notes="Signed and notarized macOS app and DMG. The app bundles the nodetto-cli command line tool (Contents/MacOS/nodetto-cli)."
 if ! gh release view "$release_tag" >/dev/null 2>&1; then
   gh release create "$release_tag" \
-    --title "diagra $release_tag" \
+    --title "Nodetto $release_tag" \
     --notes "$release_notes"
 fi
 

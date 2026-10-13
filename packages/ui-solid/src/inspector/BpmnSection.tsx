@@ -1,4 +1,4 @@
-import { buildBpmnModel, CommandError } from "@diagra/core";
+import { buildBpmnModel, CommandError } from "@nodetto/core";
 import {
   BPMN_ASSOCIATION_DIRECTIONS,
   BPMN_DATA_OBJECT_ROLES,
@@ -10,7 +10,7 @@ import {
   type BpmnEventDefinitionKind,
   type BpmnEventPosition,
   type Element,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { For, type JSX } from "solid-js";
 import { Checkbox, Field, Section, TextInput } from "./controls.tsx";
 import {
@@ -82,7 +82,7 @@ export function BpmnSection(props: ElementSectionProps): JSX.Element {
   ): JSX.Element => (
     <Field label={label}>
       <select
-        class="diagra-select"
+        class="nodetto-select"
         aria-label={label}
         value={stringField(semantic(), key)}
         on:change={(event) => {

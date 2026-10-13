@@ -11,8 +11,8 @@ import {
   geoOutline,
   resolvedCornerRadii,
   roundedRectPath,
-} from "@diagra/core";
-import type { Element, GeoKind, GeoShapeSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, GeoKind, GeoShapeSemantic } from "@nodetto/ir";
 import { type JSX, Match, Switch } from "solid-js";
 import { SvgFillGradient } from "./SvgFillGradient.tsx";
 import { labelStyle, svgStyle } from "./visual.ts";
@@ -50,7 +50,7 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
   return (
     <>
       <svg
-        class="diagra-geo"
+        class="nodetto-geo"
         width={width()}
         height={height()}
         viewBox={`0 0 ${width()} ${height()}`}
@@ -122,7 +122,7 @@ export function GeoShapeView(props: GeoShapeViewProps): JSX.Element {
         </Switch>
       </svg>
       <div
-        class="diagra-label"
+        class="nodetto-label"
         data-smart-text
         style={labelStyle(props.element.visual)}
       >

@@ -1,5 +1,5 @@
-import type { Editor } from "@diagra/core";
-import type { PageId } from "@diagra/ir";
+import type { Editor } from "@nodetto/core";
+import type { PageId } from "@nodetto/ir";
 
 /** Keep a page-name draft from overwriting a concurrent rename or document. */
 export function pageRenameDraft(editor: Editor, id: PageId) {

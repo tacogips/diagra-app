@@ -1,4 +1,4 @@
-import type { Editor } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
 import { createSignal, type JSX, Show } from "solid-js";
 import { importRasterFiles } from "./image-import.ts";
 import { createEditorSignals } from "./adapter.ts";
@@ -33,8 +33,8 @@ export function ImageImport(props: {
   };
   return (
     <div
-      class="diagra-tool-group"
-      classList={{ "diagra-image-import-compact": props.compact ?? false }}
+      class="nodetto-tool-group"
+      classList={{ "nodetto-image-import-compact": props.compact ?? false }}
     >
       <input
         ref={(element) => {
@@ -52,7 +52,7 @@ export function ImageImport(props: {
       <button
         ref={trigger}
         type="button"
-        class="diagra-tool-button"
+        class="nodetto-tool-button"
         aria-label="Import image"
         title="Import image"
         disabled={busy() || readOnly()}
@@ -61,16 +61,16 @@ export function ImageImport(props: {
         {props.label ?? "Image"}
       </button>
       <Show when={busy()}>
-        <span class="diagra-image-import-status" role="status">
+        <span class="nodetto-image-import-status" role="status">
           Importing image
         </span>
       </Show>
       <Show when={error()}>
-        <span role="alert" class="diagra-image-import-error">
+        <span role="alert" class="nodetto-image-import-error">
           <span>{error()}</span>
           <button
             type="button"
-            class="diagra-image-error-dismiss"
+            class="nodetto-image-error-dismiss"
             aria-label="Dismiss image error"
             title="Dismiss image error"
             onClick={() => {

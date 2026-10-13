@@ -1,4 +1,4 @@
-import type { FreehandPoint } from "@diagra/ir";
+import type { FreehandPoint } from "@nodetto/ir";
 import { distanceToSegment, type Vec } from "./geometry.ts";
 
 /** De Casteljau subdivision preserves the exact cubic before serialization. */

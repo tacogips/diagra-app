@@ -81,7 +81,7 @@ export function focusBpmnProblem(editor: Editor, row: BpmnProblemRow, viewport: 
 export interface BpmnProblemsPanelProps {
   readonly editor: Editor;
   readonly viewport: () => ViewportSize;
-  readonly importWarnings?: readonly BpmnImportWarning[]; // from @diagra/io
+  readonly importWarnings?: readonly BpmnImportWarning[]; // from @nodetto/io
 }
 export function BpmnProblemsPanel(props: BpmnProblemsPanelProps): JSX.Element;
 ```
@@ -136,7 +136,7 @@ Export `BpmnProblemsPanel`, `BpmnProblemsPanelProps`, `bpmnProblemRows`,
 ## Verification
 
 ```
-cd /Users/taco/gits/tacogips/diagra-app-bpmn
+cd /Users/taco/gits/tacogips/nodetto-app-bpmn
 bun run typecheck > tmp/bpmn-operation-flow-s359/bpmn-11-ui-solid-problems-panel/typecheck.log 2>&1   # gate G1 (overview): no ownRegex match, no unattributed "error TS" line; exit code recorded
 bunx biome check packages/ui-solid/src/BpmnProblemsPanel.tsx packages/ui-solid/src/BpmnProblemsPanel.css packages/ui-solid/src/bpmn-problems.ts packages/ui-solid/src/bpmn-problems.test.ts packages/ui-solid/src/index.ts   # exit 0
 bun test packages/ui-solid/src/bpmn-problems.test.ts    # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)

@@ -1,5 +1,5 @@
 {
-  "name": "@diagra/io",
+  "name": "@nodetto/io",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,6 +9,6 @@
     "./bpmn": "./src/bpmn/index.ts"
   },
   "dependencies": {
-    "@diagra/ir": "workspace:*"
+    "@nodetto/ir": "workspace:*"
   }
 }

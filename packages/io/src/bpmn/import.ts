@@ -6,7 +6,7 @@ import {
   type Document,
   type Element,
   type Page,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   BPMN_MODEL_NAMESPACE,
   BpmnParseError,
