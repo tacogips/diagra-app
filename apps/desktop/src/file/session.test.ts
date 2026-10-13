@@ -5,6 +5,7 @@
 // runs without a Tauri runtime and without waiting on wall-clock time.
 
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { createDefaultRegistry, Editor } from "@diagra/core";
 import { serializeDocument } from "@diagra/io";
 import { seed } from "../seed.ts";
@@ -14,6 +15,11 @@ import type {
   RecentEntry,
 } from "./backend.ts";
 import { DocumentSession, type TimerHandle } from "./session.ts";
+
+const BPMN_FIXTURE = readFileSync(
+  `${import.meta.dir}/../../../../packages/io/src/__fixtures__/bpmn/purchase-request.bpmn`,
+  "utf8",
+);
 
 interface MockBackend extends FileBackend {
   readonly files: Map<string, string>;
@@ -492,6 +498,75 @@ describe("opening", () => {
       "could not import broken.mermaid",
     );
     expect(harness.backend.watched).toEqual([source.path]);
+  });
+
+  test("opening BPMN imports a detached document and never rewrites the source", async () => {
+    const harness = createHarness();
+    const path = "/docs/purchase-request.bpmn";
+    harness.backend.files.set(path, BPMN_FIXTURE);
+
+    expect(await harness.session.openPath(path)).toBe(true);
+    expect(harness.session.state()).toMatchObject({
+      filePath: null,
+      fileName: "purchase-request.bpmn",
+      dirty: true,
+      importWarnings: [],
+      error: null,
+    });
+    expect(harness.editor.getSnapshot().pages[0]?.kind).toBe("bpmn");
+    expect(
+      harness.editor.store
+        .listElements()
+        .filter((element) =>
+          ["bpmn.event", "bpmn.task", "bpmn.gateway"].includes(element.type),
+        ),
+    ).toHaveLength(13);
+    expect(harness.backend.watched).toEqual([null]);
+
+    addShape(harness.editor, "local edit");
+    harness.timers.fire();
+    await harness.settle();
+    expect(harness.backend.writes).toEqual([]);
+    expect(harness.backend.files.get(path)).toBe(BPMN_FIXTURE);
+  });
+
+  test("a malformed BPMN file leaves the current document and association intact", async () => {
+    const source = await savedFile("original");
+    const harness = createHarness();
+    harness.backend.files.set(source.path, source.text);
+    await harness.session.openPath(source.path);
+    const before = serializeDocument(harness.editor.getSnapshot());
+    harness.backend.files.set("/docs/broken.bpmn", "<bpmn:definitions");
+
+    expect(await harness.session.openPath("/docs/broken.bpmn")).toBe(false);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(before);
+    expect(harness.session.state().filePath).toBe(source.path);
+    expect(harness.session.state().error).toContain(
+      "could not import broken.bpmn",
+    );
+    expect(harness.backend.watched).toEqual([source.path]);
+  });
+
+  test("BPMN import warnings are surfaced and cleared by a JSONL open", async () => {
+    const harness = createHarness();
+    const path = "/docs/unsupported.bpmn";
+    const source =
+      '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Defs"><bpmn:process id="Process"><bpmn:transaction id="Transaction_A"><bpmn:task id="Nested_A" /></bpmn:transaction></bpmn:process></bpmn:definitions>';
+    harness.backend.files.set(path, source);
+
+    expect(await harness.session.openPath(path)).toBe(true);
+    expect(harness.session.state().importWarnings).toHaveLength(1);
+    expect(harness.session.state().importWarnings[0]?.element).toBe(
+      "transaction",
+    );
+
+    const jsonlPath = "/docs/after-import.jsonl";
+    harness.backend.files.set(
+      jsonlPath,
+      serializeDocument(harness.editor.getSnapshot()),
+    );
+    expect(await harness.session.openPath(jsonlPath)).toBe(true);
+    expect(harness.session.state().importWarnings).toEqual([]);
   });
 
   test("a cancelled open changes nothing", async () => {

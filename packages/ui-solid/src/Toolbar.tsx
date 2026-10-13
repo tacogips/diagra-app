@@ -53,6 +53,40 @@ const tools = (
   items: readonly [ToolKind, string, string][],
 ): readonly ToolbarTool[] =>
   items.map(([tool, label, title]) => ({ tool, label, title }));
+export const BPMN_TOOL_MENU: Readonly<{
+  id: "bpmn";
+  label: "BPMN";
+  tools: readonly ToolbarTool[];
+}> = {
+  id: "bpmn",
+  label: "BPMN",
+  tools: tools([
+    ["bpmn:pool", "Pool", "Pool"],
+    ["bpmn:pool-collapsed", "Collapsed pool", "Collapsed pool"],
+    ["bpmn:lane", "Lane", "Lane"],
+    ["bpmn:task", "Task", "Task"],
+    ["bpmn:user-task", "User task", "User task"],
+    ["bpmn:service-task", "Service task", "Service task"],
+    ["bpmn:start-event", "Start event", "Start event"],
+    ["bpmn:message-catch", "Message catch", "Message catch event"],
+    ["bpmn:message-throw", "Message throw", "Message throw event"],
+    ["bpmn:timer-catch", "Timer catch", "Timer catch event"],
+    ["bpmn:end-event", "End event", "End event"],
+    ["bpmn:exclusive-gateway", "Exclusive gateway", "Exclusive gateway"],
+    ["bpmn:parallel-gateway", "Parallel gateway", "Parallel gateway"],
+    ["bpmn:sub-process", "Collapsed sub-process", "Collapsed sub-process"],
+    [
+      "bpmn:sub-process-expanded",
+      "Expanded sub-process",
+      "Expanded sub-process",
+    ],
+    ["bpmn:call-activity", "Call activity", "Call activity"],
+    ["bpmn:data-object", "Data object", "Data object"],
+    ["bpmn:data-store", "Data store", "Data store"],
+    ["bpmn:text-annotation", "Text annotation", "Text annotation"],
+    ["bpmn:group", "Group", "Group"],
+  ]),
+};
 export const TOOL_MENUS: readonly Readonly<{
   id: string;
   label: string;
@@ -262,6 +296,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const readOnly = () => {
     signals.rev();
     return props.editor.readOnly;
+  };
+  const currentPageKind = () => {
+    signals.rev();
+    return props.editor.store.getPage(props.editor.currentPageId)?.kind;
   };
   const undo = () => {
     signals.rev();
@@ -511,6 +549,33 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         >
           <Icon name="text" />
         </button>
+        <Show when={currentPageKind() === "bpmn"}>
+          <button
+            type="button"
+            class="diagra-toolbar-chevron"
+            aria-label="BPMN"
+            title="Descriptive BPMN palette"
+            aria-haspopup="menu"
+            aria-expanded={open() === BPMN_TOOL_MENU.id}
+            onClick={(event) => trigger(BPMN_TOOL_MENU.id, event.currentTarget)}
+            onKeyDown={(event) => triggerKey(BPMN_TOOL_MENU.id, event)}
+          >
+            BPMN
+          </button>
+        </Show>
+        <Show
+          when={open() === BPMN_TOOL_MENU.id && currentPageKind() === "bpmn"}
+        >
+          <div
+            class="diagra-toolbar-menu"
+            role="menu"
+            aria-label="BPMN"
+            style={menuStyle()}
+            onKeyDown={menuKey}
+          >
+            {toolItems(BPMN_TOOL_MENU.tools)}
+          </div>
+        </Show>
         <Show when={open() === "frames" || open() === "shapes"}>
           <div
             class="diagra-toolbar-menu"

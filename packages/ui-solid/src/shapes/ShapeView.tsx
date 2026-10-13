@@ -8,7 +8,7 @@
 // A group gets no DOM at all (design editor-ux.md section 7): it exists for
 // selection and transformation only, and its members draw themselves.
 
-import type { Box } from "@diagra/core";
+import { isBpmnShapeType, type Box } from "@diagra/core";
 import type { AccessibilityRole, Element } from "@diagra/ir";
 import { type JSX, Match, Show, Switch } from "solid-js";
 import { ErdTableView } from "./ErdTableView.tsx";
@@ -21,6 +21,7 @@ import { NodeView } from "./NodeView.tsx";
 import { SequenceParticipantView } from "./SequenceParticipantView.tsx";
 import { TextNoteView } from "./TextNoteView.tsx";
 import { UmlClassView } from "./UmlClassView.tsx";
+import { BpmnShapeView } from "./BpmnShapeView.tsx";
 import { layerAppearanceStyle } from "./visual.ts";
 
 export interface ShapeViewProps {
@@ -151,6 +152,9 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
             <div class="diagra-unknown">{`unsupported: ${props.element.type}`}</div>
           }
         >
+          <Match when={isBpmnShapeType(props.element.type)}>
+            <BpmnShapeView element={props.element} box={props.box} />
+          </Match>
           <Match when={props.element.type === "shape.geo"}>
             <GeoShapeView element={props.element} box={props.box} />
           </Match>

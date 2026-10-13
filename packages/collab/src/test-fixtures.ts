@@ -9,6 +9,7 @@
 import type { Document, Element, Page } from "@diagra/ir";
 
 export const ERD_PAGE: Page = { id: "p1", name: "Domain model", kind: "erd" };
+export const BPMN_PAGE: Page = { id: "p-bpmn", name: "Purchase", kind: "bpmn" };
 
 /** Two tables and the relation between them; columns carry ids. */
 export function erdDocument(): Document {
@@ -154,6 +155,164 @@ export function sequenceDocument(): Document {
   };
 }
 
+/** BPMN operation flow with nested semantic references and DI label bounds. */
+export function bpmnDocument(): Document {
+  return {
+    schemaVersion: 1,
+    id: "01JBPMN00000000000000000000",
+    title: "Purchase request",
+    pages: [BPMN_PAGE],
+    elements: [
+      {
+        id: "participant-purchase",
+        page: "p-bpmn",
+        type: "bpmn.participant",
+        index: "a0",
+        semantic: { name: "Purchase process", collapsed: false },
+        visual: { x: 0, y: 0, width: 760, height: 360 },
+      },
+      {
+        id: "lane-applicant",
+        page: "p-bpmn",
+        type: "bpmn.lane",
+        index: "a1",
+        semantic: { name: "Applicant", parent: "participant-purchase" },
+        visual: { x: 0, y: 30, width: 760, height: 150 },
+      },
+      {
+        id: "lane-purchasing",
+        page: "p-bpmn",
+        type: "bpmn.lane",
+        index: "a2",
+        semantic: { name: "Purchasing", parent: "participant-purchase" },
+        visual: { x: 0, y: 180, width: 760, height: 180 },
+      },
+      {
+        id: "event-start",
+        page: "p-bpmn",
+        type: "bpmn.event",
+        index: "a3",
+        semantic: {
+          name: "Request needed",
+          position: "start",
+          definitions: [],
+          parent: "lane-applicant",
+        },
+        visual: { x: 60, y: 75, width: 36, height: 36 },
+      },
+      {
+        id: "task-request",
+        page: "p-bpmn",
+        type: "bpmn.task",
+        index: "a4",
+        semantic: {
+          name: "Submit request",
+          taskType: "user",
+          loop: "none",
+          parent: "lane-applicant",
+        },
+        visual: { x: 150, y: 55, width: 120, height: 80 },
+      },
+      {
+        id: "event-message",
+        page: "p-bpmn",
+        type: "bpmn.event",
+        index: "a5",
+        semantic: {
+          name: "Notify purchasing",
+          position: "intermediateThrow",
+          definitions: [{ id: "d-msg", kind: "message", ref: "purchase" }],
+          parent: "lane-purchasing",
+        },
+        visual: { x: 315, y: 225, width: 36, height: 36 },
+      },
+      {
+        id: "gateway-approval",
+        page: "p-bpmn",
+        type: "bpmn.gateway",
+        index: "a6",
+        semantic: {
+          name: "Approved?",
+          gatewayType: "exclusive",
+          parent: "lane-purchasing",
+        },
+        visual: { x: 410, y: 220, width: 48, height: 48 },
+      },
+      {
+        id: "event-end",
+        page: "p-bpmn",
+        type: "bpmn.event",
+        index: "a7",
+        semantic: {
+          name: "Request processed",
+          position: "end",
+          definitions: [],
+          parent: "lane-purchasing",
+        },
+        visual: {
+          x: 650,
+          y: 225,
+          width: 36,
+          height: 36,
+          labelBounds: { x: 620, y: 270, width: 100, height: 24 },
+        },
+      },
+      {
+        id: "flow-start-request",
+        page: "p-bpmn",
+        type: "bpmn.sequenceFlow",
+        index: "a8",
+        semantic: { from: "event-start", to: "task-request" },
+        visual: {},
+      },
+      {
+        id: "flow-request-message",
+        page: "p-bpmn",
+        type: "bpmn.sequenceFlow",
+        index: "a9",
+        semantic: { from: "task-request", to: "event-message" },
+        visual: {},
+      },
+      {
+        id: "flow-message-approval",
+        page: "p-bpmn",
+        type: "bpmn.sequenceFlow",
+        index: "aa",
+        semantic: { from: "event-message", to: "gateway-approval" },
+        visual: {},
+      },
+      {
+        id: "flow-approval-end",
+        page: "p-bpmn",
+        type: "bpmn.sequenceFlow",
+        index: "ab",
+        semantic: { from: "gateway-approval", to: "event-end" },
+        visual: {},
+      },
+      {
+        id: "annotation-quote",
+        page: "p-bpmn",
+        type: "bpmn.textAnnotation",
+        index: "ac",
+        semantic: { text: "Attach a supplier quote", parent: "lane-applicant" },
+        visual: { x: 150, y: 130, width: 140, height: 50 },
+      },
+      {
+        id: "association-quote",
+        page: "p-bpmn",
+        type: "bpmn.association",
+        index: "ad",
+        semantic: {
+          from: "annotation-quote",
+          to: "task-request",
+          direction: "none",
+        },
+        visual: {},
+      },
+    ],
+  };
+}
+
 /**
  * Freeform: an id-less point list, a scalar array, deep style nesting, an
  * extension bag and an unknown record — everything the mapping has to carry
@@ -229,7 +388,13 @@ export function freeformDocument(): Document {
 
 /** Every fixture, for suites that assert a property across all of them. */
 export function allFixtures(): readonly Document[] {
-  return [erdDocument(), umlDocument(), sequenceDocument(), freeformDocument()];
+  return [
+    erdDocument(),
+    umlDocument(),
+    sequenceDocument(),
+    freeformDocument(),
+    bpmnDocument(),
+  ];
 }
 
 /** The element with `id`, or a thrown error naming the document. */

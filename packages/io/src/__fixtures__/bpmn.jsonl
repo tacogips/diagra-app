@@ -1,0 +1,18 @@
+{"kind":"document","schemaVersion":1,"id":"01JBPMN00000000000000000000","title":"BPMN contract fixture"}
+{"kind":"page","id":"p-bpmn","name":"Operation flow","pageKind":"bpmn"}
+{"kind":"element","id":"association-1","page":"p-bpmn","type":"bpmn.association","index":"a9","semantic":{"from":"data-1","to":"task-1","direction":"one"}}
+{"kind":"element","id":"boundary-1","page":"p-bpmn","type":"bpmn.boundaryEvent","index":"a6","semantic":{"attachedTo":"task-1","cancelActivity":true,"definitions":[]}}
+{"kind":"element","id":"call-1","page":"p-bpmn","type":"bpmn.callActivity","index":"a5","semantic":{"loop":"none","parent":"lane-1"}}
+{"kind":"element","id":"data-1","page":"p-bpmn","type":"bpmn.dataObject","index":"a8","semantic":{"role":"reference","collection":false,"parent":"lane-1"}}
+{"kind":"element","id":"data-association-1","page":"p-bpmn","type":"bpmn.dataAssociation","index":"ac","semantic":{"from":"task-1","to":"data-1"}}
+{"kind":"element","id":"data-store-1","page":"p-bpmn","type":"bpmn.dataStore","index":"aa","semantic":{"parent":"lane-1"}}
+{"kind":"element","id":"event-1","page":"p-bpmn","type":"bpmn.event","index":"a7","semantic":{"position":"start","definitions":[],"parent":"lane-1"},"visual":{"labelBounds":{"x":40,"y":100,"width":80,"height":24}}}
+{"kind":"element","id":"gateway-1","page":"p-bpmn","type":"bpmn.gateway","index":"a8a","semantic":{"gatewayType":"exclusive","parent":"lane-1"}}
+{"kind":"element","id":"group-1","page":"p-bpmn","type":"bpmn.group","index":"ab","semantic":{"name":"Review scope"}}
+{"kind":"element","id":"lane-1","page":"p-bpmn","type":"bpmn.lane","index":"a1","semantic":{"name":"Approver","parent":"pool-1"}}
+{"kind":"element","id":"message-flow-1","page":"p-bpmn","type":"bpmn.messageFlow","index":"a8b","semantic":{"from":"task-1","to":"event-1"}}
+{"kind":"element","id":"pool-1","page":"p-bpmn","type":"bpmn.participant","index":"a0","semantic":{"name":"Review process","collapsed":false}}
+{"kind":"element","id":"sequence-flow-1","page":"p-bpmn","type":"bpmn.sequenceFlow","index":"a8c","semantic":{"from":"event-1","to":"task-1"}}
+{"kind":"element","id":"subprocess-1","page":"p-bpmn","type":"bpmn.subProcess","index":"a4","semantic":{"expanded":true,"triggeredByEvent":false,"adHoc":false,"loop":"none","parent":"lane-1"}}
+{"kind":"element","id":"task-1","page":"p-bpmn","type":"bpmn.task","index":"a2","semantic":{"taskType":"user","loop":"none","parent":"lane-1"}}
+{"kind":"element","id":"text-annotation-1","page":"p-bpmn","type":"bpmn.textAnnotation","index":"a3","semantic":{"text":"Review request","parent":"lane-1"}}

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 import { EXIT_ERROR, runCli } from "./commands.ts";
 import { writeFileAtomic } from "./write-atomic.ts";
@@ -11,6 +11,7 @@ try {
     {
       readText: (path) => readFileSync(path, "utf8"),
       writeText: writeFileAtomic,
+      exists: (path) => existsSync(path),
     },
     packageJson.version,
   );

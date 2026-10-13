@@ -51,3 +51,21 @@ export {
   type D2ExportWarning,
   exportD2,
 } from "./d2/export.ts";
+export {
+  BpmnParseError,
+  type BpmnImportOptions,
+  type BpmnImportReport,
+  type BpmnImportWarning,
+  type BpmnExportOptions,
+  type BpmnExportReport,
+  type BpmnExportWarning,
+  bpmnExportId,
+  bpmnSemanticProjection,
+  exportBpmnXml,
+  importBpmnXml,
+  parseXml,
+  serializeXml,
+  type XmlAttribute,
+  type XmlElement,
+  type XmlNode,
+} from "./bpmn/index.ts";

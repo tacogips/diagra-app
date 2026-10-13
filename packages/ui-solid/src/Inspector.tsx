@@ -12,6 +12,7 @@ import type { Editor } from "@diagra/core";
 import { leafElements, layerName, renameLayer } from "@diagra/core";
 import { BatchRenameSection } from "./inspector/BatchRenameSection.tsx";
 import { ReplaceNoteTextSection } from "./inspector/ReplaceNoteTextSection.tsx";
+import { BpmnSection } from "./inspector/BpmnSection.tsx";
 import {
   type Element,
   type ElementId,
@@ -281,6 +282,9 @@ export function Inspector(props: InspectorProps): JSX.Element {
               </Match>
               <Match when={element().type === "uml.association"}>
                 <AssociationSection editor={props.editor} element={element()} />
+              </Match>
+              <Match when={element().type.startsWith("bpmn.")}>
+                <BpmnSection editor={props.editor} element={element()} />
               </Match>
               <Match when={element().type === "group"}>
                 <GroupSection editor={props.editor} element={element()} />

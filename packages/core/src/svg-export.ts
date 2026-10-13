@@ -54,6 +54,13 @@ import { richTextSegments, safeTextLinkHref } from "./rich-text.ts";
 import { expandContainers } from "./frame-tree.ts";
 import type { ShapeContext, ShapeUtilRegistry } from "./shape-util.ts";
 import {
+  bpmnFlowDecoration,
+  bpmnLabelBox,
+  bpmnNotation,
+  isBpmnShapeType,
+  type NotationPrimitive,
+} from "./bpmn/notation.ts";
+import {
   connectorDefaultDash,
   connectorDecoration,
   endpointReaderFor,
@@ -1115,7 +1122,89 @@ function renderUnsupported(
   );
 }
 
+function renderNotationPrimitive(primitive: NotationPrimitive): string {
+  const common = {
+    class: `bpmn-${primitive.role}`,
+    fill: primitive.fill,
+    stroke: primitive.stroke,
+    "stroke-width": primitive.strokeWidth,
+    "stroke-dasharray": primitive.dash,
+  };
+  switch (primitive.kind) {
+    case "rect":
+      return tag("rect", {
+        ...common,
+        x: primitive.x,
+        y: primitive.y,
+        width: primitive.width,
+        height: primitive.height,
+        rx: primitive.rx,
+      });
+    case "circle":
+      return tag("circle", {
+        ...common,
+        cx: primitive.cx,
+        cy: primitive.cy,
+        r: primitive.r,
+      });
+    case "path":
+      return tag("path", { ...common, d: primitive.d });
+    case "polygon":
+      return tag("polygon", {
+        ...common,
+        points: primitive.points
+          .map((point) => `${fmt(point.x)},${fmt(point.y)}`)
+          .join(" "),
+      });
+    case "text": {
+      const transform =
+        primitive.rotate === undefined
+          ? undefined
+          : `rotate(-90 ${fmt(primitive.x)} ${fmt(primitive.y)})`;
+      const lines = primitive.lines
+        .map((line, index) =>
+          wrap(
+            "tspan",
+            { x: primitive.x, y: primitive.y + index * primitive.lineHeight },
+            escapeXml(line),
+          ),
+        )
+        .join("");
+      return wrap(
+        "text",
+        {
+          ...common,
+          x: primitive.x,
+          y: primitive.y,
+          transform,
+          "text-anchor": primitive.anchor,
+          "font-size": primitive.fontSize,
+          fill: primitive.fill,
+          stroke: "none",
+          "xml:space": "preserve",
+        },
+        lines,
+      );
+    }
+  }
+}
+
+function renderBpmnShape(element: Element, box: Box): string {
+  const primitives = bpmnNotation(element, {
+    x: 0,
+    y: 0,
+    width: box.width,
+    height: box.height,
+  });
+  return wrap(
+    "g",
+    { transform: `translate(${fmt(box.x)} ${fmt(box.y)})` },
+    primitives.map(renderNotationPrimitive).join(""),
+  );
+}
+
 function renderShape(element: Element, box: Box, theme: SvgTheme): string {
+  if (isBpmnShapeType(element.type)) return renderBpmnShape(element, box);
   switch (element.type) {
     case "draw.path": {
       const geometry = compoundPathGeometry(element);
@@ -1365,6 +1454,14 @@ function renderConnector(
             element.id,
           ),
         );
+  if (element.type.startsWith("bpmn.")) {
+    return (
+      line +
+      bpmnFlowDecoration(element, resolved.points, (id) => context.resolve(id))
+        .map(renderNotationPrimitive)
+        .join("")
+    );
+  }
   if (decoration.label === "") {
     return line;
   }
@@ -1561,6 +1658,33 @@ export function renderElementsSvg(
     }
     if (visible !== null) {
       boxes.push(visible);
+    }
+    if (box && isBpmnShapeType(element.type)) {
+      const label = bpmnLabelBox(element, box);
+      if (label) boxes.push(label);
+    }
+    if (isEdge(element.type) && element.type.startsWith("bpmn.")) {
+      const resolved = resolveConnector(
+        element,
+        context,
+        endpointReaderFor(element.type),
+      );
+      if (resolved) {
+        for (const primitive of bpmnFlowDecoration(
+          element,
+          resolved.points,
+          (id) => context.resolve(id),
+        )) {
+          if (primitive.kind === "text" && primitive.role === "flow-label") {
+            boxes.push({
+              x: primitive.x - 45,
+              y: primitive.y - primitive.fontSize,
+              width: 90,
+              height: primitive.lineHeight * primitive.lines.length,
+            });
+          }
+        }
+      }
     }
   }
 

@@ -119,6 +119,18 @@ export function elementOutlinePolygon(
       y: geometry.box.y + point.y,
     }));
   }
+  if (element.type === "bpmn.event" || element.type === "bpmn.boundaryEvent")
+    return geoOutlinePolygon("ellipse", box);
+  if (element.type === "bpmn.gateway") return geoOutlinePolygon("diamond", box);
+  if (
+    ["bpmn.task", "bpmn.subProcess", "bpmn.callActivity"].includes(element.type)
+  )
+    return roundedRectPolygon(box, {
+      topLeft: 10,
+      topRight: 10,
+      bottomRight: 10,
+      bottomLeft: 10,
+    });
   return element.visual.style?.cornerRadii || element.visual.style?.cornerRadius
     ? roundedRectPolygon(box, resolvedCornerRadii(element.visual.style))
     : null;

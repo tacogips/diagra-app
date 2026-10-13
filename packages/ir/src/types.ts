@@ -28,6 +28,7 @@ export const PAGE_KINDS = [
   "uml",
   "sequence",
   "architecture",
+  "bpmn",
 ] as const;
 
 export type PageKind = (typeof PAGE_KINDS)[number];
@@ -215,6 +216,8 @@ export interface VisualStyle {
  * no box geometry at all.
  */
 export interface Visual {
+  /** BPMN label box in page units; renderers fall back to a default placement when absent. */
+  readonly labelBounds?: LabelBounds;
   /** Opt-in tight Bézier frame; omitted preserves legacy control-hull mapping. */
   readonly strokeBounds?: "curve";
   /** Relative main-axis fill weight inside a fixed auto-layout parent; zero is fixed. */
@@ -301,6 +304,13 @@ export interface Visual {
   readonly rotation?: number;
   readonly style?: VisualStyle;
   readonly extensions?: Extensions;
+}
+
+export interface LabelBounds {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
 }
 
 export interface Page {

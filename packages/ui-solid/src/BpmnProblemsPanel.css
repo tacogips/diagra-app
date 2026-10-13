@@ -1,0 +1,67 @@
+.diagra-bpmn-problems {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  color: var(--diagra-ink, #20252a);
+  font: inherit;
+  font-size: .85rem;
+}
+
+.diagra-bpmn-problems-summary,
+.diagra-bpmn-problems-status,
+.diagra-bpmn-import-warnings h3 {
+  margin: 0;
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.diagra-bpmn-problems-status {
+  padding: 6px 8px;
+  border-left: 3px solid #b54708;
+  background: #fff4e5;
+}
+
+.diagra-bpmn-problems-list,
+.diagra-bpmn-import-warnings ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diagra-bpmn-problem {
+  display: grid;
+  grid-template-columns: auto minmax(70px, max-content) minmax(0, 1fr) auto;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #dfe3e6;
+  border-radius: 0;
+  color: inherit;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.diagra-bpmn-problem:disabled {
+  cursor: default;
+}
+
+.diagra-bpmn-problem-rule {
+  color: #5d6872;
+  font-family: ui-monospace, monospace;
+}
+
+.diagra-bpmn-import-warnings {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #dfe3e6;
+}
+
+.diagra-bpmn-import-warnings li {
+  overflow-wrap: anywhere;
+}

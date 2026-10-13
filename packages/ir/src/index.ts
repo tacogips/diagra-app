@@ -189,3 +189,47 @@ export type {
   NumberTokenSemantic,
 } from "./semantics.ts";
 export { BOOLEAN_OPERATIONS } from "./semantics.ts";
+export {
+  BPMN_ASSOCIATION_DIRECTIONS,
+  BPMN_DATA_OBJECT_ROLES,
+  BPMN_ELEMENT_TYPES,
+  BPMN_EVENT_DEFINITION_KINDS,
+  BPMN_EVENT_POSITIONS,
+  BPMN_GATEWAY_TYPES,
+  BPMN_LOOP_TYPES,
+  BPMN_TASK_TYPES,
+  BPMN_TIMER_TYPES,
+  isBpmnElementType,
+} from "./semantics.ts";
+export type {
+  BpmnAssociationDirection,
+  BpmnAssociationSemantic,
+  BpmnBoundaryEventSemantic,
+  BpmnCallActivitySemantic,
+  BpmnDataAssociationSemantic,
+  BpmnDataObjectRole,
+  BpmnDataObjectSemantic,
+  BpmnDataStoreSemantic,
+  BpmnEventDefinition,
+  BpmnEventDefinitionKind,
+  BpmnEventPosition,
+  BpmnEventSemantic,
+  BpmnGatewaySemantic,
+  BpmnGatewayType,
+  BpmnGroupSemantic,
+  BpmnLaneSemantic,
+  BpmnLoopType,
+  BpmnMessageFlowSemantic,
+  BpmnParticipantSemantic,
+  BpmnSequenceFlowSemantic,
+  BpmnSubProcessSemantic,
+  BpmnTaskSemantic,
+  BpmnTaskType,
+  BpmnTextAnnotationSemantic,
+  BpmnTimerType,
+} from "./semantics.ts";
+export {
+  connectorWaypointFromPage,
+  connectorWaypointToPage,
+} from "./connector-waypoints.ts";
+export type { LabelBounds } from "./types.ts";

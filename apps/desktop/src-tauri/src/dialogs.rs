@@ -11,7 +11,7 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 const FILTER_NAME: &str = "diagra document";
-const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid"];
+const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid", "bpmn"];
 const SAVE_FILTER_EXTENSIONS: &[&str] = &["jsonl"];
 const DEFAULT_FILE_NAME: &str = "untitled.jsonl";
 
@@ -133,6 +133,11 @@ pub async fn pick_export_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn open_filter_includes_bpmn() {
+        assert!(OPEN_FILTER_EXTENSIONS.contains(&"bpmn"));
+    }
 
     #[test]
     fn appends_the_extension_when_none_was_typed() {

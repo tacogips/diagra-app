@@ -35,8 +35,8 @@ apps/
 `ir` and `io` implement the Diagram IR and the deterministic JSONL file
 format; see [`packages/ir/README.md`](packages/ir/README.md) and
 [`packages/io/README.md`](packages/io/README.md). `core` implements the
-editor engine — store, commands, camera, selection, history, ShapeUtil
-registry and hit testing — and `ui-solid` renders it to SVG and DOM; the
+editor engine - store, commands, camera, selection, history, ShapeUtil
+registry and hit testing - and `ui-solid` renders it to SVG and DOM; the
 desktop client wires the two together, see
 [`apps/desktop/README.md`](apps/desktop/README.md) for the canvas layout and
 the manual gesture checklist. `collab` is still a scaffold.
@@ -103,6 +103,9 @@ diagra-cli ddl schema.jsonl --dialect postgresql --strict --check schema.sql
 diagra-cli format schema.jsonl --check     # or --write
 diagra-cli arrange schema.jsonl --write    # Tidy layout; --mode overlaps, --check
 diagra-cli validate schema.jsonl
+diagra-cli lint process.jsonl --format text
+diagra-cli bpmn import process.bpmn --output process.jsonl
+diagra-cli bpmn export process.jsonl --page process --check process.bpmn
 ```
 
 `ddl` emits exactly what the inspector's Database DDL panel generates for one
@@ -110,7 +113,11 @@ ERD page (`--page <id or name>` when several pages contain tables). `--check`
 exits 1 when the file is out of date, `--strict` exits 3 when the export
 reports warnings, and usage or parse errors exit 2. In a checkout, run it with
 `bun apps/cli/src/main.ts`; `mise run build-cli` compiles the standalone
-sidecar that the macOS bundle ships.
+sidecar that the macOS bundle ships. `lint` exits 0 when there are no
+error-level findings (warnings may still be printed), 1 when error-level
+findings exist, and 2 for usage, parse, or config errors; it has no `--strict`
+option. `bpmn import` and `bpmn export` exit 3 with `--strict` when they report
+warnings. `bpmn export --check` exits 1 on drift; usage or parse errors exit 2.
 
 ## Tidy layout and overlap removal
 
@@ -173,7 +180,7 @@ preserves simultaneous content edits from another client.
 
 The canvas zoom percentage is editable, including arithmetic such as `100 / 3`.
 Exact zoom retains the page point at the viewport center and is limited to
-10–800%. Separate 100%, Fit and Selection buttons reset or frame the desired
+10-800%. Separate 100%, Fit and Selection buttons reset or frame the desired
 content. Zoom remains local to each page and does not edit the document.
 
 ## Numeric inspector fields
@@ -246,8 +253,8 @@ It generates deterministic PostgreSQL, MySQL, or SQLite SQL for every table on
 the current page, including primary keys, nullability, relation-derived foreign
 keys, one-to-one uniqueness, safe default expressions, and named or generated
 ordered composite indexes. Columns can also carry a portable computed
-expression; the editor marks them with `ƒ`, keeps them mutually exclusive with
-defaults and primary keys, and emits `GENERATED ALWAYS AS (...) STORED` for all
+expression; the editor marks them with a function (f-hook) glyph, keeps them
+mutually exclusive with defaults and primary keys, and emits `GENERATED ALWAYS AS (...) STORED` for all
 three targets after a conservative row-local expression safety check. Stable-ID
 table check constraints accept portable,
 single-expression SQL predicates and are omitted with a warning if they contain
@@ -294,6 +301,27 @@ crossing several peers is one undo step, Escape cancels the entire reorder, and
 the inspector provides Move left/right and Earlier/later buttons for precise or
 keyboard-driven changes. Reorders converge through Yjs and peer-local undo
 preserves concurrent semantic edits.
+
+## BPMN operation flows
+
+Create a `bpmn` page with **Add BPMN page**, then use the BPMN palette for
+participants, lanes, tasks, events, gateways, data, and flows. Semantic types
+and payloads are stored separately from geometry in JSONL; see the [BPMN
+format](docs/bpmn/format.md) and [lint rule reference](docs/bpmn/lint-rules.md).
+
+The editor prevents sequence flows across participants and message flows
+within one participant, incoming sequence flows to start events, and outgoing
+sequence flows from end events. When a connection gesture can be interpreted
+as a different legal flow, the editor corrects it. The BPMN problems panel
+lists lint findings and selects the associated element.
+
+Open a `.bpmn` file for detached import, or use **Import BPMN...** and
+**Export BPMN...** in the desktop File menu. XML-only or unsupported content
+is retained with import warnings. Use `diagra-cli lint` for CI checks and
+`diagra-cli bpmn import|export` for BPMN 2.0 XML interchange. The [AI review
+guideline](docs/bpmn/ai-review-rules.md) is an original starting point for
+`.claude/rules/`; [purchase-request.jsonl](docs/bpmn/purchase-request.jsonl)
+is the example document.
 
 ## Connector routing
 
@@ -373,7 +401,7 @@ out as absolute overlays for badges, floating controls and layered media. They
 remain attached to the frame, retain parent-relative geometry and responsive
 constraints, and consume no flow or hug space. Enabling layout attaches the current contents explicitly. Child
 size changes reflow the stack in the same undo step; nested frames, copy and
-collaboration preserve membership. “Keep contents attached” pins geometric
+collaboration preserve membership. "Keep contents attached" pins geometric
 membership without enabling layout. Existing unpinned frames keep geometric
 behavior.
 Flow members and auto-layout frames can set independent minimum and maximum
@@ -450,7 +478,7 @@ palette. Rectangle, node and artboard corner radii persist and export to SVG;
 explicitly rounded rectangles and nodes exclude transparent corners when
 picking. Generic node fill/stroke/opacity now render on the canvas too.
 Fillable layers also support linear, radial, angular and diamond gradients with
-2–8 ordered stops, per-stop opacity, direction controls, and normalized
+2-8 ordered stops, per-stop opacity, direction controls, and normalized
 center/radius controls where applicable.
 Gradients retain their first stop as a solid fallback, render in HTML and SVG
 canvas shapes, persist through JSONL/copy/undo, export to SVG and developer
@@ -544,7 +572,7 @@ Individual padding expands top/right/bottom/left overrides for auto-layout
 frames. Unset sides use the shared Padding value; Use default restores that
 behavior. Hug sizing includes each side separately, and alignment/distribution
 operate within the resulting inner space.
-Align → Stretch fills the fixed cross axis: width in vertical layouts, height
+Align -> Stretch fills the fixed cross axis: width in vertical layouts, height
 in horizontal layouts. Resizable, visible, unlocked children use the available
 inner size; rotated children and children that hug that axis are skipped.
 Hug-sized parent axes do not stretch. Nested rows reflow after receiving their
@@ -564,9 +592,9 @@ grows vertically. Text and typography edits materialize deterministic geometry
 in the same undo transaction before auto layout, so cards and mobile screens
 reflow and collaborators converge. Width/height token bindings are retained only
 on axes the text mode does not own. Manual numeric or canvas resizing switches
-the note back to Fixed box. Measurement uses the SVG exporter’s portable average-
+the note back to Fixed box. Measurement uses the SVG exporter's portable average-
 glyph estimate, caps derived dimensions at 1,000,000 design units and cannot
-match every installed font’s shaping exactly.
+match every installed font's shaping exactly.
 Collaborative documents reconcile linked colors and auto-layout geometry after remote merges and
 on attachment. Derived repairs are synchronized separately from user undo
 history. Simultaneous parent-width and padding edits are covered by two-client
@@ -589,7 +617,7 @@ choosing Export SVG produces its exact designed dimensions, clips overflow and
 omits the root editor title, without adding the canvas background or padding.
 Hidden or rotated roots are rejected. Ancestor clipping still applies for
 nested artboards. Page and multi-selection exports retain padded content bounds.
-Unrotated Bézier paths use curve extrema for SVG content bounds, excluding unused
+Unrotated Bezier paths use curve extrema for SVG content bounds, excluding unused
 endpoint handles. Existing control-point mapping and selection/resize frames
 remain unchanged by default to preserve saved designs. Fit frame to curve in
 the stroke inspector explicitly adopts tight selection/resize bounds without
@@ -598,9 +626,9 @@ subsequent point edits and open/close changes preserve that mode. Auto-layout
 parents may reflow after the frame changes. These are centerline bounds, not
 full stroked-outline measurements; rotated path bounds remain approximate.
 The inspector offers Download PNG for a whole page, selected layer, group or multi-selection
-at 0.5×, 0.75×, 1×, 1.5×, 2×, 3× or 4×. Single artboards use their exact exported
+at 0.5x, 0.75x, 1x, 1.5x, 2x, 3x or 4x. Single artboards use their exact exported
 envelope by default; the scope selector can use selected artwork or the whole
-page instead. Page/selection export supports 0–256 units of padding; all scopes
+page instead. Page/selection export supports 0-256 units of padding; all scopes
 offer transparency or a solid background color without editing artwork. Raster dimensions
 come from the SVG viewport, including rotated artboards, rather than layout bounds.
 It renders a captured SVG snapshot through the browser and requests a download,
@@ -626,7 +654,7 @@ To prototype a flow, connect a shape or frame to a destination frame using
 Edge, then enable Prototype navigation in the edge inspector. Mark an
 artboard as Prototype starting screen and open Preview in the toolbar.
 Links can navigate on click/tap, hover, primary-pointer press or after a
-100–60,000 ms delay. Interactive hotspots remain keyboard-operable. If a
+100-60,000 ms delay. Interactive hotspots remain keyboard-operable. If a
 screen has multiple delayed links, the shortest delay wins; equal delays use
 stable link-ID order. Changing screens or closing Preview cancels its pending
 timer. Back and the screen selector explore the flow.
@@ -727,7 +755,7 @@ preview commits once on release; Escape, focus loss, pointer cancellation,
 document/camera/selection changes or leaving the tool discard it. Numeric
 anchor controls remain available for keyboard editing. Dense-stroke performance
 and live pointer-device behavior remain unverified.
-In Anchors mode, purple handles and guide lines expose existing Bézier controls
+In Anchors mode, purple handles and guide lines expose existing Bezier controls
 for direct dragging. Each control moves independently of the anchor and opposite
 control, using the same preview, cancellation and single-step undo behavior.
 Insert point after subdivides an existing cubic segment without changing its
@@ -979,7 +1007,7 @@ Connectors now meet stored endpoint outlines in canvas, preview, hit geometry,
 SVG and raster capture. Ellipses use analytic intersections; diamonds,
 triangles, hexagons, parallelograms and stars use their rendered polygon;
 rounded rectangles use normalized corner geometry; and freehand paths use the
-same deterministic Bézier flattening as picking. Rotation is resolved in local
+same deterministic Bezier flattening as picking. Rotation is resolved in local
 coordinates and transformed back to page space. Stroke-width offsets remain a
 centerline approximation.
 Fit page and fit selection use visible rotated extents, expand selected
@@ -999,7 +1027,7 @@ non-layout frames and groups. Reachable nested auto-layout frames retain stable,
 isolated classes mapped in Design JSON.
 Exported flex-grow factors are normalized without changing their ratios or
 stored design weights, including fractional weights totaling less than one.
-The Anchors tool edits rotated freehand/Bézier paths directly in page space.
+The Anchors tool edits rotated freehand/Bezier paths directly in page space.
 Bounding-box rebasing preserves the rotation and untouched anchor/control
 positions. Rotated paths also support fitting their frame to the curve and
 closing/reopening without shifting existing anchors or controls. Numeric

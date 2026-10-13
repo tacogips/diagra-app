@@ -101,3 +101,12 @@ export {
 export { Layers } from "./LazyLayers.tsx";
 export { ReviewCommentPins, ReviewComments } from "./ReviewComments.tsx";
 export { TypographyStyles } from "./TypographyStyles.tsx";
+export {
+  BpmnProblemsPanel,
+  type BpmnProblemsPanelProps,
+} from "./BpmnProblemsPanel.tsx";
+export {
+  bpmnProblemRows,
+  focusBpmnProblem,
+  type BpmnProblemRow,
+} from "./bpmn-problems.ts";

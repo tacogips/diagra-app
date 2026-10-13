@@ -21,11 +21,14 @@ import {
   type Editor,
   type NewReviewMessage,
   type Vec,
+  bpmnRouteResolver,
 } from "@diagra/core";
 import type { ElementId } from "@diagra/ir";
 import {
   type ActionContext,
   ContextMenu,
+  BpmnProblemsPanel,
+  createEditorSignals,
   DiagraCanvas,
   getAction,
   HelpHint,
@@ -142,6 +145,7 @@ function describe(error: unknown): string {
 }
 
 export function App(props: AppProps): JSX.Element {
+  const editorSignals = createEditorSignals(props.editor);
   const [tool, setTool] = createSignal<ToolKind>("select");
   const [pendingComment, setPendingComment] = createSignal<{
     readonly input: NewReviewMessage;
@@ -280,6 +284,13 @@ export function App(props: AppProps): JSX.Element {
     if (path !== "" && mayDiscard()) {
       void props.session.openPath(path);
     }
+  };
+
+  const isBpmnPage = (): boolean => {
+    editorSignals.rev();
+    return (
+      props.editor.store.getPage(props.editor.currentPageId)?.kind === "bpmn"
+    );
   };
 
   onMount(() => {
@@ -560,6 +571,30 @@ export function App(props: AppProps): JSX.Element {
     }
   };
 
+  const exportBpmn = async (): Promise<void> => {
+    setExportError(null);
+    const page = props.editor.store.getPage(props.editor.currentPageId);
+    if (page?.kind !== "bpmn") return;
+    try {
+      const { exportBpmnXml } = await import("@diagra/io/bpmn");
+      const { xml } = exportBpmnXml(
+        props.editor.store.getSnapshot(),
+        props.editor.currentPageId,
+        { routeOf: bpmnRouteResolver(props.editor) },
+      );
+      const name = `${exportBaseName(page.name)}.bpmn`;
+      if (!props.exportBackend.available) {
+        downloadText(name, xml, "application/xml");
+        return;
+      }
+      const path = await props.exportBackend.pickExportPath(name, "bpmn");
+      if (path === null) return;
+      await props.exportBackend.writeText(path, xml);
+    } catch (error) {
+      setExportError(`could not export: ${describe(error)}`);
+    }
+  };
+
   /** Everything the shared action table needs from the shell. */
   const actionContext = (): ActionContext => ({
     editor: props.editor,
@@ -753,6 +788,22 @@ export function App(props: AppProps): JSX.Element {
               onClick={open}
             >
               Open
+            </button>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!props.filesAvailable || isCloud()}
+              onClick={open}
+            >
+              Import BPMN...
+            </button>
+            <button
+              type="button"
+              class="app-file-button"
+              disabled={!isBpmnPage()}
+              onClick={() => void exportBpmn()}
+            >
+              Export BPMN...
             </button>
             <button
               type="button"
@@ -1136,6 +1187,13 @@ export function App(props: AppProps): JSX.Element {
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
               <Inspector editor={props.editor} focus={inspectorFocus()} />
             </div>
+            <Show when={isBpmnPage()}>
+              <BpmnProblemsPanel
+                editor={props.editor}
+                viewport={viewport}
+                importWarnings={file().importWarnings}
+              />
+            </Show>
           </div>
           <button
             type="button"

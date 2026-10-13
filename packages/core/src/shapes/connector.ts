@@ -17,6 +17,8 @@ import {
   type GeoShapeSemantic,
   getElementTypeDefinition,
   MAX_CONNECTOR_WAYPOINTS,
+  connectorWaypointFromPage,
+  connectorWaypointToPage,
 } from "@diagra/ir";
 import {
   type Box,
@@ -107,46 +109,7 @@ function withRoute(
   };
 }
 
-export function connectorWaypointToPage(
-  waypoint: ConnectorWaypoint,
-  from: Vec,
-  to: Vec,
-): Vec {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const length = Math.hypot(dx, dy);
-  if (length < 1e-9) return { x: from.x + waypoint.u, y: from.y + waypoint.v };
-  return {
-    x: from.x + waypoint.u * dx - (waypoint.v * dy) / length,
-    y: from.y + waypoint.u * dy + (waypoint.v * dx) / length,
-  };
-}
-
-export function connectorWaypointFromPage(
-  point: Vec,
-  from: Vec,
-  to: Vec,
-): ConnectorWaypoint {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const lengthSquared = dx * dx + dy * dy;
-  if (lengthSquared < 1e-18)
-    return {
-      u: Math.round((point.x - from.x) * 100) / 100,
-      v: Math.round((point.y - from.y) * 100) / 100,
-    };
-  const offsetX = point.x - from.x;
-  const offsetY = point.y - from.y;
-  return {
-    u:
-      Math.round(((offsetX * dx + offsetY * dy) / lengthSquared) * 1_000_000) /
-      1_000_000,
-    v:
-      Math.round(
-        ((offsetY * dx - offsetX * dy) / Math.sqrt(lengthSquared)) * 100,
-      ) / 100,
-  };
-}
+export { connectorWaypointFromPage, connectorWaypointToPage } from "@diagra/ir";
 
 function projectedPointOnSegment(point: Vec, from: Vec, to: Vec): Vec {
   const dx = to.x - from.x;
@@ -785,6 +748,14 @@ function readString(source: unknown, field: string): string | undefined {
  * plain arrow at the far end as the default.
  */
 export function connectorDecoration(element: Element): ConnectorDecoration {
+  if (
+    element.type === "bpmn.sequenceFlow" ||
+    element.type === "bpmn.messageFlow" ||
+    element.type === "bpmn.association" ||
+    element.type === "bpmn.dataAssociation"
+  ) {
+    return { start: null, end: null, label: "" };
+  }
   const semantic = element.semantic;
   if (element.type === "erd.relation") {
     return {
@@ -826,6 +797,12 @@ export function connectorDecoration(element: Element): ConnectorDecoration {
 
 /** Semantic default line pattern; explicit visual styling may override it. */
 export function connectorDefaultDash(element: Element): string | undefined {
+  if (element.type === "bpmn.messageFlow") return "6 4";
+  if (
+    element.type === "bpmn.association" ||
+    element.type === "bpmn.dataAssociation"
+  )
+    return "1 4";
   if (
     element.type === "sequence.message" &&
     readString(element.semantic, "kind") === "return"

@@ -103,6 +103,20 @@ import {
   type SvgExportOptions,
 } from "./svg-export.ts";
 import { planZOrder, type ZOrderAction } from "./z-order.ts";
+import { referencesOf } from "./references.ts";
+import {
+  type BpmnConnectionResult,
+  type BpmnFlowType,
+  type BpmnRejection,
+  resolveBpmnConnection,
+} from "./bpmn/connection.ts";
+import {
+  addBpmnLaneCommands,
+  planBpmnLaneLayout,
+  planBpmnMembership,
+  planBpmnTranslations,
+} from "./bpmn/containment.ts";
+import { buildBpmnModel } from "./bpmn/model.ts";
 
 export interface EditorOptions {
   /** Document to open. A single empty freeform page is created otherwise. */
@@ -159,7 +173,25 @@ const EDITABLE_FIELDS: Readonly<Record<string, EditableField>> = {
   "erd.relation": "label",
   "uml.association": "label",
   "sequence.message": "label",
+  "bpmn.participant": "name",
+  "bpmn.lane": "name",
+  "bpmn.task": "name",
+  "bpmn.subProcess": "name",
+  "bpmn.callActivity": "name",
+  "bpmn.event": "name",
+  "bpmn.boundaryEvent": "name",
+  "bpmn.gateway": "name",
+  "bpmn.dataObject": "name",
+  "bpmn.dataStore": "name",
+  "bpmn.textAnnotation": "text",
+  "bpmn.group": "name",
+  "bpmn.sequenceFlow": "name",
+  "bpmn.messageFlow": "name",
 };
+
+export type BpmnEditResult =
+  | { readonly ok: true; readonly id: ElementId; readonly type: string }
+  | ({ readonly ok: false } & BpmnRejection);
 
 /** Keep breakpoint-owned geometry/state while adopting refreshed source paint. */
 function responsiveVisual(existing: Element, inherited: Element): Visual {
@@ -278,6 +310,9 @@ export class Editor {
   private readonly rng: Rng;
   private rasterMaskSampler: RasterMaskSampler | undefined;
   private readonly listeners = new Set<EditorListener>();
+  private readonly bpmnRejectionListeners = new Set<
+    (rejection: BpmnRejection) => void
+  >();
   /** Highest index handed out per page, so a batch of builds stays ordered. */
   private readonly pendingTop = new Map<PageId, FractionalIndex>();
   private pageId: PageId;
@@ -348,6 +383,18 @@ export class Editor {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  onBpmnRejection(listener: (rejection: BpmnRejection) => void): () => void {
+    this.bpmnRejectionListeners.add(listener);
+    return () => this.bpmnRejectionListeners.delete(listener);
+  }
+
+  private rejectBpmn(
+    result: Extract<BpmnConnectionResult, { ok: false }>,
+  ): BpmnEditResult {
+    for (const listener of this.bpmnRejectionListeners) listener(result);
+    return result;
   }
 
   get currentPageId(): PageId {
@@ -998,6 +1045,18 @@ export class Editor {
         ),
         ...planConstraints(this.store, draft, this.registry),
       ];
+      if (
+        this.store.listPages().some((page) => page.kind === "bpmn") ||
+        draft.listPages().some((page) => page.kind === "bpmn") ||
+        this.store
+          .listElements()
+          .some((element) => element.type.startsWith("bpmn.")) ||
+        draft.listElements().some((element) => element.type.startsWith("bpmn."))
+      ) {
+        derived.push(...planBpmnLaneLayout(this.store, draft));
+        derived.push(...planBpmnTranslations(this.store, draft));
+        derived.push(...planBpmnMembership(this.store, draft));
+      }
       const beforeLayout = new Store(draft.getSnapshot());
       derived.push(...planAutoLayout(draft, this.registry));
       const resizedText = planTextResize(draft, this.registry);
@@ -2512,6 +2571,10 @@ export class Editor {
     if (from === to || !source || !target || source.page !== target.page) {
       return null;
     }
+    if (source.type.startsWith("bpmn.") && target.type.startsWith("bpmn.")) {
+      const result = this.connectBpmn(from, to, undefined, applyOptions);
+      return result.ok ? result.id : null;
+    }
     if (
       source.type === "sequence.participant" &&
       target.type === "sequence.participant"
@@ -2576,6 +2639,215 @@ export class Editor {
       );
     }
     return this.connect(from, to, source.page, applyOptions);
+  }
+
+  connectBpmn(
+    from: ElementId,
+    to: ElementId,
+    requested?: BpmnFlowType,
+    applyOptions: ApplyOptions = {},
+  ): BpmnEditResult {
+    const source = this.store.get(from);
+    const target = this.store.get(to);
+    if (!source || !target || source.page !== target.page)
+      return this.rejectBpmn({
+        ok: false,
+        code: "bpmn.connection.invalidEndpoint",
+        message: "Choose two BPMN elements on the same page.",
+      });
+    const context = this.createShapeContext();
+    if (context.isLocked?.(from) || context.isLocked?.(to))
+      return this.rejectBpmn({
+        ok: false,
+        code: "bpmn.connection.invalidEndpoint",
+        message: "Unlock both BPMN elements before connecting them.",
+      });
+    const result = resolveBpmnConnection(
+      this.store.getSnapshot(),
+      from,
+      to,
+      requested,
+    );
+    if (!result.ok) return this.rejectBpmn(result);
+    const semantic: Record<string, unknown> = {
+      from,
+      to,
+      routing: "orthogonal",
+      ...(result.type === "bpmn.association" ? { direction: "none" } : {}),
+    };
+    const id = this.createElement(
+      result.type,
+      { page: source.page, semantic },
+      applyOptions,
+    );
+    return { ok: true, id, type: result.type };
+  }
+
+  reconnectBpmnFlow(
+    id: ElementId,
+    end: "from" | "to",
+    target: ElementId,
+    applyOptions: ApplyOptions = {},
+  ): BpmnEditResult {
+    const flow = this.store.get(id);
+    const endpoint = this.store.get(target);
+    if (
+      !flow ||
+      !flow.type.startsWith("bpmn.") ||
+      !endpoint ||
+      flow.page !== endpoint.page
+    )
+      return this.rejectBpmn({
+        ok: false,
+        code: "bpmn.connection.invalidEndpoint",
+        message: "Choose a BPMN flow and an endpoint on the same page.",
+      });
+    const payload = flow.semantic as Record<string, unknown>;
+    const from = end === "from" ? target : String(payload.from);
+    const to = end === "to" ? target : String(payload.to);
+    const result = resolveBpmnConnection(
+      this.store.getSnapshot(),
+      from,
+      to,
+      flow.type as BpmnFlowType,
+    );
+    if (!result.ok) return this.rejectBpmn(result);
+    if (result.type === flow.type) {
+      this.apply(
+        [{ type: "updateSemantic", id, semantic: { ...payload, from, to } }],
+        applyOptions,
+      );
+      return { ok: true, id, type: flow.type };
+    }
+    const dependants = new Map<ElementId, Element>();
+    let changed = true;
+    const references = new Set<ElementId>([id]);
+    while (changed) {
+      changed = false;
+      for (const element of this.store.listElements()) {
+        if (element.id === id || dependants.has(element.id)) continue;
+        if (
+          referencesOf(element).some((reference) =>
+            references.has(reference.id),
+          )
+        ) {
+          dependants.set(element.id, element);
+          references.add(element.id);
+          changed = true;
+        }
+      }
+    }
+    const retained = Object.fromEntries(
+      Object.entries(payload).filter(([key]) =>
+        [
+          "name",
+          "routing",
+          "routingAxis",
+          "routingBend",
+          "routingAvoidObstacles",
+          "routingWaypoints",
+        ].includes(key),
+      ),
+    );
+    const replacement: Element = {
+      ...flow,
+      type: result.type,
+      semantic: {
+        ...retained,
+        from,
+        to,
+        ...(result.type === "bpmn.association" ? { direction: "none" } : {}),
+      },
+    };
+    const commands: Command[] = [
+      { type: "deleteElements", ids: [id] },
+      { type: "createElement", element: replacement },
+      ...[...dependants.values()]
+        .sort((a, b) => compareFractional(a.index, b.index))
+        .map((element): Command => ({ type: "createElement", element })),
+    ];
+    this.apply(commands, applyOptions);
+    return { ok: true, id, type: result.type };
+  }
+
+  updateBpmnSemantic(
+    id: ElementId,
+    semantic: unknown,
+    applyOptions: ApplyOptions = {},
+  ): BpmnEditResult {
+    const element = this.store.get(id);
+    if (!element || !element.type.startsWith("bpmn."))
+      return this.rejectBpmn({
+        ok: false,
+        code: "bpmn.connection.invalidEndpoint",
+        message: "The element is not a BPMN element.",
+      });
+    if (element.type === "bpmn.event") {
+      const position = (semantic as Record<string, unknown>).position;
+      const model = buildBpmnModel(this.store.getSnapshot(), element.page);
+      if (position === "start" && model.incoming(id).length)
+        return this.rejectBpmn({
+          ok: false,
+          code: "bpmn.connection.startEventIncoming",
+          message:
+            "An event with incoming sequence flows cannot become a start event.",
+        });
+      if (position === "end" && model.outgoing(id).length)
+        return this.rejectBpmn({
+          ok: false,
+          code: "bpmn.connection.endEventOutgoing",
+          message:
+            "An event with outgoing sequence flows cannot become an end event.",
+        });
+    }
+    this.apply([{ type: "updateSemantic", id, semantic }], applyOptions);
+    return { ok: true, id, type: element.type };
+  }
+
+  addBpmnLane(
+    parentId: ElementId,
+    applyOptions: ApplyOptions = {},
+  ): BpmnEditResult {
+    const parent = this.store.get(parentId);
+    if (
+      !parent ||
+      (parent.type !== "bpmn.participant" && parent.type !== "bpmn.lane")
+    )
+      return this.rejectBpmn({
+        ok: false,
+        code: "bpmn.connection.invalidEndpoint",
+        message: "A lane must be added to a participant or lane.",
+      });
+    const document = this.store.getSnapshot();
+    const model = buildBpmnModel(document, parent.page);
+    const ordered = this.store.getPageElements(parent.page);
+    const children = model.order
+      .map((id) => model.get(id))
+      .filter(
+        (element): element is Element =>
+          element?.type === "bpmn.lane" &&
+          model.parentOf(element.id) === parentId,
+      );
+    const lowerElement = children.length
+      ? children.reduce((highest, lane) =>
+          compareFractional(lane.index, highest.index) > 0 ? lane : highest,
+        )
+      : parent;
+    const lowerAt = ordered.findIndex(
+      (element) => element.id === lowerElement.id,
+    );
+    const upper = ordered[lowerAt + 1]?.index ?? null;
+    let index: FractionalIndex;
+    try {
+      index = keyBetween(lowerElement.index, upper, this.rng);
+    } catch (error) {
+      if (!(error instanceof RangeError)) throw error;
+      index = this.nextIndex(parent.page);
+    }
+    const id = this.idSource();
+    const commands = addBpmnLaneCommands(document, parentId, id, index);
+    this.apply(commands, applyOptions);
+    return { ok: true, id, type: "bpmn.lane" };
   }
 
   private applyPlan(
