@@ -9,6 +9,27 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Continuation (session-357 redispatch): read this first
+
+Every file-level change below is ALREADY IMPLEMENTED in the working tree
+(uncommitted wave-1 work, see
+`impl-plans/progress/bpmn-01-ir-core-contract.md`). Do NOT rewrite, revert,
+`git checkout` or regenerate those files. Re-hash them, compare with the
+"Final SHA-256" table in the progress log and log any drift. Change them
+only if a test added below fails because of them.
+
+The only remaining work is the section "Remaining work: list-pinning
+tests" (design section 3.5 and 11.1). Wave 1 stopped because two existing
+tests pin the registered type list:
+- `packages/ir/src/registry.test.ts` "registers the design table plus
+  assets and token resources"
+- `packages/io/src/jsonl/golden.test.ts` "covers every registered element
+  type at least once"
+
+This plan now owns both tests and the new golden file. Run the full
+verification again and append a dated "Resume" section to the existing
+progress log. Do not delete the earlier sections.
+
 ## Intent
 
 Pin the shared BPMN data contract every other plan builds on:
@@ -51,6 +72,9 @@ Nothing in this plan changes behaviour of existing page kinds.
 - packages/core/src/shapes/outline.ts
 - packages/core/src/shapes/connector.ts
 - packages/io/src/jsonl/bpmn-compat.test.ts (new)
+- packages/ir/src/registry.test.ts (existing; extend only)
+- packages/io/src/jsonl/golden.test.ts (existing; extend only)
+- packages/io/src/__fixtures__/bpmn.jsonl (new golden file)
 - impl-plans/progress/bpmn-01-ir-core-contract.md
 
 sharedPaths: none. (bpmn-01 creates `packages/core/src/bpmn/index.ts`;
@@ -295,6 +319,89 @@ docking lands on the true outline:
   `roundedRectPolygon(box, ...)` (packages/core/src/corner-radii.ts:76)
   with radius 10 on every corner.
 
+## Remaining work: list-pinning tests (design 3.5, 11.1)
+
+### packages/ir/src/registry.test.ts
+
+- In "registers the design table plus assets and token resources", append
+  the 16 `bpmn.*` strings to the expected array literal, after
+  `"design.text-style"`. Use `...BPMN_ELEMENT_TYPES` imported from
+  `./semantics.ts`, or the 16 literals.
+- Change nothing else: not `DESIGN_TABLE_TYPES`, its comment or any other
+  test. The test still sorts both sides.
+
+### packages/io/src/__fixtures__/bpmn.jsonl (new golden file)
+
+A small type-coverage document, independent of the purchase-request
+fixtures. Imitate the record shapes of
+`packages/io/src/__fixtures__/sequence.jsonl`: a document line, a page line
+with `"pageKind":"bpmn"`, then element lines.
+
+Required content (original ids, ASCII only):
+- document `id` `01JBPMN0000000000000000000` (26 chars, like the other
+  golden files), title "BPMN coverage"
+- page `id` `p1`, name "Coverage", `pageKind` `bpmn`
+- At least one element of each of the 16 types, all on `p1`:
+  - expanded pool `bp-pool` (`collapsed: false`)
+  - collapsed pool `bp-partner` (`collapsed: true`)
+  - lane `bp-lane` (parent `bp-pool`)
+  - start event `bp-start` (`position: start`, `definitions: []`, parent
+    `bp-lane`)
+  - user task `bp-task` (parent `bp-lane`)
+  - expanded sub-process `bp-sub` (parent `bp-lane`)
+  - call activity `bp-call` (parent `bp-lane`)
+  - exclusive gateway `bp-gateway` (parent `bp-lane`, with
+    `visual.labelBounds`)
+  - end event `bp-end` with one message definition
+    `{id: "bp-end-def", kind: "message"}` (parent `bp-lane`)
+  - interrupting boundary timer `bp-boundary` (attachedTo `bp-task`)
+  - data object `bp-data` (parent `bp-lane`)
+  - data store `bp-store` (parent `bp-lane`)
+  - text annotation `bp-note` (parent `bp-lane`)
+  - group `bp-group`
+  - sequence flows `bp-flow-1` (start -> task) and `bp-flow-2` (task ->
+    gateway, `name: "go"`)
+  - message flow `bp-message` (task -> `bp-partner`)
+  - association `bp-assoc` (note -> task, `direction: none`)
+  - data association `bp-data-assoc` (data -> task)
+- Each shape has `visual` x/y/width/height using the bpmn-01 default sizes,
+  and no two shapes overlap.
+- Payloads must pass this plan's structural validation with no error
+  issues. `bpmn.parentType`/`bpmn.attachedToType` warnings must not occur
+  either.
+
+How to make it byte-canonical (the main pitfall):
+- Do not hand-format the final file. Draft it in
+  `tmp/bpmn-operation-flow-s357/bpmn-01-ir-core-contract/bpmn-draft.jsonl`.
+- Write the canonical form with a one-off
+  `bun -e` that calls `parseDocument` and then `serializeDocument` (both
+  from `packages/io/src/jsonl/`) and writes the result to
+  `packages/io/src/__fixtures__/bpmn.jsonl`.
+- Then confirm that `golden.test.ts` "reserializes byte-for-byte" passes
+  for `bpmn`.
+- The serializer sorts records and keys and rounds numbers. Never edit
+  the file by hand after that.
+
+### packages/io/src/jsonl/golden.test.ts
+
+- Append `"bpmn"` as the last entry of the `GOLDEN` tuple. Change nothing
+  else. The loop then gives the three golden tests for `bpmn`, and the
+  coverage test sees all 16 types.
+
+### Tests (input -> expected)
+
+- `bun test packages/ir/src/registry.test.ts` -> "registers the design
+  table..." passes, 0 fail.
+- `bun test packages/io/src/jsonl/golden.test.ts` -> the `bpmn` "parses
+  without errors", "reserializes byte-for-byte" and "round-trips to an
+  identical document" tests pass, "covers every registered element type at
+  least once" passes, 0 fail.
+- `packages/io/src/jsonl/bpmn-compat.test.ts:12` iterates every top-level
+  `__fixtures__/*.jsonl` through `readdirSync`, so it now also reads
+  `bpmn.jsonl`. Its assertion "no issue code starting with `bpmn.`" must
+  still hold, which is why the content above must carry no BPMN warnings.
+  Fix the fixture content, never the assertion.
+
 ## Pitfalls
 
 - Adding `"bpmn"` changes `PageKind`. Grep `PageKind` and `PAGE_KINDS` in
@@ -361,9 +468,21 @@ docking lands on the true outline:
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                   # exit 0
 bunx biome check packages/ir/src packages/core/src/bpmn packages/core/src/shapes packages/core/src/index.ts packages/io/src/jsonl   # exit 0
-bun test packages/ir packages/core/src/bpmn packages/core/src/shapes packages/io   # exit 0, new tests listed in output
+bun test packages/ir/src/bpmn.test.ts packages/ir/src/registry.test.ts packages/core/src/bpmn/model.test.ts packages/core/src/shapes/bpmn.test.ts packages/io/src/jsonl/bpmn-compat.test.ts packages/io/src/jsonl/golden.test.ts   # exit 0, pass count > 0, 0 fail (owned tests)
+bun test packages/ir packages/core/src/bpmn packages/core/src/shapes packages/io   # exit 0, 0 fail
 bun test                                            # exit 0 (whole repo, no regressions)
 ```
+
+Write every command's full output to
+`tmp/bpmn-operation-flow-s357/bpmn-01-ir-core-contract/<name>.log` and
+record the exit code, the pass/fail counts and the log path in the progress
+log.
+
+`bun test` (whole repo) runs at the same time as the bpmn-02 worker. A
+failure only in `packages/io/src/__fixtures__/bpmn/fixtures.test.ts` while
+that file is mid-edit is a sibling's state, not this plan's regression.
+Re-run once after a short pause and log both runs. Any failure in another
+file is yours to fix within your writePaths.
 
 ## Done criteria
 
@@ -375,5 +494,12 @@ bun test                                            # exit 0 (whole repo, no reg
   returns a line.
 - `packages/core/src/bpmn/index.ts` contains exactly one export line.
 - `git diff --stat packages/ir/src/migrations.ts` is empty.
-- All four verification commands exit 0; the progress log lists file
-  hashes and test counts.
+- `grep -c '"bpmn"' packages/io/src/jsonl/golden.test.ts` returns at
+  least 1.
+- `grep -c '"pageKind":"bpmn"' packages/io/src/__fixtures__/bpmn.jsonl`
+  returns 1.
+- `git diff packages/ir/src/registry.test.ts` only adds lines.
+- `! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn.jsonl`
+  exits 0 (ASCII only).
+- All five verification commands exit 0 with 0 failures. The progress
+  log's Resume section lists file hashes, test counts and log paths.

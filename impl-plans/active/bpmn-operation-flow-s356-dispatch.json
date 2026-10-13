@@ -12,8 +12,16 @@
   ],
   "overviewPlanPath": "impl-plans/active/bpmn-00-overview.md",
   "overviewPlanNote": "bpmn-00-overview is the accepted index and orchestrator protocol (waves, shared-file rules, per-worker protocol, serial reconciliation, final verification). It is not dispatched to a worker; the orchestrator applies it at every wave join.",
+  "revision": {
+    "session": "opus-luna-design-and-implement-review-loop-session-357",
+    "baseHead": "86f955fff76569c4cced5a2e103ba796960b7f26",
+    "summary": "Test-ownership revision (design-bpmn.md 3.5, 11, 11.1). bpmn-01 owns registry.test.ts, golden.test.ts and __fixtures__/bpmn.jsonl. bpmn-02 owns __fixtures__/bpmn/fixtures.test.ts. bpmn-14 owns core/src/bpmn/docs-example.test.ts and no longer runs the CLI. Every plan starts verification with a focused owned bun test. grep -P is replaced by a portable ASCII check. Wave 1 is a continuation: keep the uncommitted wave-1 work and progress logs and append a Resume section."
+  },
+  "status": "superseded",
+  "supersededBy": "impl-plans/active/bpmn-operation-flow-s357-dispatch.json",
+  "supersededNote": "Historical session-356 record only; do not dispatch. The session-357 redispatch uses bpmn-operation-flow-s357-dispatch.json with evidenceRoot tmp/bpmn-operation-flow-s357.",
   "evidenceRoot": "tmp/bpmn-operation-flow-s356",
-  "evidenceLayout": "tmp/bpmn-operation-flow-s356/<planId>/attempt-<n>/ (untracked; tmp/ is git-ignored)",
+  "evidenceLayout": "tmp/bpmn-operation-flow-s356/<planId>/<command-name>.log (untracked; tmp/ is git-ignored; session-356 evidence only)",
   "reviewContext": {
     "issueReference": "No GitHub issue. Workflow input 'BPMN 2.0 operation flow (business process) diagrams in diagra' (comm-006074..comm-006083), workflowExecutionId opus-luna-design-and-implement-review-loop-session-356; plans accepted by step5-impl-plan-review in comm-006083",
     "userProblem": "diagra users cannot author and manage BPMN 2.0 operation flows the way the Future Tech Blog article does with bpmn.io: typed semantic BPMN elements in JSONL, BPMN-correct editing, bpmnlint-equivalent lint in editor and CI, BPMN 2.0 XML interchange with bpmn.io, BPMN rendering in SVG export, and AI-ready documentation.",
@@ -114,6 +122,9 @@
       "bun test",
       "test \"$(grep -c '^export \\* from' packages/core/src/bpmn/index.ts)\" -eq \"$(sort -u packages/core/src/bpmn/index.ts | grep -c '^export \\* from')\""
     ],
+    "afterWave3": [
+      "out=\"$(bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl)\" && test -z \"$out\""
+    ],
     "finalVerification": [
       "bun run typecheck",
       "bunx biome check .",
@@ -124,7 +135,8 @@
       "cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
       "CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
       "CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
-      "! grep -rlP '[^\\x00-\\x7F]' packages/core/src/bpmn packages/io/src/bpmn apps/cli/src docs/bpmn design-docs impl-plans",
+      "out=\"$(bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl)\" && test -z \"$out\"",
+      "! LC_ALL=C grep -rl '[^[:print:][:space:]]' packages/core/src/bpmn packages/io/src/bpmn packages/io/src/__fixtures__/bpmn packages/io/src/__fixtures__/bpmn.jsonl apps/cli/src docs/bpmn design-docs impl-plans",
       "test \"$(git status --short | grep -c '.reference')\" -eq 0"
     ]
   },
@@ -153,8 +165,12 @@
         "packages/core/src/shapes/outline.ts",
         "packages/core/src/shapes/connector.ts",
         "packages/io/src/jsonl/bpmn-compat.test.ts",
+        "packages/ir/src/registry.test.ts",
+        "packages/io/src/jsonl/golden.test.ts",
+        "packages/io/src/__fixtures__/bpmn.jsonl",
         "impl-plans/progress/bpmn-01-ir-core-contract.md"
       ],
+      "continuation": "The wave-1 implementation is already in the working tree. Keep it, re-hash it against the progress log and append a Resume section. Remaining work: extend registry.test.ts, append \"bpmn\" to GOLDEN in golden.test.ts, and add the canonical __fixtures__/bpmn.jsonl.",
       "sharedPaths": [],
       "sharedPathNotes": [],
       "writePathNotes": [
@@ -165,6 +181,18 @@
         {
           "path": "packages/core/src/shapes/connector.ts",
           "intendedEdit": "bpmn-01 moves the two waypoint functions to @diagra/ir, adds the local @diagra/ir import and a re-export; bpmn-04 edits it later in wave 2."
+        },
+        {
+          "path": "packages/ir/src/registry.test.ts",
+          "intendedEdit": "Append the 16 bpmn.* types to the expected list of 'registers the design table plus assets and token resources'. Change nothing else."
+        },
+        {
+          "path": "packages/io/src/jsonl/golden.test.ts",
+          "intendedEdit": "Append \"bpmn\" to the GOLDEN tuple. Change nothing else."
+        },
+        {
+          "path": "packages/io/src/__fixtures__/bpmn.jsonl",
+          "intendedEdit": "New canonical type-coverage golden file: one bpmn page with all 16 bpmn.* types and no bpmn.* validation warnings. Write it through parseDocument + serializeDocument; never hand-format it."
         }
       ],
       "artifactRoots": [],
@@ -173,17 +201,23 @@
         "Visual.labelBounds exists and keyOrder.ts references labelBounds at least twice.",
         "connectorWaypoint functions moved out of core connector.ts into packages/ir/src/connector-waypoints.ts and exported from @diagra/ir; connector.ts imports and re-exports them.",
         "packages/core/src/bpmn/index.ts contains exactly one export line; packages/ir/src/migrations.ts unchanged.",
-        "Existing page kinds unchanged; all four verification commands exit 0; progress log lists hashes and test counts."
+        "Existing page kinds unchanged. All verification commands exit 0. The progress log's Resume section lists hashes, test counts and log paths.",
+        "packages/ir/src/registry.test.ts and packages/io/src/jsonl/golden.test.ts pass with the 16 bpmn.* types. GOLDEN ends with \"bpmn\". packages/io/src/__fixtures__/bpmn.jsonl reserializes byte for byte and covers all 16 types.",
+        "Whole-repo bun test exits 0 with 0 failures."
       ],
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/ir/src packages/core/src/bpmn packages/core/src/shapes packages/core/src/index.ts packages/io/src/jsonl",
+        "bun test packages/ir/src/bpmn.test.ts packages/ir/src/registry.test.ts packages/core/src/bpmn/model.test.ts packages/core/src/shapes/bpmn.test.ts packages/io/src/jsonl/bpmn-compat.test.ts packages/io/src/jsonl/golden.test.ts",
         "bun test packages/ir packages/core/src/bpmn packages/core/src/shapes packages/io",
         "bun test",
         "test \"$(grep -c 'type: \"bpmn\\.' packages/ir/src/registry.ts)\" -eq 16",
         "! grep -n 'export function connectorWaypoint' packages/core/src/shapes/connector.ts",
         "grep -n connectorWaypointFromPage packages/ir/src/index.ts",
-        "test -z \"$(git diff --stat packages/ir/src/migrations.ts)\""
+        "test -z \"$(git diff --stat packages/ir/src/migrations.ts)\"",
+        "test \"$(grep -c '\"pageKind\":\"bpmn\"' packages/io/src/__fixtures__/bpmn.jsonl)\" -eq 1",
+        "grep -q '\"bpmn\"' packages/io/src/jsonl/golden.test.ts",
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn.jsonl"
       ]
     },
     {
@@ -196,27 +230,25 @@
         "packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn",
         "packages/io/src/__fixtures__/bpmn/purchase-request-swapped.bpmn",
         "packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn",
+        "packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
         "impl-plans/progress/bpmn-02-fixtures.md"
       ],
+      "continuation": "The four .bpmn files are already in the working tree. Keep them, re-hash them against the progress log and append a Resume section. Remaining work: the owned fixtures-contract bun test.",
       "sharedPaths": [],
       "sharedPathNotes": [],
       "artifactRoots": [],
       "acceptanceCriteria": [
         "Four original .bpmn fixtures exist, well-formed per xmllint (or the gap is logged), with 12/11 sequence flows (complete/draft), 13 flowNodeRefs, 6 message event definitions, 17 BPMNShapes and 12 BPMNEdges in the complete file.",
         "The inverted variant differs from the complete file only in the YES/NO name swaps (ignoring Definitions_ ids).",
-        "ASCII only; no text, ids, labels or geometry from .reference/."
+        "packages/io/src/__fixtures__/bpmn/fixtures.test.ts passes with a positive pass count and 0 failures. It uses only bun:test, node:fs and node:path (no io parser). It asserts the root and namespaces, tag balance, counts, the draft/swapped/inverted differences and ASCII-only.",
+        "ASCII only (portable LC_ALL=C check); no text, ids, labels or geometry from .reference/."
       ],
       "verification": [
+        "bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
+        "bun run typecheck",
+        "bunx biome check packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
         "for f in packages/io/src/__fixtures__/bpmn/*.bpmn; do xmllint --noout \"$f\" || exit 1; done; echo ok",
-        "test \"$(grep -c '<bpmn:sequenceFlow ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" -eq 12",
-        "test \"$(grep -c '<bpmn:sequenceFlow ' packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn)\" -eq 11",
-        "test \"$(grep -c '<bpmn:flowNodeRef>' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" -eq 13",
-        "test \"$(grep -c '<bpmn:messageEventDefinition ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" -eq 6",
-        "test \"$(grep -c '<bpmndi:BPMNShape ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" -eq 17",
-        "test \"$(grep -c '<bpmndi:BPMNEdge ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" -eq 12",
-        "! grep -lP '[^\\x00-\\x7F]' packages/io/src/__fixtures__/bpmn/*.bpmn",
-        "bash -c 'diff <(grep -v Definitions_ packages/io/src/__fixtures__/bpmn/purchase-request.bpmn) <(grep -v Definitions_ packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn)' | grep -E '^[<>]' | grep -qE 'name=\"(YES|NO)\"'",
-        "! bash -c 'diff <(grep -v Definitions_ packages/io/src/__fixtures__/bpmn/purchase-request.bpmn) <(grep -v Definitions_ packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn)' | grep -E '^[<>]' | grep -vE 'name=\"(YES|NO)\"'"
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-swapped.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn packages/io/src/__fixtures__/bpmn/fixtures.test.ts"
       ]
     },
     {
@@ -251,6 +283,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/core/src/bpmn packages/core/src/editor.ts",
+        "bun test packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts",
         "bun test packages/core",
         "bun test packages/ui-solid packages/collab",
         "! grep -n 'resolveBpmnConnection\\|bpmn' packages/core/src/commands.ts",
@@ -296,6 +329,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/core/src/bpmn packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts",
+        "bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts",
         "bun test packages/core",
         "bun test packages/ui-solid",
         "test \"$(grep -c '^export \\* from \"./notation.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1",
@@ -376,6 +410,7 @@
         "bun run typecheck",
         "bunx biome check packages/io/src/bpmn packages/io/src/index.ts",
         "test \"$(bun -e 'console.log(JSON.parse(require(\"fs\").readFileSync(\"packages/io/package.json\",\"utf8\")).exports[\"./bpmn\"])')\" = \"./src/bpmn/index.ts\"",
+        "bun test packages/io/src/bpmn",
         "bun test packages/io",
         "bun test",
         "! grep -rn '@diagra/core' packages/io/src",
@@ -404,6 +439,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/collab/src/test-fixtures.ts packages/collab/src/bpmn.test.ts",
+        "bun test packages/collab/src/bpmn.test.ts",
         "bun test packages/collab",
         "test -z \"$(git diff --name-only packages/collab/src | grep -v -e 'packages/collab/src/test-fixtures.ts' -e 'packages/collab/src/bpmn.test.ts')\""
       ]
@@ -431,6 +467,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/ui-solid/src/shapes",
+        "bun test packages/ui-solid/src/shapes/bpmn-primitive.test.ts",
         "bun test packages/ui-solid",
         "grep -n BpmnShapeView packages/ui-solid/src/shapes/ShapeView.tsx"
       ]
@@ -460,6 +497,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/ui-solid/src/tools.ts packages/ui-solid/src/Toolbar.tsx packages/ui-solid/src/interaction.ts packages/ui-solid/src/PageTabs.tsx packages/ui-solid/src/bpmn-palette.test.ts",
+        "bun test packages/ui-solid/src/bpmn-palette.test.ts",
         "bun test packages/ui-solid",
         "test -z \"$(git diff packages/ui-solid/src/Toolbar.test.ts packages/ui-solid/src/interaction.test.ts)\"",
         "grep -n reconnectBpmnFlow packages/ui-solid/src/interaction.ts",
@@ -489,6 +527,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/ui-solid/src/inspector/BpmnSection.tsx packages/ui-solid/src/inspector/bpmn-edits.ts packages/ui-solid/src/inspector/bpmn-edits.test.ts packages/ui-solid/src/Inspector.tsx",
+        "bun test packages/ui-solid/src/inspector/bpmn-edits.test.ts",
         "bun test packages/ui-solid",
         "! grep -n 'updateSemantic\"' packages/ui-solid/src/inspector/BpmnSection.tsx",
         "grep -n updateBpmnSemantic packages/ui-solid/src/inspector/BpmnSection.tsx"
@@ -522,6 +561,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check packages/ui-solid/src/BpmnProblemsPanel.tsx packages/ui-solid/src/BpmnProblemsPanel.css packages/ui-solid/src/bpmn-problems.ts packages/ui-solid/src/bpmn-problems.test.ts packages/ui-solid/src/index.ts",
+        "bun test packages/ui-solid/src/bpmn-problems.test.ts",
         "bun test packages/ui-solid",
         "grep -n BpmnProblemsPanel packages/ui-solid/src/index.ts"
       ]
@@ -553,6 +593,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check apps/cli/src",
+        "bun test apps/cli/src/bpmn-commands.test.ts",
         "bun test apps/cli",
         "bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn; test $? -eq 1",
         "out=\"$(bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" && test -z \"$out\"",
@@ -607,6 +648,7 @@
         "docs/bpmn/ai-review-rules.md",
         "docs/bpmn/purchase-request.jsonl",
         "packages/io/README.md",
+        "packages/core/src/bpmn/docs-example.test.ts",
         "impl-plans/progress/bpmn-14-docs.md"
       ],
       "sharedPaths": [],
@@ -622,15 +664,15 @@
         "README has a BPMN operation flows section and diagra-cli lint / bpmn import|export examples with exit codes matching bpmn-12 USAGE.",
         "docs/bpmn/format.md documents every bpmn.* type with sample JSONL records; lint-rules.md lists all 23 rule ids with severities, .bpmnlintrc example, config discovery and divergences.",
         "docs/bpmn/ai-review-rules.md is an original .claude/rules guideline; purchase-request.jsonl is a byte-identical copy of the io fixture.",
-        "ASCII only; no content from the article or .reference; CLI example lint of the example document exits 0 (may be deferred to reconciliation after bpmn-12 joins)."
+        "packages/core/src/bpmn/docs-example.test.ts passes with a positive pass count and 0 failures. It checks that the example parses, equals the io fixture byte for byte and lints clean under recommendedLintConfig(); that the lint-rules.md rule-table ids equal BPMN_LINT_RULE_IDS; that format.md names all 16 bpmn.* types; that the docs are ASCII; and that README mentions diagra-cli lint and diagra-cli bpmn export.",
+        "ASCII only; no content from the article or .reference. The CLI lint of the example is orchestrator reconciliation evidence after wave 3 (reconciliation.afterWave3), not a bpmn-14 gate."
       ],
       "verification": [
+        "bun test packages/core/src/bpmn/docs-example.test.ts",
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn/docs-example.test.ts",
         "cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
-        "test -z \"$(for r in label-required no-implicit-end no-implicit-start start-event-required end-event-required no-disconnected conditional-flows no-duplicate-sequence-flows no-gateway-join-fork no-implicit-split single-blank-start-event single-event-definition superfluous-gateway fake-join no-complex-gateway no-inclusive-gateway no-overlapping-elements superfluous-termination sub-process-blank-start-event event-sub-process-typed-start-event link-event ad-hoc-sub-process no-bpmndi; do grep -q -- \"$r\" docs/bpmn/lint-rules.md || echo \"missing $r\"; done)\"",
-        "test -z \"$(for t in participant lane task subProcess callActivity event boundaryEvent gateway dataObject dataStore textAnnotation group sequenceFlow messageFlow association dataAssociation; do grep -q \"bpmn.$t\" docs/bpmn/format.md || echo \"missing $t\"; done)\"",
-        "test \"$(grep -c 'diagra-cli lint\\|diagra-cli bpmn' README.md)\" -ge 2",
-        "! grep -lP '[^\\x00-\\x7F]' docs/bpmn/*.md",
-        "bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl"
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' docs/bpmn/format.md docs/bpmn/lint-rules.md docs/bpmn/ai-review-rules.md README.md packages/io/README.md"
       ]
     },
     {
@@ -662,6 +704,7 @@
       "verification": [
         "bun run typecheck",
         "bunx biome check apps/desktop/src/App.tsx apps/desktop/src/file/session.ts apps/desktop/src/file/session.test.ts",
+        "bun test apps/desktop/src/file/session.test.ts",
         "bun test apps/desktop",
         "CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
         "CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",

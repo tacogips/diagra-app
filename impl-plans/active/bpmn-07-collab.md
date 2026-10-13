@@ -83,7 +83,8 @@ Imitate the two-client merge tests in `binding.test.ts` and
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                   # exit 0
 bunx biome check packages/collab/src/test-fixtures.ts packages/collab/src/bpmn.test.ts   # exit 0
-bun test packages/collab                            # exit 0, includes the new tests
+bun test packages/collab/src/bpmn.test.ts           # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
+bun test packages/collab                            # exit 0, includes the new tests; ydoc.test.ts unedited (it loops allFixtures() without a pinned count)
 ```
 
 ## Done criteria

@@ -111,6 +111,7 @@ Export `BpmnProblemsPanel`, `BpmnProblemsPanelProps`, `bpmnProblemRows`,
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                       # exit 0
 bunx biome check packages/ui-solid/src/BpmnProblemsPanel.tsx packages/ui-solid/src/BpmnProblemsPanel.css packages/ui-solid/src/bpmn-problems.ts packages/ui-solid/src/bpmn-problems.test.ts packages/ui-solid/src/index.ts   # exit 0
+bun test packages/ui-solid/src/bpmn-problems.test.ts    # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/ui-solid                              # exit 0
 ```
 

@@ -14,6 +14,61 @@ Branch: `feat/bpmn-operation-flow` only. No worktrees, no private branches,
 no concurrent git operations by workers. The design and all plans are
 committed (orchestrator, serial) before the implementation fanout starts.
 
+## Continuation (session-357)
+
+Wave 1 of session-356 ended blocked on ownership, not on code defects.
+The working tree holds the uncommitted wave-1 implementation of bpmn-01 and
+bpmn-02 and their progress logs. This revision (design-bpmn.md sections
+3.5, 11 and 11.1) changes only test ownership and verification:
+- bpmn-01 also owns `packages/ir/src/registry.test.ts`,
+  `packages/io/src/jsonl/golden.test.ts` and the new
+  `packages/io/src/__fixtures__/bpmn.jsonl`.
+- bpmn-02 also owns `packages/io/src/__fixtures__/bpmn/fixtures.test.ts`.
+- bpmn-14 also owns `packages/core/src/bpmn/docs-example.test.ts` and no
+  longer runs the CLI as a gate.
+- Every plan's verification starts with a focused `bun test` over its
+  owned tests.
+- `grep -P` is replaced with a portable ASCII check.
+
+Redispatch rules:
+- Wave 1 is re-run as a continuation. Workers keep the existing files and
+  progress logs and append a "Resume" section. Never revert, regenerate,
+  `git checkout` or `git stash` wave-1 work.
+- The orchestrator commits wave 1 (code and progress logs) only after both
+  wave-1 plans pass, and before wave 2 starts.
+- Evidence for this session goes under `tmp/bpmn-operation-flow-s357/`.
+  The session-356 evidence under `tmp/bpmn-operation-flow-s356/` stays as
+  is.
+
+## Test ownership contract (design 11.1)
+
+1. Every plan owns at least one bun test file and lists a focused
+   `bun test <owned files>` command that reports a positive pass count and
+   0 failures. Shell, grep, xmllint and cargo checks do not count toward
+   this.
+2. Existing tests or fixtures that pin a list a plan changes are owned by
+   exactly one plan:
+
+| existing test / fixture | owner | action |
+|---|---|---|
+| packages/ir/src/registry.test.ts | bpmn-01 | extend the expected type list |
+| packages/io/src/jsonl/golden.test.ts plus new packages/io/src/__fixtures__/bpmn.jsonl | bpmn-01 | append `"bpmn"` to `GOLDEN`; add the canonical golden file |
+| packages/ui-solid/src/Toolbar.test.ts | none (bpmn-09 must keep it unedited) | BPMN tools go in a separate `BPMN_TOOL_MENU` |
+| packages/ui-solid/src/interaction.test.ts, viewer-actions.test.ts | none (bpmn-09 must keep them unedited) | generic `TOOLS` loops; BPMN tools pass them |
+| packages/collab/src/ydoc.test.ts | none (bpmn-07 must keep it unedited) | loops `allFixtures()` with no count |
+| apps/cli/src/commands.test.ts | none (bpmn-12 must keep it unedited) | no USAGE-text assertions |
+| apps/desktop/src/seed.test.ts | none | no plan changes the seed |
+| apps/desktop/src-tauri/src/dialogs.rs tests | bpmn-15 (same file) | they do not pin `OPEN_FILTER_EXTENSIONS` |
+
+There are no snapshot files and no Tauri config or File-menu tests.
+A worker that finds another failing pinned-list test stops, records it
+under Open issues and does not edit it. The orchestrator re-assigns it
+serially.
+
+Portable ASCII check (macOS BSD grep has no `-P`):
+`! LC_ALL=C grep -rl '[^[:print:][:space:]]' <paths>`. It exits 0 when
+every byte is printable ASCII or whitespace.
+
 ## User intent (one paragraph)
 
 diagra users author BPMN 2.0 operation flows the way the Future Tech Blog
@@ -102,9 +157,13 @@ and only core dev-depends on io.
 1. `bun run typecheck`, `bunx biome check .`, `bun test` on the whole repo.
 2. Check `packages/core/src/bpmn/index.ts` has every expected export line
    exactly once.
-3. Repair drift serially, then commit the wave on `feat/bpmn-operation-flow`
+3. After wave 3 only:
+   `bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl` exits
+   0 with empty stdout. This was moved out of bpmn-14 because bpmn-12
+   builds the CLI in the same wave.
+4. Repair drift serially, then commit the wave on `feat/bpmn-operation-flow`
    with explicit paths (never `git add -A`, never `.reference/`).
-4. Move finished plans to `impl-plans/completed/` only at final
+5. Move finished plans to `impl-plans/completed/` only at final
    finalization.
 
 ## Global invariants (every plan)
@@ -143,6 +202,8 @@ cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-
                                        # exit 0
 CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml    # exit 0
 CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check   # exit 0
-grep -rlP '[^\x00-\x7F]' packages/*/src/bpmn apps/cli/src docs/bpmn design-docs impl-plans   # no output
+bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl
+                                       # exit 0; empty stdout
+! LC_ALL=C grep -rl '[^[:print:][:space:]]' packages/core/src/bpmn packages/io/src/bpmn packages/io/src/__fixtures__/bpmn packages/io/src/__fixtures__/bpmn.jsonl apps/cli/src docs/bpmn design-docs impl-plans   # exit 0, no output
 git status --short | grep -c '.reference'   # 0
 ```

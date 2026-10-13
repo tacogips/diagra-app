@@ -233,6 +233,7 @@ context once per resolver call batch is not required; correctness first.
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                    # exit 0 (ui-solid still compiles: MarkerKind unchanged)
 bunx biome check packages/core/src/bpmn packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts   # exit 0
+bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/core                               # exit 0
 bun test packages/ui-solid                           # exit 0
 ```

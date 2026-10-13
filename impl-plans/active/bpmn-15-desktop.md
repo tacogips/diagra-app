@@ -130,6 +130,7 @@ the source" (session.test.ts:444):
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                       # exit 0
 bunx biome check apps/desktop/src/App.tsx apps/desktop/src/file/session.ts apps/desktop/src/file/session.test.ts   # exit 0
+bun test apps/desktop/src/file/session.test.ts          # exit 0, pass count > 0, 0 fail (owned tests incl. the 4 new .bpmn cases, design 11.1 rule 1)
 bun test apps/desktop                                   # exit 0 (existing session tests unchanged and passing)
 CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check   # exit 0; if it fails, it must list only dialogs.rs: then run the same command without "-- --check" and re-check
 CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml   # exit 0

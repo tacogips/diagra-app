@@ -184,7 +184,8 @@ interaction.test.ts.
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                       # exit 0
 bunx biome check packages/ui-solid/src/tools.ts packages/ui-solid/src/Toolbar.tsx packages/ui-solid/src/interaction.ts packages/ui-solid/src/PageTabs.tsx packages/ui-solid/src/bpmn-palette.test.ts   # exit 0
-bun test packages/ui-solid                              # exit 0 (Toolbar.test.ts, interaction.test.ts, viewer-actions.test.ts unchanged and passing)
+bun test packages/ui-solid/src/bpmn-palette.test.ts     # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
+bun test packages/ui-solid                              # exit 0 (Toolbar.test.ts, interaction.test.ts, viewer-actions.test.ts unchanged and passing; viewer-actions.test.ts:70 loops TOOLS with canUseTool and must pass for every BPMN tool)
 ```
 
 ## Done criteria

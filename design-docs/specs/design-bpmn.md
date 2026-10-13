@@ -4,6 +4,12 @@ Status: design baseline for branch `feat/bpmn-operation-flow`.
 Issue: "BPMN 2.0 operation flow (business process) diagrams in diagra"
 (workflow intake comm-006074 / comm-006075; no GitHub issue number).
 
+Revision (continuation run, intake comm-006094): the baseline is unchanged.
+Only the test-ownership contract was amended: section 3.5 evidence, section
+11 test list and the new section 11.1. Wave 1 stopped because
+`packages/ir/src/registry.test.ts` and `packages/io/src/jsonl/golden.test.ts`
+pin the element-type list, and no slice owned them.
+
 ## 1. Context and baseline
 
 - No `design-docs/` or `impl-plans/` existed on this branch. This is the
@@ -192,8 +198,22 @@ registered. This is the identity migration path, following the `sqlDialect`
 precedent.
 
 Required evidence:
-- Existing golden and round-trip tests (`packages/io/src/jsonl/golden.test.ts`,
-  `packages/collab/src/ydoc.test.ts`) pass unchanged.
+- The existing golden fixtures and their byte-for-byte checks are
+  unchanged. Two existing tests pin the registered type list and must be
+  extended in the IR slice, which owns them (section 11.1):
+  - `packages/ir/src/registry.test.ts` "registers the design table plus
+    assets and token resources": the expected list gains the 16 `bpmn.*`
+    types. The other entries stay as they are.
+  - `packages/io/src/jsonl/golden.test.ts` "covers every registered element
+    type at least once": `"bpmn"` is appended to `GOLDEN`. A new canonical
+    golden file `packages/io/src/__fixtures__/bpmn.jsonl` holds one `bpmn`
+    page with at least one element of each of the 16 `bpmn.*` types. It
+    must parse with no error-level issues and reserialize byte for byte, so
+    it is written in `keyOrder.ts` key order with canonical rounding. It is
+    a small coverage document, independent of the purchase-request fixtures.
+- `packages/collab/src/ydoc.test.ts` passes unchanged. It loops over
+  `allFixtures()` without a pinned count, so the collab slice adding a BPMN
+  fixture there extends coverage without editing the test.
 - A new test loads every pre-existing fixture and asserts that its
   validation result is unchanged.
 
@@ -868,6 +888,9 @@ English labels, ids of their own and a geometry of their own:
   `purchase-request-swapped.bpmn` and `purchase-request-inverted.bpmn`
 - `purchase-request.jsonl`
 
+The type-coverage golden file `packages/io/src/__fixtures__/bpmn.jsonl`
+(section 3.5) sits next to the other golden files, not in `bpmn/`.
+
 They model one pool, "Office supply purchase", with the lanes Requester,
 Approver and Procurement. The flow:
 - start "Need identified"
@@ -891,6 +914,37 @@ Tests (one line each, colocated `*.test.ts`):
   - `bpmn.parentType` and `bpmn.attachedToType` warnings
   - `labelBounds` known key
   - unchanged validation of all pre-existing fixtures
+  - the extended registry type list and the `bpmn` golden file
+    (section 3.5)
+- fixtures contract (`packages/io/src/__fixtures__/bpmn/fixtures.test.ts`):
+  - It uses only `node:fs` and string scanning. It must not use the io BPMN
+    parser, which does not exist yet when the fixtures are written.
+  - Each of the four `.bpmn` files has a `bpmn:definitions` root with the
+    `bpmn`, `bpmndi`, `dc` and `di` OMG namespaces, and its tags balance on
+    a stack scan.
+  - The complete fixture has 12 `sequenceFlow`, 13 `flowNodeRef`, 6
+    `messageEventDefinition`, 17 `BPMNShape` and 12 `BPMNEdge` elements.
+  Each variant is compared with the complete fixture, ignoring the line
+  that holds its own `Definitions_` id:
+  - The draft has 11 `sequenceFlow` elements, has no `name` on the order
+    task, and lacks the task-to-order-notice flow, its `incoming`/`outgoing`
+    references and its edge.
+  - The swapped variant only exchanges the request-notice
+    `intermediateThrowEvent` and `intermediateCatchEvent` tags.
+  - The inverted variant only differs in the YES/NO flow names.
+  - Every fixture byte is ASCII.
+- docs (`packages/core/src/bpmn/docs-example.test.ts`; it lives in core
+  because only core can import both `@diagra/io` and the linter):
+  - `docs/bpmn/purchase-request.jsonl` parses with no error-level issues and
+    equals `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` byte
+    for byte.
+  - Under the recommended config, `lintBpmnPage` reports no findings on
+    every `bpmn` page of the example.
+  - The rule table in `docs/bpmn/lint-rules.md` has one row per rule,
+    starting ``| `<rule-id>` |``. The ids taken from those rows equal
+    `BPMN_LINT_RULE_IDS` as a set, with no extra or missing rows.
+  - `docs/bpmn/format.md` names every registered `bpmn.*` type.
+  - The `docs/bpmn/*.md` files are ASCII only.
 - collab:
   - BPMN fixture Y.Doc round trip
   - a concurrent lane move and rename converge
@@ -945,6 +999,55 @@ Tests (one line each, colocated `*.test.ts`):
 - desktop:
   - `.bpmn` path routing in `session.ts`
   - problems panel selection (unit level)
+
+### 11.1 Test ownership contract
+
+Every implementation slice must satisfy two rules:
+1. It owns at least one bun test file it creates or extends. Its
+   verification includes a `bun test <owned paths>` command that reports a
+   positive pass count and 0 failures. Shell, grep, xmllint and cargo checks
+   are extra evidence and do not count toward this.
+2. Some existing tests or fixtures pin a list that the slice changes. Each
+   of them is in exactly one slice's write set, and no two slices in the
+   same wave share a write path.
+
+Audit of existing tests that pin lists or exhaustively enumerate them
+(repository grep over `*.test.ts(x)` and `src-tauri`):
+
+| existing test / fixture | what it pins | changed by | owner / action |
+|---|---|---|---|
+| `packages/ir/src/registry.test.ts` | the sorted `ELEMENT_TYPES` list | ir slice (16 new types) | ir slice: extend the expected list |
+| `packages/io/src/jsonl/golden.test.ts` and `packages/io/src/__fixtures__/bpmn.jsonl` (new) | every registered type appears in a `GOLDEN` file | ir slice | ir slice: append `"bpmn"` to `GOLDEN` and add the golden file |
+| `packages/ui-solid/src/Toolbar.test.ts` | `TOOL_MENUS` and `ACTION_MENUS` ids | not changed: the BPMN menu is a separate `BPMN_TOOL_MENU` | palette slice keeps it unedited |
+| `packages/ui-solid/src/interaction.test.ts` (TOOLS loop, keyboard map) | non-gesture tools have a `creationFor`; letter shortcuts | extended by `BPMN_TOOLS` (all creation tools), no new letters | palette slice keeps it unedited |
+| `packages/collab/src/ydoc.test.ts` | loops `allFixtures()`, no count | collab slice appends a BPMN fixture | collab slice keeps it unedited |
+| `apps/desktop/src/seed.test.ts` | seeded element types | not changed: no slice touches the seed | none |
+| `apps/cli/src/commands.test.ts` | exit codes and output fragments, not the usage text | not changed: `lint`/`bpmn` tests go in a new file | cli slice keeps it unedited |
+| `apps/desktop/src-tauri/src/dialogs.rs` tests | extension helpers, not `OPEN_FILTER_EXTENSIONS` | desktop slice (adds `bpmn`) | desktop slice, same file |
+
+There are no snapshot files (`toMatchSnapshot`/`__snapshots__`) and no
+tests over Tauri config or the HTML File menu items, so nothing else needs
+an owner. A slice that finds another pinned list during implementation
+stops and reports it. It does not edit outside its write set.
+
+Owned bun tests per slice:
+- ir: `packages/ir/src/bpmn.test.ts`, `packages/core/src/bpmn/model.test.ts`,
+  `packages/core/src/shapes/bpmn.test.ts`,
+  `packages/io/src/jsonl/bpmn-compat.test.ts` and the two extended tests
+  above
+- fixtures: `packages/io/src/__fixtures__/bpmn/fixtures.test.ts`. It is
+  discovered by `bun test` and is inside biome's and tsconfig's
+  `packages/*/src` scope.
+- docs: `packages/core/src/bpmn/docs-example.test.ts`. It needs only the
+  core lint and the io fixtures, which are in earlier waves. It does not
+  need the CLI, which may be built in the same wave as the docs. Running
+  `diagra-cli lint` on the example is therefore orchestrator reconciliation
+  evidence, not a docs-slice gate.
+- All other slices already own new `*.test.ts` files (section 11).
+
+ASCII-only checks are bun-test assertions in the fixtures and docs tests
+(`/[^\x00-\x7F]/` over the file text), because the host's BSD `grep` has no
+`-P`.
 
 ## 12. Implementation slicing
 

@@ -16,9 +16,15 @@ rules, the CLI commands, an original guideline file users can drop into
 `.claude/rules/` for AI review, and the original purchase-request example
 document.
 
+Session-357 revision (design 11 "docs" and 11.1): this plan now owns one
+bun test, `packages/core/src/bpmn/docs-example.test.ts`. It is the
+behavioral gate for the docs. The CLI is built by bpmn-12 in this same
+wave, so this plan no longer runs `diagra-cli` as a gate. The orchestrator
+runs the CLI lint of the example at reconciliation.
+
 ## Non-goals
 
-- No code changes. No text, labels or structure copied from the article
+- No product code changes. The only code is the docs consistency test. No text, labels or structure copied from the article
   or `.reference/` (paraphrasing the article is also out: write original
   guidance).
 - No marketing claims about bpmn.io compatibility beyond what the tests
@@ -33,9 +39,13 @@ document.
 - docs/bpmn/ai-review-rules.md (new)
 - docs/bpmn/purchase-request.jsonl (new)
 - packages/io/README.md
+- packages/core/src/bpmn/docs-example.test.ts (new)
 - impl-plans/progress/bpmn-14-docs.md
 
-sharedPaths: none.
+sharedPaths: none. Do NOT edit `packages/core/src/bpmn/index.ts` or any
+other file in `packages/core/src/bpmn/`. bpmn-13 writes
+`fixtures.test.ts` and `reference-lint.test.ts` in the same directory in
+this wave.
 
 ## File-level changes
 
@@ -77,28 +87,82 @@ sharedPaths: none.
   `exportBpmnXml`, `bpmnSemanticProjection`, no XML dependency, DOCTYPE
   rejected, unsupported content preserved with warnings.
 
+### packages/core/src/bpmn/docs-example.test.ts (new)
+
+Lives in core because only `@diagra/core` can import both `@diagra/io`
+(dev dependency) and the bpmn-05 linter. Imitate the imports of the
+bpmn-13 test `packages/core/src/bpmn/fixtures.test.ts`, or of any core test
+that imports `@diagra/io`.
+
+Resolve repository paths from `import.meta.dir` (four levels up to the
+repo root). Use:
+- `parseDocumentResult` and `parseDocument` from `@diagra/io`
+- `ELEMENT_TYPES` and `hasErrors` from `@diagra/ir`
+- `lintBpmnPage`, `BPMN_LINT_RULE_IDS` and `recommendedLintConfig()` from
+  `./lint/index.ts`. These are the pinned names in
+  `impl-plans/active/bpmn-05-core-lint.md` "Contracts"; do not invent
+  others.
+
+Test cases (input -> expected):
+- `docs/bpmn/purchase-request.jsonl` -> `parseDocumentResult` is ok and
+  has no error-level issues
+- docs example bytes -> equal
+  `packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` bytes
+- every page of the example with `kind === "bpmn"` (at least one) ->
+  `lintBpmnPage(document, page.id, recommendedLintConfig())` returns `[]`
+- `docs/bpmn/lint-rules.md` -> collect the rule ids from table rows
+  matching `` /^\| `([a-z-]+)` \|/m `` (global). The set equals
+  `new Set(BPMN_LINT_RULE_IDS)`, the row count equals
+  `BPMN_LINT_RULE_IDS.length` (23) and there are no duplicates. So the rule
+  table must use exactly that row shape (first cell is the backticked
+  rule id), and no other table in the file may start rows with a
+  backticked lower-case id.
+- `docs/bpmn/format.md` -> contains every `ELEMENT_TYPES` entry that starts
+  with `bpmn.` (16)
+- `docs/bpmn/format.md`, `lint-rules.md` and `ai-review-rules.md` -> no
+  character outside `\x00-\x7F`
+- `README.md` -> contains `diagra-cli lint` and `diagra-cli bpmn export`
+
+Pitfalls:
+- The test must not shell out to the CLI (bpmn-12 runs in parallel).
+- Do not add exports to `packages/core/src/bpmn/index.ts`. Import from
+  `./lint/index.ts` relatively, or from the core barrel if bpmn-05 already
+  exported it.
+- Strict TypeScript; biome-clean.
+
 ## Pitfalls
 
 - ASCII only, no emojis.
-- Every CLI example must actually run with the implemented commands (run
-  them; see verification).
+- CLI examples must match the bpmn-12 `USAGE` text and design section 8
+  (flags, exit codes). The orchestrator runs the example lint after the
+  wave joins. Do not run the CLI as a gate here.
 - Do not document features that do not exist (no desktop lint config, no
   vertical pools, no PNG/PDF).
 
 ## Verification
 
+Write every command's full output to
+`tmp/bpmn-operation-flow-s357/bpmn-14-docs/<name>.log` and record the exit
+code, counts and log path in the progress log.
+
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
+bun test packages/core/src/bpmn/docs-example.test.ts          # exit 0, pass count > 0 (expect >= 6), 0 fail
+bun run typecheck                                             # exit 0
+bunx biome check packages/core/src/bpmn/docs-example.test.ts  # exit 0
 cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl   # exit 0
-for r in label-required no-implicit-end no-implicit-start start-event-required end-event-required no-disconnected conditional-flows no-duplicate-sequence-flows no-gateway-join-fork no-implicit-split single-blank-start-event single-event-definition superfluous-gateway fake-join no-complex-gateway no-inclusive-gateway no-overlapping-elements superfluous-termination sub-process-blank-start-event event-sub-process-typed-start-event link-event ad-hoc-sub-process no-bpmndi; do grep -q -- "$r" docs/bpmn/lint-rules.md || echo "missing $r"; done   # no output
-for t in participant lane task subProcess callActivity event boundaryEvent gateway dataObject dataStore textAnnotation group sequenceFlow messageFlow association dataAssociation; do grep -q "bpmn.$t" docs/bpmn/format.md || echo "missing $t"; done   # no output
-grep -n "diagra-cli lint\|diagra-cli bpmn" README.md          # at least 2 lines
-grep -lP '[^\x00-\x7F]' docs/bpmn/*.md                        # no output
-bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl; echo "exit=$?"   # exit=0 (requires bpmn-12; if bpmn-12 is not joined yet, record as pending and re-run at reconciliation)
+! LC_ALL=C grep -l '[^[:print:][:space:]]' docs/bpmn/format.md docs/bpmn/lint-rules.md docs/bpmn/ai-review-rules.md README.md packages/io/README.md   # exit 0, no output
 ```
+
+Reconciliation-only (orchestrator, after wave 3 joins, not a gate for this
+worker):
+`bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl` must exit
+0 with empty stdout.
 
 ## Done criteria
 
-- All files exist; every verification command gives the stated result
-  (the last one may be deferred to reconciliation and must be logged as
-  such).
+- All listed files exist.
+- `bun test packages/core/src/bpmn/docs-example.test.ts` exits 0 with a
+  positive pass count and 0 failures.
+- typecheck, biome, `cmp` and the ASCII check exit 0.
+- The progress log lists hashes, exit codes, pass counts and log paths.

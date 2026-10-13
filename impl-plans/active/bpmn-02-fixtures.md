@@ -9,6 +9,21 @@
 - protocol: follow impl-plans/active/bpmn-00-overview.md "Per-worker
   protocol".
 
+## Continuation (session-357 redispatch): read this first
+
+The four `.bpmn` files are ALREADY WRITTEN in the working tree (uncommitted
+wave-1 work, hashes in `impl-plans/progress/bpmn-02-fixtures.md`). Do NOT
+rewrite, regenerate or revert them. Re-hash them first and log any drift
+against the recorded hashes.
+
+The only remaining work is the owned bun test in section "Remaining work:
+fixtures contract test" (design section 11 "fixtures contract" and 11.1).
+Wave 1 stopped because this plan had only shell, grep and xmllint checks,
+and the progress gate needs a bun test with a positive pass count.
+
+Append a dated "Resume" section to the existing progress log. Do not
+delete the earlier sections.
+
 ## Intent
 
 Author the four original BPMN 2.0 XML fixtures that every later plan tests
@@ -24,8 +39,9 @@ below. Do not open, copy or paraphrase the `.reference/` files.
 
 ## Non-goals
 
-- No code, no tests, no JSONL (bpmn-06 generates
-  `purchase-request.jsonl` from the complete fixture with the importer).
+- No product code and no JSONL. bpmn-06 generates
+  `purchase-request.jsonl` from the complete fixture with the importer.
+  The only test is the fixtures contract test below.
 - No other BPMN constructs (sub-processes, data, boundary events): those
   are covered by inline test inputs in bpmn-05 and bpmn-06.
 
@@ -35,9 +51,13 @@ below. Do not open, copy or paraphrase the `.reference/` files.
 - packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn (new)
 - packages/io/src/__fixtures__/bpmn/purchase-request-swapped.bpmn (new)
 - packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn (new)
+- packages/io/src/__fixtures__/bpmn/fixtures.test.ts (new)
 - impl-plans/progress/bpmn-02-fixtures.md
 
 sharedPaths: none.
+
+`packages/io/src/__fixtures__/bpmn/purchase-request.jsonl` is NOT this
+plan's file; bpmn-06 creates it in wave 2.
 
 ## File format (all four files)
 
@@ -160,21 +180,83 @@ bounds it gets no `BPMNLabel`.
   flow.
 - ASCII only. "Approve?" contains a plain question mark.
 
+## Remaining work: fixtures contract test
+
+`packages/io/src/__fixtures__/bpmn/fixtures.test.ts` (new). Imitate the
+style of `packages/io/src/jsonl/golden.test.ts`: `bun:test`, `readFileSync`
+and `join(import.meta.dir, ...)`.
+
+Constraints:
+- Import only `bun:test`, `node:fs` and `node:path`. Do NOT import
+  `@diagra/io`, its BPMN parser (bpmn-06, wave 2, does not exist yet) or
+  any npm package. Use string and regex scanning only.
+- Test the files as they are. If an assertion fails, the fixture contract
+  above is the authority: fix the fixture only when it deviates from the
+  tables in this plan, and log the fix.
+- Keep it small: one `describe`, plain helpers (`read(name)`,
+  `count(text, needle)`, `withoutDefinitionsLine(text)`, a diff helper that
+  returns the lines that differ by position).
+
+Test cases (input -> expected):
+- each of the four files -> starts with
+  `<?xml version="1.0" encoding="UTF-8"?>\n`, ends with `\n`, contains
+  exactly one `<bpmn:definitions ` start tag carrying the five `xmlns:`
+  declarations and `targetNamespace="http://bpmn.io/schema/bpmn"` from
+  "File format", and ends with `</bpmn:definitions>\n`
+- each file -> tags balance. Scan `<(/?)([A-Za-z][\w:.-]*)[^>]*?(/?)>`,
+  skip the `<?xml` declaration, push on open, pop and compare names on
+  close, ignore self-closing. Expect an empty stack and no mismatch.
+- each file -> contains no character outside `\x00-\x7F`
+  (`/[^\x00-\x7F]/.test(text) === false`)
+- complete fixture -> counts: `<bpmn:sequenceFlow ` 12,
+  `<bpmn:flowNodeRef>` 13, `<bpmn:messageEventDefinition ` 6,
+  `<bpmndi:BPMNShape ` 17, `<bpmndi:BPMNEdge ` 12, `<bpmn:lane ` 3,
+  `<bpmn:userTask ` 3
+- draft -> `<bpmn:sequenceFlow ` 11, `<bpmndi:BPMNEdge ` 11; contains
+  `<bpmn:userTask id="Task_PlaceOrder">` (no name); does not contain
+  `Flow_OrderToNotice`
+- swapped vs complete, both without the `Definitions_` line -> the
+  differing lines are exactly the four request-notice open and close tags,
+  with `intermediateThrowEvent` and `intermediateCatchEvent` exchanged.
+  Everything else is equal: the line counts match and every other line is
+  identical by position.
+- inverted vs complete, same comparison -> line counts equal. The only
+  differing lines are the `Flow_ToRejection` and `Flow_ToOrder`
+  `sequenceFlow` lines, where `name="NO"` and `name="YES"` are swapped.
+- the `Definitions_` ids are, in order, `Definitions_OfficeSupply`,
+  `Definitions_OfficeSupplyDraft`, `Definitions_OfficeSupplySwapped` and
+  `Definitions_OfficeSupplyInverted`
+
+The current fixtures already satisfy every case above (Step 3 checked the
+counts and diffs). A failure means a bug in the test, not in the fixture,
+unless the fixture contradicts this plan's tables.
+
+Pitfalls:
+- Bun discovers `*.test.ts` under `__fixtures__/`. Biome and tsconfig
+  include `packages/*/src`, so the file must pass `bunx biome check` and
+  `bun run typecheck` (strict: no `any`, no `@ts-ignore`).
+- Do not use `xmllint` or `Bun.spawn` in the test (CI may lack it).
+- Do not add any `.jsonl` file under `__fixtures__/`. A top-level
+  `.jsonl` would be picked up by `bpmn-compat.test.ts`.
+
 ## Verification
+
+Write every command's full output to
+`tmp/bpmn-operation-flow-s357/bpmn-02-fixtures/<name>.log` and record the
+exit code, counts and log path in the progress log.
 
 ```
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
-for f in packages/io/src/__fixtures__/bpmn/*.bpmn; do xmllint --noout "$f" || exit 1; done; echo ok   # prints ok, exit 0 (well-formed XML)
-grep -c '<bpmn:sequenceFlow ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn          # 12
-grep -c '<bpmn:sequenceFlow ' packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn    # 11
-grep -c '<bpmn:flowNodeRef>' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn           # 13
-grep -c '<bpmn:messageEventDefinition ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn  # 6
-grep -c '<bpmndi:BPMNShape ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn           # 17
-grep -c '<bpmndi:BPMNEdge ' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn            # 12
-grep -lP '[^\x00-\x7F]' packages/io/src/__fixtures__/bpmn/*.bpmn                                # no output
-diff <(grep -v 'Definitions_' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn) <(grep -v 'Definitions_' packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn)
-                                       # shows only the two name="YES"/"NO" swaps
+bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts      # exit 0, pass count > 0 (expect >= 8), 0 fail
+bun run typecheck                                                 # exit 0
+bunx biome check packages/io/src/__fixtures__/bpmn/fixtures.test.ts   # exit 0
+for f in packages/io/src/__fixtures__/bpmn/*.bpmn; do xmllint --noout "$f" || exit 1; done; echo ok   # prints ok (supplementary evidence)
+! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn/*.bpmn packages/io/src/__fixtures__/bpmn/fixtures.test.ts   # exit 0, no output
 ```
+
+Do not use `grep -P`: macOS BSD grep has no `-P`, and with `!` in front it
+passes even when the check never ran. Counts and diffs are now asserted in
+the bun test, so the old grep and diff lines are removed.
 
 `xmllint` ships with macOS (`/usr/bin/xmllint`). If it is unavailable in
 the sandbox, record that as a verification gap in the progress log; do not
@@ -183,6 +265,12 @@ import tests, which then provides the well-formedness evidence.
 
 ## Done criteria
 
-- Four files exist with the counts above; xmllint well-formedness passes.
-- No non-ASCII characters; no text taken from `.reference/`.
-- Progress log lists the file hashes and command exit codes.
+- Four `.bpmn` files exist unchanged from wave 1, unless the progress log
+  records a justified fix, and `fixtures.test.ts` exists.
+- `bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts` exits 0
+  with a positive pass count and 0 failures.
+- typecheck and biome exit 0. The xmllint loop prints `ok`. The ASCII check
+  exits 0.
+- No text taken from `.reference/`.
+- The progress log's Resume section lists the file hashes, command exit
+  codes, pass counts and log paths.

@@ -273,7 +273,8 @@ cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                 # exit 0
 bunx biome check packages/io/src/bpmn packages/io/src/index.ts   # exit 0 (package.json is outside biome's files.include)
 bun -e 'console.log(JSON.parse(require("fs").readFileSync("packages/io/package.json","utf8")).exports["./bpmn"])'   # prints ./src/bpmn/index.ts
-bun test packages/io                              # exit 0; reference tests run locally (not skipped) when .reference exists
+bun test packages/io/src/bpmn                     # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
+bun test packages/io                              # exit 0; reference tests run locally (not skipped) when .reference exists; includes golden.test.ts, bpmn-compat.test.ts and the bpmn-02 fixtures test, which this plan must not edit
 bun test                                          # exit 0
 grep -rn "@diagra/core" packages/io/src           # no output
 git status --short .reference                     # no output

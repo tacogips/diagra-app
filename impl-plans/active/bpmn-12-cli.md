@@ -145,7 +145,8 @@ commands.test.ts).
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                       # exit 0
 bunx biome check apps/cli/src                           # exit 0
-bun test apps/cli                                       # exit 0 (commands.test.ts unchanged)
+bun test apps/cli/src/bpmn-commands.test.ts             # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
+bun test apps/cli                                       # exit 0 (commands.test.ts unchanged; it asserts output fragments and exit codes, not the USAGE text)
 bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn; echo "exit=$?"   # 3 rows, exit=1
 bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request.bpmn; echo "exit=$?"         # no output, exit=0
 bun apps/cli/src/main.ts bpmn import .reference/bpmn-article/docs/purchase_request/purchase_request.bpmn > /tmp/diagra-bpmn-ref.jsonl; echo "exit=$?"   # exit=0 (local only)

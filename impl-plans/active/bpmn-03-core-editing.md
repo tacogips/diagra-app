@@ -384,6 +384,7 @@ lane's descendants are shifted exactly once, by translations.
 cd /Users/taco/gits/tacogips/diagra-app-bpmn
 bun run typecheck                                    # exit 0
 bunx biome check packages/core/src/bpmn packages/core/src/editor.ts   # exit 0
+bun test packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts   # exit 0, pass count > 0, 0 fail (owned tests, design 11.1 rule 1)
 bun test packages/core                               # exit 0 (existing core tests unchanged and passing)
 bun test packages/ui-solid packages/collab           # exit 0 (connectSmart and apply callers unaffected)
 ```
