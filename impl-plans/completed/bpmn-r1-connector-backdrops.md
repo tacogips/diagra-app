@@ -1,7 +1,7 @@
 # bpmn-r1-connector-backdrops
 
 - planId: bpmn-r1-connector-backdrops
-- planPath: impl-plans/active/bpmn-r1-connector-backdrops.md
+- planPath: impl-plans/completed/bpmn-r1-connector-backdrops.md
 - wave: 1; dependsOn: none (runs in parallel with bpmn-r2-task-icons-labels)
 - design: design-docs/specs/design-bpmn.md section 6.4 (paint layers and
   routing obstacles), section 11 "rendering-defect regressions" (the
@@ -12,6 +12,26 @@
   git-ignored)
 - branch: feat/bpmn-operation-flow, same working directory as the sibling
   plan. No worktrees, no private branches, no git write operations.
+
+## Completion (session-360)
+
+- Status: COMPLETE. Implemented in session-360 (step6-implement attempt 3,
+  after the IR-R1-REPORT-01 report-format repair) and accepted through
+  test-integrity, adversarial and branch-evidence review; archived to
+  `impl-plans/completed/` in Step 8.
+- Final verification: the session-360 serial integration review
+  (comm-006310) passed on the combined r1+r2 tree with 0 high and 0
+  medium findings: `bun run typecheck`, `bunx biome check .` (518 files),
+  `bun test packages/core packages/ui-solid` (1302 pass), `bun test`
+  (1852 pass, 0 fail). Evidence (local, untracked):
+  `tmp/bpmn-render-fix-s360/reconcile-attempt3/`.
+- Browser E2E was skipped (comm-006311): the repository has no browser
+  E2E harness. Canvas paint order is verified through the shared
+  predicate only; a manual desktop check of `purchase-request.bpmn` is
+  recommended before merge.
+- The `svg-export.ts` item in the done checklist below is met for this
+  plan's own edits; `svg-export.ts` differs from a4083501 only because of
+  the sibling bpmn-r2-task-icons-labels change.
 
 ## Intent
 
@@ -278,10 +298,12 @@ Open issues, Done checklist.
 
 ## Done checklist (mechanical)
 
-- [ ] `grep -n '"bpmn.participant"\|"bpmn.lane"\|"bpmn.group"\|"bpmn.subProcess"' packages/core/src/backdrops.ts` shows the four types
-- [ ] Verification step 1 log shows the expected pre-change failures
-- [ ] Verification steps 2, 3 and 4 exit 0
-- [ ] The step 5 own-path grep prints nothing
-- [ ] Step 6 has no blocking failure; step 7 exits 0
-- [ ] `git diff --name-only -- packages/core/src/svg-export.ts packages/ui-solid/src/Canvas.tsx packages/core/src/shapes/connector.ts` is empty
-- [ ] The progress log is complete
+- [x] `grep -n '"bpmn.participant"\|"bpmn.lane"\|"bpmn.group"\|"bpmn.subProcess"' packages/core/src/backdrops.ts` shows the four types
+- [x] Verification step 1 log shows the expected pre-change failures
+- [x] Verification steps 2, 3 and 4 exit 0
+- [x] The step 5 own-path grep prints nothing
+- [x] Step 6 has no blocking failure; step 7 exits 0
+- [x] `git diff --name-only -- packages/core/src/svg-export.ts packages/ui-solid/src/Canvas.tsx packages/core/src/shapes/connector.ts` is empty
+  (met for this plan's edits; `svg-export.ts` changed only through the
+  sibling bpmn-r2 plan)
+- [x] The progress log is complete

@@ -155,4 +155,33 @@ describe("BPMN SVG export", () => {
     expect(viewBoxBottom).toBeGreaterThanOrEqual(labelBottom);
     expect(viewBoxBottom).toBeGreaterThan(shapeBottom + 16);
   });
+
+  test("places labels without visual coordinates at their absolute bounds", () => {
+    const event = element({
+      id: "labelled",
+      type: "bpmn.event",
+      index: "a1",
+      semantic: { name: "Complete", position: "end", definitions: [] },
+      visual: {
+        width: 36,
+        height: 36,
+        labelBounds: { x: 300, y: 200, width: 60, height: 24 },
+      },
+    });
+    const svg = renderPageSvg(
+      new Store(document([event])),
+      createDefaultRegistry(),
+      TEST_PAGE.id,
+    );
+    expect(svg).not.toBeNull();
+    const output = svg as string;
+    const labelGroup = output.match(
+      /<g transform="translate\(([-\d.]+) ([-\d.]+)\)">(?:(?!<\/g>).)*?<text class="bpmn-label"[^>]*x="([-\d.]+)"[^>]*y="([-\d.]+)"/,
+    );
+    expect(labelGroup).not.toBeNull();
+    if (!labelGroup) throw new Error("Expected exported BPMN label group");
+    const [, tx, ty, localX, localY] = labelGroup.map(Number);
+    expect(tx + localX).toBe(330);
+    expect(ty + localY).toBe(205.5);
+  });
 });

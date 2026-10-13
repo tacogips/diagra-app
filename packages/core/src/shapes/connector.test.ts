@@ -5,8 +5,9 @@
 
 import { describe, expect, test } from "bun:test";
 import { parseDocument, serializeDocument } from "@diagra/io";
-import { element } from "../test-helpers.ts";
-import { makeEditor } from "../test-helpers.ts";
+import type { Element } from "@diagra/ir";
+import { Editor } from "../editor.ts";
+import { document, element, makeEditor, TEST_PAGE } from "../test-helpers.ts";
 import {
   connectorDefaultDash,
   connectorDecoration,
@@ -21,6 +22,40 @@ import {
 
 function decorate(type: string, semantic: unknown) {
   return connectorDecoration(element({ id: "c", type, semantic }));
+}
+
+function routeWithBpmnBackdrops(backdrops: readonly Element[]) {
+  const from = element({
+    id: "from",
+    type: "node.generic",
+    index: "a1",
+    semantic: {},
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  const to = element({
+    id: "to",
+    type: "node.generic",
+    index: "a2",
+    semantic: {},
+    visual: { x: 600, y: 0, width: 100, height: 100 },
+  });
+  const edge = element({
+    id: "edge",
+    type: "edge.generic",
+    index: "a9",
+    semantic: { from: from.id, to: to.id, routing: "orthogonal" },
+  });
+  const editor = new Editor({
+    document: document(
+      [from, to, ...backdrops, edge],
+      [{ ...TEST_PAGE, kind: "bpmn" }],
+    ),
+  });
+  return resolveConnector(
+    editor.store.get(edge.id)!,
+    editor.createShapeContext(),
+    readDirectEndpoints,
+  )?.points;
 }
 
 describe("connectorDecoration", () => {
@@ -607,6 +642,62 @@ test("orthogonal routes still avoid a grouped frame painted above them", () => {
     editor.createShapeContext(),
     readDirectEndpoints,
   )?.points;
+  expect(points?.length).toBeGreaterThan(2);
+  expect(points?.every((point) => point.y === 50)).toBe(false);
+});
+
+test("orthogonal routes cross BPMN pools and lanes", () => {
+  const pool = element({
+    id: "pool",
+    type: "bpmn.participant",
+    index: "a3",
+    semantic: { name: "Pool", collapsed: false },
+    visual: { x: 220, y: -250, width: 260, height: 600 },
+  });
+  const lane = element({
+    id: "lane",
+    type: "bpmn.lane",
+    index: "a4",
+    semantic: { name: "Lane", parent: pool.id },
+    visual: { x: 250, y: -200, width: 200, height: 500 },
+  });
+  const points = routeWithBpmnBackdrops([pool, lane]);
+  expect(points?.every((point) => point.y === 50)).toBe(true);
+});
+
+test("orthogonal routes cross expanded BPMN sub-processes", () => {
+  const subProcess = element({
+    id: "subProcess",
+    type: "bpmn.subProcess",
+    index: "a3",
+    semantic: { name: "Sub-process", expanded: true },
+    visual: { x: 220, y: -250, width: 260, height: 600 },
+  });
+  const points = routeWithBpmnBackdrops([subProcess]);
+  expect(points?.every((point) => point.y === 50)).toBe(true);
+});
+
+test("orthogonal routes cross BPMN groups", () => {
+  const group = element({
+    id: "bpmn-group",
+    type: "bpmn.group",
+    index: "a3",
+    semantic: { name: "Category" },
+    visual: { x: 220, y: -250, width: 260, height: 600 },
+  });
+  const points = routeWithBpmnBackdrops([group]);
+  expect(points?.every((point) => point.y === 50)).toBe(true);
+});
+
+test("orthogonal routes avoid collapsed BPMN sub-processes", () => {
+  const subProcess = element({
+    id: "subProcess",
+    type: "bpmn.subProcess",
+    index: "a3",
+    semantic: { name: "Sub-process", expanded: false },
+    visual: { x: 220, y: -250, width: 260, height: 600 },
+  });
+  const points = routeWithBpmnBackdrops([subProcess]);
   expect(points?.length).toBeGreaterThan(2);
   expect(points?.every((point) => point.y === 50)).toBe(false);
 });

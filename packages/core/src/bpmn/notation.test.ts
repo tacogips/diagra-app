@@ -163,6 +163,143 @@ describe("BPMN renderer-neutral notation", () => {
     ]);
   });
 
+  test("draws distinct fixed top-left task icons with BPMN fill semantics", () => {
+    const taskTypes = [
+      "user",
+      "service",
+      "manual",
+      "send",
+      "receive",
+      "script",
+      "businessRule",
+    ];
+    const iconPrimitives = (taskType: string, width = 100, stroke?: string) =>
+      bpmnNotation(
+        element({
+          id: "task",
+          type: "bpmn.task",
+          semantic: { taskType },
+          visual: {
+            x: box.x,
+            y: box.y,
+            width,
+            height: box.height,
+            ...(stroke === undefined ? {} : { style: { stroke } }),
+          },
+        }),
+        { ...box, width },
+      ).filter((primitive) => primitive.role.startsWith("task-icon-"));
+
+    const signatures = taskTypes.map((taskType) => {
+      const icon = iconPrimitives(taskType);
+      expect(
+        icon.filter((primitive) => primitive.role === `task-icon-${taskType}`),
+      ).toHaveLength(1);
+      expect(
+        icon.every(
+          (primitive) =>
+            primitive.role === `task-icon-${taskType}` ||
+            primitive.role === `task-icon-${taskType}-detail`,
+        ),
+      ).toBe(true);
+      for (const primitive of icon) {
+        let bounds: {
+          left: number;
+          top: number;
+          right: number;
+          bottom: number;
+        };
+        if (primitive.kind === "circle") {
+          bounds = {
+            left: primitive.cx - primitive.r,
+            top: primitive.cy - primitive.r,
+            right: primitive.cx + primitive.r,
+            bottom: primitive.cy + primitive.r,
+          };
+        } else if (primitive.kind === "rect") {
+          bounds = {
+            left: primitive.x,
+            top: primitive.y,
+            right: primitive.x + primitive.width,
+            bottom: primitive.y + primitive.height,
+          };
+        } else {
+          expect(primitive.kind).toBe("path");
+          if (primitive.kind !== "path") throw new Error("Expected icon path");
+          expect(primitive.d).toMatch(/^[MLCQZ0-9 .,-]+$/);
+          const numbers =
+            primitive.d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+          const xs = numbers.filter((_, index) => index % 2 === 0);
+          const ys = numbers.filter((_, index) => index % 2 === 1);
+          bounds = {
+            left: Math.min(...xs),
+            top: Math.min(...ys),
+            right: Math.max(...xs),
+            bottom: Math.max(...ys),
+          };
+        }
+        expect(bounds.left).toBeGreaterThanOrEqual(6);
+        expect(bounds.top).toBeGreaterThanOrEqual(6);
+        expect(bounds.right).toBeLessThanOrEqual(22);
+        expect(bounds.bottom).toBeLessThanOrEqual(22);
+      }
+      return icon
+        .map((primitive) => {
+          if (primitive.kind === "path")
+            return `${primitive.kind}:${primitive.d}`;
+          if (primitive.kind === "circle")
+            return `${primitive.kind}:${primitive.cx},${primitive.cy},${primitive.r}`;
+          if (primitive.kind === "rect")
+            return `${primitive.kind}:${primitive.x},${primitive.y},${primitive.width},${primitive.height}`;
+          return primitive.kind;
+        })
+        .join("|");
+    });
+    expect(new Set(signatures).size).toBe(taskTypes.length);
+    for (const taskType of taskTypes) {
+      expect(iconPrimitives(taskType, 100)).toEqual(
+        iconPrimitives(taskType, 160),
+      );
+    }
+
+    const send = iconPrimitives("send");
+    expect(
+      send.find((primitive) => primitive.role === "task-icon-send")?.fill,
+    ).toBe("#000000");
+    expect(
+      iconPrimitives("send", 100, "#123456").find(
+        (primitive) => primitive.role === "task-icon-send",
+      )?.fill,
+    ).toBe("#123456");
+    expect(
+      iconPrimitives("receive").find(
+        (primitive) => primitive.role === "task-icon-receive",
+      )?.fill,
+    ).toBe("none");
+    expect(iconPrimitives("none")).toEqual([]);
+  });
+
+  test("leaves group body unfilled unless an explicit fill is set", () => {
+    const group = (style?: { fill?: string }) =>
+      bpmnNotation(
+        element({
+          id: "group",
+          type: "bpmn.group",
+          semantic: { name: "Category" },
+          visual: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 80,
+            ...(style ? { style } : {}),
+          },
+        }),
+        { x: 0, y: 0, width: 100, height: 80 },
+      ).find((primitive) => primitive.role === "group-body");
+    expect(group()?.fill).toBe("none");
+    expect(group({ fill: "#eeeeee" })?.fill).toBe("#eeeeee");
+  });
+
   test("uses visual colors, dashed non-interrupting borders and external label bounds", () => {
     const event = element({
       id: "e",
@@ -229,7 +366,7 @@ describe("BPMN renderer-neutral notation", () => {
       "bpmn.event",
       { name: "Done", position: "end", definitions: [] },
       { x: 110, y: 150, width: 36, height: 36 },
-      { labelBounds },
+      { labelBounds, x: 999, y: 999 },
     );
     expect(boundedLabel).toMatchObject({ x: 20, anchor: "middle" });
     expect((boundedLabel?.x ?? 0) + 110).toBe(

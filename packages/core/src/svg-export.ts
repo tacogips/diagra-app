@@ -1190,12 +1190,7 @@ function renderNotationPrimitive(primitive: NotationPrimitive): string {
 }
 
 function renderBpmnShape(element: Element, box: Box): string {
-  const primitives = bpmnNotation(element, {
-    x: 0,
-    y: 0,
-    width: box.width,
-    height: box.height,
-  });
+  const primitives = bpmnNotation(element, box);
   return wrap(
     "g",
     { transform: `translate(${fmt(box.x)} ${fmt(box.y)})` },

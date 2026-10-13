@@ -7,22 +7,25 @@
 
 ## Active
 
+No implementation plans are active. `active/` holds only the historical
+BPMN dispatch manifests (`bpmn-operation-flow-s356-dispatch.json`,
+`bpmn-operation-flow-s357-dispatch.json`,
+`bpmn-operation-flow-s359-dispatch.json`,
+`bpmn-render-fix-s360-dispatch.json`). Of the first three, only s359 was
+the final dispatch. Their `planPath` values name the pre-archive
+`active/` locations.
+
+## Completed
+
 BPMN rendering-defect fix (session-360; design: `design-docs/specs/design-bpmn.md`
-6.1, 6.2, 6.4, 11, 13). One wave; both plans run in parallel with
-disjoint writePaths. Evidence: `tmp/bpmn-render-fix-s360/<planId>/`.
+6.1, 6.2, 6.4, 11, 13). One wave; both plans ran in parallel with
+disjoint writePaths. Accepted by the session-360 integration review on
+the combined tree. Evidence: `tmp/bpmn-render-fix-s360/<planId>/`.
 
 | Plan | Scope |
 |---|---|
-| [bpmn-r1-connector-backdrops](active/bpmn-r1-connector-backdrops.md) | Pools, lanes, expanded sub-processes and BPMN groups as connector backdrops; layer, routing and canvas-partition tests |
-| [bpmn-r2-task-icons-labels](active/bpmn-r2-task-icons-labels.md) | Original top-left task-type icons, unfilled group body, single label origin for canvas and export |
-
-`active/` also holds the historical BPMN dispatch
-manifests (`bpmn-operation-flow-s356-dispatch.json`,
-`bpmn-operation-flow-s357-dispatch.json`,
-`bpmn-operation-flow-s359-dispatch.json`). Only s359 was the final dispatch.
-Their `planPath` values name the pre-archive `active/` locations.
-
-## Completed
+| [bpmn-r1-connector-backdrops](completed/bpmn-r1-connector-backdrops.md) | Pools, lanes, expanded sub-processes and BPMN groups as connector backdrops; layer, routing and canvas-partition tests |
+| [bpmn-r2-task-icons-labels](completed/bpmn-r2-task-icons-labels.md) | Original top-left task-type icons, unfilled group body, single label origin for canvas and export |
 
 BPMN 2.0 operation flow (design: `design-docs/specs/design-bpmn.md`,
 user QA: `design-docs/user-qa/bpmn-operation-flow.md`). Accepted by the

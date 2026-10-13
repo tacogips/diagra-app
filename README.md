@@ -315,6 +315,15 @@ sequence flows from end events. When a connection gesture can be interpreted
 as a different legal flow, the editor corrects it. The BPMN problems panel
 lists lint findings and selects the associated element.
 
+Pools, lanes, expanded sub-processes and groups are painted beneath the
+connector layer, like frames, so sequence and message flows stay visible
+above them on the canvas and in SVG export. They are not routing obstacles,
+so flows route directly inside lanes and across pools. Tasks, events,
+gateways and data objects stay above the flows. User, service, manual, send,
+receive, script and business-rule tasks show distinct marker icons at the
+top-left (send is filled, receive is hollow). Canvas and export draw them
+from the same notation module.
+
 Open a `.bpmn` file for detached import, or use **Import BPMN...** and
 **Export BPMN...** in the desktop File menu. XML-only or unsupported content
 is retained with import warnings. Use `diagra-cli lint` for CI checks and

@@ -119,8 +119,8 @@ function labelText(
   const bounds = element.visual.labelBounds;
   const local = bounds
     ? {
-        x: bounds.x - (element.visual.x ?? box.x) + bounds.width / 2,
-        y: bounds.y - (element.visual.y ?? box.y),
+        x: bounds.x - box.x + bounds.width / 2,
+        y: bounds.y - box.y,
         width: bounds.width,
         height: bounds.height,
       }
@@ -163,6 +163,119 @@ function iconPath(
   strokeWidth = 1.5,
 ): NotationPrimitive {
   return { kind: "path", role, d, stroke, fill, strokeWidth };
+}
+
+function taskIcon(
+  taskType: string,
+  stroke: string,
+  fill: string,
+): NotationPrimitive[] {
+  const main = `task-icon-${taskType}`;
+  const detail = `${main}-detail`;
+  switch (taskType) {
+    case "user":
+      return [
+        iconPath(main, "M7 21 C8 17 10 15 14 15 C18 15 20 17 21 21 Z", stroke),
+        {
+          kind: "circle",
+          role: detail,
+          cx: 14,
+          cy: 10,
+          r: 3.5,
+          stroke,
+          fill: "none",
+          strokeWidth: 1.5,
+        },
+      ];
+    case "service": {
+      const radii = [5.5, 5.5, 7.5, 7.5];
+      const points = Array.from({ length: 32 }, (_, index) => {
+        const angle = -Math.PI / 2 + (index * Math.PI * 2) / 32;
+        const radius = radii[index % radii.length] ?? 5.5;
+        return `${Number((14 + Math.cos(angle) * radius).toFixed(2))} ${Number((14 + Math.sin(angle) * radius).toFixed(2))}`;
+      });
+      return [
+        iconPath(main, `M${points.join(" L")} Z`, stroke),
+        {
+          kind: "circle",
+          role: detail,
+          cx: 14,
+          cy: 14,
+          r: 2.5,
+          stroke,
+          fill: "none",
+          strokeWidth: 1.5,
+        },
+      ];
+    }
+    case "manual":
+      return [
+        iconPath(
+          main,
+          "M9 21 Q7 20 7 18 L7 14 Q7 12 9 12 L10 16 L10 9 Q10 7 12 7 Q14 7 14 9 L14 15 L15 8 Q15 6 17 6 Q19 6 19 8 L18 15 L19 10 Q20 8 21 9 Q22 10 21 12 L20 18 Q19 21 16 21 Z",
+          stroke,
+        ),
+      ];
+    case "send":
+      return [
+        iconPath(main, "M7 9 L21 9 L21 20 L7 20 Z", stroke, stroke),
+        iconPath(detail, "M7 11 L14 16 L21 11", fill, "none", 1.25),
+      ];
+    case "receive":
+      return [
+        iconPath(main, "M7 9 L21 9 L21 20 L7 20 Z", stroke),
+        iconPath(detail, "M7 10 L14 15 L21 10", stroke, "none", 1.25),
+      ];
+    case "script":
+      return [
+        iconPath(
+          main,
+          "M11 7 Q8 6 8 10 L8 18 Q8 21 11 21 L18 21 Q21 21 20 18 L20 9 Q20 7 18 7 Z",
+          stroke,
+        ),
+        iconPath(
+          detail,
+          "M11 12 L17 12 M11 15 L17 15 M11 18 L16 18",
+          stroke,
+          "none",
+          1,
+        ),
+      ];
+    case "businessRule":
+      return [
+        {
+          kind: "rect",
+          role: main,
+          x: 6,
+          y: 8,
+          width: 16,
+          height: 12,
+          stroke,
+          fill: "none",
+          strokeWidth: 1.5,
+        },
+        {
+          kind: "rect",
+          role: detail,
+          x: 6,
+          y: 8,
+          width: 16,
+          height: 3,
+          stroke,
+          fill: stroke,
+          strokeWidth: 1,
+        },
+        iconPath(
+          "task-icon-businessRule-detail",
+          "M6 14 L22 14 M14 11 L14 20",
+          stroke,
+          "none",
+          1,
+        ),
+      ];
+    default:
+      return [];
+  }
 }
 
 function eventIcon(
@@ -408,14 +521,7 @@ export function bpmnNotation(
         : null;
       if (label) out.push(label);
       if (element.type === "bpmn.task" && taskType !== "none") {
-        const role = taskType === "businessRule" ? "businessRule" : taskType;
-        out.push(
-          iconPath(
-            `task-icon-${role}`,
-            `M${box.width - 22} 8 h14 v14 h-14 z`,
-            stroke,
-          ),
-        );
+        out.push(...taskIcon(taskType, stroke, fill));
       }
       const loop = string(data["loop"]);
       if (loop === "standard")
@@ -677,9 +783,10 @@ export function bpmnNotation(
       );
       break;
     case "bpmn.group":
-      out.push(
-        rect("group-body", 0, 0, box.width, box.height, 10, 1.5, "8 3 2 3"),
-      );
+      out.push({
+        ...rect("group-body", 0, 0, box.width, box.height, 10, 1.5, "8 3 2 3"),
+        fill: element.visual.style?.fill ?? "none",
+      });
       if (name)
         out.push(
           textPrimitive(

@@ -1,11 +1,10 @@
-// Frames as backdrops for connectors.
+// Surfaces as backdrops for connectors.
 //
 // Connectors are painted beneath shapes so lines never cover a box's
-// content. A frame, though, is a surface: on a page with connectors, a
-// frame painted above the connector layer would hide every line drawn
-// inside or across it (an ERD grouped into domain frames would show no
-// relations at all). Such frames are therefore painted first, below the
-// connectors, by the canvas and by SVG export alike. Frames inside groups
+// content. A frame or BPMN container, though, is a surface: on a page with
+// connectors, one painted above the connector layer could hide lines drawn
+// inside or across it. Such surfaces are therefore painted first, below the
+// connectors, by the canvas and by SVG export alike. Surfaces inside groups
 // keep their group's paint order.
 
 import {
@@ -28,20 +27,33 @@ export function groupedIds(
 
 /**
  * Whether `element` is painted as a backdrop on a page that has connectors:
- * an ungrouped frame. Connector routing uses the same test, so a frame it
- * ignores as an obstacle is always one painted beneath the lines.
+ * an ungrouped frame or BPMN surface (pool, lane, expanded sub-process or
+ * group). Connector routing uses the same test, so ignored surfaces are
+ * always painted beneath the lines.
  */
 export function isConnectorBackdrop(
   element: Element,
   isGrouped: (id: ElementId) => boolean,
 ): boolean {
-  return element.type === "frame" && !isGrouped(element.id);
+  if (isGrouped(element.id)) return false;
+  if (
+    element.type === "frame" ||
+    element.type === "bpmn.participant" ||
+    element.type === "bpmn.lane" ||
+    element.type === "bpmn.group"
+  ) {
+    return true;
+  }
+  return (
+    element.type === "bpmn.subProcess" &&
+    (element.semantic as Record<string, unknown>).expanded === true
+  );
 }
 
 /**
- * Ids of the frames to paint beneath connectors, given every visible
- * element of a page in z-order (group members included, so a connector
- * inside a group counts). Empty when the page has no connector.
+ * Ids of frame and BPMN surfaces to paint beneath connectors, given every
+ * visible element of a page in z-order (group members included, so a
+ * connector inside a group counts). Empty when the page has no connector.
  */
 export function connectorBackdropIds(
   elements: readonly Element[],

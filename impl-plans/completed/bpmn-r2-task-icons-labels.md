@@ -1,7 +1,7 @@
 # bpmn-r2-task-icons-labels
 
 - planId: bpmn-r2-task-icons-labels
-- planPath: impl-plans/active/bpmn-r2-task-icons-labels.md
+- planPath: impl-plans/completed/bpmn-r2-task-icons-labels.md
 - wave: 1; dependsOn: none (runs in parallel with bpmn-r1-connector-backdrops)
 - design: design-docs/specs/design-bpmn.md section 6.1 (Task icon bullets,
   Group, Labels), 6.2 (`renderBpmnShape` passes the resolved box),
@@ -12,6 +12,22 @@
   git-ignored)
 - branch: feat/bpmn-operation-flow, same working directory as the sibling
   plan. No worktrees, no private branches, no git write operations.
+
+## Completion (session-360)
+
+- Status: COMPLETE. Implemented in session-360 (step6-implement fanout
+  index 1) and accepted through test-integrity, adversarial and
+  branch-evidence review; archived to `impl-plans/completed/` in Step 8.
+- Final verification: the session-360 serial integration review
+  (comm-006310) passed on the combined r1+r2 tree with 0 high and 0
+  medium findings: `bun run typecheck`, `bunx biome check .` (518 files),
+  `bun test packages/core packages/ui-solid` (1302 pass), `bun test`
+  (1852 pass, 0 fail). Evidence (local, untracked):
+  `tmp/bpmn-render-fix-s360/reconcile-attempt3/`.
+- Browser E2E was skipped (comm-006311): the repository has no browser
+  E2E harness. The icons are covered by notation and SVG structure
+  tests only; a manual desktop check that the seven task icons show at
+  the top-left is recommended before merge.
 
 ## Intent
 
@@ -264,9 +280,9 @@ Drift, Open issues, Done checklist.
 
 ## Done checklist (mechanical)
 
-- [ ] Verification step 1 log shows the expected pre-change failure
-- [ ] Verification steps 2, 3 and 4 exit 0
-- [ ] The step 5 own-path grep prints nothing
-- [ ] Step 6 has no blocking failure
-- [ ] Step 7 static checks hold
-- [ ] The progress log is complete, including the icon originality note
+- [x] Verification step 1 log shows the expected pre-change failure
+- [x] Verification steps 2, 3 and 4 exit 0
+- [x] The step 5 own-path grep prints nothing
+- [x] Step 6 has no blocking failure
+- [x] Step 7 static checks hold
+- [x] The progress log is complete, including the icon originality note
