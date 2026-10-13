@@ -6,7 +6,7 @@ import {
   planStrokeWorldPoints,
 } from "./stroke-world.ts";
 import { splitStrokeSegment } from "./stroke-path.ts";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { StrokeAnchorDrag } from "./stroke-drag.ts";
 import { makeEditor } from "./test-helpers.ts";
 

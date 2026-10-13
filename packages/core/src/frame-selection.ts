@@ -4,7 +4,7 @@ import {
   type FrameSemantic,
   getElementTypeDefinition,
   type GroupSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { keyAfter, type Rng } from "./fractional.ts";
 import { expandContainers, frameParents } from "./frame-tree.ts";

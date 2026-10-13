@@ -6,8 +6,8 @@ import {
   erdColumnKey,
   ERD_TABLE_HEADER_HEIGHT,
   ERD_TABLE_ROW_HEIGHT,
-} from "@diagra/core";
-import type { Element, ErdColumn, ErdTableSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, ErdColumn, ErdTableSemantic } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { fillPaintStyle, strokeBorderStyle } from "./visual.ts";
 
@@ -28,7 +28,7 @@ export function ErdTableView(props: ErdTableViewProps): JSX.Element {
   const semantic = () => semanticOf(props.element);
   return (
     <div
-      class="diagra-erd-table"
+      class="nodetto-erd-table"
       data-smart-paint="box"
       style={{
         ...fillPaintStyle(props.element.visual),
@@ -36,24 +36,24 @@ export function ErdTableView(props: ErdTableViewProps): JSX.Element {
       }}
     >
       <div
-        class="diagra-erd-header"
+        class="nodetto-erd-header"
         style={{ height: `${ERD_TABLE_HEADER_HEIGHT}px` }}
       >
         {semantic().tableName}
       </div>
-      <div class="diagra-erd-body">
+      <div class="nodetto-erd-body">
         <For each={semantic().columns}>
           {(column: ErdColumn) => (
             <div
-              class="diagra-erd-row"
+              class="nodetto-erd-row"
               style={{ height: `${ERD_TABLE_ROW_HEIGHT}px` }}
             >
-              <span class="diagra-erd-key">
+              <span class="nodetto-erd-key">
                 {erdColumnKey(semantic(), column)}
               </span>
-              <span class="diagra-erd-name">{column.name}</span>
+              <span class="nodetto-erd-name">{column.name}</span>
               <span
-                class="diagra-erd-type"
+                class="nodetto-erd-type"
                 title={
                   column.generatedExpression
                     ? `Generated: ${column.generatedExpression}`

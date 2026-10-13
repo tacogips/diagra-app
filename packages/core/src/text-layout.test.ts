@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import {
   assertValidDocument,
   type Document,
   type TextResizeMode,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { bindSelectionNumber, createNumberToken } from "./number-tokens.ts";
 import { inspectDesign } from "./handoff.ts";
 import { MAX_AUTO_TEXT_SIZE, measureTextNote } from "./text-layout.ts";

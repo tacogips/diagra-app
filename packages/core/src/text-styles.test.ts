@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { FrameSemantic, TypographyStyleValue } from "@diagra/ir";
+import type { FrameSemantic, TypographyStyleValue } from "@nodetto/ir";
 import { copyElements, planPaste } from "./clipboard.ts";
 import { inspectDesign } from "./handoff.ts";
 import { generateInterfaceCode } from "./interface-code.ts";

@@ -1,4 +1,4 @@
-import type { Element, TextResizeMode, Visual } from "@diagra/ir";
+import type { Element, TextResizeMode, Visual } from "@nodetto/ir";
 import { applyCommands, type Command } from "./commands.ts";
 import { createShapeContext } from "./hit-test.ts";
 import type { ShapeUtilRegistry } from "./shape-util.ts";

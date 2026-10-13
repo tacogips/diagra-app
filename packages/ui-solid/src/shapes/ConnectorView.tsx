@@ -16,16 +16,16 @@ import {
   sampleGradient,
   strokeGradientId,
   type ShapeContext,
-} from "@diagra/core";
-import type { Element } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element } from "@nodetto/ir";
 import { For, type JSX, Match, Show, Switch } from "solid-js";
 import { svgStyle } from "./visual.ts";
 
-export const MARKER_ARROW = "diagra-arrow";
-export const MARKER_TRIANGLE = "diagra-triangle";
-export const MARKER_DIAMOND_OPEN = "diagra-diamond-open";
-export const MARKER_DIAMOND_FILLED = "diagra-diamond-filled";
-export const MARKER_DOT = "diagra-dot";
+export const MARKER_ARROW = "nodetto-arrow";
+export const MARKER_TRIANGLE = "nodetto-triangle";
+export const MARKER_DIAMOND_OPEN = "nodetto-diamond-open";
+export const MARKER_DIAMOND_FILLED = "nodetto-diamond-filled";
+export const MARKER_DOT = "nodetto-dot";
 
 export interface ConnectorViewProps {
   readonly element: Element;
@@ -60,8 +60,8 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
     <Show when={geometry()}>
       {(resolved) => (
         <g
-          class="diagra-connector"
-          classList={{ "diagra-selected": props.selected }}
+          class="nodetto-connector"
+          classList={{ "nodetto-selected": props.selected }}
         >
           <Show when={props.element.visual.style?.strokeGradient}>
             {(gradient) => {
@@ -246,7 +246,7 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
           </Show>
           <Show when={decoration().label}>
             <text
-              class="diagra-connector-label"
+              class="nodetto-connector-label"
               x={resolved().labelPoint.x}
               y={resolved().labelPoint.y - 6}
               text-anchor="middle"
@@ -274,7 +274,7 @@ export function ConnectorMarkers(props: { prefix?: string } = {}): JSX.Element {
         markerUnits="userSpaceOnUse"
         orient="auto-start-reverse"
       >
-        <path d="M 0 1 L 10 5 L 0 9 z" class="diagra-marker-filled" />
+        <path d="M 0 1 L 10 5 L 0 9 z" class="nodetto-marker-filled" />
       </marker>
       <marker
         id={`${props.prefix ?? ""}${MARKER_TRIANGLE}`}
@@ -286,7 +286,7 @@ export function ConnectorMarkers(props: { prefix?: string } = {}): JSX.Element {
         markerUnits="userSpaceOnUse"
         orient="auto-start-reverse"
       >
-        <path d="M 0 0 L 12 6 L 0 12 z" class="diagra-marker-hollow" />
+        <path d="M 0 0 L 12 6 L 0 12 z" class="nodetto-marker-hollow" />
       </marker>
       <marker
         id={`${props.prefix ?? ""}${MARKER_DIAMOND_OPEN}`}
@@ -298,7 +298,7 @@ export function ConnectorMarkers(props: { prefix?: string } = {}): JSX.Element {
         markerUnits="userSpaceOnUse"
         orient="auto-start-reverse"
       >
-        <path d="M 0 5 L 8 0 L 16 5 L 8 10 z" class="diagra-marker-hollow" />
+        <path d="M 0 5 L 8 0 L 16 5 L 8 10 z" class="nodetto-marker-hollow" />
       </marker>
       <marker
         id={`${props.prefix ?? ""}${MARKER_DIAMOND_FILLED}`}
@@ -310,7 +310,7 @@ export function ConnectorMarkers(props: { prefix?: string } = {}): JSX.Element {
         markerUnits="userSpaceOnUse"
         orient="auto-start-reverse"
       >
-        <path d="M 0 5 L 8 0 L 16 5 L 8 10 z" class="diagra-marker-filled" />
+        <path d="M 0 5 L 8 0 L 16 5 L 8 10 z" class="nodetto-marker-filled" />
       </marker>
       <marker
         id={`${props.prefix ?? ""}${MARKER_DOT}`}
@@ -322,7 +322,7 @@ export function ConnectorMarkers(props: { prefix?: string } = {}): JSX.Element {
         markerUnits="userSpaceOnUse"
         orient="auto-start-reverse"
       >
-        <circle cx="4" cy="4" r="3" class="diagra-marker-filled" />
+        <circle cx="4" cy="4" r="3" class="nodetto-marker-filled" />
       </marker>
     </defs>
   );

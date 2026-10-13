@@ -1,5 +1,5 @@
-import type { Editor } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import type { Editor } from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import { createSignal, For, type JSX, onCleanup, Show } from "solid-js";
 import {
   assetFileName,
@@ -94,7 +94,7 @@ export function AssetExportSection(props: {
     }
   };
   return (
-    <details class="diagra-inspector-section">
+    <details class="nodetto-inspector-section">
       <summary>Export PNG</summary>
       <select
         aria-label="PNG export scope"

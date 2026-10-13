@@ -1,4 +1,4 @@
-import type { Element, FreehandSemantic } from "@diagra/ir";
+import type { Element, FreehandSemantic } from "@nodetto/ir";
 import { distanceToSegment } from "../geometry.ts";
 import type { ShapeUtil } from "../shape-util.ts";
 import {

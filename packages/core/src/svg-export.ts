@@ -25,7 +25,7 @@ import {
   getElementTypeDefinition,
   type PageId,
   type Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { connectorBackdropIds } from "./backdrops.ts";
 import { type Box, boxCenter, rotatedBox, unionBoxes } from "./geometry.ts";
 import { croppedImageBox } from "./image-crop.ts";
@@ -134,11 +134,11 @@ const DASH_PATTERNS: Record<string, string> = {
 };
 
 const MARKER_IDS: Record<MarkerKind, string> = {
-  arrow: "diagra-arrow",
-  triangle: "diagra-triangle",
-  diamondOpen: "diagra-diamond-open",
-  diamondFilled: "diagra-diamond-filled",
-  dot: "diagra-dot",
+  arrow: "nodetto-arrow",
+  triangle: "nodetto-triangle",
+  diamondOpen: "nodetto-diamond-open",
+  diamondFilled: "nodetto-diamond-filled",
+  dot: "nodetto-dot",
 };
 
 export function escapeXml(text: string): string {
@@ -319,7 +319,7 @@ function effectPrimitives(effects: readonly LayerEffect[]): string {
   const primitives: string[] = [];
   let backdropInput = "BackgroundImage";
   for (const [index, effect] of backdrop.entries()) {
-    const result = `diagra-backdrop-${index}`;
+    const result = `nodetto-backdrop-${index}`;
     primitives.push(
       tag("feGaussianBlur", {
         in: backdropInput,
@@ -335,13 +335,13 @@ function effectPrimitives(effects: readonly LayerEffect[]): string {
         in: backdropInput,
         in2: "SourceAlpha",
         operator: "in",
-        result: "diagra-backdrop-clipped",
+        result: "nodetto-backdrop-clipped",
       }),
     );
   }
   let contentInput = "SourceGraphic";
   for (const [index, effect] of content.entries()) {
-    const result = `diagra-content-${index}`;
+    const result = `nodetto-content-${index}`;
     primitives.push(
       effect.type === "drop-shadow"
         ? tag("feDropShadow", {
@@ -366,7 +366,7 @@ function effectPrimitives(effects: readonly LayerEffect[]): string {
       wrap(
         "feMerge",
         {},
-        tag("feMergeNode", { in: "diagra-backdrop-clipped" }) +
+        tag("feMergeNode", { in: "nodetto-backdrop-clipped" }) +
           tag("feMergeNode", { in: contentInput }),
       ),
     );
@@ -1504,7 +1504,7 @@ export function renderElementsSvg(
       continue;
     let filter: string | undefined;
     if (elementEffects.some((effect) => effect.enabled !== false) && expanded) {
-      const id = `diagra-shadow-${effects.length}`;
+      const id = `nodetto-shadow-${effects.length}`;
       filter = `url(#${id})`;
       effects.push(
         wrap(
@@ -1521,7 +1521,7 @@ export function renderElementsSvg(
     }
     const clipped = (body: string): string => {
       if (!clip) return body;
-      const id = `diagra-clip-${clips.length}`;
+      const id = `nodetto-clip-${clips.length}`;
       clips.push(
         wrap(
           "clipPath",
@@ -1604,7 +1604,7 @@ export function renderElementsSvg(
     const semantic = element.semantic as GroupSemantic;
     const boolean = booleanGeometry(element, context);
     const booleanMask = boolean
-      ? `diagra-boolean-${booleanMasks.length}`
+      ? `nodetto-boolean-${booleanMasks.length}`
       : undefined;
     if (boolean && booleanMask)
       booleanMasks.push(booleanMaskDefinition(booleanMask, boolean));
@@ -1613,7 +1613,7 @@ export function renderElementsSvg(
       : undefined;
     const rasterMask =
       !boolean && isRasterMaskSource(maskSource)
-        ? `diagra-raster-mask-${rasterMasks.length}`
+        ? `nodetto-raster-mask-${rasterMasks.length}`
         : undefined;
     if (rasterMask && maskSource) {
       const groupBox = context.boundsOf(element.id);

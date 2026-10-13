@@ -3,8 +3,8 @@ import type {
   ElementId,
   ReviewCommentMessage,
   ReviewCommentSemantic,
-} from "@diagra/ir";
-import { getElementTypeDefinition } from "@diagra/ir";
+} from "@nodetto/ir";
+import { getElementTypeDefinition } from "@nodetto/ir";
 import type { Vec } from "./geometry.ts";
 import { newElementId } from "./ids.ts";
 import type { Editor } from "./editor.ts";

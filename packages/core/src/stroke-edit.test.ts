@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { freehandGeometry } from "./shapes/freehand.ts";
 import { planStrokePoints, strokePagePoints } from "./stroke-edit.ts";
 import { makeEditor } from "./test-helpers.ts";

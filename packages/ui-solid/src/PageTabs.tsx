@@ -6,8 +6,8 @@
 // kept here is transient UI: which tab is being renamed and which tab's menu
 // is open.
 
-import type { Editor } from "@diagra/core";
-import type { Page, PageId } from "@diagra/ir";
+import type { Editor } from "@nodetto/core";
+import type { Page, PageId } from "@nodetto/ir";
 import {
   createEffect,
   createMemo,
@@ -163,7 +163,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
       const target = event.target;
       if (
         target instanceof Element &&
-        target.closest(".diagra-page-menu, .diagra-page-menu-button")
+        target.closest(".nodetto-page-menu, .nodetto-page-menu-button")
       ) {
         return;
       }
@@ -187,15 +187,15 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
   };
 
   return (
-    <div class="diagra-page-tabs" ref={strip}>
-      <div class="diagra-page-tab-list" role="tablist" aria-label="Pages">
+    <div class="nodetto-page-tabs" ref={strip}>
+      <div class="nodetto-page-tab-list" role="tablist" aria-label="Pages">
         <For each={pageIds()}>
           {(id) => (
             <Show when={pagesById().get(id)}>
               {(page) => (
                 <div
-                  class="diagra-page-tab"
-                  classList={{ "diagra-active": currentId() === id }}
+                  class="nodetto-page-tab"
+                  classList={{ "nodetto-active": currentId() === id }}
                   role="presentation"
                 >
                   <Show
@@ -203,7 +203,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                     fallback={
                       <button
                         type="button"
-                        class="diagra-page-tab-name"
+                        class="nodetto-page-tab-name"
                         role="tab"
                         data-page-tab={id}
                         aria-selected={currentId() === id}
@@ -218,7 +218,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                     }
                   >
                     <input
-                      class="diagra-page-rename"
+                      class="nodetto-page-rename"
                       type="text"
                       value={renameValue()}
                       onInput={(event) =>
@@ -259,7 +259,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                   </Show>
                   <button
                     type="button"
-                    class="diagra-page-menu-button"
+                    class="nodetto-page-menu-button"
                     title="Page options"
                     disabled={readOnly()}
                     aria-label={`Options for ${page().name}`}
@@ -280,7 +280,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                   </button>
                   <Show when={menuFor() === id}>
                     <div
-                      class="diagra-page-menu"
+                      class="nodetto-page-menu"
                       role="menu"
                       aria-label={`Options for ${page().name}`}
                       onKeyDown={(event) => {
@@ -298,7 +298,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                           else
                             strip
                               ?.querySelector<HTMLButtonElement>(
-                                ".diagra-page-add",
+                                ".nodetto-page-add",
                               )
                               ?.focus();
                           return;
@@ -331,7 +331,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                         type="button"
                         role="menuitem"
                         tabindex="-1"
-                        class="diagra-menu-item"
+                        class="nodetto-menu-item"
                         title="Rename page"
                         onClick={() => startRename(id)}
                       >
@@ -341,7 +341,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                         type="button"
                         role="menuitem"
                         tabindex="-1"
-                        class="diagra-menu-item"
+                        class="nodetto-menu-item"
                         title="Duplicate page and everything on it"
                         onClick={() => duplicate(page())}
                       >
@@ -351,7 +351,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                         type="button"
                         role="menuitem"
                         tabindex="-1"
-                        class="diagra-menu-item"
+                        class="nodetto-menu-item"
                         title={
                           canDelete()
                             ? "Delete page"
@@ -368,7 +368,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                             type="button"
                             role="menuitem"
                             tabindex="-1"
-                            class="diagra-menu-item"
+                            class="nodetto-menu-item"
                             disabled={
                               pages()[delta === -1 ? 0 : pages().length - 1]
                                 ?.id === id
@@ -393,7 +393,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
       </div>
       <button
         type="button"
-        class="diagra-page-add"
+        class="nodetto-page-add"
         title="Add page"
         aria-label="Add page"
         disabled={readOnly()}

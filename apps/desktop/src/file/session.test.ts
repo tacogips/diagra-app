@@ -5,8 +5,8 @@
 // runs without a Tauri runtime and without waiting on wall-clock time.
 
 import { describe, expect, test } from "bun:test";
-import { createDefaultRegistry, Editor } from "@diagra/core";
-import { serializeDocument } from "@diagra/io";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
+import { serializeDocument } from "@nodetto/io";
 import { seed } from "../seed.ts";
 import type {
   FileBackend,

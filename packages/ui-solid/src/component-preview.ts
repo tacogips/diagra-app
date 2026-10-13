@@ -1,5 +1,5 @@
-import type { Editor } from "@diagra/core";
-import type { ElementId, FrameSemantic } from "@diagra/ir";
+import type { Editor } from "@nodetto/core";
+import type { ElementId, FrameSemantic } from "@nodetto/ir";
 
 /** An inert image source, never markup injected into the application DOM. */
 export function componentPreviewSource(

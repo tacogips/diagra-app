@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { KeyOrder } from "@diagra/ir";
+import type { KeyOrder } from "@nodetto/ir";
 import {
   compareStrings,
   roundCoordinate,

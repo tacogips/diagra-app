@@ -1,5 +1,5 @@
 {
-  "name": "@diagra/collab",
+  "name": "@nodetto/collab",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,11 +7,11 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@diagra/io": "workspace:*"
+    "@nodetto/io": "workspace:*"
   },
   "dependencies": {
-    "@diagra/core": "workspace:*",
-    "@diagra/ir": "workspace:*",
+    "@nodetto/core": "workspace:*",
+    "@nodetto/ir": "workspace:*",
     "y-partyserver": "^2.2.0",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32"

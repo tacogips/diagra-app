@@ -5,8 +5,8 @@ import {
   linearGradientVector,
   sampleGradient,
   strokeGradientId,
-} from "@diagra/core";
-import type { Element, FillGradient } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, FillGradient } from "@nodetto/ir";
 import { For, type JSX, Match, Show, Switch } from "solid-js";
 
 function GradientDefinition(props: {

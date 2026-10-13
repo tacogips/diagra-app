@@ -17,7 +17,7 @@ import {
   type FrameSemantic,
   getElementTypeDefinition,
   type PageId,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   type LayoutDirection,
   type LayoutEdge,

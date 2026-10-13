@@ -1,4 +1,4 @@
-import type { CornerRadii, VisualStyle } from "@diagra/ir";
+import type { CornerRadii, VisualStyle } from "@nodetto/ir";
 import type { Box, Vec } from "./geometry.ts";
 
 export function resolvedCornerRadii(

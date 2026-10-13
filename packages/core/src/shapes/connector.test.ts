@@ -4,7 +4,7 @@
 // place either of them can disagree with the other.
 
 import { describe, expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { element } from "../test-helpers.ts";
 import { makeEditor } from "../test-helpers.ts";
 import {

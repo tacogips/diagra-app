@@ -1,7 +1,7 @@
 // Copy and paste as pure functions, before the editor gets involved.
 
 import { describe, expect, test } from "bun:test";
-import type { Element, GroupSemantic } from "@diagra/ir";
+import type { Element, GroupSemantic } from "@nodetto/ir";
 import {
   type ClipboardPayload,
   Clipboard,

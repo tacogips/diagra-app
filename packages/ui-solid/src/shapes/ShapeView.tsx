@@ -8,8 +8,8 @@
 // A group gets no DOM at all (design editor-ux.md section 7): it exists for
 // selection and transformation only, and its members draw themselves.
 
-import type { Box } from "@diagra/core";
-import type { AccessibilityRole, Element } from "@diagra/ir";
+import type { Box } from "@nodetto/core";
+import type { AccessibilityRole, Element } from "@nodetto/ir";
 import { type JSX, Match, Show, Switch } from "solid-js";
 import { ErdTableView } from "./ErdTableView.tsx";
 import { FrameView } from "./FrameView.tsx";
@@ -58,7 +58,7 @@ function htmlRole(element: Element): JSX.AriaAttributes["role"] {
 }
 
 function descriptionId(element: Element): string {
-  return `diagra-a11y-${Array.from(element.id, (character) =>
+  return `nodetto-a11y-${Array.from(element.id, (character) =>
     character.codePointAt(0)?.toString(16),
   ).join("-")}`;
 }
@@ -79,8 +79,8 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
   return (
     <Show when={props.element.type !== "group"}>
       <div
-        class="diagra-shape"
-        classList={{ "diagra-selected": props.selected }}
+        class="nodetto-shape"
+        classList={{ "nodetto-selected": props.selected }}
         data-element-id={props.element.id}
         data-element-type={props.element.type}
         role={props.exposeAccessibility ? htmlRole(props.element) : undefined}
@@ -148,7 +148,7 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
         </Show>
         <Switch
           fallback={
-            <div class="diagra-unknown">{`unsupported: ${props.element.type}`}</div>
+            <div class="nodetto-unknown">{`unsupported: ${props.element.type}`}</div>
           }
         >
           <Match when={props.element.type === "shape.geo"}>
@@ -176,7 +176,7 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
             <SequenceParticipantView element={props.element} />
           </Match>
           <Match when={props.element.type === "sequence.activation"}>
-            <div class="diagra-sequence-activation" />
+            <div class="nodetto-sequence-activation" />
           </Match>
           <Match when={props.element.type === "text.note"}>
             <TextNoteView element={props.element} />

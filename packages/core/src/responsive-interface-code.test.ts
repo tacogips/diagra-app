@@ -68,12 +68,12 @@ test("generates deterministic media branches for a transitive responsive family"
   expect(report?.html).toContain("Tablet checkout");
   expect(report?.html).toContain("Desktop checkout");
   expect(report?.css).toContain(
-    ".diagra-breakpoint-6d-6f-62-69-6c-65 { display: block; }",
+    ".nodetto-breakpoint-6d-6f-62-69-6c-65 { display: block; }",
   );
   expect(report?.css).toContain("@media (min-width: 768px)");
   expect(report?.css).toContain("@media (min-width: 1440px)");
   expect(report?.css).not.toContain("max-width");
-  expect(report?.linkedCss).toContain(".diagra-responsive-view");
+  expect(report?.linkedCss).toContain(".nodetto-responsive-view");
   expect(JSON.parse(report?.manifest ?? "{}")).toMatchObject({
     sourceRoot: desktop.id,
     breakpoints: [

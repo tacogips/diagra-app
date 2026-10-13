@@ -1,4 +1,4 @@
-.diagra-help-tooltip {
+.nodetto-help-tooltip {
   position: fixed;
   z-index: 10000;
   box-sizing: border-box;
@@ -16,7 +16,7 @@
   pointer-events: auto;
 }
 
-.diagra-help-hint {
+.nodetto-help-hint {
   display: inline-grid;
   width: 18px;
   height: 18px;
@@ -24,23 +24,23 @@
   place-items: center;
   border: 0;
   border-radius: 0;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   background: transparent;
   cursor: help;
 }
 
-.diagra-help-hint:hover,
-.diagra-help-hint:focus-visible {
-  color: var(--diagra-ink);
+.nodetto-help-hint:hover,
+.nodetto-help-hint:focus-visible {
+  color: var(--nodetto-ink);
   background: #f1f3f4;
 }
 
-.diagra-help-hint:focus-visible {
+.nodetto-help-hint:focus-visible {
   outline: 2px solid #5d7480;
   outline-offset: 1px;
 }
 
-.diagra-help-hint svg {
+.nodetto-help-hint svg {
   width: 14px;
   height: 14px;
   fill: none;

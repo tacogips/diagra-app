@@ -13,8 +13,8 @@ import {
   gradientId,
   strokeDashCss,
   strokeGradientId,
-} from "@diagra/core";
-import type { Visual } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Visual } from "@nodetto/ir";
 import type { JSX } from "solid-js";
 
 export interface SvgStyleAttributes {

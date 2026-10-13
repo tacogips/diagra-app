@@ -19,7 +19,7 @@ try {
   result = {
     exitCode: EXIT_ERROR,
     stdout: "",
-    stderr: `diagra-cli: ${cause instanceof Error ? cause.message : String(cause)}\n`,
+    stderr: `nodetto-cli: ${cause instanceof Error ? cause.message : String(cause)}\n`,
   };
 }
 if (result.stdout) process.stdout.write(result.stdout);

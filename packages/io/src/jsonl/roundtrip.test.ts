@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Document } from "@diagra/ir";
+import type { Document } from "@nodetto/ir";
 import {
   DocumentParseError,
   parseDocument,

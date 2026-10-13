@@ -4,7 +4,7 @@ import {
   numberTokens,
   setNumberTokenAlias,
   updateNumberToken,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import { HelpHint } from "./HelpHint.tsx";
@@ -20,7 +20,7 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
   });
   return (
     <section
-      class="diagra-number-tokens"
+      class="nodetto-number-tokens"
       aria-label="Document measurement tokens"
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
@@ -67,7 +67,7 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
             );
           };
           return (
-            <div class="diagra-color-entry">
+            <div class="nodetto-color-entry">
               <input
                 aria-label={`Rename ${token.name}`}
                 value={token.name}

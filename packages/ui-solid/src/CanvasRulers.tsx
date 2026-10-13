@@ -5,7 +5,7 @@ import {
   pageGuides,
   updatePageGuide,
   type ViewportSize,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   createMemo,
   createSignal,
@@ -221,7 +221,7 @@ export function CanvasRulers(props: {
 
   return (
     <svg
-      class="diagra-rulers"
+      class="nodetto-rulers"
       aria-label="Canvas rulers"
       width={props.viewport.width}
       height={props.viewport.height}
@@ -234,10 +234,10 @@ export function CanvasRulers(props: {
             active() ? (moving()?.position ?? guide.position) : guide.position;
           return (
             <g
-              class="diagra-persistent-guide"
+              class="nodetto-persistent-guide"
               classList={{
-                "diagra-persistent-guide-active": active(),
-                "diagra-persistent-guide-locked": guide.locked,
+                "nodetto-persistent-guide-active": active(),
+                "nodetto-persistent-guide-locked": guide.locked,
               }}
             >
               <line
@@ -254,7 +254,7 @@ export function CanvasRulers(props: {
                 stroke={guide.color}
               />
               <line
-                class="diagra-persistent-guide-hit"
+                class="nodetto-persistent-guide-hit"
                 style={{ "pointer-events": readOnly() ? "none" : undefined }}
                 x1={guide.axis === "x" ? guideScreen(guide) : RULER_SIZE}
                 y1={guide.axis === "x" ? RULER_SIZE : guideScreen(guide)}
@@ -273,7 +273,7 @@ export function CanvasRulers(props: {
               />
               <Show when={active()}>
                 <text
-                  class="diagra-persistent-guide-label"
+                  class="nodetto-persistent-guide-label"
                   x={guide.axis === "x" ? guideScreen(guide) + 4 : RULER_SIZE}
                   y={
                     guide.axis === "x"
@@ -288,7 +288,7 @@ export function CanvasRulers(props: {
           );
         }}
       </For>
-      <g class="diagra-ruler diagra-ruler-x">
+      <g class="nodetto-ruler nodetto-ruler-x">
         <rect
           x={RULER_SIZE}
           y={0}
@@ -318,7 +318,7 @@ export function CanvasRulers(props: {
           )}
         </For>
       </g>
-      <g class="diagra-ruler diagra-ruler-y">
+      <g class="nodetto-ruler nodetto-ruler-y">
         <rect
           x={0}
           y={RULER_SIZE}
@@ -353,7 +353,7 @@ export function CanvasRulers(props: {
         </For>
       </g>
       <rect
-        class="diagra-ruler-corner"
+        class="nodetto-ruler-corner"
         x={0}
         y={0}
         width={RULER_SIZE}
@@ -362,7 +362,7 @@ export function CanvasRulers(props: {
       <Show when={draft()} keyed>
         {(guide) => (
           <line
-            class="diagra-ruler-draft"
+            class="nodetto-ruler-draft"
             x1={guide.axis === "x" ? guide.screen : RULER_SIZE}
             y1={guide.axis === "x" ? RULER_SIZE : guide.screen}
             x2={guide.axis === "x" ? guide.screen : props.viewport.width}

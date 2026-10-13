@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import { pageRenameDraft } from "./page-rename.ts";
 
 test("page rename trims names, ignores blank drafts, and adds one undoable edit", () => {

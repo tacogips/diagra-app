@@ -4,7 +4,7 @@
 // nodes across a commit, so the caret does not jump when the payload is
 // replaced, and the row a double-click asked for can be focused by index.
 
-import { type Editor, newElementId } from "@diagra/core";
+import { type Editor, newElementId } from "@nodetto/core";
 import {
   CARDINALITIES,
   type Element,
@@ -13,7 +13,7 @@ import {
   type ForeignKeyDeferrability,
   REFERENTIAL_ACTIONS,
   type ReferentialAction,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   createEffect,
   createSignal,
@@ -101,7 +101,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
         />
       </Field>
       <div
-        class="diagra-inspector-actions"
+        class="nodetto-inspector-actions"
         role="group"
         aria-label="Table editing mode"
       >
@@ -124,15 +124,15 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
         <ErdTextEditor editor={props.editor} element={props.element} />
       </Show>
       <Show when={mode() === "columns"}>
-        <div class="diagra-erd-columns" aria-label="Columns">
+        <div class="nodetto-erd-columns" aria-label="Columns">
           <Index each={semantic().columns}>
             {(column, index) => (
               <section
-                class="diagra-erd-column"
+                class="nodetto-erd-column"
                 aria-label={`Column ${index + 1}`}
               >
-                <div class="diagra-erd-column-main">
-                  <div class="diagra-erd-column-field">
+                <div class="nodetto-erd-column-main">
+                  <div class="nodetto-erd-column-field">
                     <span>Name</span>
                     <TextInput
                       ref={(element) => {
@@ -147,7 +147,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                       }
                     />
                   </div>
-                  <div class="diagra-erd-column-field">
+                  <div class="nodetto-erd-column-field">
                     <span>Type</span>
                     <TextInput
                       label="Data type"
@@ -172,7 +172,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                     }
                   />
                 </div>
-                <div class="diagra-erd-column-flags">
+                <div class="nodetto-erd-column-flags">
                   <Checkbox
                     label="Auto-increment"
                     checked={column().autoIncrement === true}
@@ -215,7 +215,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                   />
                 </div>
                 <details
-                  class="diagra-erd-column-sql"
+                  class="nodetto-erd-column-sql"
                   open={expandedSqlId() === column().id}
                 >
                   <summary
@@ -228,7 +228,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                   >
                     SQL
                   </summary>
-                  <div class="diagra-erd-column-sql-fields">
+                  <div class="nodetto-erd-column-sql-fields">
                     <Field label="Default">
                       <TextInput
                         label="Default SQL expression"
@@ -265,21 +265,21 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
         </div>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           onClick={() => write(addErdColumn(semantic(), newElementId()))}
         >
           Add column
         </button>
       </Show>
-      <div class="diagra-rows" aria-label="Indexes">
+      <div class="nodetto-rows" aria-label="Indexes">
         <Index each={semantic().indexes ?? []}>
           {(index, position) => (
             <div>
-              <div class="diagra-field">
+              <div class="nodetto-field">
                 <strong>{`Index ${position + 1}`}</strong>
                 <button
                   type="button"
-                  class="diagra-row-button diagra-row-remove"
+                  class="nodetto-row-button nodetto-row-remove"
                   aria-label={`Remove index ${position + 1}`}
                   onClick={() => write(removeErdIndex(semantic(), index().id))}
                 >
@@ -297,10 +297,10 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                 />
               </Field>
               <Field label="Columns">
-                <div class="diagra-rows">
+                <div class="nodetto-rows">
                   <Index each={index().columns}>
                     {(columnId, columnPosition) => (
-                      <div class="diagra-field">
+                      <div class="nodetto-field">
                         <span>
                           {semantic().columns.find(
                             (column) => column.id === columnId(),
@@ -336,7 +336,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
                     )}
                   </Index>
                   <select
-                    class="diagra-select"
+                    class="nodetto-select"
                     aria-label={`Add a column to index ${position + 1}`}
                     value=""
                     disabled={
@@ -379,21 +379,21 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         disabled={semantic().columns.length === 0}
         onClick={() => write(addErdIndex(semantic(), newElementId()))}
       >
         Add index
       </button>
-      <div class="diagra-rows" aria-label="Check constraints">
+      <div class="nodetto-rows" aria-label="Check constraints">
         <Index each={semantic().checks ?? []}>
           {(check, position) => (
             <div>
-              <div class="diagra-field">
+              <div class="nodetto-field">
                 <strong>{`Check ${position + 1}`}</strong>
                 <button
                   type="button"
-                  class="diagra-row-button diagra-row-remove"
+                  class="nodetto-row-button nodetto-row-remove"
                   aria-label={`Remove check ${position + 1}`}
                   onClick={() => write(removeErdCheck(semantic(), check().id))}
                 >
@@ -428,7 +428,7 @@ export function ErdTableSection(props: ErdTableSectionProps): JSX.Element {
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => write(addErdCheck(semantic(), newElementId()))}
       >
         Add check
@@ -501,8 +501,8 @@ export function ErdRelationSection(
       }));
   const endpoint = (end: "from" | "to"): JSX.Element => (
     <Field label={end === "from" ? "From" : "To"}>
-      <div class="diagra-endpoint">
-        <span class="diagra-endpoint-table">
+      <div class="nodetto-endpoint">
+        <span class="nodetto-endpoint-table">
           {tableOf(end)?.tableName ?? "(missing table)"}
         </span>
       </div>
@@ -605,7 +605,7 @@ export function ErdRelationSection(
       {endpoint("from")}
       {endpoint("to")}
       <div
-        class="diagra-rows"
+        class="nodetto-rows"
         role="table"
         aria-label={
           semantic().logical === true
@@ -614,7 +614,7 @@ export function ErdRelationSection(
         }
       >
         <div
-          class="diagra-row diagra-row-erd-relation diagra-row-head"
+          class="nodetto-row nodetto-row-erd-relation nodetto-row-head"
           role="row"
         >
           <span>From column</span>
@@ -623,7 +623,7 @@ export function ErdRelationSection(
         </div>
         <Index each={pairs()}>
           {(pair, index) => (
-            <div class="diagra-row diagra-row-erd-relation" role="row">
+            <div class="nodetto-row nodetto-row-erd-relation" role="row">
               <SelectInput
                 label={`Foreign key source column ${index + 1}`}
                 value={pair().from}
@@ -654,7 +654,7 @@ export function ErdRelationSection(
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         disabled={!canAddPair()}
         onClick={addPair}
       >

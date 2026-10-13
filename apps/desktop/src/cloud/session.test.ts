@@ -6,9 +6,9 @@
 // Everything else, including the binding, is the real implementation.
 
 import { describe, expect, test } from "bun:test";
-import { applyIrToDoc, type PresencePeer } from "@diagra/collab";
-import { Editor } from "@diagra/core";
-import type { Document } from "@diagra/ir";
+import { applyIrToDoc, type PresencePeer } from "@nodetto/collab";
+import { Editor } from "@nodetto/core";
+import type { Document } from "@nodetto/ir";
 import { Awareness } from "y-protocols/awareness";
 import * as Y from "yjs";
 import type { ApiResult, CloudApi } from "./api.ts";

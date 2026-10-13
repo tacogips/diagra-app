@@ -3,7 +3,7 @@ import type {
   Element,
   ElementId,
   NumberTokenSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Store } from "./store.ts";
 
 export interface TokenResolution<T> {

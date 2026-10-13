@@ -9,8 +9,8 @@ import {
   replyToReviewComment,
   reviewComments,
   setReviewCommentResolved,
-} from "@diagra/core";
-import type { ElementId, ReviewCommentSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { ElementId, ReviewCommentSemantic } from "@nodetto/ir";
 import {
   createMemo,
   createEffect,
@@ -116,7 +116,7 @@ export function ReviewComments(
     props.onPlaceComment(draft, () => setBody(""));
   };
   return (
-    <section class="diagra-review-comments" aria-label="Review comments">
+    <section class="nodetto-review-comments" aria-label="Review comments">
       <Show
         when={props.showHeading !== false}
         fallback={
@@ -154,7 +154,7 @@ export function ReviewComments(
         on:keydown={(event) => event.stopPropagation()}
         on:keyup={(event) => event.stopPropagation()}
       />
-      <div class="diagra-comment-actions">
+      <div class="nodetto-comment-actions">
         <button
           type="button"
           disabled={
@@ -185,7 +185,7 @@ export function ReviewComments(
         </label>
       </div>
       <Show when={props.commentPlacementActive}>
-        <div class="diagra-comment-placement" role="status">
+        <div class="nodetto-comment-placement" role="status">
           <span>Click canvas to place</span>
           <button type="button" onClick={props.onCancelCommentPlacement}>
             Cancel
@@ -198,7 +198,7 @@ export function ReviewComments(
           const reply = () => replies()[thread.element.id] ?? "";
           return (
             <article
-              class="diagra-comment-thread"
+              class="nodetto-comment-thread"
               classList={{ "is-resolved": semantic().resolved === true }}
             >
               <header>
@@ -225,7 +225,7 @@ export function ReviewComments(
               </header>
               <For each={semantic().messages}>
                 {(message) => (
-                  <div class="diagra-comment-message">
+                  <div class="nodetto-comment-message">
                     <strong>{message.author}</strong>
                     <time dateTime={message.createdAt}>
                       {messageTime(message.createdAt)}
@@ -248,7 +248,7 @@ export function ReviewComments(
                 on:keydown={(event) => event.stopPropagation()}
                 on:keyup={(event) => event.stopPropagation()}
               />
-              <div class="diagra-comment-actions">
+              <div class="nodetto-comment-actions">
                 <Show when={props.viewport}>
                   <button
                     type="button"
@@ -341,7 +341,7 @@ export function ReviewCommentPins(
     );
   });
   return (
-    <div class="diagra-comment-pins" aria-label="Open comment pins">
+    <div class="nodetto-comment-pins" aria-label="Open comment pins">
       <For each={threads()}>
         {(thread) => {
           const point = () =>
@@ -353,7 +353,7 @@ export function ReviewCommentPins(
                 };
           return (
             <div
-              class="diagra-comment-pin-wrap"
+              class="nodetto-comment-pin-wrap"
               style={{
                 left: `${point()?.x ?? 0}px`,
                 top: `${point()?.y ?? 0}px`,
@@ -361,7 +361,7 @@ export function ReviewCommentPins(
             >
               <button
                 type="button"
-                class="diagra-comment-pin"
+                class="nodetto-comment-pin"
                 classList={{
                   "is-dragging": preview()?.id === thread.element.id,
                 }}
@@ -419,7 +419,7 @@ export function ReviewCommentPins(
                 {thread.number}
               </button>
               <Show when={open() === thread.element.id}>
-                <aside class="diagra-comment-popover">
+                <aside class="nodetto-comment-popover">
                   <strong>Comment #{thread.number}</strong>
                   <span>
                     {threadTarget(props.editor, thread.element.semantic)}

@@ -1,4 +1,4 @@
-import type { Element, FreehandPoint, FreehandSemantic } from "@diagra/ir";
+import type { Element, FreehandPoint, FreehandSemantic } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { freehandGeometry } from "./shapes/freehand.ts";
 

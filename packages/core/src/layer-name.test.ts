@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { layerName, renameLayer } from "./layer-name.ts";
 import { makeEditor, document, erdFixture } from "./test-helpers.ts";
 

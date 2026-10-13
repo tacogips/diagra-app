@@ -1,217 +1,217 @@
 /*
  * Inspector panel, inline text editor and text notes.
  *
- * Everything here belongs to the components in @diagra/ui-solid's
+ * Everything here belongs to the components in @nodetto/ui-solid's
  * Inspector.tsx, TextEditor.tsx and shapes/TextNoteView.tsx. Colours come
- * from the --diagra-* custom properties defined in style.css.
+ * from the --nodetto-* custom properties defined in style.css.
  */
 
 /* Inspector */
 
 /* Plain section actions need the same flat chrome as named controls. Keep
  * specificity at zero so swatches, help icons and pressed-state styles win. */
-:where(.diagra-inspector button) {
+:where(.nodetto-inspector button) {
   -webkit-appearance: none;
   appearance: none;
   padding: 3px 6px;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 0;
   box-shadow: none;
-  background: var(--diagra-surface);
-  color: var(--diagra-ink);
+  background: var(--nodetto-surface);
+  color: var(--nodetto-ink);
   cursor: pointer;
 }
 
-:where(.diagra-inspector button:hover:not(:disabled)) {
+:where(.nodetto-inspector button:hover:not(:disabled)) {
   background: var(--app-chrome-hover);
 }
 
-:where(.diagra-inspector button:disabled) {
-  color: var(--diagra-muted);
+:where(.nodetto-inspector button:disabled) {
+  color: var(--nodetto-muted);
   cursor: default;
 }
 
-:where(.diagra-inspector button:focus-visible) {
-  outline: 2px solid var(--diagra-accent);
+:where(.nodetto-inspector button:focus-visible) {
+  outline: 2px solid var(--nodetto-accent);
   outline-offset: 1px;
 }
 
-.diagra-inspector {
+.nodetto-inspector {
   display: flex;
   flex-direction: column;
   width: 100%;
   min-width: 0;
   height: 100%;
-  border-left: 1px solid var(--diagra-line);
-  background: var(--diagra-surface);
-  color: var(--diagra-ink);
+  border-left: 1px solid var(--nodetto-line);
+  background: var(--nodetto-surface);
+  color: var(--nodetto-ink);
   font-size: 0.78rem;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
-.diagra-inspector-section {
+.nodetto-inspector-section {
   padding: 10px 12px 12px;
-  border-bottom: 1px solid var(--diagra-line);
+  border-bottom: 1px solid var(--nodetto-line);
 }
 
 .app-inspector {
   container: inspector / inline-size;
 }
 
-.diagra-inspector :is(p, output) {
+.nodetto-inspector :is(p, output) {
   overflow-wrap: anywhere;
 }
 
-.diagra-inspector-details > summary {
+.nodetto-inspector-details > summary {
   padding: 9px 12px;
-  border-bottom: 1px solid var(--diagra-line);
+  border-bottom: 1px solid var(--nodetto-line);
   cursor: pointer;
   font-weight: 600;
 }
 
 @container inspector (max-width: 260px) {
-  .diagra-inspector .diagra-field-grid,
-  .diagra-inspector .diagra-inspector-grid-2 {
+  .nodetto-inspector .nodetto-field-grid,
+  .nodetto-inspector .nodetto-inspector-grid-2 {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-.diagra-inspector-title {
+.nodetto-inspector-title {
   margin: 0;
-  color: var(--diagra-accent);
+  color: var(--nodetto-accent);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.diagra-inspector-title-row {
+.nodetto-inspector-title-row {
   display: flex;
   align-items: center;
   gap: 4px;
   margin-bottom: 8px;
 }
 
-.diagra-inspector-subtitle {
+.nodetto-inspector-subtitle {
   margin: 12px 0 6px;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.diagra-inspector-body {
+.nodetto-inspector-body {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.diagra-inspector-subsection {
+.nodetto-inspector-subsection {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid var(--diagra-line);
+  border-top: 1px solid var(--nodetto-line);
 }
 
-.diagra-inspector-grid-2 {
+.nodetto-inspector-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 
-.diagra-inspector-summary,
-.diagra-inspector-note {
+.nodetto-inspector-summary,
+.nodetto-inspector-note {
   margin: 0;
   padding: 8px 12px;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
 }
 
-.diagra-inspector-section .diagra-inspector-note {
+.nodetto-inspector-section .nodetto-inspector-note {
   padding: 0;
 }
 
-.diagra-inspector-button {
+.nodetto-inspector-button {
   align-self: flex-start;
   min-height: 26px;
   padding: 0 10px;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 0;
-  color: var(--diagra-ink);
-  background: var(--diagra-surface);
+  color: var(--nodetto-ink);
+  background: var(--nodetto-surface);
   font: inherit;
   cursor: pointer;
 }
 
-.diagra-inspector-button:hover:not(:disabled) {
-  background: var(--diagra-accent-soft);
+.nodetto-inspector-button:hover:not(:disabled) {
+  background: var(--nodetto-accent-soft);
 }
 
 /* Fields */
 
-.diagra-field {
+.nodetto-field {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
 
-.diagra-field-label {
-  color: var(--diagra-muted);
+.nodetto-field-label {
+  color: var(--nodetto-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.diagra-field-control {
+.nodetto-field-control {
   display: flex;
   min-width: 0;
   align-items: center;
 }
 
-.diagra-field-control > * {
+.nodetto-field-control > * {
   min-width: 0;
   flex: 1;
 }
 
-.diagra-field-grid {
+.nodetto-field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px 10px;
 }
 
-.diagra-field-grid .diagra-field {
+.nodetto-field-grid .nodetto-field {
   grid-template-columns: 52px minmax(0, 1fr);
 }
 
-.diagra-input,
-.diagra-select {
+.nodetto-input,
+.nodetto-select {
   min-width: 0;
   min-height: 26px;
   padding: 0 6px;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 0;
-  color: var(--diagra-ink);
-  background: var(--diagra-surface);
+  color: var(--nodetto-ink);
+  background: var(--nodetto-surface);
   font: inherit;
 }
 
-.diagra-input:focus,
-.diagra-select:focus,
-.diagra-textarea:focus {
-  outline: 2px solid var(--diagra-accent);
+.nodetto-input:focus,
+.nodetto-select:focus,
+.nodetto-textarea:focus {
+  outline: 2px solid var(--nodetto-accent);
   outline-offset: -1px;
-  border-color: var(--diagra-accent);
+  border-color: var(--nodetto-accent);
   box-shadow: none;
 }
 
-.diagra-input:disabled,
-.diagra-select:disabled {
+.nodetto-input:disabled,
+.nodetto-select:disabled {
   color: #a8a8a8;
-  background: var(--diagra-canvas);
+  background: var(--nodetto-canvas);
 }
 
-.diagra-textarea {
+.nodetto-textarea {
   width: 100%;
   padding: 4px 6px;
   resize: vertical;
@@ -219,53 +219,53 @@
   white-space: pre-wrap;
 }
 
-.diagra-number {
+.nodetto-number {
   width: 100%;
 }
 
-.diagra-check {
+.nodetto-check {
   display: inline-flex;
   gap: 4px;
   align-items: center;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   cursor: pointer;
 }
 
-.diagra-check input {
+.nodetto-check input {
   margin: 0;
-  accent-color: var(--diagra-accent);
+  accent-color: var(--nodetto-accent);
 }
 
 /* Style controls */
 
-.diagra-swatches {
+.nodetto-swatches {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   align-items: center;
 }
 
-.diagra-swatch {
+.nodetto-swatch {
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 50%;
   cursor: pointer;
 }
 
-.diagra-swatch[aria-pressed="true"] {
-  border-color: var(--diagra-accent);
-  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+.nodetto-swatch[aria-pressed="true"] {
+  border-color: var(--nodetto-accent);
+  box-shadow: 0 0 0 2px var(--nodetto-accent-soft);
 }
 
-.diagra-swatch-none {
+.nodetto-swatch-none {
   position: relative;
-  background: var(--diagra-surface);
+  background: var(--nodetto-surface);
   overflow: hidden;
 }
 
-.diagra-swatch-none::after {
+.nodetto-swatch-none::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -275,233 +275,233 @@
   transform: rotate(-45deg);
 }
 
-.diagra-color {
+.nodetto-color {
   width: 22px;
   height: 20px;
   padding: 0;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
 }
 
-.diagra-opacity {
+.nodetto-opacity {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.diagra-range {
+.nodetto-range {
   flex: 1;
   min-width: 0;
-  accent-color: var(--diagra-accent);
+  accent-color: var(--nodetto-accent);
 }
 
-.diagra-opacity-value {
+.nodetto-opacity-value {
   min-width: 36px;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.diagra-segmented {
+.nodetto-segmented {
   display: inline-flex;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 6px;
   overflow: hidden;
 }
 
-.diagra-segment {
+.nodetto-segment {
   flex: 1;
   min-height: 24px;
   padding: 0 8px;
   border: 0;
-  border-right: 1px solid var(--diagra-line);
-  color: var(--diagra-ink);
-  background: var(--diagra-surface);
+  border-right: 1px solid var(--nodetto-line);
+  color: var(--nodetto-ink);
+  background: var(--nodetto-surface);
   font: inherit;
   cursor: pointer;
 }
 
-.diagra-segment:last-child {
+.nodetto-segment:last-child {
   border-right: 0;
 }
 
-.diagra-segment[aria-pressed="true"] {
-  color: var(--diagra-surface);
-  background: var(--diagra-accent);
+.nodetto-segment[aria-pressed="true"] {
+  color: var(--nodetto-surface);
+  background: var(--nodetto-accent);
 }
 
 /* Row editors */
 
-.diagra-rows {
+.nodetto-rows {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.diagra-row {
+.nodetto-row {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 22px 22px auto;
   gap: 4px;
   align-items: center;
 }
 
-.diagra-row-erd {
+.nodetto-row-erd {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr) 22px 22px minmax(
       0,
       1fr
     ) minmax(0, 1fr) auto;
 }
 
-.diagra-erd-columns {
+.nodetto-erd-columns {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.diagra-erd-column {
+.nodetto-erd-column {
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 7px;
-  border: 1px solid var(--app-chrome-line, var(--diagra-line));
-  background: var(--app-chrome-surface, var(--diagra-surface));
+  border: 1px solid var(--app-chrome-line, var(--nodetto-line));
+  background: var(--app-chrome-surface, var(--nodetto-surface));
 }
 
-.diagra-erd-column-main {
+.nodetto-erd-column-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 6px;
   align-items: end;
 }
 
-.diagra-erd-column-field {
+.nodetto-erd-column-field {
   display: grid;
   gap: 3px;
   min-width: 0;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.diagra-erd-column-main .diagra-row-tools {
+.nodetto-erd-column-main .nodetto-row-tools {
   align-self: end;
 }
 
-.diagra-erd-column-flags {
+.nodetto-erd-column-flags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.diagra-erd-column-flags .diagra-check {
+.nodetto-erd-column-flags .nodetto-check {
   font-size: 0.76rem;
 }
 
-.diagra-erd-column-sql > summary {
-  color: var(--diagra-muted);
+.nodetto-erd-column-sql > summary {
+  color: var(--nodetto-muted);
   cursor: pointer;
   font-size: 0.72rem;
   font-weight: 600;
 }
 
-.diagra-erd-column-sql-fields {
+.nodetto-erd-column-sql-fields {
   display: grid;
   gap: 5px;
   margin-top: 6px;
 }
 
 @container inspector (max-width: 260px) {
-  .diagra-erd-column-main {
+  .nodetto-erd-column-main {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .diagra-erd-column-field:first-child {
+  .nodetto-erd-column-field:first-child {
     grid-column: 1 / -1;
   }
 }
 
-.diagra-row-erd-relation {
+.nodetto-row-erd-relation {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 }
 
-.diagra-row-uml {
+.nodetto-row-uml {
   grid-template-columns: 44px minmax(0, 1.3fr) minmax(0, 1fr) 22px auto;
 }
 
-.diagra-row-head {
-  color: var(--diagra-muted);
+.nodetto-row-head {
+  color: var(--nodetto-muted);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.diagra-row-head span {
+.nodetto-row-head span {
   padding: 0 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.diagra-row .diagra-input,
-.diagra-row .diagra-select {
+.nodetto-row .nodetto-input,
+.nodetto-row .nodetto-select {
   width: 100%;
   min-height: 24px;
   padding: 0 4px;
 }
 
-.diagra-row .diagra-check {
+.nodetto-row .nodetto-check {
   justify-content: center;
 }
 
-.diagra-row-tools {
+.nodetto-row-tools {
   display: inline-flex;
   gap: 2px;
 }
 
-.diagra-row-button {
+.nodetto-row-button {
   width: 20px;
   height: 22px;
   padding: 0;
-  border: 1px solid var(--diagra-line);
+  border: 1px solid var(--nodetto-line);
   border-radius: 4px;
-  color: var(--diagra-ink);
-  background: var(--diagra-surface);
+  color: var(--nodetto-ink);
+  background: var(--nodetto-surface);
   font: inherit;
   line-height: 1;
   cursor: pointer;
 }
 
-.diagra-row-button:hover:not(:disabled) {
-  background: var(--diagra-accent-soft);
+.nodetto-row-button:hover:not(:disabled) {
+  background: var(--nodetto-accent-soft);
 }
 
-.diagra-row-button:disabled {
+.nodetto-row-button:disabled {
   color: #c4c4c4;
   cursor: default;
 }
 
-.diagra-row-remove:hover:not(:disabled) {
+.nodetto-row-remove:hover:not(:disabled) {
   color: #8c2f26;
   background: #fdf1ef;
 }
 
-.diagra-method {
+.nodetto-method {
   display: flex;
   flex-direction: column;
   gap: 3px;
   padding-bottom: 4px;
-  border-bottom: 1px dashed var(--diagra-line);
+  border-bottom: 1px dashed var(--nodetto-line);
 }
 
-.diagra-method:last-child {
+.nodetto-method:last-child {
   border-bottom: 0;
 }
 
-.diagra-method-detail {
+.nodetto-method-detail {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 6px;
@@ -509,15 +509,15 @@
   padding-left: 48px;
 }
 
-.diagra-endpoint {
+.nodetto-endpoint {
   display: flex;
   flex-direction: column;
   gap: 3px;
   min-width: 0;
 }
 
-.diagra-endpoint-table {
-  color: var(--diagra-muted);
+.nodetto-endpoint-table {
+  color: var(--nodetto-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -525,62 +525,62 @@
 
 /* Inline text editor (page space, inside the canvas viewport) */
 
-.diagra-text-editor {
+.nodetto-text-editor {
   position: absolute;
   z-index: 2;
   display: block;
   margin: 0;
-  border: 1px solid var(--diagra-accent);
+  border: 1px solid var(--nodetto-accent);
   border-radius: 3px;
-  color: var(--diagra-ink);
-  background: color-mix(in srgb, var(--diagra-surface) 92%, transparent);
+  color: var(--nodetto-ink);
+  background: color-mix(in srgb, var(--nodetto-surface) 92%, transparent);
   font-family: inherit;
   outline: none;
   overflow: hidden;
   resize: none;
   white-space: pre;
-  box-shadow: 0 0 0 2px var(--diagra-accent-soft);
+  box-shadow: 0 0 0 2px var(--nodetto-accent-soft);
   pointer-events: auto;
 }
 
-.diagra-text-editor-multiline {
+.nodetto-text-editor-multiline {
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
 
 /* Text note */
 
-.diagra-text-note {
+.nodetto-text-note {
   height: 100%;
   padding: 6px 8px;
-  color: var(--diagra-ink);
+  color: var(--nodetto-ink);
   text-align: left;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   overflow: hidden;
 }
 
-.diagra-text-note-empty {
-  border: 1px dashed var(--diagra-line);
+.nodetto-text-note-empty {
+  border: 1px dashed var(--nodetto-line);
   border-radius: 3px;
 }
 
-.diagra-rich-text-controls {
+.nodetto-rich-text-controls {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.diagra-rich-text-controls button[aria-pressed="true"] {
-  border-color: var(--diagra-accent);
-  color: var(--diagra-accent);
-  background: var(--diagra-accent-soft);
+.nodetto-rich-text-controls button[aria-pressed="true"] {
+  border-color: var(--nodetto-accent);
+  color: var(--nodetto-accent);
+  background: var(--nodetto-accent-soft);
 }
-.diagra-note-replacement-preview summary {
+.nodetto-note-replacement-preview summary {
   overflow-wrap: anywhere;
 }
 
-.diagra-note-replacement-preview pre {
+.nodetto-note-replacement-preview pre {
   max-height: 10rem;
   overflow: auto;
   white-space: pre-wrap;

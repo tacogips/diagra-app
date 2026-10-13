@@ -5,7 +5,7 @@ import type {
   FrameSemantic,
   GenericEdgeSemantic,
   ImageSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { collectInterfaceTree } from "./interface-tree.ts";
 

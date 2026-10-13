@@ -1,4 +1,4 @@
-import type { Visual } from "@diagra/ir";
+import type { Visual } from "@nodetto/ir";
 
 export type SizeAxis = "width" | "height";
 

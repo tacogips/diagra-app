@@ -28,7 +28,7 @@ import {
   type TextResizeMode,
   type Visual,
   type VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   type AlignMode,
   type DistributeAxis,

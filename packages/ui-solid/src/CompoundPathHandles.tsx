@@ -4,8 +4,8 @@ import {
   pathWorldContours,
   strokePath,
   type Vec,
-} from "@diagra/core";
-import type { Element, FreehandPoint } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, FreehandPoint } from "@nodetto/ir";
 import {
   createMemo,
   createSignal,

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { FillGradient } from "@diagra/ir";
+import type { FillGradient } from "@nodetto/ir";
 import {
   gradientHandleGeometry,
   moveGradientHandle,

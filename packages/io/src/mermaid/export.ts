@@ -10,8 +10,8 @@ import type {
   SequenceParticipantSemantic,
   UmlAssociationSemantic,
   UmlClassSemantic,
-} from "@diagra/ir";
-import { erdEndpointColumnIds } from "@diagra/ir";
+} from "@nodetto/ir";
+import { erdEndpointColumnIds } from "@nodetto/ir";
 
 export const MERMAID_DIAGRAM_KINDS = [
   "erDiagram",

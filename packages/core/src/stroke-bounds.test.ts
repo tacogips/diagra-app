@@ -8,7 +8,7 @@ import {
   strokePagePoints,
   planStrokePoints,
 } from "./stroke-edit.ts";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 
 test("tight frame migration preserves page-space controls and supports edits, undo and persistence", () => {
   const path = element({

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createDefaultRegistry, Editor, renameLayer } from "@diagra/core";
+import { createDefaultRegistry, Editor, renameLayer } from "@nodetto/core";
 import { layerRenameDraft } from "./layer-rename.ts";
 
 function fixture() {

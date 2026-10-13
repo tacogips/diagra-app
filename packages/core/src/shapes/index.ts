@@ -1,6 +1,6 @@
 // The default ShapeUtil registry: every element type this build renders.
 //
-// Types that are registered in `@diagra/ir` but not here fall through to the
+// Types that are registered in `@nodetto/ir` but not here fall through to the
 // unknown util, which keeps documents from newer builds openable.
 
 import { groupShapeUtil } from "../group.ts";

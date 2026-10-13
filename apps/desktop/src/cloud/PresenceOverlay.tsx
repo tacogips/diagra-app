@@ -10,9 +10,9 @@
 // target, or a peer could park their pointer on top of a shape and make it
 // unclickable for everyone else.
 
-import type { Editor } from "@diagra/core";
-import type { PresencePeer } from "@diagra/collab";
-import { createEditorSignals } from "@diagra/ui-solid";
+import type { Editor } from "@nodetto/core";
+import type { PresencePeer } from "@nodetto/collab";
+import { createEditorSignals } from "@nodetto/ui-solid";
 import { For, type JSX, Show } from "solid-js";
 
 import {

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import {
   EDITOR_ACTIONS,
   getAction,

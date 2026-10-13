@@ -2,7 +2,7 @@ import {
   type Editor,
   previewLayerNames,
   renameSelectedLayers,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { HelpHint } from "../HelpHint.tsx";
@@ -41,7 +41,7 @@ export function BatchRenameSection(props: { editor: Editor }): JSX.Element {
   const count = () => preview().rows.filter((row) => row.changed).length;
   return (
     <details
-      class="diagra-inspector-section"
+      class="nodetto-inspector-section"
       onToggle={(event) => {
         if (event.target === event.currentTarget)
           setOpen(event.currentTarget.open);

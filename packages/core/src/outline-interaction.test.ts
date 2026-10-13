@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { GeoKind } from "@diagra/ir";
+import type { GeoKind } from "@nodetto/ir";
 import { clipCss } from "./clipping.ts";
 import { overlapsVisibleElement } from "./selection-geometry.ts";
 import { makeEditor } from "./test-helpers.ts";

@@ -1,4 +1,4 @@
-import type { Editor, RasterMaskPixel } from "@diagra/core";
+import type { Editor, RasterMaskPixel } from "@nodetto/core";
 
 type DecodedImage = {
   readonly src: string;

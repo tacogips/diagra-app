@@ -4,9 +4,9 @@
 // `packages/core/src/test-helpers.ts`: fixtures are test scaffolding, not API.
 // They mirror `packages/io/src/__fixtures__/*.jsonl` in shape (id-carrying
 // nested arrays, id-less point lists, scalar arrays, extension bags) without
-// pulling `@diagra/io` into this package's dependency set.
+// pulling `@nodetto/io` into this package's dependency set.
 
-import type { Document, Element, Page } from "@diagra/ir";
+import type { Document, Element, Page } from "@nodetto/ir";
 
 export const ERD_PAGE: Page = { id: "p1", name: "Domain model", kind: "erd" };
 

@@ -4,7 +4,7 @@
 // persisted (design 7.1). Awareness state is per-connection and disappears
 // with the socket, which is exactly the lifetime a cursor should have.
 
-import type { ElementId, PageId } from "@diagra/ir";
+import type { ElementId, PageId } from "@nodetto/ir";
 import type { Awareness } from "y-protocols/awareness";
 
 export interface PresenceUser {

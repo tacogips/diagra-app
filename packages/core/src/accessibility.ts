@@ -2,7 +2,7 @@ import type {
   AccessibilityMetadata,
   AccessibilityRole,
   ElementId,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 
 export interface AccessibilityPatch {

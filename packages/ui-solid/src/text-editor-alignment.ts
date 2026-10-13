@@ -1,4 +1,4 @@
-import type { VisualStyle } from "@diagra/ir";
+import type { VisualStyle } from "@nodetto/ir";
 
 export function alignedTextPadding(
   height: number,

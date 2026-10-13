@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import type { Cardinality, ErdRelationSemantic } from "@diagra/ir";
+import type { Cardinality, ErdRelationSemantic } from "@nodetto/ir";
 import { generateDatabaseDdl } from "./database-ddl.ts";
 import { makeEditor } from "./test-helpers.ts";
 

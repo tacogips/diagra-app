@@ -1,11 +1,11 @@
 [package]
 name = "app"
-version = "0.2.2"
-description = "diagra desktop client"
+version = "0.2.3"
+description = "nodetto desktop client"
 edition = "2021"
 
-homepage = "https://github.com/tacogips/diagra-app"
-repository = "https://github.com/tacogips/diagra-app"
+homepage = "https://github.com/tacogips/nodetto-app"
+repository = "https://github.com/tacogips/nodetto-app"
 license = "MIT"
 
 [lib]

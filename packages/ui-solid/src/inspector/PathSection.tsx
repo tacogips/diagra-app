@@ -4,13 +4,13 @@ import {
   pathWorldContours,
   planPathWorldContours,
   splitStrokeSegment,
-} from "@diagra/core";
+} from "@nodetto/core";
 import type {
   Element,
   FreehandPoint,
   PathFillRule,
   PathSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { createSignal, For, type JSX, Show } from "solid-js";
 import { Field, NumberInput, Section, SelectInput } from "./controls.tsx";
 

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { layerSearchMatchIds, selectLayerSearchMatches } from "./layer-tree.ts";
 import { makeEditor } from "./test-helpers.ts";
 import { replaceSelectedNoteText } from "./replace-note-text.ts";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 
 test("semantic search feeds note replacement without changing matching database fields", () => {
   const editor = makeEditor();

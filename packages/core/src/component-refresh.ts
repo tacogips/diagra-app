@@ -5,7 +5,7 @@ import type {
   TextMark,
   TextNoteSemantic,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Command } from "./commands.ts";
 import { expandContainers } from "./frame-tree.ts";

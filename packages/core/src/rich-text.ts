@@ -1,4 +1,4 @@
-import type { TextMark, TextMarkKind, TextNoteSemantic } from "@diagra/ir";
+import type { TextMark, TextMarkKind, TextNoteSemantic } from "@nodetto/ir";
 
 const MARK_ORDER: Readonly<Record<TextMarkKind, number>> = {
   bold: 0,

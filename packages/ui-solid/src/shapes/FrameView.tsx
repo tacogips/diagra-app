@@ -3,8 +3,8 @@ import {
   layoutGridBands,
   resolvedCornerRadii,
   safeAreaContentBox,
-} from "@diagra/core";
-import type { AxisLayoutGrid, Element, FrameSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { AxisLayoutGrid, Element, FrameSemantic } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { fillPaintStyle, labelStyle, strokeBorderStyle } from "./visual.ts";
 

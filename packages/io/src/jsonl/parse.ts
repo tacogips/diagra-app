@@ -1,5 +1,5 @@
 // JSONL parsing: newline-delimited JSON -> IR document.
-// See the product design (diagra-cloud repo), section 6.
+// See the product design (nodetto-cloud repo), section 6.
 
 import {
   type Document,
@@ -19,7 +19,7 @@ import {
   VISUAL_KEY_ORDER,
   VISUAL_STYLE_KEY_ORDER,
   type Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { setField } from "./objects.ts";
 import {
   DOCUMENT_KIND,

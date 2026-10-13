@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument, type FreehandPoint } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument, type FreehandPoint } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import {
   flattenStroke,
   splitStrokeSegment,

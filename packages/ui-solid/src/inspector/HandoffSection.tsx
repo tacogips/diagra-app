@@ -6,8 +6,8 @@ import {
   generateMobileInterfaceCode,
   generateResponsiveInterfaceCode,
   inspectDesign,
-} from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import { createMemo, createSignal, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { HelpHint } from "../HelpHint.tsx";
@@ -167,7 +167,7 @@ export function HandoffSection(props: {
     }
   };
   return (
-    <details class="diagra-inspector-section">
+    <details class="nodetto-inspector-section">
       <summary>Developer handoff</summary>
       <HelpHint text={formatHelp()} />
       <label>

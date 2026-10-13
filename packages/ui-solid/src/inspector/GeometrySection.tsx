@@ -11,8 +11,8 @@ import {
   canRotateElement,
   rotateElement,
   supportsAspectRatio,
-} from "@diagra/core";
-import { type Element, getElementTypeDefinition } from "@diagra/ir";
+} from "@nodetto/core";
+import { type Element, getElementTypeDefinition } from "@nodetto/ir";
 import { type JSX, Show } from "solid-js";
 import { Field, NumberInput, Section } from "./controls.tsx";
 import { writeVisual } from "./write.ts";
@@ -38,7 +38,7 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
       title="Geometry"
       help="Position and dimensions use page pixels. Rotation uses the layer center; database and class rows own their height."
     >
-      <div class="diagra-field-grid">
+      <div class="nodetto-field-grid">
         <Field label="X">
           <NumberInput
             label="X"

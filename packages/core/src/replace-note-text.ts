@@ -1,4 +1,4 @@
-import type { TextNoteSemantic } from "@diagra/ir";
+import type { TextNoteSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { replaceMarkedTextRanges, textNoteMarks } from "./rich-text.ts";
 import { textNoteText } from "./shapes/textNote.ts";

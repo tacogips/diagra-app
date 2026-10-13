@@ -1,5 +1,5 @@
-import { componentOverrides, type Editor } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import { componentOverrides, type Editor } from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
@@ -21,7 +21,7 @@ export function OverridesSection(props: {
         : JSON.stringify(value);
   return (
     <Show when={overrides().length}>
-      <section class="diagra-inspector-section" aria-label="Source overrides">
+      <section class="nodetto-inspector-section" aria-label="Source overrides">
         <h3>Source overrides</h3>
         <For each={overrides()}>
           {(item) => (

@@ -1,4 +1,4 @@
-import { type ElementId, getElementTypeDefinition } from "@diagra/ir";
+import { type ElementId, getElementTypeDefinition } from "@nodetto/ir";
 import { type Box, rotatedBox, unionBoxes } from "./geometry.ts";
 import { intersectClip } from "./clipping.ts";
 import { expandContainers } from "./frame-tree.ts";

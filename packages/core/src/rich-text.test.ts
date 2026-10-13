@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { serializeDocument } from "@diagra/io";
+import { serializeDocument } from "@nodetto/io";
 import {
   normalizeTextMarks,
   rebaseTextMarks,
@@ -13,11 +13,11 @@ test("normalizes and segments overlapping portable text marks", () => {
     { start: 7, end: 13, kind: "italic" },
     { start: 0, end: 6, kind: "bold" },
     { start: 6, end: 10, kind: "bold" },
-    { start: 0, end: 6, kind: "link", href: "https://diagra.app" },
+    { start: 0, end: 6, kind: "link", href: "https://nodetto.app" },
   ]);
   expect(marks).toEqual([
     { start: 0, end: 10, kind: "bold" },
-    { start: 0, end: 6, kind: "link", href: "https://diagra.app" },
+    { start: 0, end: 6, kind: "link", href: "https://nodetto.app" },
     { start: 7, end: 13, kind: "italic" },
   ]);
   expect(richTextSegments({ text: "Design system", marks })).toEqual([
@@ -27,7 +27,7 @@ test("normalizes and segments overlapping portable text marks", () => {
       text: "Design",
       marks: [
         { start: 0, end: 10, kind: "bold" },
-        { start: 0, end: 6, kind: "link", href: "https://diagra.app" },
+        { start: 0, end: 6, kind: "link", href: "https://nodetto.app" },
       ],
     },
     {
@@ -89,17 +89,17 @@ test("editor rich-text changes are atomic, serializable and undoable", () => {
   editor.apply([{ type: "createElement", element: note }]);
   expect(editor.toggleTextMark(note.id, 0, 6, "bold")).toBe(true);
   expect(
-    editor.toggleTextMark(note.id, 7, 13, "link", "https://diagra.app"),
+    editor.toggleTextMark(note.id, 7, 13, "link", "https://nodetto.app"),
   ).toBe(true);
   expect(serializeDocument(editor.getSnapshot())).toContain(
-    '"marks":[{"start":0,"end":6,"kind":"bold"},{"start":7,"end":13,"kind":"link","href":"https://diagra.app"}]',
+    '"marks":[{"start":0,"end":6,"kind":"bold"},{"start":7,"end":13,"kind":"link","href":"https://nodetto.app"}]',
   );
   expect(editor.setText(note.id, "Design language system")).toBe(true);
   expect(editor.store.get(note.id)?.semantic).toEqual({
     text: "Design language system",
     marks: [
       { start: 0, end: 6, kind: "bold" },
-      { start: 16, end: 22, kind: "link", href: "https://diagra.app" },
+      { start: 16, end: 22, kind: "link", href: "https://nodetto.app" },
     ],
   });
   editor.undo();

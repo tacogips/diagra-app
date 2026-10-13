@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import { captureColors, type ColorUndo } from "./color-undo.ts";
 
 test("merged color edits retain the oldest literal and latest binding", () => {

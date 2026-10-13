@@ -1,4 +1,4 @@
-import type { ColorTokenSemantic } from "@diagra/ir";
+import type { ColorTokenSemantic } from "@nodetto/ir";
 import { Editor } from "./editor.ts";
 import { applyCommands, type Command } from "./commands.ts";
 import { leafElements } from "./group.ts";

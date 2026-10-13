@@ -13,8 +13,8 @@ import type {
   SequenceParticipantSemantic,
   UmlAssociationSemantic,
   UmlClassSemantic,
-} from "@diagra/ir";
-import { erdEndpointColumnIds } from "@diagra/ir";
+} from "@nodetto/ir";
+import { erdEndpointColumnIds } from "@nodetto/ir";
 
 export interface D2ExportWarning {
   readonly elementId?: string;

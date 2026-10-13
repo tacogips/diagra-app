@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
-import type { Box } from "@diagra/core";
-import type { ElementId, PageId } from "@diagra/ir";
-import type { PresencePeer, PresenceState } from "@diagra/collab";
+import type { Box } from "@nodetto/core";
+import type { ElementId, PageId } from "@nodetto/ir";
+import type { PresencePeer, PresenceState } from "@nodetto/collab";
 
 import {
   MAX_LABELED_PER_PEER,

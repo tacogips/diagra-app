@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
-import { validateDocument } from "@diagra/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
+import { validateDocument } from "@nodetto/ir";
 import { document, makeEditor } from "./test-helpers.ts";
 import { pageAfterRemoval } from "./page-order.ts";
 

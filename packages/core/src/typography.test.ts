@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
-import { type Document, validateDocument } from "@diagra/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
+import { type Document, validateDocument } from "@nodetto/ir";
 import { document, element, makeEditor } from "./test-helpers.ts";
 import { wrapTextLines } from "./svg-export.ts";
 

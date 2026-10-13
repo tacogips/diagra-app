@@ -5,8 +5,8 @@
 // pieces of ephemeral state — and views read the current value straight off
 // the editor whenever one of them fires.
 
-import type { CameraState, Editor } from "@diagra/core";
-import type { ElementId } from "@diagra/ir";
+import type { CameraState, Editor } from "@nodetto/core";
+import type { ElementId } from "@nodetto/ir";
 import { type Accessor, createSignal, onCleanup } from "solid-js";
 
 export interface EditorSignals {

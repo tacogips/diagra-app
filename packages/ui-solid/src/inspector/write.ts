@@ -4,8 +4,8 @@
 // caused on purpose; it is swallowed here and the control that made it
 // resets to the document's value.
 
-import { CommandError, type Editor } from "@diagra/core";
-import type { ElementId, Visual } from "@diagra/ir";
+import { CommandError, type Editor } from "@nodetto/core";
+import type { ElementId, Visual } from "@nodetto/ir";
 
 function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);

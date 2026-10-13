@@ -1,4 +1,4 @@
-import type { Element, FrameSemantic, Visual } from "@diagra/ir";
+import type { Element, FrameSemantic, Visual } from "@nodetto/ir";
 import { applyCommands, type Command } from "./commands.ts";
 import { frameParents } from "./frame-tree.ts";
 import { createShapeContext } from "./hit-test.ts";

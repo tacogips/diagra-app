@@ -5,7 +5,7 @@
 // {@link CommandError} carries the issues out. On success the store sees one
 // commit and subscribers see one {@link StoreDiff}.
 //
-// Deletes are expanded here, not by callers: the `@diagra/ir` registry says
+// Deletes are expanded here, not by callers: the `@nodetto/ir` registry says
 // whether an element that points at a deleted element dies with it
 // (`cascade`, e.g. a relation without its table) or merely loses the
 // reference (`detach`, e.g. a group losing a member). The expansion is
@@ -27,7 +27,7 @@ import {
   type ValidationIssue,
   type Visual,
   validateAccessibilityMetadata,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   detachReference,
   isEmptyGroup,

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { erdColumnKey } from "@diagra/core";
-import type { ErdTableSemantic } from "@diagra/ir";
+import { erdColumnKey } from "@nodetto/core";
+import type { ErdTableSemantic } from "@nodetto/ir";
 
 test("ERD column badges prioritize primary, unique and ordinary indexes", () => {
   const semantic: ErdTableSemantic = {

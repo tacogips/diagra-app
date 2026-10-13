@@ -1,7 +1,7 @@
 // The small semantic sections: one or two fields per type, plus the group
 // and page sections. Each control commits one whole-payload `updateSemantic`.
 
-import type { Editor } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
 import {
   addLayoutGrid,
   artboardOrientationIssue,
@@ -28,7 +28,7 @@ import {
   textRangeHasMark,
   updateLayoutGrid,
   updateComponentVariantProperty,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   BOOLEAN_OPERATIONS,
   type BooleanOperation,
@@ -50,7 +50,7 @@ import {
   PARTICIPANT_KINDS,
   type TextMarkKind,
   UML_ASSOCIATION_KINDS,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { createSignal, For, type JSX, lazy, Show, Suspense } from "solid-js";
 import { HelpHint } from "../HelpHint.tsx";
 import {
@@ -237,7 +237,7 @@ export function SequenceParticipantSection(
       <div>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           disabled={position() <= 0}
           onClick={() => props.editor.moveSequenceElement(props.element.id, -1)}
         >
@@ -245,7 +245,7 @@ export function SequenceParticipantSection(
         </button>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           disabled={position() < 0 || position() >= count() - 1}
           onClick={() => props.editor.moveSequenceElement(props.element.id, 1)}
         >
@@ -254,7 +254,7 @@ export function SequenceParticipantSection(
       </div>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => {
           const id = props.editor.createSequenceActivation(props.element.id);
           if (id) props.editor.selection.set([id]);
@@ -320,7 +320,7 @@ export function SequenceMessageSection(
       <div>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           disabled={position() <= 0}
           onClick={() => props.editor.moveSequenceElement(props.element.id, -1)}
         >
@@ -328,7 +328,7 @@ export function SequenceMessageSection(
         </button>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           disabled={position() < 0 || position() >= count() - 1}
           onClick={() => props.editor.moveSequenceElement(props.element.id, 1)}
         >
@@ -424,7 +424,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
     <Section title="Artboard">
       <button
         type="button"
-        class="diagra-tool-button"
+        class="nodetto-tool-button"
         disabled={
           artboardOrientationIssue(props.editor, props.element.id) !== null
         }
@@ -484,7 +484,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           Enable safe area
         </label>
         <Show when={semantic().safeArea}>
-          <div class="diagra-inspector-grid-2">
+          <div class="nodetto-inspector-grid-2">
             <Field label="Top">
               <NumberInput
                 label="Safe area top inset"
@@ -533,7 +533,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           </Field>
           <button
             type="button"
-            class="diagra-inspector-button"
+            class="nodetto-inspector-button"
             onClick={() =>
               props.editor.createResponsiveVariant(
                 props.element.id,
@@ -553,10 +553,10 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
               {responsiveSourceName(sourceId)}
               <HelpHint text="Refresh updates inherited content while preserving local overrides. Update structure adds and removes source layers while preserving surviving IDs, local geometry, and local layers. Detach makes this artboard independent." />
             </span>
-            <div class="diagra-inspector-actions">
+            <div class="nodetto-inspector-actions">
               <button
                 type="button"
-                class="diagra-inspector-button"
+                class="nodetto-inspector-button"
                 onClick={() =>
                   setRefreshStatus(
                     props.editor.refreshResponsiveVariant(props.element.id)
@@ -569,7 +569,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
               </button>
               <button
                 type="button"
-                class="diagra-inspector-button"
+                class="nodetto-inspector-button"
                 onClick={() =>
                   setRefreshStatus(
                     props.editor.updateResponsiveStructure(props.element.id)
@@ -582,7 +582,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
               </button>
               <button
                 type="button"
-                class="diagra-inspector-button"
+                class="nodetto-inspector-button"
                 onClick={() =>
                   props.editor.detachResponsiveVariant(props.element.id)
                 }
@@ -706,7 +706,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
               </Show>
               <button
                 type="button"
-                class="diagra-inspector-button"
+                class="nodetto-inspector-button"
                 onClick={() =>
                   removeLayoutGrid(props.editor, props.element.id, index())
                 }
@@ -716,7 +716,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
             </details>
           )}
         </For>
-        <div class="diagra-inspector-actions">
+        <div class="nodetto-inspector-actions">
           <For each={["grid", "columns", "rows"] as const}>
             {(kind) => (
               <button
@@ -785,7 +785,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
       <Show when={!semantic().component && !semantic().instanceOf}>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           onClick={() => props.editor.makeComponent(props.element.id)}
         >
           Create component
@@ -832,7 +832,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           </summary>
           <For each={semantic().variantProperties ?? []}>
             {(property) => (
-              <div class="diagra-inspector-stack">
+              <div class="nodetto-inspector-stack">
                 <Field label="Property">
                   <TextInput
                     label={`Rename variant property ${property.name}`}
@@ -921,7 +921,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         </details>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           onClick={() => props.editor.createComponentInstance(props.element.id)}
         >
           Create instance
@@ -1014,7 +1014,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           </label>
           <button
             type="button"
-            class="diagra-inspector-button"
+            class="nodetto-inspector-button"
             onClick={() =>
               setRefreshStatus(
                 props.editor.refreshComponentInstance(props.element.id)
@@ -1028,7 +1028,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           <p role="status">{refreshStatus()}</p>
           <button
             type="button"
-            class="diagra-inspector-button"
+            class="nodetto-inspector-button"
             onClick={() =>
               setRefreshStatus(
                 props.editor.updateComponentStructure(props.element.id)
@@ -1042,14 +1042,14 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         </Show>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           onClick={() => props.editor.resetComponentInstance(props.element.id)}
         >
           Reset from component
         </button>
         <button
           type="button"
-          class="diagra-inspector-button"
+          class="nodetto-inspector-button"
           onClick={() => props.editor.detachComponentInstance(props.element.id)}
         >
           Detach instance
@@ -1240,7 +1240,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
       </Field>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => {
           const ids = props.editor.store
             .getPageElements(props.element.page)
@@ -1291,7 +1291,7 @@ export function TextNoteSection(props: ElementSectionProps): JSX.Element {
         onSelectionChange={(start, end) => setSelection({ start, end })}
       />
       <div
-        class="diagra-rich-text-controls"
+        class="nodetto-rich-text-controls"
         role="toolbar"
         aria-label="Rich text"
       >
@@ -1325,7 +1325,7 @@ export function TextNoteSection(props: ElementSectionProps): JSX.Element {
           disabled={!hasSelection()}
         />
       </Field>
-      <div class="diagra-rich-text-controls">
+      <div class="nodetto-rich-text-controls">
         <button
           type="button"
           disabled={!hasSelection() || href().trim() === ""}
@@ -1841,7 +1841,7 @@ export function GroupSection(props: ElementSectionProps): JSX.Element {
       />
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         title="Ungroup (Cmd+Shift+G)"
         onClick={() => props.editor.ungroupSelection()}
       >

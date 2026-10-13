@@ -6,8 +6,8 @@ import type {
   GeoShapeSemantic,
   GroupSemantic,
   PathSemantic,
-} from "@diagra/ir";
-import { getElementTypeDefinition } from "@diagra/ir";
+} from "@nodetto/ir";
+import { getElementTypeDefinition } from "@nodetto/ir";
 import polygonClipping, {
   type MultiPolygon,
   type Polygon,

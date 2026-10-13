@@ -4,7 +4,7 @@
 // differs, and only where the difference is visible enough to matter (an
 // ellipse's corners and a diamond's corners are large empty regions).
 
-import type { GeoKind } from "@diagra/ir";
+import type { GeoKind } from "@nodetto/ir";
 import {
   resolvedCornerRadii,
   unevenRoundedBoxContains,

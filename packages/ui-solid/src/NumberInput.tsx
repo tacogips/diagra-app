@@ -35,7 +35,7 @@ export function NumberInput(props: NumberInputProps): JSX.Element {
     <input
       type="text"
       role="spinbutton"
-      class="diagra-input diagra-number"
+      class="nodetto-input nodetto-number"
       aria-label={props.label}
       aria-valuenow={props.value ?? undefined}
       aria-valuemin={props.min}

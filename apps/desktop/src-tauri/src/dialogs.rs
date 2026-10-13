@@ -10,7 +10,7 @@ use std::sync::mpsc;
 use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
-const FILTER_NAME: &str = "diagra document";
+const FILTER_NAME: &str = "nodetto document";
 const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid"];
 const SAVE_FILTER_EXTENSIONS: &[&str] = &["jsonl"];
 const DEFAULT_FILE_NAME: &str = "untitled.jsonl";

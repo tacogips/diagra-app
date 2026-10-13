@@ -1,8 +1,8 @@
 // Documents the OS asks the app to open.
 //
 // A path can arrive before the webview is listening: on the command line
-// (`diagra file.jsonl`) or, on macOS, as an open-documents event that
-// launches the app (`open -a diagra file.jsonl`, Finder "Open With"). Paths
+// (`nodetto file.jsonl`) or, on macOS, as an open-documents event that
+// launches the app (`open -a nodetto file.jsonl`, Finder "Open With"). Paths
 // queue here until the frontend takes them; a request that arrives while the
 // app runs also emits an event so the frontend takes it immediately.
 
@@ -85,7 +85,7 @@ mod tests {
         let document = directory.path().join("schema.jsonl");
         std::fs::write(&document, "").unwrap();
         let state = LaunchState::from_args([
-            "diagra".to_string(),
+            "nodetto".to_string(),
             "-psn_0_12345".to_string(),
             document.to_string_lossy().into_owned(),
             directory

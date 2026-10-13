@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { GroupSemantic, PathSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { GroupSemantic, PathSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { PathAnchorDrag, pathWorldContours } from "./compound-path-edit.ts";
 import { inspectDesign } from "./handoff.ts";
 import { generateInterfaceCode } from "./interface-code.ts";

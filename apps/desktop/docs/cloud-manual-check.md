@@ -15,7 +15,7 @@ page. Run it after any change to `apps/desktop/src/cloud/`, to
 
 ## Setup
 
-A sync server has to be running. It lives in the private `diagra-cloud`
+A sync server has to be running. It lives in the private `nodetto-cloud`
 repository; from a checkout of that repository:
 
 ```bash
@@ -40,7 +40,7 @@ work: nothing in the cloud panel is Tauri-specific.
 
 Pass criterion: settings persist, and nothing was written to storage that
 looks like a credential (check devtools -> Application -> Local Storage:
-`diagra.cloud.settings` holds only the four non-secret fields).
+`nodetto.cloud.settings` holds only the four non-secret fields).
 
 ### 2. Publish, then open in the second window
 

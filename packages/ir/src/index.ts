@@ -1,5 +1,5 @@
 // Diagram IR: canonical semantic + visual data model.
-// See the product design (diagra-cloud repo), section 5.
+// See the product design (nodetto-cloud repo), section 5.
 //
 // Runtime-agnostic by contract: this package must run in a browser, the
 // Tauri webview, Node/Bun, and Cloudflare Workers. No DOM, no framework.

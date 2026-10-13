@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { FrameSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { FrameSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { makeEditor } from "./test-helpers.ts";
 import { componentOverrides } from "./component-overrides.ts";
 

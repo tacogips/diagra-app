@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Document, Element, Page } from "@diagra/ir";
+import type { Document, Element, Page } from "@nodetto/ir";
 import * as Y from "yjs";
 import { syncElementToY, syncPageToY } from "./diff.ts";
 import {

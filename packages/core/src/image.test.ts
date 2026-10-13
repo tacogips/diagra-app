@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { isRasterDataUrl, MAX_IMAGE_BYTES } from "@diagra/ir";
+import { isRasterDataUrl, MAX_IMAGE_BYTES } from "@nodetto/ir";
 import { makeEditor } from "./test-helpers.ts";
 
 test("image source policy rejects external requests, SVG and oversized payloads", () => {

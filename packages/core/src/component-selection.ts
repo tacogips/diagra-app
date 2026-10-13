@@ -1,4 +1,4 @@
-import type { ElementId, FrameSemantic } from "@diagra/ir";
+import type { ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 
 /** Editable instance roots on the active page, indexed by exact definition.

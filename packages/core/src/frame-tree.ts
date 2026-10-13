@@ -1,4 +1,4 @@
-import type { Element, ElementId, FrameSemantic, PageId } from "@diagra/ir";
+import type { Element, ElementId, FrameSemantic, PageId } from "@nodetto/ir";
 import { compareFractional } from "./fractional.ts";
 import { memberIdsOf } from "./group.ts";
 import type { ShapeContext } from "./shape-util.ts";

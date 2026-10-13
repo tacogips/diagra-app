@@ -61,7 +61,7 @@
 
 .app-pane-collapse:hover,
 .app-pane-collapse:focus-visible {
-  color: var(--diagra-ink);
+  color: var(--nodetto-ink);
   background: var(--app-chrome-hover);
 }
 
@@ -76,7 +76,7 @@
   overflow-y: auto;
 }
 
-.app-pane-content > .diagra-layers,
+.app-pane-content > .nodetto-layers,
 .app-pane-content > .app-inspector {
   flex: 1 1 auto;
   width: 100%;
@@ -84,7 +84,7 @@
   border: 0;
 }
 
-.app-pane-left .app-pane-content > .diagra-layers {
+.app-pane-left .app-pane-content > .nodetto-layers {
   flex: 0 0 auto;
   overflow: visible;
 }
@@ -140,7 +140,7 @@
 
 .app-pane-restore:hover,
 .app-pane-restore:focus-visible {
-  color: var(--diagra-ink);
+  color: var(--nodetto-ink);
   background: var(--app-chrome-hover);
 }
 
@@ -174,7 +174,7 @@
 .app-pane-divider:hover::after,
 .app-pane-divider:focus-visible::after,
 .app-pane-divider.is-dragging::after {
-  background: var(--diagra-accent);
+  background: var(--nodetto-accent);
 }
 
 .app-pane-divider.is-overlay-divider {
@@ -225,7 +225,7 @@
 
 .app-hint-details {
   margin-left: auto;
-  color: var(--diagra-muted);
+  color: var(--nodetto-muted);
   font-size: 0.8rem;
 }
 

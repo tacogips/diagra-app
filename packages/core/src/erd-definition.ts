@@ -1,4 +1,4 @@
-import type { ErdColumn } from "@diagra/ir";
+import type { ErdColumn } from "@nodetto/ir";
 import type { DatabaseDialect } from "./database-ddl.ts";
 
 export type DefinitionColumn = Omit<ErdColumn, "id">;

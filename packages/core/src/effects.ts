@@ -1,4 +1,4 @@
-import type { DropShadowEffect, LayerEffect, VisualStyle } from "@diagra/ir";
+import type { DropShadowEffect, LayerEffect, VisualStyle } from "@nodetto/ir";
 import { type Box, unionBoxes } from "./geometry.ts";
 
 function rgba(color: string, opacity: number): string {

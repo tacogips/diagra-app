@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { BooleanOperation, GroupSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { BooleanOperation, GroupSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import {
   booleanGeometry,
   booleanGeometryContains,
@@ -475,7 +475,7 @@ describe("non-destructive Boolean groups", () => {
     const svg = editor.exportPageSvg({ padding: 0 });
     expect(svg).toContain("data-boolean-operation");
     expect(svg).toContain('fill-rule="evenodd"');
-    expect(svg).toContain('mask="url(#diagra-boolean-0)"');
+    expect(svg).toContain('mask="url(#nodetto-boolean-0)"');
     expect(svg).toContain('viewBox="0 0 150 100"');
   });
 
@@ -545,7 +545,7 @@ describe("non-destructive Boolean groups", () => {
       "mask-image: url(",
     );
     const native = generateMobileInterfaceCode(editor, source);
-    expect(native?.swiftUi).toContain("DiagraBooleanMask");
+    expect(native?.swiftUi).toContain("NodettoBooleanMask");
     expect(native?.swiftUi).toContain("FillStyle(eoFill: true)");
     expect(native?.jetpackCompose).toContain("PathFillType.EvenOdd");
     expect(native?.jetpackCompose).toContain(".clip(GenericShape");

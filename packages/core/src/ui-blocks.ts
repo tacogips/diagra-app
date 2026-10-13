@@ -1,4 +1,4 @@
-import type { FrameLayout, VisualStyle } from "@diagra/ir";
+import type { FrameLayout, VisualStyle } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Vec } from "./geometry.ts";
 

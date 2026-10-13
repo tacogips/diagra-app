@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor, createDefaultRegistry } from "@diagra/core";
+import { Editor, createDefaultRegistry } from "@nodetto/core";
 import { componentPreviewSource } from "./component-preview.ts";
 
 test("component preview preserves exported artwork without changing page, selection or history", () => {

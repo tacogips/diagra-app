@@ -1,4 +1,4 @@
-import type { Page } from "@diagra/ir";
+import type { Page } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { isFractionalKey, keyBetween, type Rng } from "./fractional.ts";
 

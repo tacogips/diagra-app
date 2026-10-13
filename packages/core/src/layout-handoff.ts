@@ -1,4 +1,4 @@
-import type { ElementId, FrameSemantic } from "@diagra/ir";
+import type { ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
 import { numberTokenCssName } from "./token-handoff.ts";
@@ -72,7 +72,7 @@ function singleLayoutHandoff(
       ? "max-content"
       : px(bounds[dimension]);
   const justify = layout.justify ?? "start";
-  const className = `diagra-layout-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
+  const className = `nodetto-layout-${Array.from(id, (char) => char.codePointAt(0)?.toString(16)).join("-")}`;
   const paddingValues = [
     ["paddingTop", layout.paddingTop ?? layout.padding],
     ["paddingRight", layout.paddingRight ?? layout.padding],
@@ -87,14 +87,14 @@ function singleLayoutHandoff(
     return `column-gap: ${value(horizontal ? "gap" : crossField, horizontal ? layout.gap : (layout.crossGap ?? layout.gap))};\n  row-gap: ${value(horizontal ? crossField : "gap", horizontal ? (layout.crossGap ?? layout.gap) : layout.gap)};`;
   };
   const rootCss = (linked: boolean) =>
-    `.diagra-layout {\n  display: flex;\n  box-sizing: border-box;\n  flex-direction: ${horizontal ? "row" : "column"};\n  flex-wrap: ${layout.wrap ? "wrap" : "nowrap"};\n  width: ${axis("width")};\n  height: ${axis("height")};${frame.visual.minWidth === undefined ? "" : `\n  min-width: ${linked ? linkedVisualPx(frame, "minWidth", frame.visual.minWidth) : px(frame.visual.minWidth)};`}${frame.visual.maxWidth === undefined ? "" : `\n  max-width: ${linked ? linkedVisualPx(frame, "maxWidth", frame.visual.maxWidth) : px(frame.visual.maxWidth)};`}${frame.visual.minHeight === undefined ? "" : `\n  min-height: ${linked ? linkedVisualPx(frame, "minHeight", frame.visual.minHeight) : px(frame.visual.minHeight)};`}${frame.visual.maxHeight === undefined ? "" : `\n  max-height: ${linked ? linkedVisualPx(frame, "maxHeight", frame.visual.maxHeight) : px(frame.visual.maxHeight)};`}\n  ${gapCss(linked)}\n  padding: ${[layout.paddingTop, layout.paddingRight, layout.paddingBottom, layout.paddingLeft].map((value) => px(value ?? layout.padding)).join(" ")};\n  align-items: ${layout.align === "start" ? "flex-start" : layout.align === "end" ? "flex-end" : layout.align};\n  align-content: flex-start;\n  justify-content: ${justify === "start" ? "flex-start" : justify === "end" ? "safe flex-end" : justify === "center" ? "safe center" : justify};\n  overflow: ${semantic.clipContent ? "hidden" : "visible"};\n}`.replace(
+    `.nodetto-layout {\n  display: flex;\n  box-sizing: border-box;\n  flex-direction: ${horizontal ? "row" : "column"};\n  flex-wrap: ${layout.wrap ? "wrap" : "nowrap"};\n  width: ${axis("width")};\n  height: ${axis("height")};${frame.visual.minWidth === undefined ? "" : `\n  min-width: ${linked ? linkedVisualPx(frame, "minWidth", frame.visual.minWidth) : px(frame.visual.minWidth)};`}${frame.visual.maxWidth === undefined ? "" : `\n  max-width: ${linked ? linkedVisualPx(frame, "maxWidth", frame.visual.maxWidth) : px(frame.visual.maxWidth)};`}${frame.visual.minHeight === undefined ? "" : `\n  min-height: ${linked ? linkedVisualPx(frame, "minHeight", frame.visual.minHeight) : px(frame.visual.minHeight)};`}${frame.visual.maxHeight === undefined ? "" : `\n  max-height: ${linked ? linkedVisualPx(frame, "maxHeight", frame.visual.maxHeight) : px(frame.visual.maxHeight)};`}\n  ${gapCss(linked)}\n  padding: ${[layout.paddingTop, layout.paddingRight, layout.paddingBottom, layout.paddingLeft].map((value) => px(value ?? layout.padding)).join(" ")};\n  align-items: ${layout.align === "start" ? "flex-start" : layout.align === "end" ? "flex-end" : layout.align};\n  align-content: flex-start;\n  justify-content: ${justify === "start" ? "flex-start" : justify === "end" ? "safe flex-end" : justify === "center" ? "safe center" : justify};\n  overflow: ${semantic.clipContent ? "hidden" : "visible"};\n}`.replace(
       `padding: ${paddingValues.map(([, value]) => px(value)).join(" ")};`,
       `padding: ${paddingValues.map(([field, value]) => (linked ? linkedPx(frame.visual.numberTokens?.[field] ? field : "padding", value) : px(value))).join(" ")};`,
     );
   const css = [rootCss(false)];
   const linkedCss = [rootCss(true)];
   if (frame.visual.aspectRatio !== undefined) {
-    const ratioRule = `.diagra-layout {\n  aspect-ratio: ${frame.visual.aspectRatio};\n}`;
+    const ratioRule = `.nodetto-layout {\n  aspect-ratio: ${frame.visual.aspectRatio};\n}`;
     css.push(ratioRule);
     linkedCss.push(ratioRule);
   }
@@ -211,17 +211,17 @@ function singleLayoutHandoff(
       rule.aspectRatio === undefined
         ? ""
         : `\n  aspect-ratio: ${rule.aspectRatio};`;
-    return `.diagra-layout > :nth-child(${index + 1}) {\n  position: ${rule.absolute ? "absolute" : "relative"};${rule.absolute ? `\n  left: ${rule.left};\n  top: ${rule.top};` : ""}\n  box-sizing: border-box;\n  flex: ${rule.grow > 0 ? `${grow} 0 0px` : "0 0 auto"};${aspect}\n  min-width: ${minWidth};${maxWidth ? `\n  max-width: ${maxWidth};` : ""}\n  min-height: ${minHeight};${maxHeight ? `\n  max-height: ${maxHeight};` : ""}\n  width: ${rule.width};\n  height: ${rule.height};\n}`;
+    return `.nodetto-layout > :nth-child(${index + 1}) {\n  position: ${rule.absolute ? "absolute" : "relative"};${rule.absolute ? `\n  left: ${rule.left};\n  top: ${rule.top};` : ""}\n  box-sizing: border-box;\n  flex: ${rule.grow > 0 ? `${grow} 0 0px` : "0 0 auto"};${aspect}\n  min-width: ${minWidth};${maxWidth ? `\n  max-width: ${maxWidth};` : ""}\n  min-height: ${minHeight};${maxHeight ? `\n  max-height: ${maxHeight};` : ""}\n  width: ${rule.width};\n  height: ${rule.height};\n}`;
   };
   for (const [index, rule] of childRules.entries()) {
     css.push(childRule(rule, index, false));
     linkedCss.push(childRule(rule, index, true));
   }
   return {
-    css: css.join("\n\n").replaceAll(".diagra-layout", `.${className}`),
+    css: css.join("\n\n").replaceAll(".nodetto-layout", `.${className}`),
     linkedCss: linkedCss
       .join("\n\n")
-      .replaceAll(".diagra-layout", `.${className}`),
+      .replaceAll(".nodetto-layout", `.${className}`),
     className,
     childOrder: children.map(({ element }) => element.id),
     notes: [

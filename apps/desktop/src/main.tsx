@@ -9,7 +9,7 @@
 // configures an endpoint and opens a document: this build ships no server
 // address of any kind.
 
-import { createDefaultRegistry, Editor } from "@diagra/core";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
 import { render } from "solid-js/web";
 import { App } from "./App.tsx";
 import {

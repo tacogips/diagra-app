@@ -2,8 +2,8 @@ import {
   type Editor,
   componentInstancesOnPage,
   selectComponentInstances,
-} from "@diagra/core";
-import type { FrameSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { FrameSemantic } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import { componentPreviewSource } from "./component-preview.ts";
@@ -74,7 +74,7 @@ export function ComponentLibrary(props: {
       : null;
   });
   return (
-    <section class="diagra-component-library" aria-label="Component library">
+    <section class="nodetto-component-library" aria-label="Component library">
       <Show
         when={props.showHeading !== false}
         fallback={
@@ -99,7 +99,7 @@ export function ComponentLibrary(props: {
         {(id) => (
           <Show when={entriesById().get(id)}>
             {(entry) => (
-              <div class="diagra-component-entry">
+              <div class="nodetto-component-entry">
                 <strong>{entry().name}</strong>
                 <span>{entry().page}</span>
                 <Show when={entry().variant}>
@@ -160,7 +160,7 @@ export function ComponentLibrary(props: {
                   >
                     {(source) => (
                       <img
-                        class="diagra-component-preview"
+                        class="nodetto-component-preview"
                         src={source()}
                         alt={`Preview of ${entry().name}`}
                         decoding="async"

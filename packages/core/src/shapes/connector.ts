@@ -17,7 +17,7 @@ import {
   type GeoShapeSemantic,
   getElementTypeDefinition,
   MAX_CONNECTOR_WAYPOINTS,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   type Box,
   boxCenter,

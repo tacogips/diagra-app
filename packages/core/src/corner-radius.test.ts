@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { parseDocument, serializeDocument } from "@diagra/io";
-import type { FrameSemantic } from "@diagra/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
+import type { FrameSemantic } from "@nodetto/ir";
 import {
   normalizedCornerRadii,
   unevenRoundedBoxContains,
@@ -170,8 +170,8 @@ test("independent image corners become a standalone SVG clip path", () => {
   editor.apply([{ type: "createElement", element: image }]);
   const svg = editor.exportPageSvg();
   expect(svg).toContain("-corners");
-  expect(svg).toContain('<clipPath id="diagra-gradient-');
-  expect(svg).toContain('clip-path="url(#diagra-gradient-');
+  expect(svg).toContain('<clipPath id="nodetto-gradient-');
+  expect(svg).toContain('clip-path="url(#nodetto-gradient-');
 });
 
 test("corner radius and custom colors persist and export for interface shapes", () => {

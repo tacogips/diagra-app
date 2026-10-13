@@ -3,8 +3,8 @@ import {
   formatErdDefinition,
   type DatabaseDialect,
   type Editor,
-} from "@diagra/core";
-import type { Element, ErdTableSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, ErdTableSemantic } from "@nodetto/ir";
 import { createEffect, createSignal, on, Show, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import { HelpHint } from "../HelpHint.tsx";
@@ -63,7 +63,7 @@ export function ErdTextEditor(props: {
     setDraft(value);
   };
   return (
-    <div class="diagra-erd-text">
+    <div class="nodetto-erd-text">
       <HelpHint text="Comma-separated columns. Supports PK, NULL/NOT NULL, literal defaults and integer auto-increment. Apply commits once; Reload discards this draft. Indexes and relations remain in Columns mode." />
       <textarea
         aria-label="Table definition"
@@ -75,7 +75,7 @@ export function ErdTextEditor(props: {
           setError("");
         }}
       />
-      <div class="diagra-inspector-actions">
+      <div class="nodetto-inspector-actions">
         <button
           type="button"
           disabled={stale()}

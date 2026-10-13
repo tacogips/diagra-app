@@ -9,7 +9,7 @@ import {
   renameDesignTokenMode,
   setColorTokenAlias,
   updateColorToken,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import { HelpHint } from "./HelpHint.tsx";
@@ -35,7 +35,7 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
   });
   return (
     <section
-      class="diagra-color-tokens"
+      class="nodetto-color-tokens"
       aria-label="Document color palette"
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
@@ -101,7 +101,7 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
         />
         Link applied colors
       </label>
-      <div class="diagra-color-entry">
+      <div class="nodetto-color-entry">
         <For each={["fill", "stroke", "color"] as const}>
           {(field) => (
             <button
@@ -146,7 +146,7 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
             );
           };
           return (
-            <div class="diagra-color-entry">
+            <div class="nodetto-color-entry">
               <input
                 aria-label={`Rename ${token.name}`}
                 value={token.name}

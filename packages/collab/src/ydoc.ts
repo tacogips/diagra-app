@@ -17,7 +17,7 @@
 // shape would still sync bytes, and would still hand every peer a document
 // neither side can read.
 
-import { compareFractional } from "@diagra/core";
+import { compareFractional } from "@nodetto/core";
 import {
   comparePageOrder,
   type Document,
@@ -28,7 +28,7 @@ import {
   type PageId,
   type UnknownRecord,
   type Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import * as Y from "yjs";
 
 export const META_KEY = "meta";

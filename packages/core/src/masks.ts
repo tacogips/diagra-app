@@ -3,7 +3,7 @@ import {
   type ElementId,
   getElementTypeDefinition,
   type GroupSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { canProvideMask, isRasterMaskSource } from "./clipping.ts";
 import type { Editor } from "./editor.ts";
 import { memberIdsOf } from "./group.ts";

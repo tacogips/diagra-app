@@ -4,8 +4,8 @@ import type {
   FrameSemantic,
   GeoShapeSemantic,
   GroupSemantic,
-} from "@diagra/ir";
-import { getElementTypeDefinition } from "@diagra/ir";
+} from "@nodetto/ir";
+import { getElementTypeDefinition } from "@nodetto/ir";
 import { frameParents } from "./frame-tree.ts";
 import {
   type Box,

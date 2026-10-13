@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { hasErrors } from "@diagra/ir";
+import { hasErrors } from "@nodetto/ir";
 import { parseDocument, parseDocumentResult } from "./parse.ts";
 import { serializeDocument } from "./serialize.ts";
 
@@ -75,7 +75,7 @@ describe("canonicalization", () => {
 
 describe("golden file coverage", () => {
   test("covers every registered element type at least once", async () => {
-    const { ELEMENT_TYPES } = await import("@diagra/ir");
+    const { ELEMENT_TYPES } = await import("@nodetto/ir");
     const seen = new Set<string>();
     for (const name of GOLDEN) {
       for (const element of parseDocument(readFixture(name)).elements) {

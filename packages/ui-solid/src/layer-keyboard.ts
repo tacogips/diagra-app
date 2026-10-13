@@ -1,4 +1,4 @@
-import type { layerRows } from "@diagra/core";
+import type { layerRows } from "@nodetto/core";
 
 type LayerRow = ReturnType<typeof layerRows>[number];
 export type LayerNavigation = {

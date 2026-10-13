@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import type { ErdTableSemantic } from "@diagra/ir";
+import type { ErdTableSemantic } from "@nodetto/ir";
 import { applyErdDefinition } from "./erd-definition-edit.ts";
 import { parseErdDefinition } from "./erd-definition.ts";
 import { generateDatabaseDdl } from "./database-ddl.ts";

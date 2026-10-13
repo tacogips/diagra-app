@@ -26,12 +26,12 @@ export interface SectionProps {
 
 export function Section(props: SectionProps): JSX.Element {
   return (
-    <section class="diagra-inspector-section">
-      <div class="diagra-inspector-title-row">
-        <h3 class="diagra-inspector-title">{props.title}</h3>
+    <section class="nodetto-inspector-section">
+      <div class="nodetto-inspector-title-row">
+        <h3 class="nodetto-inspector-title">{props.title}</h3>
         <Show when={props.help}>{(text) => <HelpHint text={text()} />}</Show>
       </div>
-      <div class="diagra-inspector-body">{props.children}</div>
+      <div class="nodetto-inspector-body">{props.children}</div>
     </section>
   );
 }
@@ -43,9 +43,9 @@ export interface FieldProps {
 
 export function Field(props: FieldProps): JSX.Element {
   return (
-    <div class="diagra-field">
-      <span class="diagra-field-label">{props.label}</span>
-      <div class="diagra-field-control">{props.children}</div>
+    <div class="nodetto-field">
+      <span class="nodetto-field-label">{props.label}</span>
+      <div class="nodetto-field-control">{props.children}</div>
     </div>
   );
 }
@@ -72,7 +72,7 @@ export function TextInput(props: TextInputProps): JSX.Element {
     <input
       ref={(element) => props.ref?.(element)}
       type="text"
-      class="diagra-input"
+      class="nodetto-input"
       aria-label={props.label}
       placeholder={props.placeholder}
       disabled={props.disabled}
@@ -114,7 +114,7 @@ export function TextArea(props: TextAreaProps): JSX.Element {
   };
   return (
     <textarea
-      class="diagra-input diagra-textarea"
+      class="nodetto-input nodetto-textarea"
       aria-label={props.label}
       rows={props.rows ?? 4}
       value={props.value}
@@ -158,7 +158,7 @@ export interface SelectInputProps {
 export function SelectInput(props: SelectInputProps): JSX.Element {
   return (
     <select
-      class="diagra-select"
+      class="nodetto-select"
       aria-label={props.label}
       disabled={props.disabled}
       value={props.value}
@@ -190,7 +190,7 @@ export interface CheckboxProps {
 
 export function Checkbox(props: CheckboxProps): JSX.Element {
   return (
-    <label class="diagra-check" title={props.title}>
+    <label class="nodetto-check" title={props.title}>
       <input
         type="checkbox"
         checked={props.checked}
@@ -225,10 +225,10 @@ export function Swatches(props: SwatchesProps): JSX.Element {
       : "#1d2a2e";
   };
   return (
-    <div class="diagra-swatches" role="group" aria-label={props.label}>
+    <div class="nodetto-swatches" role="group" aria-label={props.label}>
       <button
         type="button"
-        class="diagra-swatch diagra-swatch-none"
+        class="nodetto-swatch nodetto-swatch-none"
         title="Default"
         aria-label="Default"
         aria-pressed={props.value === undefined}
@@ -238,7 +238,7 @@ export function Swatches(props: SwatchesProps): JSX.Element {
         {(entry) => (
           <button
             type="button"
-            class="diagra-swatch"
+            class="nodetto-swatch"
             style={{ background: entry.value }}
             title={`${entry.name} (${entry.value})`}
             aria-label={entry.name}
@@ -249,7 +249,7 @@ export function Swatches(props: SwatchesProps): JSX.Element {
       </For>
       <input
         type="color"
-        class="diagra-color"
+        class="nodetto-color"
         aria-label={`Custom ${props.label.toLowerCase()}`}
         title="Custom colour"
         value={custom()}
@@ -269,10 +269,10 @@ export interface RowToolsProps {
 /** Up / down / remove buttons that every row editor shares. */
 export function RowTools(props: RowToolsProps): JSX.Element {
   return (
-    <span class="diagra-row-tools">
+    <span class="nodetto-row-tools">
       <button
         type="button"
-        class="diagra-row-button"
+        class="nodetto-row-button"
         title="Move up"
         aria-label="Move up"
         disabled={!props.canMoveUp}
@@ -282,7 +282,7 @@ export function RowTools(props: RowToolsProps): JSX.Element {
       </button>
       <button
         type="button"
-        class="diagra-row-button"
+        class="nodetto-row-button"
         title="Move down"
         aria-label="Move down"
         disabled={!props.canMoveDown}
@@ -292,7 +292,7 @@ export function RowTools(props: RowToolsProps): JSX.Element {
       </button>
       <button
         type="button"
-        class="diagra-row-button diagra-row-remove"
+        class="nodetto-row-button nodetto-row-remove"
         title="Remove"
         aria-label="Remove"
         onClick={() => props.onRemove()}

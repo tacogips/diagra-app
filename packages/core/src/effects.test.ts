@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument, type LayerEffect } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument, type LayerEffect } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import {
   backdropEffectsCss,
   effectBounds,
@@ -96,7 +96,7 @@ test("background blur samples the backdrop without expanding layer bounds", () =
   const svg = editor.exportPageSvg({ padding: 0 });
   expect(svg).toContain('in="BackgroundImage"');
   expect(svg).toContain('in2="SourceAlpha"');
-  expect(svg).toContain("diagra-backdrop-clipped");
+  expect(svg).toContain("nodetto-backdrop-clipped");
   expect(svg).toContain('viewBox="-6 -6 112 62"');
 });
 
@@ -132,7 +132,7 @@ test("shadow style preserves JSONL, undo and handoff and expands SVG export", ()
   expect(svg).toContain('viewBox="-1 0 112 116"');
   expect(svg).toContain('stdDeviation="2"');
   expect(svg).toContain('flood-opacity="0.25"');
-  expect(svg).toContain('filter="url(#diagra-shadow-0)"');
+  expect(svg).toContain('filter="url(#nodetto-shadow-0)"');
   editor.undo();
   expect(editor.store.get(node.id)?.visual.style?.shadow).toBeUndefined();
   editor.redo();
@@ -235,6 +235,6 @@ test("a shadow can enter a frame clip while its source is outside", () => {
   const svg = editor.exportPageSvg({ padding: 0 });
   expect(svg).toContain(`data-id="${node.id}"`);
   expect(svg).toContain('viewBox="0 0 100 100"');
-  expect(svg).toContain('clip-path="url(#diagra-clip-0)"');
+  expect(svg).toContain('clip-path="url(#nodetto-clip-0)"');
   expect(editor.hitTest({ x: 95, y: 25 })).not.toBe(node.id);
 });

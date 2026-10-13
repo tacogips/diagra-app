@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { FrameSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { FrameSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { componentOverrides } from "./component-overrides.ts";
 import { inspectDesign } from "./handoff.ts";
 import { generateInterfaceCode } from "./interface-code.ts";

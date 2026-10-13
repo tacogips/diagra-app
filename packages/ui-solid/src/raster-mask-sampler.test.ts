@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import { installRasterMaskSampler } from "./raster-mask-sampler.ts";
 
 // Browser doubles verify lifecycle and sampling math, not rendered fidelity.

@@ -19,7 +19,7 @@ import {
   type PageId,
   SCHEMA_VERSION,
   type UnknownRecord,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { compareFractional } from "./fractional.ts";
 
 /** What changed in one commit. Empty arrays mean "nothing of that kind". */
@@ -212,7 +212,7 @@ export class Store {
   /**
    * A deterministic document snapshot: pages by id, elements by page then
    * id, unknown records and extension bags passed through untouched. Feeding
-   * this to `@diagra/io` twice yields byte-identical JSONL.
+   * this to `@nodetto/io` twice yields byte-identical JSONL.
    */
   getSnapshot(): Document {
     const pages = [...this.pageMap.values()].sort(comparePageOrder);

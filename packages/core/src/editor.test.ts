@@ -6,7 +6,7 @@
 // the two cases that are not plain store commits.
 
 import { describe, expect, test } from "bun:test";
-import type { Page } from "@diagra/ir";
+import type { Page } from "@nodetto/ir";
 import { Editor } from "./editor.ts";
 import {
   counterIds,

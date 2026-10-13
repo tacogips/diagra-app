@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Document, ErdTableSemantic } from "@diagra/ir";
+import type { Document, ErdTableSemantic } from "@nodetto/ir";
 import * as Y from "yjs";
 import { allFixtures, erdDocument, freeformDocument } from "./test-fixtures.ts";
 import {

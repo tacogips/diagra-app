@@ -6,12 +6,12 @@
 //      how the object was built rather than on a declared order.
 //   2. Coordinate rounding has to happen per declared field, not globally.
 //
-// So records are written key by key against a `KeyOrder` from `@diagra/ir`:
+// So records are written key by key against a `KeyOrder` from `@nodetto/ir`:
 // declared keys first in declared order, every other key (including fields
 // this build does not model) after them sorted by code unit. That keeps the
 // output deterministic and unknown fields lossless.
 
-import { COORDINATE_PRECISION, type KeyOrder } from "@diagra/ir";
+import { COORDINATE_PRECISION, type KeyOrder } from "@nodetto/ir";
 import { getField } from "./objects.ts";
 
 /** Code-unit ordering; deliberately locale-independent. */

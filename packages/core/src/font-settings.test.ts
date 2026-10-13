@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument, type VisualStyle } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument, type VisualStyle } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { fontFeatureCss, fontVariationCss } from "./font-settings.ts";
 import { inspectDesign } from "./handoff.ts";
 import { prototypeSmartSteps } from "./prototype.ts";
@@ -77,7 +77,7 @@ test("reusable text styles preserve advanced settings and linked CSS variables",
     advanced.fontFeatures,
   );
   const linked = inspectDesign(editor, target)?.linkedCss ?? "";
-  expect(linked).toContain("var(--diagra-type-");
+  expect(linked).toContain("var(--nodetto-type-");
   const variables = typographyHandoff(editor).css;
   expect(variables).toContain('font-variations: "wght" 650, "wdth" 92.5;');
   expect(variables).toContain('font-features: "liga" 0, "ss01" 1;');

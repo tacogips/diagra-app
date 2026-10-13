@@ -1,5 +1,5 @@
 {
-  "name": "@diagra/io",
+  "name": "@nodetto/io",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -8,6 +8,6 @@
     "./mermaid/import": "./src/mermaid/import.ts"
   },
   "dependencies": {
-    "@diagra/ir": "workspace:*"
+    "@nodetto/ir": "workspace:*"
   }
 }

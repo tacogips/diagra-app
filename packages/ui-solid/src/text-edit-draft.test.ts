@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { Editor } from "@diagra/core";
+import { Editor } from "@nodetto/core";
 import { textEditDraft } from "./text-edit-draft.ts";
 
 test("untouched text drafts preserve newer peer text without an undo entry", () => {

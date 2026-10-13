@@ -1,4 +1,4 @@
-import type { VisualStyle } from "@diagra/ir";
+import type { VisualStyle } from "@nodetto/ir";
 import type { Vec } from "./geometry.ts";
 
 const PRESET_DASHES: Readonly<

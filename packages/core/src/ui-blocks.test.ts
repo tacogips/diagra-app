@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { FrameSemantic } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import type { FrameSemantic } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { insertUiBlock, UI_BLOCKS } from "./ui-blocks.ts";
 import { makeEditor } from "./test-helpers.ts";
 import { compareFractional } from "./fractional.ts";

@@ -4,7 +4,7 @@
 // reorder or a flag flip must never look like a delete plus an insert.
 
 import { describe, expect, test } from "bun:test";
-import type { ErdTableSemantic, UmlClassSemantic } from "@diagra/ir";
+import type { ErdTableSemantic, UmlClassSemantic } from "@nodetto/ir";
 import {
   addErdColumnPair,
   addErdColumn,

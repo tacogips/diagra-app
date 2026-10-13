@@ -1,4 +1,4 @@
-import type { PrototypeOverflow } from "@diagra/ir";
+import type { PrototypeOverflow } from "@nodetto/ir";
 
 export interface PrototypeScrollPoint {
   readonly x: number;

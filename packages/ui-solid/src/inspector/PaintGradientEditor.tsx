@@ -1,4 +1,4 @@
-import type { FillGradient, GradientStop } from "@diagra/ir";
+import type { FillGradient, GradientStop } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { Field, NumberInput, SelectInput } from "./controls.tsx";
 
@@ -41,7 +41,7 @@ export function PaintGradientEditor(props: {
     } as FillGradient);
   };
   return (
-    <div class="diagra-gradient-editor">
+    <div class="nodetto-gradient-editor">
       <label>
         <input
           type="checkbox"
@@ -148,7 +148,7 @@ export function PaintGradientEditor(props: {
         </Show>
         <For each={gradient().stops}>
           {(stop, index) => (
-            <div class="diagra-gradient-stop">
+            <div class="nodetto-gradient-stop">
               <input
                 type="color"
                 aria-label={`${props.label} gradient stop ${index() + 1} color`}

@@ -1,5 +1,5 @@
-import { fullImageCrop, MIN_IMAGE_CROP, type Editor } from "@diagra/core";
-import type { Element, ImageSemantic } from "@diagra/ir";
+import { fullImageCrop, MIN_IMAGE_CROP, type Editor } from "@nodetto/core";
+import type { Element, ImageSemantic } from "@nodetto/ir";
 import { createSignal, type JSX, Show } from "solid-js";
 import { replaceRasterFile } from "../image-import.ts";
 import {
@@ -69,7 +69,7 @@ export function ImageSection(props: {
       />
       <button
         type="button"
-        class="diagra-tool-button"
+        class="nodetto-tool-button"
         disabled={busy()}
         onClick={() => input?.click()}
       >
@@ -109,7 +109,7 @@ export function ImageSection(props: {
         />
       </Field>
       <Field label="Crop X / Y">
-        <div class="diagra-inline-fields">
+        <div class="nodetto-inline-fields">
           <NumberInput
             label="Crop left percent"
             value={Math.round(crop().x * 10000) / 100}
@@ -129,7 +129,7 @@ export function ImageSection(props: {
         </div>
       </Field>
       <Field label="Crop W / H">
-        <div class="diagra-inline-fields">
+        <div class="nodetto-inline-fields">
           <NumberInput
             label="Crop width percent"
             value={Math.round(crop().width * 10000) / 100}
@@ -150,7 +150,7 @@ export function ImageSection(props: {
       </Field>
       <button
         type="button"
-        class="diagra-tool-button"
+        class="nodetto-tool-button"
         disabled={!semantic().crop}
         onClick={() => {
           const { crop: _crop, ...rest } = semantic();

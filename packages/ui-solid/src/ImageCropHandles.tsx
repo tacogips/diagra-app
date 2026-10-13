@@ -7,8 +7,8 @@ import {
   type Editor,
   rotatePoint,
   type Vec,
-} from "@diagra/core";
-import type { Element, ImageCrop, ImageSemantic } from "@diagra/ir";
+} from "@nodetto/core";
+import type { Element, ImageCrop, ImageSemantic } from "@nodetto/ir";
 import { createSignal, For, type JSX, onCleanup, Show } from "solid-js";
 
 type Corner = "nw" | "ne" | "se" | "sw";
@@ -112,13 +112,13 @@ export function ImageCropHandles(props: {
     >
       <Show when={preview()}>
         <path
-          class="diagra-crop-mask"
+          class="nodetto-crop-mask"
           d={`M ${props.box.x} ${props.box.y} h ${props.box.width} v ${props.box.height} h ${-props.box.width} Z M ${shownBox().x} ${shownBox().y} v ${shownBox().height} h ${shownBox().width} v ${-shownBox().height} Z`}
           fill-rule="evenodd"
         />
       </Show>
       <rect
-        class="diagra-crop-outline"
+        class="nodetto-crop-outline"
         {...shownBox()}
         vector-effect="non-scaling-stroke"
       />
@@ -127,7 +127,7 @@ export function ImageCropHandles(props: {
           const point = () => cornerPoint(shownBox(), corner);
           return (
             <rect
-              class="diagra-crop-handle"
+              class="nodetto-crop-handle"
               x={point().x - size() / 2}
               y={point().y - size() / 2}
               width={size()}

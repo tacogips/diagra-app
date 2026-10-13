@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "diagra-app",
+      "name": "nodetto-app",
       "devDependencies": {
         "@biomejs/biome": "^1.9.4",
         "@types/bun": "^1.1.14",
@@ -11,26 +11,26 @@
       },
     },
     "apps/cli": {
-      "name": "@diagra/cli",
-      "version": "0.1.0",
+      "name": "@nodetto/cli",
+      "version": "0.2.3",
       "bin": {
-        "diagra-cli": "./src/main.ts",
+        "nodetto-cli": "./src/main.ts",
       },
       "dependencies": {
-        "@diagra/core": "workspace:*",
-        "@diagra/io": "workspace:*",
-        "@diagra/ir": "workspace:*",
+        "@nodetto/core": "workspace:*",
+        "@nodetto/io": "workspace:*",
+        "@nodetto/ir": "workspace:*",
       },
     },
     "apps/desktop": {
-      "name": "@diagra/desktop",
-      "version": "0.1.0",
+      "name": "@nodetto/desktop",
+      "version": "0.2.3",
       "dependencies": {
-        "@diagra/collab": "workspace:*",
-        "@diagra/core": "workspace:*",
-        "@diagra/io": "workspace:*",
-        "@diagra/ir": "workspace:*",
-        "@diagra/ui-solid": "workspace:*",
+        "@nodetto/collab": "workspace:*",
+        "@nodetto/core": "workspace:*",
+        "@nodetto/io": "workspace:*",
+        "@nodetto/ir": "workspace:*",
+        "@nodetto/ui-solid": "workspace:*",
         "@tauri-apps/api": "^2.0.0",
         "solid-js": "^1.9.0",
         "y-protocols": "^1.0.7",
@@ -43,48 +43,48 @@
       },
     },
     "packages/collab": {
-      "name": "@diagra/collab",
+      "name": "@nodetto/collab",
       "version": "0.1.0",
       "dependencies": {
-        "@diagra/core": "workspace:*",
-        "@diagra/ir": "workspace:*",
+        "@nodetto/core": "workspace:*",
+        "@nodetto/ir": "workspace:*",
         "y-partyserver": "^2.2.0",
         "y-protocols": "^1.0.7",
         "yjs": "^13.6.32",
       },
       "devDependencies": {
-        "@diagra/io": "workspace:*",
+        "@nodetto/io": "workspace:*",
       },
     },
     "packages/core": {
-      "name": "@diagra/core",
+      "name": "@nodetto/core",
       "version": "0.1.0",
       "dependencies": {
-        "@diagra/ir": "workspace:*",
+        "@nodetto/ir": "workspace:*",
         "polygon-clipping": "0.15.7",
       },
       "devDependencies": {
-        "@diagra/io": "workspace:*",
+        "@nodetto/io": "workspace:*",
       },
     },
     "packages/io": {
-      "name": "@diagra/io",
+      "name": "@nodetto/io",
       "version": "0.1.0",
       "dependencies": {
-        "@diagra/ir": "workspace:*",
+        "@nodetto/ir": "workspace:*",
       },
     },
     "packages/ir": {
-      "name": "@diagra/ir",
+      "name": "@nodetto/ir",
       "version": "0.1.0",
     },
     "packages/ui-solid": {
-      "name": "@diagra/ui-solid",
+      "name": "@nodetto/ui-solid",
       "version": "0.1.0",
       "dependencies": {
-        "@diagra/core": "workspace:*",
-        "@diagra/io": "workspace:*",
-        "@diagra/ir": "workspace:*",
+        "@nodetto/core": "workspace:*",
+        "@nodetto/io": "workspace:*",
+        "@nodetto/ir": "workspace:*",
         "solid-js": "^1.9.0",
       },
     },
@@ -145,20 +145,6 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@1.9.4", "", { "os": "win32", "cpu": "x64" }, "sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA=="],
 
     "@cloudflare/workers-types": ["@cloudflare/workers-types@4.20260702.1", "", {}, "sha512-mOhf5TUEB1m2vPrxtqoIGfz0fUC9xyxRDx5gWHy5s+OCo6dcV+g7wI1R7gYCMFohhqF/2y2xeKVwMwCJjfn/WA=="],
-
-    "@diagra/cli": ["@diagra/cli@workspace:apps/cli"],
-
-    "@diagra/collab": ["@diagra/collab@workspace:packages/collab"],
-
-    "@diagra/core": ["@diagra/core@workspace:packages/core"],
-
-    "@diagra/desktop": ["@diagra/desktop@workspace:apps/desktop"],
-
-    "@diagra/io": ["@diagra/io@workspace:packages/io"],
-
-    "@diagra/ir": ["@diagra/ir@workspace:packages/ir"],
-
-    "@diagra/ui-solid": ["@diagra/ui-solid@workspace:packages/ui-solid"],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.12", "", { "os": "aix", "cpu": "ppc64" }, "sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA=="],
 
@@ -223,6 +209,20 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
+
+    "@nodetto/cli": ["@nodetto/cli@workspace:apps/cli"],
+
+    "@nodetto/collab": ["@nodetto/collab@workspace:packages/collab"],
+
+    "@nodetto/core": ["@nodetto/core@workspace:packages/core"],
+
+    "@nodetto/desktop": ["@nodetto/desktop@workspace:apps/desktop"],
+
+    "@nodetto/io": ["@nodetto/io@workspace:packages/io"],
+
+    "@nodetto/ir": ["@nodetto/ir@workspace:packages/ir"],
+
+    "@nodetto/ui-solid": ["@nodetto/ui-solid@workspace:packages/ui-solid"],
 
     "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.62.5", "", { "os": "android", "cpu": "arm" }, "sha512-jfkGfTwhQpsiSckPF8r9bU3pn3vyd72NlWaO+TgEO6WPSDnUhXzrNYCHBMOYj0ACaUgjm6eERLF+XV9a6RstoA=="],
 

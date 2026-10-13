@@ -17,7 +17,7 @@ import { writeFileAtomic } from "./write-atomic.ts";
 let directory: string;
 
 beforeEach(() => {
-  directory = mkdtempSync(join(tmpdir(), "diagra-cli-write-"));
+  directory = mkdtempSync(join(tmpdir(), "nodetto-cli-write-"));
 });
 
 afterEach(() => {

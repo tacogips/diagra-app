@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { assertValidDocument } from "@diagra/ir";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { assertValidDocument } from "@nodetto/ir";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { inspectDesign } from "./handoff.ts";
 import { makeEditor } from "./test-helpers.ts";
 

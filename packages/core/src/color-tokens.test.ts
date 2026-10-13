@@ -3,7 +3,7 @@ import {
   parseDocument,
   parseDocumentResult,
   serializeDocument,
-} from "@diagra/io";
+} from "@nodetto/io";
 import {
   bindSelectionColor,
   colorTokens,

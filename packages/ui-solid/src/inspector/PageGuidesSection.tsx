@@ -4,8 +4,8 @@ import {
   pageGuides,
   removePageGuide,
   updatePageGuide,
-} from "@diagra/core";
-import type { GuideAxis, Page } from "@diagra/ir";
+} from "@nodetto/core";
+import type { GuideAxis, Page } from "@nodetto/ir";
 import { For, type JSX } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 import {
@@ -37,7 +37,7 @@ export function PageGuidesSection(props: {
       <summary>{`Guides (${guides().length})`}</summary>
       <For each={guides()}>
         {(guide, index) => (
-          <div class="diagra-inspector-subsection">
+          <div class="nodetto-inspector-subsection">
             <Field label="Axis">
               <SelectInput
                 label={`Guide ${index() + 1} axis`}
@@ -88,7 +88,7 @@ export function PageGuidesSection(props: {
             />
             <button
               type="button"
-              class="diagra-inspector-button"
+              class="nodetto-inspector-button"
               disabled={guide.locked}
               onClick={() => removePageGuide(props.editor, guide.id)}
             >
@@ -99,14 +99,14 @@ export function PageGuidesSection(props: {
       </For>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => addPageGuide(props.editor, props.page.id, "x", 0)}
       >
         Add vertical guide
       </button>
       <button
         type="button"
-        class="diagra-inspector-button"
+        class="nodetto-inspector-button"
         onClick={() => addPageGuide(props.editor, props.page.id, "y", 0)}
       >
         Add horizontal guide

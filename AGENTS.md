@@ -22,7 +22,7 @@ You are a professional system architect. Continuously perform system design, imp
 
 ## Project Overview
 
-This is diagra - a diagram editor (ERD, UML class, sequence, freeform) shipped as a Tauri desktop app plus shared editor packages. This repo is the public diagra-app monorepo; the cloud edition lives in the private diagra-cloud repo.
+This is nodetto - a diagram editor (ERD, UML class, sequence, freeform) shipped as a Tauri desktop app plus shared editor packages. This repo is the public nodetto-app monorepo; the cloud edition lives in the private nodetto-cloud repo.
 
 ## Development Environment
 
@@ -41,7 +41,7 @@ This is diagra - a diagram editor (ERD, UML class, sequence, freeform) shipped a
 ├── mise.toml
 ├── package.json          # bun workspaces root (packages/*, apps/*)
 ├── Cargo.toml            # Rust workspace (apps/desktop/src-tauri)
-├── tsconfig.json         # repo-wide typecheck with @diagra/* paths
+├── tsconfig.json         # repo-wide typecheck with @nodetto/* paths
 ├── packages/
 │   ├── ir/               # Diagram IR: types, schema, migrations
 │   ├── core/             # framework-agnostic editor core
@@ -56,8 +56,8 @@ This is diagra - a diagram editor (ERD, UML class, sequence, freeform) shipped a
         └── src-tauri/
 ```
 
-This repository is the public `diagra-app` half of a two-repo split; the
-private `diagra-cloud` repository consumes it as a git submodule. Server
+This repository is the public `nodetto-app` half of a two-repo split; the
+private `nodetto-cloud` repository consumes it as a git submodule. Server
 code, auth, and deployment config must never be added here. See
 design-docs/specs/product-design.md.
 

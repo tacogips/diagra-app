@@ -32,7 +32,7 @@ import type {
   SnapOptions,
   Vec,
   ViewportSize,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   copySelectionStyle,
   pasteSelectionStyle,
@@ -70,13 +70,13 @@ import {
   umlNameHeight,
   unionBoxes,
   visibleBounds,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   type Element,
   type ElementId,
   type FrameSemantic,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { type Accessor, createSignal } from "solid-js";
 import { creationFor, type ToolKind } from "./tools.ts";
 
@@ -182,7 +182,7 @@ const EDITABLE_TAGS: ReadonlySet<string> = new Set([
 ]);
 
 /** Class of the page-space slot the inline text editor mounts in. */
-export const SLOT_LAYER_CLASS = "diagra-slot-layer";
+export const SLOT_LAYER_CLASS = "nodetto-slot-layer";
 
 const NO_GUIDES: readonly SnapGuide[] = [];
 

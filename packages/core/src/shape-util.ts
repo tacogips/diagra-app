@@ -5,7 +5,7 @@
 // Nothing here renders: a ShapeUtil answers questions in page space and the
 // renderer draws whatever it likes from the same element.
 
-import type { Element, ElementId, PageId, Visual } from "@diagra/ir";
+import type { Element, ElementId, PageId, Visual } from "@nodetto/ir";
 import type { Box, Vec } from "./geometry.ts";
 
 /** A decoded raster pixel expressed as normalized channel intensities. */

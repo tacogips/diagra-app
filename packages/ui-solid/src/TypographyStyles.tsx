@@ -6,7 +6,7 @@ import {
   selectionTypography,
   textStyles,
   updateTextStyle,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { createMemo, createSignal, For, type JSX } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import { HelpHint } from "./HelpHint.tsx";
@@ -32,7 +32,7 @@ export function TypographyStyles(props: {
   });
   return (
     <section
-      class="diagra-typography-styles"
+      class="nodetto-typography-styles"
       aria-label="Document typography styles"
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
@@ -68,7 +68,7 @@ export function TypographyStyles(props: {
           };
           const linked = () => !binding().mixed && binding().id === style.id;
           return (
-            <div class="diagra-typography-entry">
+            <div class="nodetto-typography-entry">
               <input
                 aria-label={`Rename ${style.name}`}
                 value={style.name}

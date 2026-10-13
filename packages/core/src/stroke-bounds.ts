@@ -1,4 +1,4 @@
-import type { FreehandPoint } from "@diagra/ir";
+import type { FreehandPoint } from "@nodetto/ir";
 import type { Box } from "./geometry.ts";
 
 function extrema(a: number, b: number, c: number, d: number): number[] {

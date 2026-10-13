@@ -1,4 +1,4 @@
-import { type Element, getElementTypeDefinition } from "@diagra/ir";
+import { type Element, getElementTypeDefinition } from "@nodetto/ir";
 import { type Box, boxCenter, rotatePoint, type Vec } from "./geometry.ts";
 import { boxPolygon, intersectClip, polygonContains } from "./clipping.ts";
 import type { ShapeContext } from "./shape-util.ts";

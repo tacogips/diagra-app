@@ -1,4 +1,4 @@
-import type { Editor } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
 import { createSignal, createUniqueId, type JSX } from "solid-js";
 import { isComposing } from "./NumberInput.tsx";
 import { layerRenameDraft } from "./layer-rename.ts";
@@ -30,7 +30,7 @@ export function LayerRenameInput(props: {
   };
   return (
     <div
-      class="diagra-layer-name"
+      class="nodetto-layer-name"
       style={{ "min-width": "0", "white-space": "normal" }}
     >
       <input

@@ -4,7 +4,7 @@ import type {
   TypographyStyleValue,
   Visual,
   VisualStyle,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { applyCommands, type Command } from "./commands.ts";
 import { Editor } from "./editor.ts";
 import { leafElements } from "./group.ts";

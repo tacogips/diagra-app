@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Element } from "@diagra/ir";
+import type { Element } from "@nodetto/ir";
 import { makeEditor } from "./test-helpers.ts";
 import { readDirectEndpoints, resolveConnector } from "./shapes/connector.ts";
 

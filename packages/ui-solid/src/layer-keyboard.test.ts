@@ -4,7 +4,7 @@ import {
   Editor,
   layerRows,
   selectLayerRow,
-} from "@diagra/core";
+} from "@nodetto/core";
 import { layerNavigation } from "./layer-keyboard.ts";
 
 function fixture() {

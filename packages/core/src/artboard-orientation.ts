@@ -1,4 +1,4 @@
-import type { FrameSemantic } from "@diagra/ir";
+import type { FrameSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
 

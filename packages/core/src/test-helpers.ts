@@ -10,7 +10,7 @@ import type {
   Element,
   Page,
   Visual,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { Editor, type EditorOptions } from "./editor.ts";
 import type { IdSource } from "./ids.ts";
 

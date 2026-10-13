@@ -30,13 +30,13 @@ test("rich text marks map to composable inline canvas styles", () => {
       { start: 0, end: 4, kind: "code" },
       { start: 0, end: 4, kind: "strike" },
       { start: 0, end: 4, kind: "underline" },
-      { start: 0, end: 4, kind: "link", href: "https://diagra.app" },
+      { start: 0, end: 4, kind: "link", href: "https://nodetto.app" },
     ]),
   ).toMatchObject({
     "font-weight": 700,
     "font-style": "italic",
     "font-family": "ui-monospace, SFMono-Regular, Menlo, monospace",
-    color: "var(--diagra-accent)",
+    color: "var(--nodetto-accent)",
     "text-decoration-line": "underline line-through",
   });
 });

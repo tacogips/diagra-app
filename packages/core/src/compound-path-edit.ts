@@ -3,7 +3,7 @@ import type {
   FreehandPoint,
   PathContour,
   PathSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import { boxCenter, rotatePoint, type Vec } from "./geometry.ts";
 import { compoundPathGeometry } from "./shapes/compound-path.ts";

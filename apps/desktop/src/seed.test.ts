@@ -8,12 +8,12 @@
 // failure a human would have to notice by eye.
 
 import { describe, expect, test } from "bun:test";
-import { createDefaultRegistry, Editor } from "@diagra/core";
+import { createDefaultRegistry, Editor } from "@nodetto/core";
 import {
   getElementTypeDefinition,
   hasErrors,
   validateDocument,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { seed } from "./seed.ts";
 
 function seededEditor(): Editor {

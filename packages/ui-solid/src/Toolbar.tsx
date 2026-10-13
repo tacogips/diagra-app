@@ -3,7 +3,7 @@ import {
   insertUiBlock,
   UI_BLOCKS,
   type UiBlock,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   createEffect,
   createSignal,
@@ -392,7 +392,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           type="button"
           role="menuitem"
           title={item.title}
-          classList={{ "diagra-active": props.tool === item.tool }}
+          classList={{ "nodetto-active": props.tool === item.tool }}
           disabled={!canUseTool(item.tool, readOnly())}
           onClick={() => chooseTool(item.tool)}
         >
@@ -404,14 +404,14 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   return (
     <div
       ref={root}
-      class="diagra-compact-toolbar"
+      class="nodetto-compact-toolbar"
       role="toolbar"
       aria-label="Editor tools"
     >
-      <div class="diagra-toolbar-primary">
+      <div class="nodetto-toolbar-primary">
         <button
           type="button"
-          class="diagra-toolbar-icon"
+          class="nodetto-toolbar-icon"
           aria-label="Select"
           title="Select and move (V)"
           aria-pressed={props.tool === "select"}
@@ -422,7 +422,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </button>
         <button
           type="button"
-          class="diagra-toolbar-icon"
+          class="nodetto-toolbar-icon"
           aria-label="Hand"
           title="Pan the canvas (H, or hold Space)"
           aria-pressed={props.tool === "hand"}
@@ -431,10 +431,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         >
           <Icon name="hand" />
         </button>
-        <div class="diagra-toolbar-split">
+        <div class="nodetto-toolbar-split">
           <button
             type="button"
-            class="diagra-toolbar-icon"
+            class="nodetto-toolbar-icon"
             aria-label={`Insert ${currentFrameInfo()?.label ?? "frame"} frame`}
             title={`Insert ${currentFrameInfo()?.title ?? "current frame"}`}
             aria-pressed={FRAME_TOOLS.some((item) => item.tool === props.tool)}
@@ -445,7 +445,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </button>
           <button
             type="button"
-            class="diagra-toolbar-chevron"
+            class="nodetto-toolbar-chevron"
             aria-label="Choose frame"
             title="Choose frame"
             aria-haspopup="menu"
@@ -456,10 +456,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             <Icon name="chevron" />
           </button>
         </div>
-        <div class="diagra-toolbar-split">
+        <div class="nodetto-toolbar-split">
           <button
             type="button"
-            class="diagra-toolbar-icon"
+            class="nodetto-toolbar-icon"
             aria-label={`Insert ${currentShapeInfo()?.label ?? "shape"} shape`}
             title={`Insert ${currentShapeInfo()?.title ?? "current shape"}`}
             aria-pressed={SHAPE_TOOLS.some((item) => item.tool === props.tool)}
@@ -478,7 +478,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </button>
           <button
             type="button"
-            class="diagra-toolbar-chevron"
+            class="nodetto-toolbar-chevron"
             aria-label="Choose shape"
             title="Choose shape"
             aria-haspopup="menu"
@@ -491,7 +491,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </div>
         <button
           type="button"
-          class="diagra-toolbar-icon"
+          class="nodetto-toolbar-icon"
           aria-label="Draw"
           title="Draw a freehand stroke"
           aria-pressed={props.tool === "draw.freehand"}
@@ -502,7 +502,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </button>
         <button
           type="button"
-          class="diagra-toolbar-icon"
+          class="nodetto-toolbar-icon"
           aria-label="Text"
           title="Text (T)"
           aria-pressed={props.tool === "text.note"}
@@ -513,7 +513,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </button>
         <Show when={open() === "frames" || open() === "shapes"}>
           <div
-            class="diagra-toolbar-menu"
+            class="nodetto-toolbar-menu"
             role="menu"
             aria-label={open() === "frames" ? "Frames" : "Shapes"}
             style={menuStyle()}
@@ -522,10 +522,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             {toolItems(open() === "frames" ? FRAME_TOOLS : SHAPE_TOOLS)}
           </div>
         </Show>
-        <div class="diagra-toolbar-menu-wrap">
+        <div class="nodetto-toolbar-menu-wrap">
           <button
             type="button"
-            class="diagra-toolbar-icon"
+            class="nodetto-toolbar-icon"
             aria-label="More tools"
             title="More tools"
             aria-haspopup="menu"
@@ -537,7 +537,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </button>
           <Show when={open() === "more"}>
             <div
-              class="diagra-toolbar-menu diagra-toolbar-more-menu"
+              class="nodetto-toolbar-menu nodetto-toolbar-more-menu"
               role="menu"
               aria-label="More tools"
               style={menuStyle()}
@@ -606,7 +606,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </Show>
         </div>
       </div>
-      <div class="diagra-toolbar-utilities">
+      <div class="nodetto-toolbar-utilities">
         <ImageImport
           editor={props.editor}
           compact
@@ -614,7 +614,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         />
         <button
           type="button"
-          class="diagra-toolbar-icon"
+          class="nodetto-toolbar-icon"
           aria-label="Preview"
           title="Preview prototype"
           onClick={(event) => {
@@ -624,10 +624,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         >
           <Icon name="preview" />
         </button>
-        <div class="diagra-local-history" aria-label="History">
+        <div class="nodetto-local-history" aria-label="History">
           <button
             type="button"
-            class="diagra-toolbar-icon"
+            class="nodetto-toolbar-icon"
             aria-label="Undo"
             title="Undo (Cmd/Ctrl+Z)"
             disabled={!undo()}
@@ -637,7 +637,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </button>
           <button
             type="button"
-            class="diagra-toolbar-icon"
+            class="nodetto-toolbar-icon"
             aria-label="Redo"
             title="Redo (Cmd/Ctrl+Shift+Z)"
             disabled={!redo()}

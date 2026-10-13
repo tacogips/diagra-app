@@ -21,7 +21,7 @@ export interface CloudSettings {
   readonly devUser?: string;
 }
 
-const STORAGE_KEY = "diagra.cloud.settings";
+const STORAGE_KEY = "nodetto.cloud.settings";
 
 /** Distinguishable at a glance, and readable on the canvas background. */
 const CURSOR_COLORS = [
@@ -62,7 +62,7 @@ export function loadCloudSettings(storage?: Storage): CloudSettings {
   }
   let raw: string | null;
   try {
-    raw = store.getItem(STORAGE_KEY);
+    raw = store.getItem(STORAGE_KEY) ?? store.getItem("diagra.cloud.settings");
   } catch {
     return fallback;
   }

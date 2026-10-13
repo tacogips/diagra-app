@@ -1,4 +1,4 @@
-import type { Element, FreehandPoint } from "@diagra/ir";
+import type { Element, FreehandPoint } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Vec } from "./geometry.ts";
 import { moveStrokeAnchor } from "./stroke-edit.ts";

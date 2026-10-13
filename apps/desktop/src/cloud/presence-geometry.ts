@@ -6,9 +6,9 @@
 // `screen = (page + camera) * zoom`. Pure so the projection and labelling
 // rules are testable without a DOM.
 
-import type { Box } from "@diagra/core";
-import type { ElementId, PageId } from "@diagra/ir";
-import type { PresencePeer } from "@diagra/collab";
+import type { Box } from "@nodetto/core";
+import type { ElementId, PageId } from "@nodetto/ir";
+import type { PresencePeer } from "@nodetto/collab";
 
 export interface CameraLike {
   readonly x: number;

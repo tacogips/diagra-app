@@ -12,7 +12,7 @@ import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { memberIdsOf } from "./group.ts";
 
 /** Ids named as members by any group among `elements`. */

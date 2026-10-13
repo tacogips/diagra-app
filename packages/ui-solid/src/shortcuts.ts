@@ -28,8 +28,8 @@ import {
   selectionUnitsWithBounds,
   type SizeDimension,
   type ViewportSize,
-} from "@diagra/core";
-import type { BooleanOperation, ElementId } from "@diagra/ir";
+} from "@nodetto/core";
+import type { BooleanOperation, ElementId } from "@nodetto/ir";
 
 export type ActionGroup =
   | "clipboard"

@@ -1,9 +1,9 @@
-import type { Editor, Vec } from "@diagra/core";
+import type { Editor, Vec } from "@nodetto/core";
 import {
   isRasterDataUrl,
   MAX_IMAGE_BYTES,
   type ImageSemantic,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 
 export const MAX_RASTER_IMPORT_FILES = 16;
 export const RASTER_IMPORT_MAX_EDGE = 480;

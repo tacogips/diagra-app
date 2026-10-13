@@ -14,12 +14,12 @@ import {
   ERD_TABLE_HEADER_HEIGHT,
   UML_CLASS_NAME_HEIGHT,
   umlNameHeight,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   createEffect,
   createMemo,
@@ -285,8 +285,8 @@ export function TextEditor(props: TextEditorProps): JSX.Element {
         <>
           <textarea
             ref={textarea}
-            class="diagra-text-editor"
-            classList={{ "diagra-text-editor-multiline": multiline() }}
+            class="nodetto-text-editor"
+            classList={{ "nodetto-text-editor-multiline": multiline() }}
             aria-label="Edit text"
             aria-invalid={conflict() || undefined}
             aria-describedby={conflict() ? conflictId : undefined}

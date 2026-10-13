@@ -8,8 +8,8 @@
 // The endpoint field starts empty and stays empty until the user fills it in.
 // A share token is typed per open and never reaches storage.
 
-import type { Editor } from "@diagra/core";
-import { serializeDocument } from "@diagra/io";
+import type { Editor } from "@nodetto/core";
+import { serializeDocument } from "@nodetto/io";
 import {
   createEffect,
   createSignal,

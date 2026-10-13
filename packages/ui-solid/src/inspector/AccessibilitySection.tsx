@@ -2,12 +2,12 @@ import {
   auditAccessibility,
   updateElementAccessibility,
   type Editor,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   ACCESSIBILITY_ROLES,
   type AccessibilityRole,
   type Element,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import {
   Checkbox,

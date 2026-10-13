@@ -1,4 +1,4 @@
-import type { ElementId, GroupSemantic } from "@diagra/ir";
+import type { ElementId, GroupSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
 import { cornerRadiiCss, resolvedCornerRadii } from "./corner-radii.ts";

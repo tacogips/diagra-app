@@ -9,7 +9,7 @@
 import type { Box } from "../geometry.ts";
 import { boxContains } from "../geometry.ts";
 import type { ShapeUtil } from "../shape-util.ts";
-import type { ErdColumn, ErdTableSemantic } from "@diagra/ir";
+import type { ErdColumn, ErdTableSemantic } from "@nodetto/ir";
 
 export const ERD_TABLE_DEFAULT_WIDTH = 240;
 export const ERD_TABLE_HEADER_HEIGHT = 32;

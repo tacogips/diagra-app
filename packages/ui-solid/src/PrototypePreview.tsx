@@ -16,7 +16,7 @@ import {
   rotatedBox,
   type ShapeContext,
   effectsCss,
-} from "@diagra/core";
+} from "@nodetto/core";
 import {
   type Element,
   type FrameSemantic,
@@ -24,7 +24,7 @@ import {
   type GroupSemantic,
   type PrototypeOverflow,
   type PrototypeTransition,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import {
   createMemo,
   createEffect,
@@ -98,7 +98,7 @@ function PrototypeLayer(props: {
     );
     return boolean ? (
       <div
-        data-diagra-group={props.element.id}
+        data-nodetto-group={props.element.id}
         data-boolean-operation={boolean.operation}
         style={{
           position: "absolute",
@@ -133,7 +133,7 @@ function PrototypeLayer(props: {
       </div>
     ) : (
       <div
-        data-diagra-group={props.element.id}
+        data-nodetto-group={props.element.id}
         style={{
           position: "absolute",
           inset: 0,
@@ -734,7 +734,7 @@ export function PrototypePreview(props: {
             >
               <button
                 type="button"
-                class="diagra-prototype-hotspot"
+                class="nodetto-prototype-hotspot"
                 aria-label={link.label}
                 role={link.role}
                 disabled={link.disabled}
@@ -798,7 +798,7 @@ export function PrototypePreview(props: {
       ref={(element) => {
         dialog = element;
       }}
-      class="diagra-prototype-overlay"
+      class="nodetto-prototype-overlay"
       aria-label="Prototype preview"
       on:keydown={(event) => event.stopPropagation()}
       on:keyup={(event) => event.stopPropagation()}
@@ -856,7 +856,7 @@ export function PrototypePreview(props: {
         fallback={<p>Preview requires a visible artboard.</p>}
       >
         {(view) => (
-          <div class="diagra-prototype-scroll" ref={setScroll}>
+          <div class="nodetto-prototype-scroll" ref={setScroll}>
             <div
               ref={(element) => {
                 stage = element;

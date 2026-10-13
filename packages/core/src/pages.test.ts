@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Page } from "@diagra/ir";
+import type { Page } from "@nodetto/ir";
 import { CommandError } from "./commands.ts";
 import { document, element, makeEditor, TEST_PAGE } from "./test-helpers.ts";
 

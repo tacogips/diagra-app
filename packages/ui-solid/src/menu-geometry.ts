@@ -1,4 +1,4 @@
-import type { Vec } from "@diagra/core";
+import type { Vec } from "@nodetto/core";
 
 const EDGE_MARGIN = 4;
 type Size = { readonly width: number; readonly height: number };

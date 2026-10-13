@@ -36,7 +36,7 @@ import {
   updateLayoutGrid,
   updatePageGuide,
   updateComponentVariantProperty,
-} from "@diagra/core";
+} from "@nodetto/core";
 import type {
   Document,
   Element,
@@ -49,9 +49,9 @@ import type {
   LayerEffect,
   Page,
   TypographyStyleValue,
-} from "@diagra/ir";
+} from "@nodetto/ir";
 import * as Y from "yjs";
-import { parseDocument, serializeDocument } from "@diagra/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { CollabBinding } from "./binding.ts";
 import { erdDocument, freeformDocument } from "./test-fixtures.ts";
 import { ELEMENTS_KEY, PAGES_KEY, applyIrToDoc, ydocToIr } from "./ydoc.ts";

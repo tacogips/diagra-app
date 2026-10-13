@@ -1,4 +1,4 @@
-import type { Element, FreehandPoint, PathSemantic } from "@diagra/ir";
+import type { Element, FreehandPoint, PathSemantic } from "@nodetto/ir";
 import { distanceToSegment, type Vec } from "../geometry.ts";
 import type { ShapeUtil } from "../shape-util.ts";
 import { flattenStroke, strokePath } from "../stroke-path.ts";

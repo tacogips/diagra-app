@@ -1,10 +1,10 @@
-import type { Editor } from "@diagra/core";
+import type { Editor } from "@nodetto/core";
 import {
   type MermaidDiagramKind,
   availableMermaidKinds,
   exportMermaid,
-} from "@diagra/io";
-import type { PageId } from "@diagra/ir";
+} from "@nodetto/io";
+import type { PageId } from "@nodetto/ir";
 import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "../adapter.ts";
 
@@ -94,7 +94,7 @@ export function MermaidExportSection(props: {
   };
 
   return (
-    <details class="diagra-inspector-section">
+    <details class="nodetto-inspector-section">
       <summary>Mermaid export</summary>
       <Show
         when={kinds().length > 0}
