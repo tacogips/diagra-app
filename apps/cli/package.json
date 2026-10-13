@@ -1,6 +1,6 @@
 {
   "name": "@diagra/cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Headless diagra command line: document validation, canonical formatting and ERD DDL export",
   "private": true,
   "type": "module",
