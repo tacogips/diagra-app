@@ -26,6 +26,7 @@ import { TypographyStyles } from "./TypographyStyles.tsx";
 import { LayerRenameInput } from "./LayerRenameInput.tsx";
 import { layerNavigation } from "./layer-keyboard.ts";
 import { HelpHint } from "./HelpHint.tsx";
+import "./Layers.css";
 
 export function Layers(props: {
   readonly editor: Editor;
@@ -178,6 +179,8 @@ export function Layers(props: {
       <Show when={query().trim()}>
         <button
           type="button"
+          class="nodetto-select-matches"
+          aria-label={`Select matches (${searchMatches().length})`}
           disabled={!searchMatches().length}
           title="Select editable search hits on the current page, excluding context-only ancestors"
           onClick={() => {
@@ -185,7 +188,13 @@ export function Layers(props: {
             selectionAnchor = undefined;
           }}
         >
-          Select matches ({searchMatches().length})
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M5 2H2v3m9-3h3v3M2 11v3h3m9-3v3h-3M5 8l2 2 4-4" />
+          </svg>
+          <span>Select matches</span>
+          <span class="nodetto-select-matches-count" aria-hidden="true">
+            {searchMatches().length}
+          </span>
         </button>
       </Show>
       <For each={[...rowMap().keys()]}>
