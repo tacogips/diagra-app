@@ -1,0 +1,215 @@
+/* Editor chrome only: document artwork and prototype content own their styles.
+ * Zero-specificity defaults let swatches, icon controls and segmented buttons
+ * retain their geometry and selected states. */
+:root {
+  --app-control-radius: 6px;
+  --app-button-surface: #f0f2f3;
+  --app-button-hover: #e5e9ec;
+  --app-button-active: #d8dfe3;
+}
+
+/* Color wells are button-like controls too; remove the platform bevel. */
+:where(.app-pane, .nodetto-inspector, .nodetto-layers) input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 26px;
+  padding: 3px;
+  border: 1px solid var(--app-chrome-line, #dfe3e6);
+  border-radius: 4px;
+  background: var(--app-chrome-surface, #fff);
+  cursor: pointer;
+}
+
+:where(.app-pane, .nodetto-inspector, .nodetto-layers)
+  input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+:where(.app-pane, .nodetto-inspector, .nodetto-layers)
+  input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+:where(.app-pane, .nodetto-inspector, .nodetto-layers)
+  input[type="color"]::-moz-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  :where(button) {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--app-control-radius);
+  box-shadow: none;
+  background: var(--app-button-surface);
+  color: var(--nodetto-ink, #1d2a2e);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  :where(button:hover:not(:disabled)) {
+  background: var(--app-button-hover);
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  :where(button:active:not(:disabled)) {
+  background: var(--app-button-active);
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  :where(button:focus-visible) {
+  outline: 2px solid var(--nodetto-accent, #335c67);
+  outline-offset: 2px;
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  :where(button:disabled) {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Form submission is the primary action; utility and icon actions stay quiet. */
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  button[type="submit"] {
+  background: var(--nodetto-accent, #335c67);
+  color: #fff;
+  border-color: transparent;
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  button[type="submit"]:hover:not(:disabled) {
+  background: #274b55;
+}
+
+:where(
+    .app-header,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-layers,
+    .nodetto-inspector,
+    .nodetto-compact-toolbar,
+    .nodetto-selection-toolbar,
+    .nodetto-page-tabs,
+    .nodetto-zoom-controls,
+    .nodetto-context-menu,
+    .nodetto-comment-popover,
+    .nodetto-prototype-overlay > header,
+    .hosted-navigation,
+    .hosted-transfer-body
+  )
+  button[type="submit"]:active:not(:disabled) {
+  background: #1d3d46;
+}

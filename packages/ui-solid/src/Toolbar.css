@@ -36,7 +36,7 @@
 .nodetto-image-import-compact .nodetto-tool-button {
   min-height: 30px;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   color: var(--nodetto-ink);
   background: transparent;
   font: inherit;

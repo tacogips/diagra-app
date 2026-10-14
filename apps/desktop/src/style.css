@@ -1,3 +1,5 @@
+@import "./buttons.css";
+
 :root {
   --nodetto-ink: #1d2a2e;
   --nodetto-muted: #596366;
@@ -220,7 +222,7 @@ input {
   min-height: 26px;
   padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   color: var(--nodetto-ink);
   background: transparent;
   font-size: 13px;
@@ -903,7 +905,7 @@ input {
 .app-cloud-share :is(button, select, input) {
   min-height: 26px;
   border: 1px solid var(--app-chrome-line);
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   color: var(--nodetto-ink);
   background: var(--app-chrome-surface);
   font: inherit;
@@ -1996,7 +1998,7 @@ input {
   max-width: 100%;
   padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   background: transparent;
   color: var(--nodetto-ink);
   font: inherit;

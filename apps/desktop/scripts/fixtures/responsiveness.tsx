@@ -11,6 +11,7 @@ import { NodettoCanvas } from "../../../../packages/ui-solid/src/Canvas.tsx";
 import { Layers } from "../../../../packages/ui-solid/src/Layers.tsx";
 import { Inspector } from "../../../../packages/ui-solid/src/Inspector.tsx";
 import "../../src/style.css";
+import "../../src/inspector.css";
 
 const editor = new Editor();
 const elements = Array.from({ length: 300 }, (_, i) =>
@@ -40,10 +41,13 @@ if (!root) throw new Error("missing fixture root");
 render(
   () => (
     <div style={{ display: "flex", height: "800px" }}>
-      <div style={{ width: "240px", overflow: "auto" }}>
+      <div
+        class="app-pane"
+        style={{ width: "260px", "flex-shrink": 0, overflow: "auto" }}
+      >
         <Layers editor={editor} />
       </div>
-      <div style={{ width: "800px", position: "relative" }}>
+      <div style={{ width: "800px", "flex-shrink": 0, position: "relative" }}>
         <NodettoCanvas
           editor={editor}
           tool="select"
@@ -51,7 +55,12 @@ render(
           showGrid
         />
       </div>
-      <Inspector editor={editor} />
+      <div
+        class="app-pane app-inspector"
+        style={{ width: "320px", "flex-shrink": 0 }}
+      >
+        <Inspector editor={editor} />
+      </div>
     </div>
   ),
   root,

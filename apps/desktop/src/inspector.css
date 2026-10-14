@@ -8,34 +8,6 @@
 
 /* Inspector */
 
-/* Plain section actions need the same flat chrome as named controls. Keep
- * specificity at zero so swatches, help icons and pressed-state styles win. */
-:where(.nodetto-inspector button) {
-  -webkit-appearance: none;
-  appearance: none;
-  padding: 3px 6px;
-  border: 1px solid var(--nodetto-line);
-  border-radius: 0;
-  box-shadow: none;
-  background: var(--nodetto-surface);
-  color: var(--nodetto-ink);
-  cursor: pointer;
-}
-
-:where(.nodetto-inspector button:hover:not(:disabled)) {
-  background: var(--app-chrome-hover);
-}
-
-:where(.nodetto-inspector button:disabled) {
-  color: var(--nodetto-muted);
-  cursor: default;
-}
-
-:where(.nodetto-inspector button:focus-visible) {
-  outline: 2px solid var(--nodetto-accent);
-  outline-offset: 1px;
-}
-
 .nodetto-inspector {
   display: flex;
   flex-direction: column;
@@ -133,12 +105,12 @@
 
 .nodetto-inspector-button {
   align-self: flex-start;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid var(--nodetto-line);
-  border-radius: 0;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--app-control-radius, 6px);
   color: var(--nodetto-ink);
-  background: var(--nodetto-surface);
+  background: var(--app-button-surface, #f0f2f3);
   font: inherit;
   cursor: pointer;
 }

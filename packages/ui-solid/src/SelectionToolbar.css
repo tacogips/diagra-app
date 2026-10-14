@@ -15,7 +15,7 @@
   min-height: 24px;
   padding: 0 7px;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   color: var(--nodetto-ink);
   cursor: pointer;
   font-size: 0.74rem;
@@ -48,5 +48,5 @@
 }
 
 .nodetto-selection-toolbar .nodetto-float-button {
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
 }

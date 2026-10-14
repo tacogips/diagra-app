@@ -8,7 +8,7 @@
   margin: 6px 8px 8px;
   padding: 4px 8px;
   border: 1px solid var(--app-chrome-line, #dfe3e6);
-  border-radius: 0;
+  border-radius: var(--app-control-radius, 6px);
   background: var(--app-chrome-surface, #fff);
   color: var(--nodetto-muted, #596366);
   font: inherit;
