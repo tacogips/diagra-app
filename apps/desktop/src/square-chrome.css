@@ -1,6 +1,6 @@
-/* Interface chrome is square. Do not target document shape/rendering classes:
- * authored corner radii and prototype geometry must remain unchanged. */
-.app-shell.app-shell :is(button, input, select, textarea, .app-file-button),
+/* Keep structural chrome and text fields square. Action buttons and color
+ * wells use the shared control styles; swatches retain their circular shape. */
+.app-shell.app-shell :is(input:not([type="color"]), select, textarea),
 .app-shell
   :is(
     .app-recent-select,

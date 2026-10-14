@@ -12,6 +12,7 @@ import { Layers } from "../../../../packages/ui-solid/src/Layers.tsx";
 import { Inspector } from "../../../../packages/ui-solid/src/Inspector.tsx";
 import "../../src/style.css";
 import "../../src/inspector.css";
+import "../../src/square-chrome.css";
 
 const editor = new Editor();
 const elements = Array.from({ length: 300 }, (_, i) =>
@@ -40,7 +41,10 @@ const root = document.getElementById("root");
 if (!root) throw new Error("missing fixture root");
 render(
   () => (
-    <div style={{ display: "flex", height: "800px" }}>
+    <div
+      class="app-shell"
+      style={{ display: "flex", "flex-direction": "row", height: "800px" }}
+    >
       <div
         class="app-pane"
         style={{ width: "260px", "flex-shrink": 0, overflow: "auto" }}
