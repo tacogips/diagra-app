@@ -8,7 +8,7 @@ import {
   splitStrokeSegment,
 } from "@nodetto/core";
 import type { Element, FreehandPoint, FreehandSemantic } from "@nodetto/ir";
-import { createSignal, For, type JSX, Show } from "solid-js";
+import { createMemo, createSignal, For, type JSX, Show } from "solid-js";
 import { Field, NumberInput, Section } from "./controls.tsx";
 
 export function StrokeSection(props: {
@@ -16,9 +16,11 @@ export function StrokeSection(props: {
   element: Element;
 }): JSX.Element {
   const [chosen, setChosen] = createSignal(0);
-  const points = () => strokePagePoints(props.element);
-  const index = () => Math.min(chosen(), Math.max(0, points().length - 1));
-  const point = () => points()[index()];
+  const points = createMemo(() => strokePagePoints(props.element));
+  const index = createMemo(() =>
+    Math.min(chosen(), Math.max(0, points().length - 1)),
+  );
+  const point = createMemo(() => points()[index()]);
   const write = (next: FreehandPoint[]): void => {
     props.editor.apply(planStrokePoints(props.element, next));
   };
@@ -170,7 +172,7 @@ export function StrokeSection(props: {
                 setChosen(index() + 1);
                 return;
               }
-              const next = points();
+              const next = [...points()];
               const a = next[index()];
               if (!a) return;
               next.splice(index() + 1, 0, {

@@ -1,5 +1,5 @@
-import type { Element, FreehandSemantic } from "@nodetto/ir";
-import { distanceToSegment } from "../geometry.ts";
+import type { Element, FreehandPoint, FreehandSemantic } from "@nodetto/ir";
+import { type Box, distanceToSegment } from "../geometry.ts";
 import type { ShapeUtil } from "../shape-util.ts";
 import {
   pressureStrokeContains,
@@ -9,9 +9,24 @@ import { flattenStroke, strokePath } from "../stroke-path.ts";
 import { resolvedStrokeDashArray } from "../stroke-dash.ts";
 import { strokeBounds } from "../stroke-bounds.ts";
 
-export function freehandGeometry(element: Element) {
-  const points = (element.semantic as FreehandSemantic).points;
+// Store records and point arrays are immutable. Keep only the latest derived
+// shape per source array so dragging does not retain every intermediate size.
+const sourceBoundsCache = new WeakMap<
+  readonly FreehandPoint[],
+  {
+    closed: boolean;
+    curve: boolean;
+    bounds: Box;
+  }
+>();
+
+function sourceBounds(element: Element): Box | null {
+  const { points, closed = false } = element.semantic as FreehandSemantic;
   if (!points.length) return null;
+  const curve = element.visual.strokeBounds === "curve";
+  const cached = sourceBoundsCache.get(points);
+  if (cached && cached.closed === closed && cached.curve === curve)
+    return cached.bounds;
   let minX = Number.POSITIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
@@ -39,12 +54,29 @@ export function freehandGeometry(element: Element) {
   }
   const width = Math.max(1, maxX - minX);
   const height = Math.max(1, maxY - minY);
-  const box = {
-    x: element.visual.x ?? minX,
-    y: element.visual.y ?? minY,
-    width: element.visual.width ?? width,
-    height: element.visual.height ?? height,
-  };
+  const bounds = { x: minX, y: minY, width, height };
+  sourceBoundsCache.set(points, { closed, curve, bounds });
+  return bounds;
+}
+
+function freehandBox(element: Element): Box | null {
+  const bounds = sourceBounds(element);
+  return bounds
+    ? {
+        x: element.visual.x ?? bounds.x,
+        y: element.visual.y ?? bounds.y,
+        width: element.visual.width ?? bounds.width,
+        height: element.visual.height ?? bounds.height,
+      }
+    : null;
+}
+
+function computeFreehandGeometry(element: Element) {
+  const points = (element.semantic as FreehandSemantic).points;
+  const source = sourceBounds(element);
+  const box = freehandBox(element);
+  if (!source || !box) return null;
+  const { x: minX, y: minY, width, height } = source;
   const map = (point: { x: number; y: number }) => ({
     x: ((point.x - minX) * box.width) / width,
     y: ((point.y - minY) * box.height) / height,
@@ -98,10 +130,72 @@ export function freehandGeometry(element: Element) {
     pressureOutline,
   };
 }
+type Geometry = NonNullable<ReturnType<typeof computeFreehandGeometry>>;
+const geometryCache = new WeakMap<
+  readonly FreehandPoint[],
+  {
+    closed: boolean;
+    curve: boolean;
+    strokeWidth: number;
+    dashed: boolean;
+    geometry: Geometry;
+  }
+>();
+
+export function freehandGeometry(element: Element): Geometry | null {
+  const { points, closed = false } = element.semantic as FreehandSemantic;
+  const box = freehandBox(element);
+  if (!box) return null;
+  const curve = element.visual.strokeBounds === "curve";
+  const strokeWidth = element.visual.style?.strokeWidth ?? 2;
+  const dashed = resolvedStrokeDashArray(element.visual.style).length > 0;
+  const cached = geometryCache.get(points);
+  if (
+    cached &&
+    cached.closed === closed &&
+    cached.curve === curve &&
+    cached.strokeWidth === strokeWidth &&
+    cached.dashed === dashed &&
+    cached.geometry.box.width === box.width &&
+    cached.geometry.box.height === box.height
+  ) {
+    const geometry = cached.geometry;
+    if (geometry.box.x === box.x && geometry.box.y === box.y) return geometry;
+    return {
+      ...geometry,
+      box,
+      curveBounds: {
+        ...geometry.curveBounds,
+        x: geometry.curveBounds.x + box.x,
+        y: geometry.curveBounds.y + box.y,
+      },
+    };
+  }
+  // Cache in local coordinates to avoid cancellation/precision loss when
+  // translating artwork with large world-space coordinates.
+  const geometry = computeFreehandGeometry({
+    ...element,
+    visual: { ...element.visual, x: 0, y: 0 },
+  });
+  if (geometry)
+    geometryCache.set(points, { closed, curve, strokeWidth, dashed, geometry });
+  return geometry
+    ? {
+        ...geometry,
+        box,
+        curveBounds: {
+          ...geometry.curveBounds,
+          x: geometry.curveBounds.x + box.x,
+          y: geometry.curveBounds.y + box.y,
+        },
+      }
+    : null;
+}
+
 export const freehandShapeUtil: ShapeUtil = {
   type: "draw.freehand",
   canResize: true,
-  getBounds: (element) => freehandGeometry(element)?.box ?? null,
+  getBounds: freehandBox,
   hitTest(element, point, context) {
     const geometry = freehandGeometry(element);
     if (!geometry) return false;

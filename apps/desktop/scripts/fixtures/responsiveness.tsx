@@ -232,9 +232,91 @@ async function run() {
   );
   editor.selection.set([ids[0]]);
   await frame();
+  const drawing = [];
+  for (const count of [1000, 5000]) {
+    const stroke = editor.createElement("draw.freehand", {
+      semantic: {
+        points: Array.from({ length: count }, (_, i) => ({
+          x: i,
+          y: 50 + Math.sin(i / 20) * 40,
+          pressure: 0.5,
+        })),
+      },
+      visual: { x: 50, y: 200, width: 400, height: 100 },
+    });
+    editor.selection.set([stroke]);
+    await frame();
+    const path = () =>
+      node(stroke).querySelector("[data-smart-pressure]")?.getAttribute("d");
+    const originalPath = path();
+    assert(originalPath, "missing pressure stroke artwork");
+    const moveTimes = [];
+    editor.beginBatch();
+    for (let i = 1; i <= 20; i++) {
+      const start = performance.now();
+      editor.moveElements([{ id: stroke, x: 50 + i, y: 200 + i }]);
+      moveTimes.push(performance.now() - start);
+      await frame();
+      assert(
+        node(stroke).style.left === `${50 + i}px`,
+        "stroke movement did not paint before release",
+      );
+      assert(
+        document.querySelector<HTMLInputElement>('[aria-label="Point X"]')
+          ?.value === `${50 + i}`,
+        "stroke inspector coordinates stayed stale during movement",
+      );
+      assert(
+        path() === originalPath,
+        "translation changed local stroke geometry",
+      );
+    }
+    editor.endBatch();
+    editor.undo();
+    await frame();
+    assert(node(stroke).style.left === "50px", "stroke movement undo failed");
+    const resizeTimes = [];
+    editor.beginBatch();
+    for (let i = 1; i <= 20; i++) {
+      const start = performance.now();
+      editor.resizeElement(stroke, {
+        x: 50,
+        y: 200,
+        width: 400 + i,
+        height: 100 + i,
+      });
+      resizeTimes.push(performance.now() - start);
+      await frame();
+      assert(
+        node(stroke).style.width === `${400 + i}px`,
+        "stroke resize did not paint before release",
+      );
+      assert(path() !== originalPath, "stroke resize left stale artwork");
+    }
+    editor.endBatch();
+    editor.undo();
+    await frame();
+    assert(
+      path() === originalPath,
+      "stroke resize undo did not restore artwork",
+    );
+    const stats = (times: number[]) => {
+      times.sort((a, b) => a - b);
+      return { medianMs: times[10], p95Ms: times[18] };
+    };
+    drawing.push({
+      points: count,
+      move: stats(moveTimes),
+      resize: stats(resizeTimes),
+    });
+    editor.apply([{ type: "deleteElements", ids: [stroke] }]);
+  }
+  editor.selection.set([ids[0]]);
+  await frame();
   timings.sort((a, b) => a - b);
   return {
     nodes: ids.length,
+    drawing,
     selectionMedianMs: timings[15],
     selectionP95Ms: timings[28],
   };
