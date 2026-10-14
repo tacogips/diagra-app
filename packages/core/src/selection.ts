@@ -78,6 +78,11 @@ export class Selection {
   }
 
   private replace(next: ReadonlySet<ElementId>): void {
+    if (
+      next.size === this.selected.size &&
+      [...next].every((id) => this.selected.has(id))
+    )
+      return;
     this.selected = next;
     for (const listener of [...this.listeners]) {
       listener(next);

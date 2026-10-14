@@ -84,3 +84,17 @@ pointer capture, focus, layout and the CSS transform.
 
 Reading the steps by hand is still worthwhile when the question is how
 something *looks* rather than whether it happened.
+
+## Responsiveness regression check
+
+Start the Vite dev server, then run `bun run check:responsiveness` from
+`apps/desktop`. Pass a different dev-server origin as the first argument if
+needed. The check launches an isolated headless Chrome profile; `CHROME_BIN`
+overrides the browser executable and `CDP_PORT` overrides its debug port.
+
+The 300-node fixture checks layer selection, per-ID selection notifications,
+first-open library mounting with retained search state, grouped-node live
+resize and undo/redo, Boolean geometry and raster-mask surfaces, and actual
+pointer-held resizing before release. It prints selection processing timings
+without imposing machine-dependent latency thresholds. Fixture files are
+served only by the dev server and are not production application entry points.

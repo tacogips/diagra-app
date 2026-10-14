@@ -89,6 +89,162 @@ describe("frame-paced model dragging", () => {
     expect(visualOf(editor, shape).x).toBe(150);
   });
 
+  for (const selection of [false, true]) {
+    test(`resize paints before release and keeps final size/undo (selection=${selection})`, () => {
+      const { editor, shape, interaction, frame, callbacks } = setup();
+      if (selection) {
+        const second = editor.createElement("node.generic", {
+          visual: { x: 150, y: 0, width: 50, height: 100 },
+        });
+        editor.selection.set([shape, second]);
+        interaction.startResizeSelection(
+          "se",
+          pointer({ clientX: 200, clientY: 100 }),
+        );
+      } else {
+        interaction.startResize(
+          shape,
+          "se",
+          pointer({ clientX: 100, clientY: 100 }),
+        );
+      }
+      const undoSize = editor.history.undoSize;
+      let commits = 0;
+      editor.store.subscribe(() => {
+        commits += 1;
+      });
+      const edge = selection ? 200 : 100;
+      for (let x = edge + 1; x <= edge + 100; x++) {
+        interaction.onPointerMove(pointer({ clientX: x, clientY: 150 }));
+      }
+      expect(commits).toBe(0);
+      expect(callbacks.size).toBe(1);
+      frame();
+      expect(commits).toBe(1);
+      expect(visualOf(editor, shape).width).toBe(selection ? 150 : 200);
+      expect(editor.history.undoSize).toBe(undoSize);
+      interaction.onPointerMove(pointer({ clientX: edge + 150, clientY: 180 }));
+      interaction.onPointerUp(pointer({ clientX: edge + 200, clientY: 200 }));
+      expect(visualOf(editor, shape).width).toBe(selection ? 200 : 300);
+      expect(callbacks.size).toBe(0);
+      expect(editor.history.undoSize).toBe(undoSize + 1);
+      editor.undo();
+      expect(visualOf(editor, shape).width).toBe(100);
+      editor.redo();
+      expect(visualOf(editor, shape).width).toBe(selection ? 200 : 300);
+    });
+  }
+
+  test("resize release applies its exact coordinate even after the last frame ran", () => {
+    const { editor, shape, interaction, frame } = setup();
+    interaction.startResize(
+      shape,
+      "se",
+      pointer({ clientX: 100, clientY: 100 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 140, clientY: 140 }));
+    frame();
+    interaction.onPointerUp(pointer({ clientX: 180, clientY: 180 }));
+    expect(visualOf(editor, shape).width).toBe(180);
+    editor.undo();
+    expect(visualOf(editor, shape).width).toBe(100);
+  });
+
+  test("rotation samples paint per frame and preserve the terminal angle", () => {
+    const { editor, shape, interaction, frame, callbacks } = setup();
+    interaction.startRotate(shape, pointer({ clientX: 50, clientY: 0 }));
+    interaction.onPointerMove(pointer({ clientX: 100, clientY: 50 }));
+    expect(visualOf(editor, shape).rotation ?? 0).toBe(0);
+    frame();
+    expect(visualOf(editor, shape).rotation).toBe(90);
+    interaction.onPointerUp(pointer({ clientX: 50, clientY: 100 }));
+    expect(visualOf(editor, shape).rotation).toBe(180);
+    expect(callbacks.size).toBe(0);
+    editor.undo();
+    expect(visualOf(editor, shape).rotation ?? 0).toBe(0);
+  });
+
+  test("a remote commit after the last resize frame survives release", () => {
+    const { editor, shape, interaction, frame } = setup();
+    interaction.startResize(
+      shape,
+      "se",
+      pointer({ clientX: 100, clientY: 100 }),
+    );
+    interaction.onPointerMove(pointer({ clientX: 140, clientY: 140 }));
+    frame();
+    const element = editor.store.get(shape);
+    if (!element) throw new Error("missing shape");
+    editor.store.commit({
+      update: [{ ...element, visual: { ...element.visual, width: 500 } }],
+    });
+    interaction.onPointerUp(pointer({ clientX: 180, clientY: 180 }));
+    expect(visualOf(editor, shape).width).toBe(500);
+  });
+
+  test("routing bend updates are frame-paced and release keeps the final route", () => {
+    const { editor, shape, interaction, frame, callbacks } = setup();
+    const to = editor.createElement("shape.geo", {
+      visual: { x: 300, y: 200, width: 100, height: 100 },
+    });
+    const edge = editor.connect(shape, to);
+    if (!edge) throw new Error("expected edge");
+    editor.apply([
+      {
+        type: "updateSemantic",
+        id: edge,
+        semantic: { from: shape, to, routing: "orthogonal" },
+      },
+    ]);
+    editor.selection.set([edge]);
+    interaction.startRouteBend(edge, pointer({ clientX: 200, clientY: 150 }));
+    interaction.onPointerMove(pointer({ clientX: 220, clientY: 150 }));
+    interaction.onPointerMove(pointer({ clientX: 240, clientY: 150 }));
+    expect(callbacks.size).toBe(1);
+    expect(editor.store.get(edge)?.semantic).not.toHaveProperty("routingBend");
+    frame();
+    expect(editor.store.get(edge)?.semantic).toMatchObject({
+      routingBend: 0.7,
+    });
+    interaction.onPointerUp(pointer({ clientX: 250, clientY: 150 }));
+    expect(editor.store.get(edge)?.semantic).toMatchObject({
+      routingBend: 0.75,
+    });
+    editor.undo();
+    expect(editor.store.get(edge)?.semantic).not.toHaveProperty("routingBend");
+  });
+
+  for (const stop of ["cancel", "dispose", "replacement", "remote"] as const) {
+    test(`queued resize respects ${stop}`, () => {
+      const { editor, shape, interaction, frame, callbacks } = setup();
+      interaction.startResize(
+        shape,
+        "se",
+        pointer({ clientX: 100, clientY: 100 }),
+      );
+      interaction.onPointerMove(pointer({ clientX: 140, clientY: 140 }));
+      frame();
+      interaction.onPointerMove(pointer({ clientX: 180, clientY: 180 }));
+      if (stop === "cancel") interaction.onPointerCancel(pointer());
+      if (stop === "dispose") interaction.dispose();
+      if (stop === "replacement") {
+        editor.loadDocument(editor.getSnapshot(), { preserveView: true });
+        interaction.onPointerUp(pointer({ clientX: 220, clientY: 220 }));
+      }
+      if (stop === "remote") {
+        editor.apply([
+          { type: "updateVisual", id: shape, visual: { width: 500 } },
+        ]);
+        interaction.onPointerUp(pointer({ clientX: 220, clientY: 220 }));
+      }
+      frame();
+      expect(callbacks.size).toBe(0);
+      expect(visualOf(editor, shape).width).toBe(
+        stop === "remote" ? 500 : stop === "replacement" ? 140 : 100,
+      );
+    });
+  }
+
   test("duplicate positions do not publish extra model commits", () => {
     const { editor, interaction, frame } = setup();
     let commits = 0;

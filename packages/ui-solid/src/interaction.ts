@@ -266,8 +266,6 @@ type Gesture =
     }
   | {
       readonly kind: "translating";
-      readonly documentOpenRevision: number;
-      readonly pageId: string;
       readonly startPage: Vec;
       readonly startScreen: Vec;
       readonly origins: ReadonlyMap<ElementId, Vec>;
@@ -357,7 +355,7 @@ export interface InteractionOptions {
   ) => void;
   /** Timer for nudge coalescing; `setTimeout` when omitted. */
   readonly schedule?: Scheduler;
-  /** Coalesce translation updates to repaint cadence; omitted for synchronous hosts. */
+  /** Coalesce resize, rotation, routing and translation updates to repaint cadence; omitted for synchronous hosts. */
   readonly scheduleDragFrame?: (callback: () => void) => () => void;
 }
 
@@ -692,8 +690,19 @@ export function createInteraction(
   let gesture: Gesture = { kind: "idle" };
   /** The pointer that owns the canvas, or `null` when none does. */
   let activePointerId: number | null = null;
+  let gestureDocumentRevision = editor.documentOpenRevision;
+  let gesturePageId = editor.currentPageId;
+  const framePacedGesture = (): boolean =>
+    gesture.kind === "translating" ||
+    gesture.kind === "resizing" ||
+    gesture.kind === "resizing-selection" ||
+    gesture.kind === "rotating" ||
+    gesture.kind === "rotating-selection" ||
+    gesture.kind === "routing-bend" ||
+    gesture.kind === "routing-waypoint";
   let queuedDrag: PointerEvent | null = null;
   let queuedDragRevision = 0;
+  let dragAppliedRevision: number | null = null;
   let dragSampleSuperseded = false;
   let cancelDragFrame: (() => void) | null = null;
   const discardDragFrame = (): void => {
@@ -1116,6 +1125,9 @@ export function createInteraction(
     flushNudge();
     finishGesture();
     activePointerId = event.pointerId;
+    dragAppliedRevision = null;
+    gestureDocumentRevision = editor.documentOpenRevision;
+    gesturePageId = editor.currentPageId;
     capture(event);
   };
 
@@ -1149,8 +1161,6 @@ export function createInteraction(
     editor.beginBatch();
     gesture = {
       kind: "translating",
-      documentOpenRevision: editor.documentOpenRevision,
-      pageId: editor.currentPageId,
       startPage,
       startScreen: screenPoint(event),
       origins,
@@ -1349,7 +1359,7 @@ export function createInteraction(
   };
 
   const applyPointerMove = (event: PointerEvent): void => {
-    if (discardStaleTranslation()) return;
+    if (discardStaleTransform()) return;
     if (
       editor.readOnly &&
       gesture.kind !== "panning" &&
@@ -1651,7 +1661,7 @@ export function createInteraction(
   const onPointerMove = (event: PointerEvent): void => {
     if (
       options.scheduleDragFrame &&
-      gesture.kind === "translating" &&
+      framePacedGesture() &&
       !editor.readOnly &&
       event.pointerId === activePointerId
     ) {
@@ -1666,7 +1676,10 @@ export function createInteraction(
           queuedDrag = null;
           cancelDragFrame = null;
           if (editor.readOnly) cancelGesture();
-          else if (latest) applyPointerMove(latest);
+          else if (latest) {
+            applyPointerMove(latest);
+            dragAppliedRevision = editor.revision;
+          }
         });
       }
       return;
@@ -1674,11 +1687,11 @@ export function createInteraction(
     applyPointerMove(event);
   };
 
-  const discardStaleTranslation = (): boolean => {
+  const discardStaleTransform = (): boolean => {
     if (
-      gesture.kind !== "translating" ||
-      (gesture.documentOpenRevision === editor.documentOpenRevision &&
-        gesture.pageId === editor.currentPageId &&
+      !framePacedGesture() ||
+      (gestureDocumentRevision === editor.documentOpenRevision &&
+        gesturePageId === editor.currentPageId &&
         editor.history.batching)
     )
       return false;
@@ -1722,18 +1735,21 @@ export function createInteraction(
     if (event.pointerId !== activePointerId) {
       return;
     }
-    discardStaleTranslation();
+    discardStaleTransform();
     const superseded =
       dragSampleSuperseded ||
-      (queuedDrag !== null && queuedDragRevision !== editor.revision);
+      (queuedDrag !== null && queuedDragRevision !== editor.revision) ||
+      (queuedDrag === null &&
+        dragAppliedRevision !== null &&
+        dragAppliedRevision !== editor.revision);
     if (superseded) discardDragFrame();
     // Never commit a stale frame, or let a queued update run after endBatch.
     // A click without movement must retain its existing selection semantics.
     if (
       options.scheduleDragFrame &&
       !superseded &&
-      gesture.kind === "translating" &&
-      (queuedDrag !== null || gesture.moved)
+      framePacedGesture() &&
+      (gesture.kind !== "translating" || queuedDrag !== null || gesture.moved)
     ) {
       discardDragFrame();
       applyPointerMove(event);

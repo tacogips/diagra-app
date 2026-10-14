@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "checklist": "bun scripts/canvas-checklist.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "check:responsiveness": "bun scripts/responsiveness-check.mjs"
   },
   "dependencies": {
     "@nodetto/collab": "workspace:*",

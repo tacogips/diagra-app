@@ -46,6 +46,21 @@ describe("selection set", () => {
     expect(seen).toEqual([1, 2]);
   });
 
+  test("identical selection membership retains identity and skips notifications", () => {
+    const editor = makeEditor({ document: twoBoxes() });
+    editor.selection.set(["a", "b"]);
+    const original = editor.selection.ids();
+    let notifications = 0;
+    editor.selection.subscribe(() => {
+      notifications += 1;
+    });
+    editor.selection.set(["b", "a", "a"]);
+    expect(editor.selection.ids()).toBe(original);
+    expect(notifications).toBe(0);
+    editor.selection.set(["b"]);
+    expect(notifications).toBe(1);
+  });
+
   test("adding an already selected id does not re-notify", () => {
     const editor = makeEditor({ document: twoBoxes() });
     editor.selection.set(["a"]);

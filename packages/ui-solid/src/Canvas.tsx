@@ -52,6 +52,7 @@ import {
 import {
   batch,
   createMemo,
+  createSelector,
   createSignal,
   createUniqueId,
   For,
@@ -337,7 +338,9 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
     ),
   );
 
-  const isSelected = (id: ElementId): boolean => signals.selection().has(id);
+  const isSelected = createSelector(signals.selection, (id: ElementId, ids) =>
+    ids.has(id),
+  );
 
   const boundsOf = (id: ElementId): Box | null => {
     const element = props.editor.store.get(id);
@@ -584,34 +587,64 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
       if (ancestors.has(element.id)) return null;
       const nextAncestors = new Set(ancestors).add(element.id);
       const semantic = element.semantic as { isolate?: boolean };
-      const boolean = booleanGeometry(element, context());
-      const rasterMask = rasterGroupMaskCss(props.editor, element.id);
-      const groupBounds = rasterMask
-        ? props.editor.getBounds(element.id)
-        : null;
-      const children = memberIdsOf(element).flatMap((id) => {
-        const child = props.editor.store.get(id);
-        return child &&
-          !context().isHidden?.(id) &&
-          !context().isMaskSource?.(id)
-          ? [child]
-          : [];
+      const boolean = createMemo(() => booleanGeometry(element, context()));
+      const rasterMask = createMemo(() => {
+        signals.rev();
+        return rasterGroupMaskCss(props.editor, element.id);
       });
-      const contents = (
-        <For each={children}>
+      const groupBounds = createMemo(() => {
+        signals.rev();
+        return rasterMask() ? props.editor.getBounds(element.id) : null;
+      });
+      const children = createMemo(() => {
+        signals.rev();
+        return memberIdsOf(element).flatMap((id) => {
+          const child = props.editor.store.get(id);
+          return child &&
+            !context().isHidden?.(id) &&
+            !context().isMaskSource?.(id)
+            ? [child]
+            : [];
+        });
+      });
+      const contents = () => (
+        <For each={children()}>
           {(child) => renderVisualUnit(child, nextAncestors)}
         </For>
       );
-      return boolean ? (
+      const surface = createMemo(() => {
+        const geometry = boolean();
+        if (geometry)
+          return {
+            bounds: geometry.bounds,
+            mask: booleanMaskCss(geometry),
+            mode: "alpha" as const,
+            operation: geometry.operation,
+          };
+        const mask = rasterMask();
+        const bounds = groupBounds();
+        return mask && bounds
+          ? {
+              bounds,
+              mask,
+              mode:
+                (element.semantic as { maskMode?: "alpha" | "luminance" })
+                  .maskMode ?? "alpha",
+              operation: undefined,
+            }
+          : null;
+      });
+      return (
         <div
           data-group-id={element.id}
-          data-boolean-operation={boolean.operation}
+          data-boolean-operation={surface()?.operation}
           style={{
             position: "absolute",
-            left: `${boolean.bounds.x}px`,
-            top: `${boolean.bounds.y}px`,
-            width: `${boolean.bounds.width}px`,
-            height: `${boolean.bounds.height}px`,
+            inset: surface() ? undefined : 0,
+            left: surface() ? `${surface()?.bounds.x}px` : undefined,
+            top: surface() ? `${surface()?.bounds.y}px` : undefined,
+            width: surface() ? `${surface()?.bounds.width}px` : undefined,
+            height: surface() ? `${surface()?.bounds.height}px` : undefined,
             overflow: "visible",
             "pointer-events": "none",
             opacity: element.visual.style?.opacity ?? 1,
@@ -619,76 +652,28 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
             "backdrop-filter": backdropEffectsCss(element.visual.style),
             "mix-blend-mode": element.visual.style?.blendMode ?? "normal",
             isolation: semantic.isolate ? "isolate" : undefined,
-            "mask-image": booleanMaskCss(boolean),
-            "mask-repeat": "no-repeat",
-            "mask-size": "100% 100%",
+            "mask-image": surface()?.mask,
+            "mask-mode": surface()?.mode,
+            "mask-repeat": surface() ? "no-repeat" : undefined,
+            "mask-size": surface() ? "100% 100%" : undefined,
           }}
         >
-          <div
-            style={{
-              position: "absolute",
-              left: `${-boolean.bounds.x}px`,
-              top: `${-boolean.bounds.y}px`,
-              width: "1px",
-              height: "1px",
-              overflow: "visible",
-            }}
-          >
-            {contents}
-          </div>
-        </div>
-      ) : rasterMask && groupBounds ? (
-        <div
-          data-group-id={element.id}
-          style={{
-            position: "absolute",
-            left: `${groupBounds.x}px`,
-            top: `${groupBounds.y}px`,
-            width: `${groupBounds.width}px`,
-            height: `${groupBounds.height}px`,
-            overflow: "visible",
-            "pointer-events": "none",
-            opacity: element.visual.style?.opacity ?? 1,
-            filter: effectsCss(element.visual.style),
-            "backdrop-filter": backdropEffectsCss(element.visual.style),
-            "mix-blend-mode": element.visual.style?.blendMode ?? "normal",
-            isolation: semantic.isolate ? "isolate" : undefined,
-            "mask-image": rasterMask,
-            "mask-mode":
-              (element.semantic as { maskMode?: "alpha" | "luminance" })
-                .maskMode ?? "alpha",
-            "mask-repeat": "no-repeat",
-            "mask-size": "100% 100%",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              left: `${-groupBounds.x}px`,
-              top: `${-groupBounds.y}px`,
-              width: "1px",
-              height: "1px",
-              overflow: "visible",
-            }}
-          >
-            {contents}
-          </div>
-        </div>
-      ) : (
-        <div
-          data-group-id={element.id}
-          style={{
-            position: "absolute",
-            inset: 0,
-            "pointer-events": "none",
-            opacity: element.visual.style?.opacity ?? 1,
-            filter: effectsCss(element.visual.style),
-            "backdrop-filter": backdropEffectsCss(element.visual.style),
-            "mix-blend-mode": element.visual.style?.blendMode ?? "normal",
-            isolation: semantic.isolate ? "isolate" : undefined,
-          }}
-        >
-          {contents}
+          <Show when={surface()} fallback={contents()}>
+            {(current) => (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${-current().bounds.x}px`,
+                  top: `${-current().bounds.y}px`,
+                  width: "1px",
+                  height: "1px",
+                  overflow: "visible",
+                }}
+              >
+                {contents()}
+              </div>
+            )}
+          </Show>
         </div>
       );
     }

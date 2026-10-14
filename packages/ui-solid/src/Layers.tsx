@@ -9,6 +9,7 @@ import {
 import type { ElementId } from "@nodetto/ir";
 import {
   createMemo,
+  createSelector,
   createEffect,
   createSignal,
   For,
@@ -41,6 +42,9 @@ export function Layers(props: {
   readonly onCancelCommentPlacement?: () => void;
 }): JSX.Element {
   const signals = createEditorSignals(props.editor);
+  const isSelected = createSelector(signals.selection, (id: ElementId, ids) =>
+    ids.has(id),
+  );
   const readOnly = () => {
     signals.rev();
     return props.editor.readOnly;
@@ -51,6 +55,9 @@ export function Layers(props: {
   createEffect(() => {
     if (readOnly()) setRenaming(undefined);
   });
+  const [componentsMounted, mountComponents] = createSignal(false);
+  const [stylesMounted, mountStyles] = createSignal(false);
+  const [commentsMounted, mountComments] = createSignal(false);
   let selectionAnchor: ElementId | undefined;
   let searchInput: HTMLInputElement | undefined;
   const nameButtons = new Map<ElementId, HTMLButtonElement>();
@@ -89,35 +96,54 @@ export function Layers(props: {
   );
   return (
     <nav class="nodetto-layers" aria-label="Layers">
-      <details class="nodetto-navigation-group">
+      <details
+        class="nodetto-navigation-group"
+        onToggle={(event) => {
+          if (event.currentTarget.open) mountComponents(true);
+        }}
+      >
         <summary>Components</summary>
-        <ComponentLibrary editor={props.editor} showHeading={false} />
+        <Show when={componentsMounted()}>
+          <ComponentLibrary editor={props.editor} showHeading={false} />
+        </Show>
       </details>
-      <details class="nodetto-navigation-group">
+      <details
+        class="nodetto-navigation-group"
+        onToggle={(event) => {
+          if (event.currentTarget.open) mountStyles(true);
+        }}
+      >
         <summary>Styles and tokens</summary>
-        <fieldset
-          disabled={readOnly()}
-          style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-        >
-          <ColorTokens editor={props.editor} />
-          <NumberTokens editor={props.editor} />
-          <TypographyStyles editor={props.editor} />
-        </fieldset>
+        <Show when={stylesMounted()}>
+          <fieldset
+            disabled={readOnly()}
+            style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+          >
+            <ColorTokens editor={props.editor} />
+            <NumberTokens editor={props.editor} />
+            <TypographyStyles editor={props.editor} />
+          </fieldset>
+        </Show>
       </details>
       <details
         class="nodetto-navigation-group"
         open={props.commentPlacementActive}
+        onToggle={(event) => {
+          if (event.currentTarget.open) mountComments(true);
+        }}
       >
         <summary>Comments</summary>
-        <ReviewComments
-          showHeading={false}
-          editor={props.editor}
-          viewport={props.viewport}
-          author={props.commentAuthor}
-          commentPlacementActive={props.commentPlacementActive}
-          onPlaceComment={props.onPlaceComment}
-          onCancelCommentPlacement={props.onCancelCommentPlacement}
-        />
+        <Show when={commentsMounted() || props.commentPlacementActive}>
+          <ReviewComments
+            showHeading={false}
+            editor={props.editor}
+            viewport={props.viewport}
+            author={props.commentAuthor}
+            commentPlacementActive={props.commentPlacementActive}
+            onPlaceComment={props.onPlaceComment}
+            onCancelCommentPlacement={props.onCancelCommentPlacement}
+          />
+        </Show>
       </details>
       <h2>
         Layers{" "}
@@ -221,7 +247,7 @@ export function Layers(props: {
                       }}
                       type="button"
                       class="nodetto-layer-name"
-                      aria-pressed={signals.selection().has(id)}
+                      aria-pressed={isSelected(id)}
                       title={
                         row().matchDetail ??
                         `${layerName(row().element)} (${row().element.type})`
