@@ -42,6 +42,7 @@ import {
   SequenceParticipantSection,
   TextNoteSection,
 } from "./inspector/SimpleSections.tsx";
+import { BasicAppearance } from "./inspector/BasicAppearance.tsx";
 import { StyleSection } from "./inspector/StyleSection.tsx";
 import { ImageSection } from "./inspector/ImageSection.tsx";
 import { UmlClassSection } from "./inspector/UmlClassSection.tsx";
@@ -97,6 +98,7 @@ export interface InspectorFocus {
 }
 
 export interface InspectorProps {
+  readonly simple?: boolean;
   readonly editor: Editor;
   readonly focus?: InspectorFocus;
 }
@@ -180,27 +182,6 @@ export function Inspector(props: InspectorProps): JSX.Element {
           return selectedIds().some((id) => context.isLocked?.(id));
         })()}
       >
-        <Show when={single()}>
-          {(element) => (
-            <>
-              <Section title="Layer">
-                <Field label="Name">
-                  <TextInput
-                    label="Layer name"
-                    value={element().visual.layerName ?? ""}
-                    placeholder={layerName(element())}
-                    onCommit={(name) =>
-                      renameLayer(props.editor, element().id, name)
-                    }
-                  />
-                </Field>
-              </Section>
-              <Show when={hasOwnGeometry(element())}>
-                <GeometrySection editor={props.editor} element={element()} />
-              </Show>
-            </>
-          )}
-        </Show>
         <Show when={selectedIds().length === 0}>
           <Show when={page()}>
             {(current) => (
@@ -213,7 +194,6 @@ export function Inspector(props: InspectorProps): JSX.Element {
           <p class="nodetto-inspector-summary">
             {`${selectedIds().length} elements selected`}
           </p>
-          <SelectionGeometrySection editor={props.editor} />
         </Show>
 
         <Show when={single()}>
@@ -289,101 +269,148 @@ export function Inspector(props: InspectorProps): JSX.Element {
           )}
         </Show>
 
-        <Show when={leaves().length > 0}>
-          <StyleSection editor={props.editor} leaves={leaves()} />
+        <Show when={props.simple && leaves().length > 0}>
+          <BasicAppearance editor={props.editor} leaves={leaves()} />
         </Show>
+        <details class="nodetto-inspector-details" open={!props.simple}>
+          <summary hidden={!props.simple}>Advanced properties</summary>
+          <Show when={single()}>
+            {(element) => (
+              <>
+                <Section title="Layer">
+                  <Field label="Name">
+                    <TextInput
+                      label="Layer name"
+                      value={element().visual.layerName ?? ""}
+                      placeholder={layerName(element())}
+                      onCommit={(name) =>
+                        renameLayer(props.editor, element().id, name)
+                      }
+                    />
+                  </Field>
+                </Section>
+                <Show when={hasOwnGeometry(element())}>
+                  <GeometrySection editor={props.editor} element={element()} />
+                </Show>
+              </>
+            )}
+          </Show>
+          <Show when={selectedIds().length > 1}>
+            <SelectionGeometrySection editor={props.editor} />
+          </Show>
+          <Show when={leaves().length > 0}>
+            <StyleSection editor={props.editor} leaves={leaves()} />
+          </Show>
 
-        <Show when={single()}>
-          {(element) => (
+          <Show when={single()}>
+            {(element) => (
+              <>
+                <details class="nodetto-inspector-details">
+                  <summary>Frame membership</summary>
+                  <ParentSection editor={props.editor} element={element()} />
+                </details>
+                <details class="nodetto-inspector-details">
+                  <summary>Accessibility</summary>
+                  <Suspense>
+                    <AccessibilitySection
+                      editor={props.editor}
+                      element={element()}
+                    />
+                  </Suspense>
+                </details>
+              </>
+            )}
+          </Show>
+        </details>
+      </fieldset>
+      <details class="nodetto-inspector-details" open={!props.simple}>
+        <summary hidden={!props.simple}>Bindings and batch edits</summary>
+        <fieldset
+          style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+          disabled={(() => {
+            signals.rev();
+            return props.editor.readOnly;
+          })()}
+        >
+          <Show when={selectedIds().length > 1}>
+            <BatchRenameSection editor={props.editor} />
+          </Show>
+          <ColorBindingsSection editor={props.editor} />
+          <Show
+            when={selectedIds().some(
+              (id) => props.editor.store.get(id)?.type === "text.note",
+            )}
+          >
+            <ReplaceNoteTextSection editor={props.editor} />
+          </Show>
+          <NumberBindingsSection editor={props.editor} />
+          <TextStyleBindingsSection editor={props.editor} />
+        </fieldset>
+      </details>
+      <details class="nodetto-inspector-details" open={!props.simple}>
+        <summary hidden={!props.simple}>Export</summary>
+        <Show when={databasePage()} keyed>
+          {(pageId) => (
+            <Suspense>
+              <DatabaseExportSection editor={props.editor} pageId={pageId} />
+            </Suspense>
+          )}
+        </Show>
+        <Show when={page()} keyed>
+          {(current) => (
             <>
-              <details class="nodetto-inspector-details">
-                <summary>Frame membership</summary>
-                <ParentSection editor={props.editor} element={element()} />
-              </details>
-              <details class="nodetto-inspector-details">
-                <summary>Accessibility</summary>
-                <Suspense>
-                  <AccessibilitySection
-                    editor={props.editor}
-                    element={element()}
-                  />
-                </Suspense>
-              </details>
+              <Suspense>
+                <MermaidExportSection
+                  editor={props.editor}
+                  pageId={current.id}
+                />
+              </Suspense>
+              <Suspense>
+                <D2ExportSection editor={props.editor} pageId={current.id} />
+              </Suspense>
             </>
           )}
         </Show>
-      </fieldset>
-      <fieldset
-        style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-        disabled={(() => {
-          signals.rev();
-          return props.editor.readOnly;
-        })()}
-      >
-        <Show when={selectedIds().length > 1}>
-          <BatchRenameSection editor={props.editor} />
+        <Show when={page()}>
+          <Suspense>
+            <AssetExportSection
+              editor={props.editor}
+              id={single()?.type === "frame" ? single()?.id : undefined}
+              hasSelection={selectedIds().length > 0}
+            />
+          </Suspense>
         </Show>
-        <ColorBindingsSection editor={props.editor} />
-        <Show
-          when={selectedIds().some(
-            (id) => props.editor.store.get(id)?.type === "text.note",
+      </details>
+      <details class="nodetto-inspector-details" open={!props.simple}>
+        <summary hidden={!props.simple}>Components and handoff</summary>
+        <Show when={single()}>
+          {(element) => (
+            <Suspense>
+              <fieldset
+                style={{
+                  border: "none",
+                  margin: 0,
+                  padding: 0,
+                  "min-width": 0,
+                }}
+                disabled={(() => {
+                  signals.rev();
+                  return props.editor.readOnly;
+                })()}
+              >
+                <OverridesSection editor={props.editor} id={element().id} />
+              </fieldset>
+            </Suspense>
           )}
-        >
-          <ReplaceNoteTextSection editor={props.editor} />
         </Show>
-        <NumberBindingsSection editor={props.editor} />
-        <TextStyleBindingsSection editor={props.editor} />
-      </fieldset>
-      <Show when={databasePage()} keyed>
-        {(pageId) => (
-          <Suspense>
-            <DatabaseExportSection editor={props.editor} pageId={pageId} />
-          </Suspense>
-        )}
-      </Show>
-      <Show when={page()} keyed>
-        {(current) => (
-          <>
+        <Show when={single()}>
+          {(element) => (
             <Suspense>
-              <MermaidExportSection editor={props.editor} pageId={current.id} />
+              <HandoffSection editor={props.editor} id={element().id} />
             </Suspense>
-            <Suspense>
-              <D2ExportSection editor={props.editor} pageId={current.id} />
-            </Suspense>
-          </>
-        )}
-      </Show>
-      <Show when={page()}>
-        <Suspense>
-          <AssetExportSection
-            editor={props.editor}
-            id={single()?.type === "frame" ? single()?.id : undefined}
-            hasSelection={selectedIds().length > 0}
-          />
-        </Suspense>
-      </Show>
-      <Show when={single()}>
-        {(element) => (
-          <Suspense>
-            <fieldset
-              style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-              disabled={(() => {
-                signals.rev();
-                return props.editor.readOnly;
-              })()}
-            >
-              <OverridesSection editor={props.editor} id={element().id} />
-            </fieldset>
-          </Suspense>
-        )}
-      </Show>
-      <Show when={single()}>
-        {(element) => (
-          <Suspense>
-            <HandoffSection editor={props.editor} id={element().id} />
-          </Suspense>
-        )}
-      </Show>
+          )}
+        </Show>
+      </details>
     </aside>
   );
 }

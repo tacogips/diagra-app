@@ -30,6 +30,7 @@ import "./Layers.css";
 
 export function Layers(props: {
   readonly editor: Editor;
+  readonly simple?: boolean;
   readonly viewport?: ViewportSize;
   readonly commentAuthor?: string;
   readonly commentPlacementActive?: boolean;
@@ -97,35 +98,37 @@ export function Layers(props: {
   );
   return (
     <nav class="nodetto-layers" aria-label="Layers">
-      <details
-        class="nodetto-navigation-group"
-        onToggle={(event) => {
-          if (event.currentTarget.open) mountComponents(true);
-        }}
-      >
-        <summary>Components</summary>
-        <Show when={componentsMounted()}>
-          <ComponentLibrary editor={props.editor} showHeading={false} />
-        </Show>
-      </details>
-      <details
-        class="nodetto-navigation-group"
-        onToggle={(event) => {
-          if (event.currentTarget.open) mountStyles(true);
-        }}
-      >
-        <summary>Styles and tokens</summary>
-        <Show when={stylesMounted()}>
-          <fieldset
-            disabled={readOnly()}
-            style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-          >
-            <ColorTokens editor={props.editor} />
-            <NumberTokens editor={props.editor} />
-            <TypographyStyles editor={props.editor} />
-          </fieldset>
-        </Show>
-      </details>
+      <div hidden={props.simple}>
+        <details
+          class="nodetto-navigation-group"
+          onToggle={(event) => {
+            if (event.currentTarget.open) mountComponents(true);
+          }}
+        >
+          <summary>Components</summary>
+          <Show when={componentsMounted()}>
+            <ComponentLibrary editor={props.editor} showHeading={false} />
+          </Show>
+        </details>
+        <details
+          class="nodetto-navigation-group"
+          onToggle={(event) => {
+            if (event.currentTarget.open) mountStyles(true);
+          }}
+        >
+          <summary>Styles and tokens</summary>
+          <Show when={stylesMounted()}>
+            <fieldset
+              disabled={readOnly()}
+              style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+            >
+              <ColorTokens editor={props.editor} />
+              <NumberTokens editor={props.editor} />
+              <TypographyStyles editor={props.editor} />
+            </fieldset>
+          </Show>
+        </details>
+      </div>
       <details
         class="nodetto-navigation-group"
         open={props.commentPlacementActive}

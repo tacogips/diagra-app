@@ -7,6 +7,8 @@ import "./ImageImport.css";
 export function ImageImport(props: {
   readonly editor: Editor;
   readonly compact?: boolean;
+  /** Keep pending/error feedback visible when changing workspaces. */
+  readonly hiddenWhenIdle?: boolean;
   readonly label?: JSX.Element;
 }): JSX.Element {
   const signals = createEditorSignals(props.editor);
@@ -34,6 +36,10 @@ export function ImageImport(props: {
   return (
     <div
       class="nodetto-tool-group"
+      style={{
+        display:
+          props.hiddenWhenIdle && !busy() && !error() ? "none" : undefined,
+      }}
       classList={{ "nodetto-image-import-compact": props.compact ?? false }}
     >
       <input

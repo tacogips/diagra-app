@@ -101,3 +101,11 @@ export {
 export { Layers } from "./LazyLayers.tsx";
 export { ReviewCommentPins, ReviewComments } from "./ReviewComments.tsx";
 export { TypographyStyles } from "./TypographyStyles.tsx";
+
+export {
+  WORKSPACES,
+  workspaceById,
+  readWorkspacePreference,
+  writeWorkspacePreference,
+  type WorkspaceId,
+} from "./workspaces.ts";

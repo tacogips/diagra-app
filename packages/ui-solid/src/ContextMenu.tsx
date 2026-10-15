@@ -38,6 +38,7 @@ import {
 
 export interface ContextMenuProps {
   readonly context: ActionContext;
+  readonly simple?: boolean;
   /** Screen point of the click, relative to the host's top-left corner. */
   readonly at: Vec;
   /** The canvas host the menu is clamped to. */
@@ -80,7 +81,21 @@ function actions(ids: readonly ActionId[]): MenuEntry[] {
 
 const SEPARATOR: MenuEntry = { kind: "separator" };
 
-function selectionEntries(): readonly MenuEntry[] {
+function selectionEntries(simple = false): readonly MenuEntry[] {
+  if (simple)
+    return [
+      ...actions(["cut", "copy", "paste", "duplicate", "delete"]),
+      SEPARATOR,
+      ...actions(["group", "ungroup"]),
+      {
+        kind: "submenu",
+        label: "Arrange",
+        items: [...ARRANGE_ITEMS, "tidyLayout", "removeOverlaps"].map((id) =>
+          getAction(id as ActionId),
+        ),
+      },
+      ...actions(["editText"]),
+    ];
   return [
     ...actions(["cut", "copy", "paste", "duplicate", "delete"]),
     ...actions(["copyStyle", "pasteStyle"]),
@@ -126,7 +141,7 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
 
   const entries = createMemo<readonly MenuEntry[]>(() =>
     signals.selection().size > 0
-      ? selectionEntries()
+      ? selectionEntries(props.simple)
       : actions(EMPTY_CANVAS_ITEMS),
   );
 

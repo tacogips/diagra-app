@@ -8,6 +8,7 @@ const LayersPanel = lazy(() =>
 /** Keep design-system libraries and layer-tree controls out of initial JS. */
 export function Layers(props: {
   readonly editor: Editor;
+  readonly simple?: boolean;
   readonly viewport?: ViewportSize;
   readonly commentAuthor?: string;
   readonly commentPlacementActive?: boolean;

@@ -28,6 +28,7 @@ import {
 } from "./shortcuts.ts";
 import { canUseTool, type ToolKind } from "./tools.ts";
 import "./Toolbar.css";
+import { WORKSPACES, workspaceById, type WorkspaceId } from "./workspaces.ts";
 
 const PrototypePreview = lazy(() =>
   import("./PrototypePreview.tsx").then((module) => ({
@@ -35,6 +36,8 @@ const PrototypePreview = lazy(() =>
   })),
 );
 export interface ToolbarProps {
+  readonly workspace?: WorkspaceId;
+  readonly onWorkspaceChange?: (id: WorkspaceId) => void;
   readonly editor: Editor;
   readonly tool: ToolKind;
   readonly onToolChange: (tool: ToolKind) => void;
@@ -243,6 +246,13 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const [lastFrame, setLastFrame] = createSignal<ToolKind>("frame:web");
   const [lastShape, setLastShape] = createSignal<ToolKind>("geo:rect");
   const signals = createEditorSignals(props.editor);
+  const workspace = () => workspaceById(props.workspace ?? "all");
+  createEffect(() => {
+    const id = workspace().id;
+    setOpen(null);
+    setPreview(false);
+    setLastFrame(id === "app" ? "frame:iphone" : "frame:web");
+  });
   let root: HTMLDivElement | undefined;
   createEffect(() => {
     if (FRAME_TOOLS.some((item) => item.tool === props.tool)) {
@@ -401,6 +411,33 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       )}
     </For>
   );
+  const uiBlocks = () => (
+    <select
+      aria-label="Insert UI block"
+      disabled={readOnly()}
+      value=""
+      onChange={(event) => {
+        const kind = event.currentTarget.value;
+        if (!props.editor.readOnly && UI_BLOCKS.includes(kind as UiBlock)) {
+          insertUiBlock(
+            props.editor,
+            kind as UiBlock,
+            props.editor.camera.screenToPage({ x: 40, y: 40 }),
+          );
+          props.onToolChange("select");
+        }
+        event.currentTarget.value = "";
+      }}
+    >
+      <option value="" disabled selected>
+        Insert UI block…
+      </option>
+      <option value="button">Primary button</option>
+      <option value="input">Text input</option>
+      <option value="card">Content card</option>
+      <option value="navigation">Navigation bar</option>
+    </select>
+  );
   return (
     <div
       ref={root}
@@ -409,6 +446,23 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       aria-label="Editor tools"
     >
       <div class="nodetto-toolbar-primary">
+        <Show when={props.onWorkspaceChange}>
+          <select
+            class="nodetto-workspace-select"
+            aria-label="Diagram workspace"
+            value={workspace().id}
+            onKeyDown={(event) => event.stopPropagation()}
+            onChange={(event) =>
+              props.onWorkspaceChange?.(
+                workspaceById(event.currentTarget.value).id,
+              )
+            }
+          >
+            <For each={WORKSPACES}>
+              {(entry) => <option value={entry.id}>{entry.label}</option>}
+            </For>
+          </select>
+        </Show>
         <button
           type="button"
           class="nodetto-toolbar-icon"
@@ -431,75 +485,98 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         >
           <Icon name="hand" />
         </button>
-        <div class="nodetto-toolbar-split">
+        <Show when={workspace().design}>
+          <div class="nodetto-toolbar-split">
+            <button
+              type="button"
+              class="nodetto-toolbar-icon"
+              aria-label={`Insert ${currentFrameInfo()?.label ?? "frame"} frame`}
+              title={`Insert ${currentFrameInfo()?.title ?? "current frame"}`}
+              aria-pressed={FRAME_TOOLS.some(
+                (item) => item.tool === props.tool,
+              )}
+              disabled={!canUseTool(currentFrame(), readOnly())}
+              onClick={() => chooseTool(currentFrame())}
+            >
+              <Icon name="frame" />
+            </button>
+            <button
+              type="button"
+              class="nodetto-toolbar-chevron"
+              aria-label="Choose frame"
+              title="Choose frame"
+              aria-haspopup="menu"
+              aria-expanded={open() === "frames"}
+              onClick={(event) => trigger("frames", event.currentTarget)}
+              onKeyDown={(event) => triggerKey("frames", event)}
+            >
+              <Icon name="chevron" />
+            </button>
+          </div>
+        </Show>
+        <For each={workspace().tools}>
+          {(item) => (
+            <button
+              type="button"
+              class="nodetto-workspace-tool"
+              aria-pressed={props.tool === item.tool}
+              disabled={!canUseTool(item.tool, readOnly())}
+              onClick={() => chooseTool(item.tool)}
+            >
+              {item.label}
+            </button>
+          )}
+        </For>
+        <Show when={workspace().shapes}>
+          <div class="nodetto-toolbar-split">
+            <button
+              type="button"
+              class="nodetto-toolbar-icon"
+              aria-label={`Insert ${currentShapeInfo()?.label ?? "shape"} shape`}
+              title={`Insert ${currentShapeInfo()?.title ?? "current shape"}`}
+              aria-pressed={SHAPE_TOOLS.some(
+                (item) => item.tool === props.tool,
+              )}
+              disabled={!canUseTool(currentShape(), readOnly())}
+              onClick={() => chooseTool(currentShape())}
+            >
+              <Icon
+                name={
+                  currentShape().replace("geo:", "") as
+                    | "rect"
+                    | "ellipse"
+                    | "diamond"
+                    | "cylinder"
+                }
+              />
+            </button>
+            <button
+              type="button"
+              class="nodetto-toolbar-chevron"
+              aria-label="Choose shape"
+              title="Choose shape"
+              aria-haspopup="menu"
+              aria-expanded={open() === "shapes"}
+              onClick={(event) => trigger("shapes", event.currentTarget)}
+              onKeyDown={(event) => triggerKey("shapes", event)}
+            >
+              <Icon name="chevron" />
+            </button>
+          </div>
+        </Show>
+        <Show when={workspace().id === "all"}>
           <button
             type="button"
             class="nodetto-toolbar-icon"
-            aria-label={`Insert ${currentFrameInfo()?.label ?? "frame"} frame`}
-            title={`Insert ${currentFrameInfo()?.title ?? "current frame"}`}
-            aria-pressed={FRAME_TOOLS.some((item) => item.tool === props.tool)}
-            disabled={!canUseTool(currentFrame(), readOnly())}
-            onClick={() => chooseTool(currentFrame())}
+            aria-label="Draw"
+            title="Draw a freehand stroke"
+            aria-pressed={props.tool === "draw.freehand"}
+            disabled={!canUseTool("draw.freehand", readOnly())}
+            onClick={() => chooseTool("draw.freehand")}
           >
-            <Icon name="frame" />
+            <Icon name="draw" />
           </button>
-          <button
-            type="button"
-            class="nodetto-toolbar-chevron"
-            aria-label="Choose frame"
-            title="Choose frame"
-            aria-haspopup="menu"
-            aria-expanded={open() === "frames"}
-            onClick={(event) => trigger("frames", event.currentTarget)}
-            onKeyDown={(event) => triggerKey("frames", event)}
-          >
-            <Icon name="chevron" />
-          </button>
-        </div>
-        <div class="nodetto-toolbar-split">
-          <button
-            type="button"
-            class="nodetto-toolbar-icon"
-            aria-label={`Insert ${currentShapeInfo()?.label ?? "shape"} shape`}
-            title={`Insert ${currentShapeInfo()?.title ?? "current shape"}`}
-            aria-pressed={SHAPE_TOOLS.some((item) => item.tool === props.tool)}
-            disabled={!canUseTool(currentShape(), readOnly())}
-            onClick={() => chooseTool(currentShape())}
-          >
-            <Icon
-              name={
-                currentShape().replace("geo:", "") as
-                  | "rect"
-                  | "ellipse"
-                  | "diamond"
-                  | "cylinder"
-              }
-            />
-          </button>
-          <button
-            type="button"
-            class="nodetto-toolbar-chevron"
-            aria-label="Choose shape"
-            title="Choose shape"
-            aria-haspopup="menu"
-            aria-expanded={open() === "shapes"}
-            onClick={(event) => trigger("shapes", event.currentTarget)}
-            onKeyDown={(event) => triggerKey("shapes", event)}
-          >
-            <Icon name="chevron" />
-          </button>
-        </div>
-        <button
-          type="button"
-          class="nodetto-toolbar-icon"
-          aria-label="Draw"
-          title="Draw a freehand stroke"
-          aria-pressed={props.tool === "draw.freehand"}
-          disabled={!canUseTool("draw.freehand", readOnly())}
-          onClick={() => chooseTool("draw.freehand")}
-        >
-          <Icon name="draw" />
-        </button>
+        </Show>
         <button
           type="button"
           class="nodetto-toolbar-icon"
@@ -522,6 +599,16 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             {toolItems(open() === "frames" ? FRAME_TOOLS : SHAPE_TOOLS)}
           </div>
         </Show>
+        <Show when={workspace().design && workspace().id !== "all"}>
+          {uiBlocks()}
+        </Show>
+        <span class="nodetto-active-tool" role="status">
+          {props.tool !== "select" && props.tool !== "hand"
+            ? ([...TOOL_MENUS.flatMap((menu) => menu.tools)].find(
+                (item) => item.tool === props.tool,
+              )?.label ?? props.tool)
+            : ""}
+        </span>
         <div class="nodetto-toolbar-menu-wrap">
           <button
             type="button"
@@ -543,50 +630,51 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
               style={menuStyle()}
               onKeyDown={menuKey}
             >
-              <section>
-                <h2>Diagram</h2>
-                {toolItems(DIAGRAM_TOOLS)}
-              </section>
-              <section>
-                <h2>Advanced</h2>
-                {toolItems(ADVANCED_TOOLS)}
-              </section>
-              <section>
-                <h2>UI blocks</h2>
-                <select
-                  aria-label="Insert UI block"
-                  disabled={readOnly()}
-                  value=""
-                  onChange={(event) => {
-                    const kind = event.currentTarget.value;
-                    if (
-                      !props.editor.readOnly &&
-                      UI_BLOCKS.includes(kind as UiBlock)
-                    ) {
-                      insertUiBlock(
-                        props.editor,
-                        kind as UiBlock,
-                        props.editor.camera.screenToPage({ x: 40, y: 40 }),
-                      );
-                      props.onToolChange("select");
-                    }
-                    event.currentTarget.value = "";
+              <Show when={props.onWorkspaceChange && workspace().id !== "all"}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    props.onWorkspaceChange?.("all");
+                    queueMicrotask(() =>
+                      root
+                        ?.querySelector<HTMLSelectElement>(
+                          ".nodetto-workspace-select",
+                        )
+                        ?.focus(),
+                    );
                   }}
                 >
-                  <option value="" disabled>
-                    Insert UI block…
-                  </option>
-                  <option value="button">Primary button</option>
-                  <option value="input">Text input</option>
-                  <option value="card">Content card</option>
-                  <option value="navigation">Navigation bar</option>
-                </select>
-              </section>
+                  Switch to All tools
+                </button>
+              </Show>
+              <Show when={workspace().id === "all"}>
+                <section>
+                  <h2>Diagram</h2>
+                  {toolItems(DIAGRAM_TOOLS)}
+                </section>
+                <section>
+                  <h2>Advanced</h2>
+                  {toolItems(ADVANCED_TOOLS)}
+                </section>
+                <section>
+                  <h2>UI blocks</h2>
+                  {uiBlocks()}
+                </section>
+              </Show>
               <For each={ACTION_MENUS}>
                 {(menu) => (
                   <section>
                     <h2>{menu.label}</h2>
-                    <For each={menu.actions}>
+                    <For
+                      each={menu.actions.filter(
+                        (item) =>
+                          workspace().id === "all" ||
+                          (!item.id.startsWith("boolean") &&
+                            item.id !== "flattenBoolean" &&
+                            item.id !== "frameSelection"),
+                      )}
+                    >
                       {(item) => (
                         <button
                           type="button"
@@ -608,22 +696,25 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       </div>
       <div class="nodetto-toolbar-utilities">
         <ImageImport
+          hiddenWhenIdle={!workspace().design}
           editor={props.editor}
           compact
           label={<Icon name="image" />}
         />
-        <button
-          type="button"
-          class="nodetto-toolbar-icon"
-          aria-label="Preview"
-          title="Preview prototype"
-          onClick={(event) => {
-            event.currentTarget.focus({ preventScroll: true });
-            setPreview(true);
-          }}
-        >
-          <Icon name="preview" />
-        </button>
+        <Show when={workspace().design}>
+          <button
+            type="button"
+            class="nodetto-toolbar-icon"
+            aria-label="Preview"
+            title="Preview prototype"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true });
+              setPreview(true);
+            }}
+          >
+            <Icon name="preview" />
+          </button>
+        </Show>
         <div class="nodetto-local-history" aria-label="History">
           <button
             type="button"

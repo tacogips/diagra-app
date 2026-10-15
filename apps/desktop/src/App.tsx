@@ -38,6 +38,10 @@ import {
   type SnapSettings,
   TextEditor,
   Toolbar,
+  workspaceById,
+  readWorkspacePreference,
+  writeWorkspacePreference,
+  type WorkspaceId,
   type ToolKind,
   ZoomControls,
 } from "@nodetto/ui-solid";
@@ -143,6 +147,23 @@ function describe(error: unknown): string {
 }
 
 export function App(props: AppProps): JSX.Element {
+  const preferenceStorage = () => {
+    try {
+      return window.localStorage;
+    } catch {
+      return undefined;
+    }
+  };
+  const [workspace, setWorkspace] = createSignal<WorkspaceId>(
+    readWorkspacePreference(preferenceStorage()),
+  );
+  const simpleWorkspace = () => !workspaceById(workspace()).design;
+  const changeWorkspace = (id: WorkspaceId) => {
+    setActiveTool("select");
+    setContextMenu(null);
+    setWorkspace(id);
+    writeWorkspacePreference(preferenceStorage(), id);
+  };
   const [tool, setTool] = createSignal<ToolKind>("select");
   const [pendingComment, setPendingComment] = createSignal<{
     readonly input: NewReviewMessage;
@@ -936,6 +957,8 @@ export function App(props: AppProps): JSX.Element {
         </div>
       </Show>
       <Toolbar
+        workspace={workspace()}
+        onWorkspaceChange={changeWorkspace}
         editor={props.editor}
         tool={tool()}
         onToolChange={setActiveTool}
@@ -971,6 +994,7 @@ export function App(props: AppProps): JSX.Element {
             </button>
             <div class="app-pane-navigation">{props.navigationContent}</div>
             <Layers
+              simple={simpleWorkspace()}
               editor={props.editor}
               viewport={viewport()}
               commentAuthor={settings().userName}
@@ -1088,6 +1112,7 @@ export function App(props: AppProps): JSX.Element {
           <Show when={contextMenu()}>
             {(menu) => (
               <ContextMenu
+                simple={simpleWorkspace()}
                 context={actionContext()}
                 at={menu().at}
                 host={canvasHost()}
@@ -1147,7 +1172,11 @@ export function App(props: AppProps): JSX.Element {
               </svg>
             </button>
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
-              <Inspector editor={props.editor} focus={inspectorFocus()} />
+              <Inspector
+                editor={props.editor}
+                focus={inspectorFocus()}
+                simple={workspace() !== "all"}
+              />
             </div>
           </div>
           <button

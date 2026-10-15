@@ -175,3 +175,24 @@
     left: 0;
   }
 }
+
+.nodetto-workspace-select,
+.nodetto-workspace-tool {
+  min-height: 30px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #dfe3e6;
+  border-radius: 0;
+  background: #fff;
+  color: var(--nodetto-ink);
+  font: inherit;
+  font-size: .8rem;
+}
+.nodetto-workspace-tool[aria-pressed="true"] {
+  background: #e7edf6;
+  border-color: #526d96;
+}
+.nodetto-active-tool {
+  font-size: .75rem;
+  color: #526071;
+}
