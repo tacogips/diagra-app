@@ -114,7 +114,12 @@ export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
 /** Ordered authoring priorities; every workspace must make an explicit choice. */
 const PRIMARY_TOOLS = {
   bpmn: [
-    ...BPMN_SHAPES.map((item) => item.tool),
+    Tool.BpmnStartEvent,
+    Tool.BpmnTask,
+    Tool.BpmnExclusiveGateway,
+    Tool.BpmnEndEvent,
+    Tool.BpmnPool,
+    Tool.BpmnLane,
     Tool.Connector,
     Tool.Text,
     Tool.Frame,
@@ -185,7 +190,9 @@ export function workspaceShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
 /** Secondary sections never repeat a tool already shown in the primary grid. */
 export function additionalShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
   const primary = new Set<ToolKind>(PRIMARY_TOOLS[id]);
-  return COMMON_SHAPES.filter((item) => !primary.has(item.tool));
+  return (
+    id === "bpmn" ? [...BPMN_SHAPES, ...COMMON_SHAPES] : COMMON_SHAPES
+  ).filter((item) => !primary.has(item.tool));
 }
 
 export function artboardShapes(id: WorkspaceId): readonly ShapePaletteItem[] {

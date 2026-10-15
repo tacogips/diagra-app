@@ -1,5 +1,12 @@
+import { workspaceShapes, additionalShapes } from "./shape-palette.ts";
 import { expect, test } from "bun:test";
-import { canUseTool, creationFor, isConnectorTool } from "./tools.ts";
+import {
+  canUseTool,
+  creationFor,
+  isConnectorTool,
+  BPMN_TOOLS,
+  Tool,
+} from "./tools.ts";
 import {
   WORKSPACES,
   WORKSPACE_STORAGE_KEY,
@@ -69,4 +76,25 @@ test("semantic workspaces promote their own authoring tools and share endpoint-a
       if (!isConnectorTool(tool)) expect(creationFor(tool)).not.toBeNull();
     }
   }
+});
+
+test("BPMN workspace prioritizes common process tools and retains every template", () => {
+  const primary = workspaceShapes("bpmn").map((item) => item.tool);
+  expect(primary).toEqual([
+    Tool.BpmnStartEvent,
+    Tool.BpmnTask,
+    Tool.BpmnExclusiveGateway,
+    Tool.BpmnEndEvent,
+    Tool.BpmnPool,
+    Tool.BpmnLane,
+    Tool.Connector,
+    Tool.Text,
+    Tool.Frame,
+  ]);
+  const all = [
+    ...primary,
+    ...additionalShapes("bpmn").map((item) => item.tool),
+  ];
+  expect(new Set(all).size).toBe(all.length);
+  for (const tool of BPMN_TOOLS) expect(all).toContain(tool);
 });

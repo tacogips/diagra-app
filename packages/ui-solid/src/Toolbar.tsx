@@ -633,7 +633,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         <Show when={currentPageKind() === "bpmn"}>
           <button
             type="button"
-            class="nodetto-toolbar-chevron"
+            class="nodetto-workspace-tool"
             aria-label="BPMN"
             title="Descriptive BPMN palette"
             aria-haspopup="menu"

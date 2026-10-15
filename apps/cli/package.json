@@ -1,6 +1,6 @@
 {
   "name": "@nodetto/cli",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Headless nodetto command line: document validation, canonical formatting and ERD DDL export",
   "private": true,
   "type": "module",

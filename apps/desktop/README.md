@@ -150,3 +150,5 @@ remain visible in the export panel. The PDF library loads only on PDF export.
 Both panes have a visible **Collapse** header button and a persistent **Show**
 rail when folded. Buttons expose expanded state and support keyboard activation;
 restoring a pane retains its width and restores keyboard focus.
+
+BPMN mode opens or creates a BPMN process page. Its left palette prioritizes start/end events, tasks, gateways, pools, lanes, connectors, text and frames; further BPMN templates are under More shapes. Switching back to another mode returns to a general diagram page.
