@@ -1,10 +1,11 @@
-import type { ToolKind } from "./tools.ts";
+import { Tool, type ToolKind } from "./tools.ts";
 
 export type WorkspaceId =
   | "app"
   | "web"
   | "erd"
   | "class"
+  | "component"
   | "sequence"
   | "flow"
   | "all";
@@ -61,6 +62,21 @@ export const WORKSPACES = [
     tools: [
       { tool: "node.generic", label: "Node" },
       { tool: "edge", label: "Connector" },
+    ],
+  },
+  {
+    id: "component",
+    label: "UML component",
+    design: false,
+    shapes: false,
+    tools: [
+      { tool: Tool.Component, label: "Component" },
+      { tool: Tool.ProvidedInterface, label: "Provided interface" },
+      { tool: Tool.RequiredInterface, label: "Required interface" },
+      { tool: Tool.Port, label: "Port" },
+      { tool: Tool.Dependency, label: "Dependency" },
+      { tool: Tool.Realization, label: "Realization" },
+      { tool: Tool.ComponentConnector, label: "Connector" },
     ],
   },
   { id: "all", label: "All tools", design: true, shapes: true, tools: [] },

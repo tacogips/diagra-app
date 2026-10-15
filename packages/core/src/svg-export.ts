@@ -1,3 +1,5 @@
+import { umlComponentPaintBounds } from "./shapes/umlComponent.ts";
+import { UmlComponentType } from "@nodetto/ir";
 // Deterministic SVG export of a page or a selection.
 //
 // String concatenation rather than DOM construction, because this package
@@ -1305,6 +1307,10 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
       return renderSequenceActivation(element, box, theme);
     case "erd.table":
       return renderErdTable(element, box, theme);
+    case UmlComponentType.Component:
+    case UmlComponentType.Interface:
+    case UmlComponentType.Port:
+      return renderUmlComponent(element, box, theme);
     case "uml.class":
       return renderUmlClass(element, box, theme);
     case "text.note":
@@ -1312,6 +1318,68 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
     default:
       return renderUnsupported(element, box, theme);
   }
+}
+
+function renderUmlComponent(
+  element: Element,
+  box: Box,
+  theme: SvgTheme,
+): string {
+  const port = element.type === UmlComponentType.Port;
+  const component = element.type === UmlComponentType.Component;
+  const style = element.visual.style;
+  const stroke = style?.stroke ?? theme.ink;
+  const fill = style?.fill ?? theme.surface;
+  const shape =
+    component || port
+      ? tag("rect", {
+          x: box.x + 1,
+          y: box.y + 1,
+          width: Math.max(0, box.width - 2),
+          height: Math.max(0, box.height - 2),
+          stroke,
+          fill,
+          "stroke-width": style?.strokeWidth ?? 1.5,
+        })
+      : readString(element.semantic, "kind") === "required"
+        ? tag("path", {
+            d: `M${box.x + box.width / 2} ${box.y + 2} A${Math.max(1, box.width / 2 - 2)} ${Math.max(1, box.height / 2 - 2)} 0 0 0 ${box.x + box.width / 2} ${box.y + box.height - 2}`,
+            fill: "none",
+            stroke,
+            "stroke-width": style?.strokeWidth ?? 1.5,
+          })
+        : tag("ellipse", {
+            cx: box.x + box.width / 2,
+            cy: box.y + box.height / 2,
+            rx: Math.max(1, box.width / 2 - 2),
+            ry: Math.max(1, box.height / 2 - 2),
+            stroke,
+            fill,
+            "stroke-width": style?.strokeWidth ?? 1.5,
+          });
+  const icon = component
+    ? tag("path", {
+        d: `M${box.x + box.width - 27} ${box.y + 10}h16v20h-16zM${box.x + box.width - 31} ${box.y + 14}h8v5h-8zM${box.x + box.width - 31} ${box.y + 23}h8v5h-8z`,
+        stroke,
+        fill,
+        "stroke-width": style?.strokeWidth ?? 1.5,
+      })
+    : "";
+  return (
+    shape +
+    icon +
+    text(
+      {
+        x: box.x + box.width / 2,
+        y: component ? box.y + box.height / 2 + 5 : box.y + box.height + 17,
+        "text-anchor": "middle",
+        fill: style?.color ?? theme.ink,
+        "font-size": style?.fontSize ?? 13,
+        "font-family": style?.fontFamily ?? "system-ui, sans-serif",
+      },
+      readString(element.semantic, "name"),
+    )
+  );
 }
 
 function renderConnector(
@@ -1480,7 +1548,9 @@ export function renderElementsSvg(
     const drawingBox =
       element.type === "draw.freehand" && !element.visual.rotation
         ? (freehandGeometry(element)?.curveBounds ?? box)
-        : box;
+        : box
+          ? umlComponentPaintBounds(element, box)
+          : box;
     const expanded = drawingBox
       ? effectsBounds(
           {

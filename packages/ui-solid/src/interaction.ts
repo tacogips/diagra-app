@@ -1,3 +1,8 @@
+import { isUmlComponentEndpoint } from "@nodetto/core";
+import {
+  UmlComponentType,
+  type UmlComponentRelationshipKind,
+} from "@nodetto/ir";
 // Pointer and keyboard gestures.
 //
 // One state machine, one gesture at a time. Everything it does to the
@@ -78,7 +83,13 @@ import {
   getElementTypeDefinition,
 } from "@nodetto/ir";
 import { type Accessor, createSignal } from "solid-js";
-import { creationFor, type ToolKind } from "./tools.ts";
+import {
+  creationFor,
+  componentRelationshipFor,
+  isConnectorTool,
+  Tool,
+  type ToolKind,
+} from "./tools.ts";
 
 export const RESIZE_HANDLES = [
   "nw",
@@ -317,7 +328,11 @@ type Gesture =
       readonly fromCenter: Vec;
       readonly toCenter: Vec;
     }
-  | { readonly kind: "connecting"; readonly from: ElementId }
+  | {
+      readonly kind: "connecting";
+      readonly from: ElementId;
+      readonly componentKind?: UmlComponentRelationshipKind;
+    }
   | {
       readonly kind: "reconnecting";
       readonly id: ElementId;
@@ -672,6 +687,7 @@ const MANUAL_ROUTE_TYPES: ReadonlySet<string> = new Set([
   "edge.generic",
   "erd.relation",
   "uml.association",
+  UmlComponentType.Relationship,
 ]);
 
 /** Something a connector may end on and a drag may snap to. */
@@ -1203,7 +1219,11 @@ export function createInteraction(
   };
 
   const beginConnect = (from: ElementId, point: Vec): void => {
-    gesture = { kind: "connecting", from };
+    gesture = {
+      kind: "connecting",
+      from,
+      componentKind: componentRelationshipFor(options.tool()),
+    };
     const bounds = editor.getBounds(from);
     setPending({ from: bounds ? boxCentre(bounds) : point, to: point });
   };
@@ -1211,6 +1231,17 @@ export function createInteraction(
   const placeShape = (point: Vec, tool: ToolKind): void => {
     const creation = creationFor(tool);
     if (!creation) {
+      return;
+    }
+    if (tool === Tool.Port) {
+      const owner = editor.hitTest(point);
+      if (owner) {
+        const id = editor.createUmlPort(owner, point);
+        if (id) {
+          editor.selection.set([id]);
+          options.setTool(Tool.Select);
+        }
+      }
       return;
     }
     if (creation.type === "sequence.participant") {
@@ -1324,7 +1355,7 @@ export function createInteraction(
       return;
     }
 
-    if (tool === "edge") {
+    if (isConnectorTool(tool)) {
       const source = targetUnder(point, []);
       if (source) {
         beginConnect(source, point);
@@ -1717,6 +1748,11 @@ export function createInteraction(
     if (!element) {
       return;
     }
+    if (
+      element.type === UmlComponentType.Relationship &&
+      !isUmlComponentEndpoint(editor.store.get(target)?.type ?? "")
+    )
+      return;
     const current = endpointReaderFor(element.type)(element.semantic);
     if (current && current[end] === target) {
       return;
@@ -1768,7 +1804,9 @@ export function createInteraction(
     if (gesture.kind === "connecting") {
       const target = targetUnder(pagePoint(event), [gesture.from]);
       if (target) {
-        const created = editor.connectSmart(gesture.from, target);
+        const created = gesture.componentKind
+          ? editor.connectComponent(gesture.from, target, gesture.componentKind)
+          : editor.connectSmart(gesture.from, target);
         if (created) {
           editor.selection.set([created]);
         }

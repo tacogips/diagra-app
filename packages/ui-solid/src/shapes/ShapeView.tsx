@@ -1,3 +1,5 @@
+import { UmlComponentType } from "@nodetto/ir";
+import { UmlComponentView } from "./UmlComponentView.tsx";
 // Dispatch from element type to view, plus the positioned wrapper every
 // box-shaped element shares.
 //
@@ -183,6 +185,15 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
           </Match>
           <Match when={props.element.type === "erd.table"}>
             <ErdTableView element={props.element} />
+          </Match>
+          <Match
+            when={[
+              UmlComponentType.Component,
+              UmlComponentType.Interface,
+              UmlComponentType.Port,
+            ].some((type) => props.element.type === type)}
+          >
+            <UmlComponentView element={props.element} box={props.box} />
           </Match>
           <Match when={props.element.type === "uml.class"}>
             <UmlClassView element={props.element} />

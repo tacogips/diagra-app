@@ -1,3 +1,5 @@
+import { UmlComponentType } from "@nodetto/ir";
+import { UmlComponentSection } from "./inspector/UmlComponentSection.tsx";
 // The Inspector: a right-hand panel that reads the selection and writes
 // commands (design editor-ux.md section 4).
 //
@@ -251,6 +253,16 @@ export function Inspector(props: InspectorProps): JSX.Element {
                     element={element()}
                   />
                 </Suspense>
+              </Match>
+              <Match
+                when={Object.values(UmlComponentType).some(
+                  (type) => element().type === type,
+                )}
+              >
+                <UmlComponentSection
+                  editor={props.editor}
+                  element={element()}
+                />
               </Match>
               <Match when={element().type === "uml.class"}>
                 <UmlClassSection

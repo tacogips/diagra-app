@@ -279,6 +279,46 @@ export interface UmlClassSemantic {
   readonly methods: readonly UmlMethod[];
 }
 
+/** UML component notation is separate from class associations and UI components. */
+export const UmlComponentType = {
+  Component: "uml.component",
+  Interface: "uml.interface",
+  Port: "uml.port",
+  Relationship: "uml.component-relationship",
+} as const;
+export const UmlComponentRelationship = {
+  Connector: "connector",
+  Dependency: "dependency",
+  Realization: "realization",
+} as const;
+export type UmlComponentRelationshipKind =
+  (typeof UmlComponentRelationship)[keyof typeof UmlComponentRelationship];
+export const UML_INTERFACE_KINDS = ["provided", "required"] as const;
+export type UmlInterfaceKind = (typeof UML_INTERFACE_KINDS)[number];
+export const UML_PORT_SIDES = ["top", "right", "bottom", "left"] as const;
+export type UmlPortSide = (typeof UML_PORT_SIDES)[number];
+export interface UmlComponentSemantic {
+  readonly name: string;
+}
+export interface UmlInterfaceSemantic {
+  readonly name: string;
+  readonly kind: UmlInterfaceKind;
+}
+export interface UmlPortSemantic {
+  readonly name: string;
+  readonly owner: ElementId;
+  readonly side: UmlPortSide;
+  /** Normalized location along the component boundary. */
+  readonly offset: number;
+}
+export interface UmlComponentRelationshipSemantic
+  extends ConnectorRoutingSemantic {
+  readonly from: ElementId;
+  readonly to: ElementId;
+  readonly kind: UmlComponentRelationshipKind;
+  readonly label?: string;
+}
+
 export interface UmlCardinalities {
   readonly from?: string;
   readonly to?: string;
@@ -546,6 +586,10 @@ export interface SemanticByType {
   "erd.table": ErdTableSemantic;
   "erd.relation": ErdRelationSemantic;
   "uml.class": UmlClassSemantic;
+  "uml.component": UmlComponentSemantic;
+  "uml.interface": UmlInterfaceSemantic;
+  "uml.port": UmlPortSemantic;
+  "uml.component-relationship": UmlComponentRelationshipSemantic;
   "uml.association": UmlAssociationSemantic;
   "sequence.participant": SequenceParticipantSemantic;
   "sequence.message": SequenceMessageSemantic;

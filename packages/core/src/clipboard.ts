@@ -1,3 +1,4 @@
+import { UmlComponentType, type UmlPortSemantic } from "@nodetto/ir";
 // Copy, cut, paste and duplicate, as data.
 //
 // A copied fragment is a detached snapshot: structurally cloned, so nothing
@@ -54,6 +55,17 @@ export function copyElements(
     seen.add(id);
     const element = store.get(id);
     if (element) {
+      present.push(element);
+    }
+  }
+  // Ports belong to their component even when only the component was selected.
+  for (const element of store.listElements()) {
+    if (
+      element.type === UmlComponentType.Port &&
+      seen.has((element.semantic as UmlPortSemantic).owner) &&
+      !seen.has(element.id)
+    ) {
+      seen.add(element.id);
       present.push(element);
     }
   }

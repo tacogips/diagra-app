@@ -84,7 +84,7 @@ import {
 } from "./interaction.ts";
 import { ConnectorMarkers, ConnectorView } from "./shapes/ConnectorView.tsx";
 import { ShapeView } from "./shapes/ShapeView.tsx";
-import type { ToolKind } from "./tools.ts";
+import { Tool, isConnectorTool, type ToolKind } from "./tools.ts";
 
 const CanvasRulers = lazy(() => import("./CanvasRulers.tsx"));
 
@@ -392,13 +392,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
     rotation: number;
     handles: readonly ResizeHandle[];
   } | null>(() => {
-    if (
-      props.tool === "edit.points" ||
-      props.tool === "edit.paint" ||
-      props.tool === "edit.stroke-paint" ||
-      props.tool === "crop"
-    )
-      return null;
+    if (props.tool !== Tool.Select) return null;
     const element = single();
     if (!element) {
       return null;
@@ -432,6 +426,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
 
   /** Endpoint handles for a single selected connector that resolves. */
   const connectorHandles = createMemo<ConnectorHandles | null>(() => {
+    if (props.tool !== Tool.Select) return null;
     const element = single();
     if (!element || !isConnector(element)) {
       return null;
@@ -459,13 +454,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
     box: Box;
     rotation: number;
   } | null>(() => {
-    if (
-      props.tool === "edit.points" ||
-      props.tool === "edit.paint" ||
-      props.tool === "edit.stroke-paint" ||
-      props.tool === "crop"
-    )
-      return null;
+    if (props.tool !== Tool.Select && !isConnectorTool(props.tool)) return null;
     const element = single();
     if (!element || isConnector(element) || isGroup(element)) {
       return null;

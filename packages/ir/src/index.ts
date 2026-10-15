@@ -189,3 +189,17 @@ export type {
   NumberTokenSemantic,
 } from "./semantics.ts";
 export { BOOLEAN_OPERATIONS } from "./semantics.ts";
+
+export {
+  UmlComponentType,
+  UmlComponentRelationship,
+  UML_INTERFACE_KINDS,
+  UML_PORT_SIDES,
+  type UmlComponentRelationshipKind,
+  type UmlComponentSemantic,
+  type UmlInterfaceSemantic,
+  type UmlInterfaceKind,
+  type UmlPortSemantic,
+  type UmlPortSide,
+  type UmlComponentRelationshipSemantic,
+} from "./semantics.ts";

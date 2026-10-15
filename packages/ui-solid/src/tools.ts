@@ -1,3 +1,8 @@
+import {
+  UmlComponentType,
+  UmlComponentRelationship,
+  type UmlComponentRelationshipKind,
+} from "@nodetto/ir";
 // One catalogue defines the supported tools, their named values, and ToolKind.
 // String literal values preserve existing tool IDs.
 
@@ -18,6 +23,13 @@ export const Tool = {
   Text: "text.note",
   Table: "erd.table",
   Class: "uml.class",
+  Component: UmlComponentType.Component,
+  ProvidedInterface: "uml.interface:provided",
+  RequiredInterface: "uml.interface:required",
+  Port: UmlComponentType.Port,
+  Dependency: "uml.component:dependency",
+  Realization: "uml.component:realization",
+  ComponentConnector: "uml.component:connector",
   Actor: "sequence.actor",
   Service: "sequence.service",
   Database: "sequence.database",
@@ -96,6 +108,19 @@ export interface CreationTool {
 /** Exhaustive so adding a tool requires deciding its placement behavior. */
 export function creationFor(tool: ToolKind): CreationTool | null {
   switch (tool) {
+    case Tool.Component:
+      return { type: UmlComponentType.Component };
+    case Tool.ProvidedInterface:
+    case Tool.RequiredInterface:
+      return {
+        type: UmlComponentType.Interface,
+        semantic: {
+          name: "Interface",
+          kind: tool === Tool.ProvidedInterface ? "provided" : "required",
+        },
+      };
+    case Tool.Port:
+      return { type: UmlComponentType.Port };
     case Tool.Frame:
       return {
         type: "frame",
@@ -152,6 +177,9 @@ export function creationFor(tool: ToolKind): CreationTool | null {
     case Tool.Hand:
     case Tool.Comment:
     case Tool.Connector:
+    case Tool.Dependency:
+    case Tool.Realization:
+    case Tool.ComponentConnector:
     case Tool.Freehand:
     case Tool.EditPoints:
     case Tool.EditFill:
@@ -163,4 +191,24 @@ export function creationFor(tool: ToolKind): CreationTool | null {
       throw new Error(`Unsupported tool: ${unsupported}`);
     }
   }
+}
+
+export function componentRelationshipFor(
+  tool: ToolKind,
+): UmlComponentRelationshipKind | undefined {
+  switch (tool) {
+    case Tool.Dependency:
+      return UmlComponentRelationship.Dependency;
+    case Tool.Realization:
+      return UmlComponentRelationship.Realization;
+    case Tool.ComponentConnector:
+      return UmlComponentRelationship.Connector;
+    default:
+      return undefined;
+  }
+}
+export function isConnectorTool(tool: ToolKind): boolean {
+  return (
+    tool === Tool.Connector || componentRelationshipFor(tool) !== undefined
+  );
 }

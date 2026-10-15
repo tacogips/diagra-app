@@ -27,7 +27,7 @@ import {
   runAction,
 } from "./shortcuts.ts";
 import { canUseTool, type ToolKind } from "./tools.ts";
-import { COMMON_SHAPES } from "./shape-palette.ts";
+import { COMMON_SHAPES, DIAGRAM_SHAPES } from "./shape-palette.ts";
 import "./Toolbar.css";
 import { WORKSPACES, workspaceById, type WorkspaceId } from "./workspaces.ts";
 
@@ -611,6 +611,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             ? ([
                 ...TOOL_MENUS.flatMap((menu) => menu.tools),
                 ...COMMON_SHAPES,
+                ...DIAGRAM_SHAPES,
               ].find((item) => item.tool === props.tool)?.label ?? props.tool)
             : ""}
         </span>

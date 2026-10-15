@@ -15,7 +15,7 @@ import {
   getAction,
   runAction,
 } from "./shortcuts.ts";
-import { canUseTool, Tool, type ToolKind } from "./tools.ts";
+import { canUseTool, isConnectorTool, Tool, type ToolKind } from "./tools.ts";
 import { workspaceById, type WorkspaceId } from "./workspaces.ts";
 import "./ShapePalette.css";
 
@@ -46,9 +46,11 @@ export function ShapePalette(props: {
             aria-label={`Draw ${item.label.toLowerCase()}`}
             aria-pressed={props.tool === item.tool}
             title={
-              item.tool === Tool.Connector
+              isConnectorTool(item.tool)
                 ? `${item.label} — drag from one shape to another`
-                : `${item.label} — select, then click the canvas`
+                : item.tool === Tool.Port
+                  ? "Port — click a component boundary"
+                  : `${item.label} — select, then click the canvas`
             }
             disabled={!canUseTool(item.tool, readOnly())}
             onClick={() => {
@@ -92,9 +94,11 @@ export function ShapePalette(props: {
       <p class="nodetto-palette-help" aria-live="polite">
         {readOnly()
           ? "View only"
-          : props.tool === Tool.Connector
+          : isConnectorTool(props.tool)
             ? "Drag between shapes to connect them."
-            : "Choose a shape, then click the canvas."}
+            : props.tool === Tool.Port
+              ? "Click a component to attach a port to its boundary."
+              : "Choose a shape, then click the canvas."}
       </p>
       <h3 class="nodetto-palette-mode">
         {workspaceById(props.workspace).label}

@@ -1,3 +1,4 @@
+import { UmlComponentType, UmlComponentRelationship } from "@nodetto/ir";
 // Shared geometry for every edge-like element type.
 //
 // A connector owns no box of its own: it is drawn between the boundaries of
@@ -305,6 +306,14 @@ function elementBoundary(
   target: Vec,
   context: ShapeContext,
 ): Vec {
+  if (element.type === UmlComponentType.Interface) {
+    return ellipseBoundaryIntersection(origin, target, {
+      x: box.x + 2,
+      y: box.y + 2,
+      width: Math.max(1, box.width - 4),
+      height: Math.max(1, box.height - 4),
+    });
+  }
   if (element.type === "shape.geo") {
     const kind = (element.semantic as GeoShapeSemantic).geo;
     if (kind === "ellipse") {
@@ -796,6 +805,19 @@ export function connectorDecoration(element: Element): ConnectorDecoration {
         "",
     };
   }
+  if (element.type === UmlComponentType.Relationship) {
+    const kind = readString(semantic, "kind");
+    return {
+      start: null,
+      end:
+        kind === UmlComponentRelationship.Realization
+          ? "triangle"
+          : kind === UmlComponentRelationship.Dependency
+            ? "arrow"
+            : null,
+      label: readString(semantic, "label") ?? "",
+    };
+  }
   if (element.type === "uml.association") {
     const label = readString(semantic, "label") ?? "";
     switch (readString(semantic, "kind")) {
@@ -826,6 +848,11 @@ export function connectorDecoration(element: Element): ConnectorDecoration {
 
 /** Semantic default line pattern; explicit visual styling may override it. */
 export function connectorDefaultDash(element: Element): string | undefined {
+  if (
+    element.type === UmlComponentType.Relationship &&
+    readString(element.semantic, "kind") !== UmlComponentRelationship.Connector
+  )
+    return "6 4";
   if (
     element.type === "sequence.message" &&
     readString(element.semantic, "kind") === "return"

@@ -2,6 +2,10 @@ import { Tool, type ToolKind } from "./tools.ts";
 import { workspaceById, type WorkspaceId } from "./workspaces.ts";
 
 export const PALETTE_ICONS = {
+  component: "M7 5h22v23H7zM3 10h8v5H3zM3 20h8v5H3z",
+  provided: "M2 16h10m16 0a8 8 0 11-16 0 8 8 0 0116 0z",
+  required: "M2 16h12m12-9a9 9 0 000 18",
+  port: "M3 4h22v24H3zM21 12h8v8h-8z",
   rect: "M4 7h24v18H4z",
   ellipse: "M29 16a13 9 0 11-26 0 13 9 0 0126 0z",
   diamond: "M16 3l13 13-13 13L3 16z",
@@ -42,6 +46,21 @@ export const COMMON_SHAPES: readonly ShapePaletteItem[] = [
 ];
 
 export const DIAGRAM_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.Component, label: "Component", icon: "component" },
+  {
+    tool: Tool.ProvidedInterface,
+    label: "Provided interface",
+    icon: "provided",
+  },
+  {
+    tool: Tool.RequiredInterface,
+    label: "Required interface",
+    icon: "required",
+  },
+  { tool: Tool.Port, label: "Port", icon: "port" },
+  { tool: Tool.Dependency, label: "Dependency", icon: "edge" },
+  { tool: Tool.Realization, label: "Realization", icon: "edge" },
+  { tool: Tool.ComponentConnector, label: "Component connector", icon: "edge" },
   { tool: Tool.Table, label: "Table", icon: "table" },
   { tool: Tool.Class, label: "Class", icon: "class" },
   { tool: Tool.Actor, label: "Actor", icon: "actor" },
@@ -59,6 +78,17 @@ export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
 
 /** Ordered authoring priorities; every workspace must make an explicit choice. */
 const PRIMARY_TOOLS = {
+  component: [
+    Tool.Component,
+    Tool.ProvidedInterface,
+    Tool.RequiredInterface,
+    Tool.Port,
+    Tool.Dependency,
+    Tool.Realization,
+    Tool.ComponentConnector,
+    Tool.Text,
+    Tool.Frame,
+  ],
   erd: [Tool.Table, Tool.Connector, Tool.Text, Tool.Frame],
   class: [Tool.Class, Tool.Connector, Tool.Text, Tool.Frame],
   sequence: [
