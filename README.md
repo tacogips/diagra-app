@@ -76,7 +76,9 @@ Signed and notarized builds are published as GitHub releases and through the
 brew install --cask tacogips/tap/nodetto
 ```
 
-The cask installs `Nodetto.app` and links the bundled `nodetto-cli` command.
+The cask installs the local-only `Nodetto.app` and links the bundled
+`nodetto-cli` command. The desktop client does not create a cloud session or
+show cloud/account controls; cloud workspaces belong to the hosted web edition.
 Open a document from a terminal with `open -a nodetto path/to/file.jsonl`;
 Finder "Open With" also lists nodetto for `.jsonl`, `.mmd` and `.mermaid`
 files without becoming their default application. A path passed while the app

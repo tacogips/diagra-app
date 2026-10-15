@@ -5,19 +5,12 @@
 // session exists so the demo document is the clean starting state rather
 // than the user's first unsaved edit.
 //
-// The cloud session is built here too, but connects to nothing until the user
-// configures an endpoint and opens a document: this build ships no server
-// address of any kind.
+// The packaged desktop client owns local files only. Cloud sessions are supplied
+// by the separately hosted web entry point, never by this application.
 
 import { createDefaultRegistry, Editor } from "@nodetto/core";
 import { render } from "solid-js/web";
 import { App } from "./App.tsx";
-import {
-  type CloudSettings,
-  loadCloudSettings,
-  saveCloudSettings,
-} from "./cloud/settings.ts";
-import { CloudSession } from "./cloud/session.ts";
 import { createExportBackend, createFileBackend } from "./file/backend.ts";
 import { createLaunchBackend } from "./file/launch.ts";
 import { DocumentSession } from "./file/session.ts";
@@ -39,17 +32,11 @@ const session = new DocumentSession({ editor, backend });
 // an export never changes which file is open.
 const exportBackend = createExportBackend();
 
-// The session reads these on every connect, so an endpoint edited mid-run
-// applies to the next open without a restart.
-let cloudSettings: CloudSettings = loadCloudSettings();
-const cloud = new CloudSession({ editor, settings: () => cloudSettings });
-
 // Best effort on the way out: an autosave still inside its debounce window
 // gets one chance to reach disk. A quit can still outrun it.
 window.addEventListener("beforeunload", () => {
   void session.flush();
   session.dispose();
-  cloud.close();
 });
 
 render(
@@ -57,15 +44,9 @@ render(
     <App
       editor={editor}
       session={session}
-      cloud={cloud}
       filesAvailable={backend.available}
       exportBackend={exportBackend}
       launchBackend={createLaunchBackend()}
-      cloudSettings={cloudSettings}
-      onCloudSettingsChange={(next) => {
-        cloudSettings = next;
-        saveCloudSettings(next);
-      }}
     />
   ),
   root,

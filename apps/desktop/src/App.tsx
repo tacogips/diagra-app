@@ -55,7 +55,7 @@ import { handleHistoryShortcut } from "./history-shortcuts.ts";
 import { PresenceChip, PresenceOverlay } from "./cloud/PresenceOverlay.tsx";
 import type { CloudSession, CloudSessionState } from "./cloud/session.ts";
 import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
-import type { CloudSettings } from "./cloud/settings.ts";
+import { type CloudSettings, defaultCloudSettings } from "./cloud/settings.ts";
 import type { ExportBackend } from "./file/backend.ts";
 import { type LaunchBackend, watchOpenRequests } from "./file/launch.ts";
 import type { DocumentSession, SessionState } from "./file/session.ts";
@@ -74,15 +74,16 @@ import "./pane.css";
 export interface AppProps {
   readonly editor: Editor;
   readonly session: DocumentSession;
-  readonly cloud: CloudSession;
+  /** Omitted by the local-only desktop client. */
+  readonly cloud?: CloudSession;
   /** False outside Tauri: there is no filesystem to reach. */
   readonly filesAvailable: boolean;
   /** Save dialog and writer for exports; falls back to a download. */
   readonly exportBackend: ExportBackend;
   /** Documents the OS asked to open; omitted by shells without a host OS. */
   readonly launchBackend?: LaunchBackend;
-  readonly cloudSettings: CloudSettings;
-  readonly onCloudSettingsChange: (settings: CloudSettings) => void;
+  readonly cloudSettings?: CloudSettings;
+  readonly onCloudSettingsChange?: (settings: CloudSettings) => void;
   /** Opaque account lifecycle signal for invalidating cloud list pages. */
   readonly cloudRefreshToken?: unknown;
   /** Hosted shells can add account controls without coupling to public cloud code. */
@@ -149,11 +150,11 @@ export function App(props: AppProps): JSX.Element {
     readonly onPlaced: () => void;
   } | null>(null);
   const [file, setFile] = createSignal<SessionState>(props.session.state());
-  const [cloud, setCloud] = createSignal<CloudSessionState>(
-    props.cloud.state(),
+  const [cloud, setCloud] = createSignal<CloudSessionState | undefined>(
+    props.cloud?.state(),
   );
   const [settings, setSettings] = createSignal<CloudSettings>(
-    props.cloudSettings,
+    props.cloudSettings ?? defaultCloudSettings(),
   );
   const [cloudPanelExpanded, setCloudPanelExpanded] = createSignal(false);
 
@@ -230,8 +231,10 @@ export function App(props: AppProps): JSX.Element {
   };
 
   onCleanup(props.session.subscribe(setFile));
-  onCleanup(bindCloudFileOwnership(props.cloud, props.session));
-  onCleanup(props.cloud.subscribe(setCloud));
+  if (props.cloud) {
+    onCleanup(bindCloudFileOwnership(props.cloud, props.session));
+    onCleanup(props.cloud.subscribe(setCloud));
+  }
 
   /**
    * Ownership is independent of transport status: reconnect permission probes
@@ -242,11 +245,11 @@ export function App(props: AppProps): JSX.Element {
    * probe must leave the user's open file exactly as it was.
    */
   const mode = (): DocumentMode =>
-    cloud().ownsEditor ? { kind: "cloud" } : { kind: "file" };
+    cloud()?.ownsEditor ? { kind: "cloud" } : { kind: "file" };
   const isCloud = (): boolean => mode().kind === "cloud";
   let wasViewer = false;
   createEffect(() => {
-    const viewer = cloud().role === "viewer";
+    const viewer = cloud()?.role === "viewer";
     if (viewer === wasViewer) return;
     wasViewer = viewer;
     if (!viewer) return;
@@ -257,7 +260,7 @@ export function App(props: AppProps): JSX.Element {
 
   const updateSettings = (next: CloudSettings): void => {
     setSettings(next);
-    props.onCloudSettingsChange(next);
+    props.onCloudSettingsChange?.(next);
   };
 
   /** True when it is safe to throw away what is in the editor. */
@@ -509,7 +512,7 @@ export function App(props: AppProps): JSX.Element {
   /** Document title or file name, as an `.svg` file name. */
   const exportFileName = (): string => {
     const base = isCloud()
-      ? (cloud().title ?? cloud().docId ?? "untitled")
+      ? (cloud()?.title ?? cloud()?.docId ?? "untitled")
       : (file().fileName ?? props.editor.store.getMeta().title);
     return `${exportBaseName(base ?? "untitled")}.${EXPORT_EXTENSION}`;
   };
@@ -580,7 +583,8 @@ export function App(props: AppProps): JSX.Element {
       // so replaying them would revert whatever a peer did in between. This
       // listener runs in the capture phase and stops the event, so the
       // canvas's own binding never sees the chord while a room is open.
-      if (isCloud() && handleHistoryShortcut(event, props.cloud)) return;
+      if (isCloud() && props.cloud && handleHistoryShortcut(event, props.cloud))
+        return;
 
       // Cmd/Ctrl+Shift+E exports wherever focus is: the export is a document
       // action, not a canvas gesture, and the canvas never binds it.
@@ -677,7 +681,7 @@ export function App(props: AppProps): JSX.Element {
       return;
     }
     lastBrushAt = now;
-    props.cloud.publishPresence(cursor, brush);
+    props.cloud?.publishPresence(cursor, brush);
   };
 
   const onCanvasPointerMove = (event: PointerEvent): void => {
@@ -695,13 +699,13 @@ export function App(props: AppProps): JSX.Element {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
     });
-    props.cloud.publishPresence(cursor, brush);
+    props.cloud?.publishPresence(cursor, brush);
   };
 
   const onCanvasPointerLeave = (): void => {
     cursor = null;
     if (isCloud()) {
-      props.cloud.publishPresence(null, brush);
+      props.cloud?.publishPresence(null, brush);
     }
   };
 
@@ -710,14 +714,14 @@ export function App(props: AppProps): JSX.Element {
   onCleanup(
     props.editor.selection.subscribe(() => {
       if (isCloud()) {
-        props.cloud.publishPresence(cursor, brush);
+        props.cloud?.publishPresence(cursor, brush);
       }
     }),
   );
   onCleanup(
     props.editor.subscribe((diff) => {
       if (isCloud() && diff.pagesChanged) {
-        props.cloud.publishPresence(cursor, brush);
+        props.cloud?.publishPresence(cursor, brush);
       }
     }),
   );
@@ -789,36 +793,38 @@ export function App(props: AppProps): JSX.Element {
             </select>
           </div>
         </details>
-        <details class="app-settings-menu" ref={settingsMenu}>
-          <summary class="app-file-button">Settings</summary>
-          <div class="app-settings-controls">
-            <button
-              type="button"
-              class="app-file-button"
-              aria-expanded={cloudPanelExpanded()}
-              onClick={() => {
-                const next = !cloudPanelExpanded();
-                setCloudPanelExpanded(next);
-                settingsMenu?.removeAttribute("open");
-                queueMicrotask(() => {
-                  if (next) {
-                    cloudPanelHost
-                      ?.querySelector<HTMLElement>(
-                        ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
-                      )
-                      ?.focus();
-                  } else {
-                    settingsMenu
-                      ?.querySelector<HTMLElement>("summary")
-                      ?.focus();
-                  }
-                });
-              }}
-            >
-              {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
-            </button>
-          </div>
-        </details>
+        <Show when={props.cloud}>
+          <details class="app-settings-menu" ref={settingsMenu}>
+            <summary class="app-file-button">Settings</summary>
+            <div class="app-settings-controls">
+              <button
+                type="button"
+                class="app-file-button"
+                aria-expanded={cloudPanelExpanded()}
+                onClick={() => {
+                  const next = !cloudPanelExpanded();
+                  setCloudPanelExpanded(next);
+                  settingsMenu?.removeAttribute("open");
+                  queueMicrotask(() => {
+                    if (next) {
+                      cloudPanelHost
+                        ?.querySelector<HTMLElement>(
+                          ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
+                        )
+                        ?.focus();
+                    } else {
+                      settingsMenu
+                        ?.querySelector<HTMLElement>("summary")
+                        ?.focus();
+                    }
+                  });
+                }}
+              >
+                {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
+              </button>
+            </div>
+          </details>
+        </Show>
         <div class="app-header-slot">{props.headerContent}</div>
         <Show
           when={isCloud()}
@@ -833,20 +839,20 @@ export function App(props: AppProps): JSX.Element {
             </span>
           }
         >
-          <span class="app-file-name">{cloud().title ?? cloud().docId}</span>
-          <span class="app-cloud-badge" data-status={cloud().status}>
-            {cloud().status}
-            {cloud().role === "viewer" ? " · Viewer" : ""}
+          <span class="app-file-name">{cloud()?.title ?? cloud()?.docId}</span>
+          <span class="app-cloud-badge" data-status={cloud()?.status}>
+            {cloud()?.status}
+            {cloud()?.role === "viewer" ? " · Viewer" : ""}
           </span>
-          <PresenceChip peers={cloud().peers} />
+          <PresenceChip peers={cloud()?.peers ?? []} />
           <div class="app-file-controls">
             <button
               type="button"
               class="app-file-button"
               aria-label="Undo"
               title="Undo (Cmd/Ctrl+Z)"
-              disabled={!cloud().canUndo}
-              onClick={() => props.cloud.undo()}
+              disabled={!cloud()?.canUndo}
+              onClick={() => props.cloud?.undo()}
             >
               <svg
                 class="app-history-icon"
@@ -861,8 +867,8 @@ export function App(props: AppProps): JSX.Element {
               class="app-file-button"
               aria-label="Redo"
               title="Redo (Cmd/Ctrl+Shift+Z)"
-              disabled={!cloud().canRedo}
-              onClick={() => props.cloud.redo()}
+              disabled={!cloud()?.canRedo}
+              onClick={() => props.cloud?.redo()}
             >
               <svg
                 class="app-history-icon"
@@ -879,31 +885,35 @@ export function App(props: AppProps): JSX.Element {
         </Show>
         <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
       </header>
-      <div
-        ref={cloudPanelHost}
-        style={{ "--app-cloud-top": `${cloudPanelTop()}px` }}
-      >
-        <CloudPanel
-          editor={props.editor}
-          session={props.cloud}
-          state={cloud()}
-          settings={settings()}
-          onSettingsChange={updateSettings}
-          refreshToken={props.cloudRefreshToken}
-          expanded={cloudPanelExpanded()}
-          onExpandedChange={(expanded) => {
-            if (expanded) setCloudPanelExpanded(true);
-            else dismissCloudPanel();
-          }}
-          renderToggle={false}
-          // Opening a room replaces what is on the canvas, exactly like opening
-          // a file does, so it asks the same question first.
-          mayDiscard={mayDiscard}
-        />
-      </div>
+      <Show when={props.cloud}>
+        {(activeCloud) => (
+          <div
+            ref={cloudPanelHost}
+            style={{ "--app-cloud-top": `${cloudPanelTop()}px` }}
+          >
+            <CloudPanel
+              editor={props.editor}
+              session={activeCloud()}
+              state={cloud() ?? activeCloud().state()}
+              settings={settings()}
+              onSettingsChange={updateSettings}
+              refreshToken={props.cloudRefreshToken}
+              expanded={cloudPanelExpanded()}
+              onExpandedChange={(expanded) => {
+                if (expanded) setCloudPanelExpanded(true);
+                else dismissCloudPanel();
+              }}
+              renderToggle={false}
+              // Opening a room replaces what is on the canvas, exactly like opening
+              // a file does, so it asks the same question first.
+              mayDiscard={mayDiscard}
+            />
+          </div>
+        )}
+      </Show>
       {/* A cloud failure is reported wherever it happens: a refused connect
           leaves the app in file mode, and its message still has to be read. */}
-      <Show when={cloud().error ?? file().error ?? exportError()}>
+      <Show when={cloud()?.error ?? file().error ?? exportError()}>
         {(message) => <pre class="app-error">{message()}</pre>}
       </Show>
       <Show when={file().conflict && !isCloud()}>
@@ -1053,7 +1063,10 @@ export function App(props: AppProps): JSX.Element {
             </Show>
           </NodettoCanvas>
           <Show when={isCloud()}>
-            <PresenceOverlay editor={props.editor} peers={cloud().peers} />
+            <PresenceOverlay
+              editor={props.editor}
+              peers={cloud()?.peers ?? []}
+            />
           </Show>
           <Show when={editing() === null}>
             <SelectionToolbar
