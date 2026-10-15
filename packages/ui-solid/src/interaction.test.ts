@@ -41,6 +41,8 @@ import {
   COMMON_SHAPES,
   DIAGRAM_SHAPES,
   workspaceShapes,
+  additionalShapes,
+  artboardShapes,
 } from "./shape-palette.ts";
 
 const START = { x: 100, y: 100, width: 200, height: 100 };
@@ -994,15 +996,40 @@ describe("left shape palette creation", () => {
     expect(workspaceShapes("erd").map((item) => item.label)).toEqual([
       "Table",
       "Relationship",
+      "Text",
+      "Frame",
     ]);
     expect(workspaceShapes("sequence").map((item) => item.tool)).toEqual([
       "sequence.actor",
       "sequence.service",
       "sequence.database",
       "edge",
+      "text.note",
+      "frame",
     ]);
-    expect(workspaceShapes("sequence").at(-1)?.label).toBe("Message");
-    expect(workspaceShapes("flow")).toEqual([]);
+    expect(workspaceShapes("sequence")[3]?.label).toBe("Message");
+    expect(workspaceShapes("app")[0]?.tool).toBe(Tool.IPhoneFrame);
+    expect(workspaceShapes("web")[0]?.tool).toBe(Tool.WebFrame);
+    expect(workspaceShapes("flow").map((item) => item.tool)).toContain(
+      Tool.Diamond,
+    );
+    for (const id of [
+      "erd",
+      "class",
+      "sequence",
+      "flow",
+      "app",
+      "web",
+      "all",
+    ] as const) {
+      const primary = workspaceShapes(id);
+      const all = [...primary, ...additionalShapes(id), ...artboardShapes(id)];
+      const tools = all.map((item) => item.tool);
+      expect(new Set(tools).size).toBe(tools.length);
+      for (const item of COMMON_SHAPES) expect(tools).toContain(item.tool);
+      expect(primary.map((item) => item.tool)).toContain(Tool.Frame);
+      expect(primary.map((item) => item.tool)).toContain(Tool.Text);
+    }
   });
 });
 

@@ -2,8 +2,8 @@ import type { Editor } from "@nodetto/core";
 import { For, type JSX, Show } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import {
-  ARTBOARD_SHAPES,
-  COMMON_SHAPES,
+  additionalShapes,
+  artboardShapes,
   PALETTE_ICONS,
   type ShapePaletteItem,
   workspaceShapes,
@@ -96,29 +96,25 @@ export function ShapePalette(props: {
             ? "Drag between shapes to connect them."
             : "Choose a shape, then click the canvas."}
       </p>
-      <Show when={workspaceShapes(props.workspace).length > 0}>
-        <details
-          class="nodetto-palette-section"
-          open={props.workspace !== "all"}
-        >
-          <summary>
-            {props.workspace === "all"
-              ? "Diagram shapes"
-              : workspaceById(props.workspace).label}
-          </summary>
-          {tiles(workspaceShapes(props.workspace))}
-        </details>
-      </Show>
-      {tiles(COMMON_SHAPES)}
+      <h3 class="nodetto-palette-mode">
+        {workspaceById(props.workspace).label}
+      </h3>
+      {tiles(workspaceShapes(props.workspace))}
       <div class="nodetto-palette-actions" role="group" aria-label="Grouping">
         {action("frameSelection", "Frame selection")}
         {action("group", "Group")}
         {action("ungroup", "Ungroup")}
       </div>
-      <Show when={workspaceById(props.workspace).design}>
+      <Show when={additionalShapes(props.workspace).length > 0}>
+        <details class="nodetto-palette-section">
+          <summary>More shapes</summary>
+          {tiles(additionalShapes(props.workspace))}
+        </details>
+      </Show>
+      <Show when={artboardShapes(props.workspace).length > 0}>
         <details class="nodetto-palette-section">
           <summary>Artboards</summary>
-          {tiles(ARTBOARD_SHAPES)}
+          {tiles(artboardShapes(props.workspace))}
         </details>
       </Show>
     </section>

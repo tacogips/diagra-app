@@ -57,14 +57,67 @@ export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.PaperFrame, label: "Document", icon: "frame" },
 ];
 
+/** Ordered authoring priorities; every workspace must make an explicit choice. */
+const PRIMARY_TOOLS = {
+  erd: [Tool.Table, Tool.Connector, Tool.Text, Tool.Frame],
+  class: [Tool.Class, Tool.Connector, Tool.Text, Tool.Frame],
+  sequence: [
+    Tool.Actor,
+    Tool.Service,
+    Tool.Database,
+    Tool.Connector,
+    Tool.Text,
+    Tool.Frame,
+  ],
+  flow: [
+    Tool.Rectangle,
+    Tool.Ellipse,
+    Tool.Diamond,
+    Tool.Cylinder,
+    Tool.Node,
+    Tool.Connector,
+    Tool.Parallelogram,
+    Tool.Text,
+    Tool.Frame,
+  ],
+  app: [
+    Tool.IPhoneFrame,
+    Tool.AndroidFrame,
+    Tool.TabletFrame,
+    Tool.Rectangle,
+    Tool.Text,
+    Tool.Ellipse,
+    Tool.Frame,
+  ],
+  web: [Tool.WebFrame, Tool.Rectangle, Tool.Text, Tool.Ellipse, Tool.Frame],
+  all: [...COMMON_SHAPES, ...DIAGRAM_SHAPES].map((item) => item.tool),
+} as const satisfies Record<WorkspaceId, readonly ToolKind[]>;
+
+const PALETTE_SHAPES = [
+  ...COMMON_SHAPES,
+  ...DIAGRAM_SHAPES,
+  ...ARTBOARD_SHAPES,
+];
+
 /** Preserve semantic workspace labels, such as Relationship or Message. */
 export function workspaceShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
-  if (id === "all") return DIAGRAM_SHAPES;
-  if (id === "flow") return [];
-  return workspaceById(id).tools.flatMap(({ tool, label }) => {
-    const item = [...DIAGRAM_SHAPES, ...COMMON_SHAPES].find(
-      (candidate) => candidate.tool === tool,
-    );
-    return item ? [{ ...item, label }] : [];
+  const workspace = workspaceById(id);
+  return PRIMARY_TOOLS[id].map((tool) => {
+    const item = PALETTE_SHAPES.find((candidate) => candidate.tool === tool);
+    if (!item) throw new Error(`Missing palette shape for ${tool}`);
+    const label = workspace.tools.find((entry) => entry.tool === tool)?.label;
+    return label ? { ...item, label } : item;
   });
+}
+
+/** Secondary sections never repeat a tool already shown in the primary grid. */
+export function additionalShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
+  const primary = new Set<ToolKind>(PRIMARY_TOOLS[id]);
+  return COMMON_SHAPES.filter((item) => !primary.has(item.tool));
+}
+
+export function artboardShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
+  if (!workspaceById(id).design) return [];
+  const primary = new Set<ToolKind>(PRIMARY_TOOLS[id]);
+  return ARTBOARD_SHAPES.filter((item) => !primary.has(item.tool));
 }

@@ -74,8 +74,12 @@ connects shapes by dragging from one shape to another.
 Select existing objects or a group and click **Frame selection** in the palette
 to enclose them in a frame. **Group** and **Ungroup** are alongside it. The
 **Frame** tile places a transparent general-purpose frame; design workspaces also
-have device and document presets under **Artboards**. ERD, UML class and sequence
-workspaces show their own diagram tools above the common shapes.
+show their frequently used artboards directly. Each mode has a primary grid:
+ERD prioritizes tables and relationships, UML class prioritizes classes and
+associations, Sequence prioritizes participants and messages, and Flow prioritizes
+flowchart shapes and connectors. App design starts with mobile/tablet artboards;
+Web design starts with a web artboard. Less-used geometry is under **More shapes**,
+and remaining design presets are under **Artboards**, without duplicate tiles.
 
 See [the palette design](docs/left-shape-palette.md) for behavior and verification.
 

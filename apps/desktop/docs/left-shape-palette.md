@@ -10,11 +10,17 @@ workspace navigation available.
 
 - Place a Shapes section above Layers. Show a compact grid of outlined shape
   previews with text labels, selected-tool highlighting, and keyboard focus.
-- Always offer rectangle, ellipse, diamond, cylinder, triangle, hexagon,
-  parallelogram, star, text, node, connector, and a general frame.
-- In ERD, UML class, and sequence workspaces, show the relevant semantic tools
-  first. All tools includes these in a collapsible Diagram shapes section.
-- Design workspaces also offer artboard presets in a collapsed section.
+- Show a permanently open primary grid chosen for the editing mode:
+  ERD has Table/Relationship, UML has Class/Association, Sequence has
+  Actor/Service/Database/Message, Flow has flowchart shapes and connectors,
+  App has mobile/tablet artboards, and Web has a web artboard. Text and a general
+  frame are immediately available in every mode.
+- Keep less-used common geometry under More shapes. Primary and secondary grids
+  never repeat the same tool. All tools shows common and semantic shapes together.
+- Design workspaces offer remaining artboard presets in a collapsed section;
+  presets already visible in the primary grid are omitted there.
+- Changing mode immediately replaces the primary grid, even if a secondary
+  section was previously collapsed.
 - Selecting a tile activates the existing canvas tool. Click the canvas to place
   a shape at its default size; resize with its handles. Existing connectors still
   connect shape endpoints. Placement returns to Select. Escape cancels the tool.
