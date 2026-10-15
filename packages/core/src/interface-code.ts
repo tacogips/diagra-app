@@ -1,3 +1,4 @@
+import { UmlComponentType } from "@nodetto/ir";
 import type {
   AccessibilityRole,
   Element,
@@ -340,6 +341,7 @@ export function generateInterfaceCode(
       "edge.generic",
       "erd.relation",
       "uml.association",
+      UmlComponentType.Relationship,
       "sequence.message",
     ].includes(element.type),
   );

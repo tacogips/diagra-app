@@ -23,8 +23,10 @@ import { umlAssociationShapeUtil } from "./umlAssociation.ts";
 import { umlClassShapeUtil } from "./umlClass.ts";
 import { unknownShapeUtil } from "./unknown.ts";
 
+import { umlComponentShapeUtils } from "./umlComponent.ts";
+
 export function createDefaultRegistry(): ShapeUtilRegistry {
-  return new ShapeUtilRegistry(unknownShapeUtil)
+  const registry = new ShapeUtilRegistry(unknownShapeUtil)
     .register({
       type: "design.guide",
       canResize: false,
@@ -108,4 +110,6 @@ export function createDefaultRegistry(): ShapeUtilRegistry {
     .register(sequenceActivationShapeUtil)
     .register(textNoteShapeUtil)
     .register(groupShapeUtil);
+  for (const util of umlComponentShapeUtils) registry.register(util);
+  return registry;
 }

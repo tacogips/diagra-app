@@ -41,6 +41,9 @@ const FILLED_TYPES: ReadonlySet<string> = new Set([
   "text.note",
   "erd.table",
   "uml.class",
+  "uml.component",
+  "uml.interface",
+  "uml.port",
   "frame",
 ]);
 

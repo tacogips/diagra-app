@@ -1,3 +1,4 @@
+import { UmlComponentType, type UmlPortSemantic } from "@nodetto/ir";
 import type { Element, ElementId, FrameSemantic, Visual } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import type { Editor } from "./editor.ts";
@@ -54,6 +55,9 @@ export function createSelectionResizeSnapshot(
   const roots = selectedRoots(editor);
   if (!roots) return null;
   const context = editor.createShapeContext();
+  const selectedElements = new Set(
+    expandContainers(editor.store, roots, context),
+  );
   const items: SelectionResizeItem[] = [];
   const seen = new Set<ElementId>();
   const visiting = new Set<ElementId>();
@@ -63,6 +67,8 @@ export function createSelectionResizeSnapshot(
     const element = editor.store.get(id);
     if (!element || context.isLocked?.(id) || context.isHidden?.(id))
       return false;
+    if (element.type === UmlComponentType.Port)
+      return selectedElements.has((element.semantic as UmlPortSemantic).owner);
     if (isGroup(element)) {
       if (visiting.has(id)) return false;
       visiting.add(id);
@@ -84,6 +90,7 @@ export function createSelectionResizeSnapshot(
         "edge.generic",
         "erd.relation",
         "uml.association",
+        UmlComponentType.Relationship,
         "sequence.message",
         "sequence.activation",
       ].includes(element.type)

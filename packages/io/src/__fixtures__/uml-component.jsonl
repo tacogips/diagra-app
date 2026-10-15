@@ -1,0 +1,6 @@
+{"kind":"document","schemaVersion":1,"id":"uml-component-example","title":"Component architecture"}
+{"kind":"page","id":"p1","name":"Components","pageKind":"uml"}
+{"kind":"element","id":"component","page":"p1","type":"uml.component","index":"a0","semantic":{"name":"Billing"},"visual":{"x":40,"y":40,"width":180,"height":100}}
+{"kind":"element","id":"interface","page":"p1","type":"uml.interface","index":"a1","semantic":{"name":"Invoice API","kind":"provided"},"visual":{"x":300,"y":74,"width":32,"height":32}}
+{"kind":"element","id":"port","page":"p1","type":"uml.port","index":"a2","semantic":{"name":"API","owner":"component","side":"right","offset":0.5},"visual":{"x":213,"y":83,"width":14,"height":14}}
+{"kind":"element","id":"relationship","page":"p1","type":"uml.component-relationship","index":"a3","semantic":{"from":"port","to":"interface","kind":"realization","routing":"orthogonal"}}

@@ -1,3 +1,4 @@
+import { UmlComponentType } from "@nodetto/ir";
 import type { Element, ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Command } from "./commands.ts";
 import type { Editor } from "./editor.ts";
@@ -13,6 +14,9 @@ const ROTATABLE_LEAF_TYPES = new Set([
   "draw.freehand",
   "erd.table",
   "uml.class",
+  UmlComponentType.Component,
+  UmlComponentType.Interface,
+  UmlComponentType.Port,
 ]);
 
 function normalizeRotation(degrees: number): number {
@@ -138,6 +142,7 @@ function selectionRotationTarget(
       element.type !== "edge.generic" &&
       element.type !== "erd.relation" &&
       element.type !== "uml.association" &&
+      element.type !== UmlComponentType.Relationship &&
       element.type !== "sequence.message" &&
       !ROTATABLE_LEAF_TYPES.has(element.type)
     )
@@ -148,6 +153,7 @@ function selectionRotationTarget(
         "edge.generic",
         "erd.relation",
         "uml.association",
+        UmlComponentType.Relationship,
         "sequence.message",
       ].includes(element.type) &&
       !context.boundsOf(id)
@@ -173,6 +179,7 @@ function selectionRotationTarget(
           "edge.generic",
           "erd.relation",
           "uml.association",
+          UmlComponentType.Relationship,
           "sequence.message",
         ].includes(element.type)
       )
@@ -300,6 +307,7 @@ function rotateContainer(
       element.type !== "edge.generic" &&
       element.type !== "erd.relation" &&
       element.type !== "uml.association" &&
+      element.type !== UmlComponentType.Relationship &&
       element.type !== "sequence.message" &&
       !ROTATABLE_LEAF_TYPES.has(element.type)
     )

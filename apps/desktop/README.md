@@ -117,3 +117,11 @@ resize and undo/redo, Boolean geometry and raster-mask surfaces, and actual
 pointer-held resizing before release. It prints selection processing timings
 without imposing machine-dependent latency thresholds. Fixture files are
 served only by the dev server and are not production application entry points.
+
+### UML component diagrams
+
+The **UML component** editing mode provides Component, provided/required Interface,
+Port, Dependency, Realization, and Connector tools directly in the left palette.
+Click a component with Port to attach it to the nearest boundary; drag relationship
+tools between component-diagram elements. See [UML component mode](docs/uml-component-mode.md)
+for ownership, editing, persistence, and current notation scope.

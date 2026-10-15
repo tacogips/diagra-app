@@ -1,3 +1,4 @@
+import { UmlComponentType } from "@nodetto/ir";
 // "Tidy layout" and "Remove overlaps", as commands.
 //
 // The page is treated as a tree of containers: the page itself and every
@@ -82,6 +83,7 @@ function isConnector(element: Element): boolean {
 function isArrangeable(element: Element): boolean {
   return (
     !isConnector(element) &&
+    element.type !== UmlComponentType.Port &&
     !element.type.startsWith("sequence.") &&
     element.type !== "design.guide"
   );

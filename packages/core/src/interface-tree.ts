@@ -1,3 +1,4 @@
+import { UmlComponentType } from "@nodetto/ir";
 import type { Element, ElementId, FrameSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
@@ -10,6 +11,7 @@ const OMITTED_INTERFACE_TYPES = new Set([
   "edge.generic",
   "erd.relation",
   "uml.association",
+  UmlComponentType.Relationship,
   "sequence.message",
 ]);
 

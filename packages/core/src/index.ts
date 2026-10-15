@@ -599,3 +599,5 @@ export {
   removeDesignTokenMode,
   renameDesignTokenMode,
 } from "./token-modes.ts";
+
+export { isUmlComponentEndpoint } from "./shapes/umlComponent.ts";

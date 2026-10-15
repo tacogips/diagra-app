@@ -1,3 +1,4 @@
+import { UmlComponentType } from "./semantics.ts";
 import { describe, expect, test } from "bun:test";
 import { hasErrors, type ValidationIssue } from "./issues.ts";
 import {
@@ -48,6 +49,7 @@ describe("registry contents", () => {
     expect(Array.from<string>(ELEMENT_TYPES).sort()).toEqual(
       [
         ...DESIGN_TABLE_TYPES,
+        ...Object.values(UmlComponentType),
         "image.raster",
         "design.token",
         "design.guide",

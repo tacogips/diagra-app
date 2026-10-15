@@ -1,3 +1,5 @@
+import { UmlComponentType, UmlComponentRelationship } from "@nodetto/ir";
+import { isConnectorTool } from "./tools.ts";
 // DOM-free unit tests for the interaction layer.
 //
 // The state machine needs no DOM: give `createInteraction` a container
@@ -950,7 +952,7 @@ describe("left shape palette creation", () => {
     ...DIAGRAM_SHAPES,
     ...ARTBOARD_SHAPES,
   ]) {
-    if (item.tool === Tool.Connector) continue;
+    if (isConnectorTool(item.tool) || item.tool === Tool.Port) continue;
     test(`${item.tool} places a selected shape, resets the tool, and undoes in one step`, () => {
       const editor = new Editor();
       editor.camera.set({ x: 10, y: 20, z: 2 });
@@ -1100,6 +1102,9 @@ describe("creationFor", () => {
       "edit.paint",
       "edit.stroke-paint",
       "crop",
+      Tool.Dependency,
+      Tool.Realization,
+      Tool.ComponentConnector,
     ]);
     for (const tool of TOOLS) {
       expect(creationFor(tool) === null).toBe(gestures.has(tool));
@@ -3119,4 +3124,62 @@ describe("shortcutKey", () => {
       "ą",
     );
   });
+});
+
+describe("component mode pointer authoring", () => {
+  test("port placement requires a component and keeps its tool until attached", () => {
+    const editor = new Editor();
+    const owner = editor.createElement(UmlComponentType.Component, {
+      visual: { x: 100, y: 100, width: 180, height: 100 },
+    });
+    const { interaction, tool } = interactionFor(editor, Tool.Port);
+    interaction.onPointerDown(pointer({ clientX: 20, clientY: 20 }));
+    interaction.onPointerUp(pointer({ clientX: 20, clientY: 20 }));
+    expect(editor.store.size).toBe(1);
+    expect(tool()).toBe(Tool.Port);
+    interaction.onPointerDown(pointer({ clientX: 278, clientY: 150 }));
+    interaction.onPointerUp(pointer({ clientX: 278, clientY: 150 }));
+    const port = editor.store
+      .listElements()
+      .find((item) => item.type === UmlComponentType.Port);
+    expect(port?.semantic).toMatchObject({ owner, side: "right", offset: 0.5 });
+    expect([...editor.selection.ids()]).toEqual([port!.id]);
+    expect(tool()).toBe(Tool.Select);
+    editor.undo();
+    expect(editor.store.size).toBe(1);
+    interaction.dispose();
+  });
+  for (const [tool, kind] of [
+    [Tool.Dependency, UmlComponentRelationship.Dependency],
+    [Tool.Realization, UmlComponentRelationship.Realization],
+    [Tool.ComponentConnector, UmlComponentRelationship.Connector],
+  ] as const) {
+    test(`${tool} drags a typed relationship and refuses class endpoints`, () => {
+      const editor = new Editor();
+      const a = editor.createElement(UmlComponentType.Component, {
+        visual: { x: 0, y: 0 },
+      });
+      const b = editor.createElement(UmlComponentType.Component, {
+        visual: { x: 300, y: 0 },
+      });
+      editor.createElement("uml.class", { visual: { x: 600, y: 0 } });
+      const { interaction } = interactionFor(editor, tool);
+      interaction.onPointerDown(pointer({ clientX: 50, clientY: 50 }));
+      interaction.onPointerUp(pointer({ clientX: 350, clientY: 50 }));
+      const edge = editor.store
+        .listElements()
+        .find((item) => item.type === UmlComponentType.Relationship);
+      expect(edge?.semantic).toEqual({ from: a, to: b, kind });
+      interaction.onPointerDown(pointer({ clientX: 50, clientY: 50 }));
+      interaction.onPointerUp(pointer({ clientX: 650, clientY: 50 }));
+      expect(
+        editor.store
+          .listElements()
+          .filter((item) => item.type === UmlComponentType.Relationship),
+      ).toHaveLength(1);
+      editor.undo();
+      expect(editor.store.get(edge?.id ?? "")).toBeUndefined();
+      interaction.dispose();
+    });
+  }
 });

@@ -1,3 +1,4 @@
+import { umlComponentPaintBounds } from "./shapes/umlComponent.ts";
 import { type ElementId, getElementTypeDefinition } from "@nodetto/ir";
 import { type Box, rotatedBox, unionBoxes } from "./geometry.ts";
 import { intersectClip } from "./clipping.ts";
@@ -19,7 +20,7 @@ export function viewBounds(
     const box = context.boundsOf(id);
     if (!box) continue;
     const envelope = rotatedBox(
-      box,
+      umlComponentPaintBounds(element, box),
       getElementTypeDefinition(element.type)?.category === "edge"
         ? 0
         : (element.visual.rotation ?? 0),

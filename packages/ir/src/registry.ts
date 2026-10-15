@@ -42,6 +42,10 @@ import {
   REFERENTIAL_ACTIONS,
   TEXT_MARK_KINDS,
   UML_ASSOCIATION_KINDS,
+  UmlComponentType,
+  UmlComponentRelationship,
+  UML_INTERFACE_KINDS,
+  UML_PORT_SIDES,
   UML_VISIBILITIES,
 } from "./semantics.ts";
 import { type ElementId, isPlainObject } from "./types.ts";
@@ -825,6 +829,84 @@ const UML_ASSOCIATION: ElementTypeDefinition = {
     return out;
   },
 };
+
+const UML_COMPONENT_TYPES: readonly ElementTypeDefinition[] = [
+  ...[
+    UmlComponentType.Component,
+    UmlComponentType.Interface,
+    UmlComponentType.Port,
+  ].map(
+    (type): ElementTypeDefinition => ({
+      type,
+      category: "node",
+      keyOrder: { keys: ["name", "kind", "owner", "side", "offset"] },
+      onReferenceDeleted: "cascade",
+      references: (semantic) =>
+        type === UmlComponentType.Port ? refFields(semantic, ["owner"]) : [],
+      validateSemantic(semantic, path) {
+        const out: ValidationIssue[] = [];
+        if (!checkObject(out, semantic, path)) return out;
+        checkString(out, semantic["name"], `${path}.name`, {
+          allowEmpty: true,
+        });
+        if (type === UmlComponentType.Interface)
+          checkEnum(out, semantic["kind"], `${path}.kind`, UML_INTERFACE_KINDS);
+        if (type === UmlComponentType.Port) {
+          checkString(out, semantic["owner"], `${path}.owner`);
+          checkEnum(out, semantic["side"], `${path}.side`, UML_PORT_SIDES);
+          checkNumber(out, semantic["offset"], `${path}.offset`, { min: 0 });
+          if (typeof semantic["offset"] === "number" && semantic["offset"] > 1)
+            out.push(
+              error(
+                "uml.port.offset",
+                `${path}.offset`,
+                "offset must be at most 1",
+              ),
+            );
+        }
+        return out;
+      },
+    }),
+  ),
+  {
+    type: UmlComponentType.Relationship,
+    category: "edge",
+    keyOrder: {
+      keys: [
+        "from",
+        "to",
+        "kind",
+        "label",
+        "routing",
+        "routingAxis",
+        "routingBend",
+        "routingAvoidObstacles",
+        "routingWaypoints",
+      ],
+      children: { routingWaypoints: { keys: ["u", "v"] } },
+    },
+    onReferenceDeleted: "cascade",
+    references: (semantic) => refFields(semantic, ["from", "to"]),
+    validateSemantic(semantic, path) {
+      const out: ValidationIssue[] = [];
+      if (!checkObject(out, semantic, path)) return out;
+      checkString(out, semantic["from"], `${path}.from`);
+      checkString(out, semantic["to"], `${path}.to`);
+      checkEnum(
+        out,
+        semantic["kind"],
+        `${path}.kind`,
+        Object.values(UmlComponentRelationship),
+      );
+      checkString(out, semantic["label"], `${path}.label`, {
+        optional: true,
+        allowEmpty: true,
+      });
+      validateConnectorRouting(out, semantic, path);
+      return out;
+    },
+  },
+];
 
 const SEQUENCE_PARTICIPANT: ElementTypeDefinition = {
   type: "sequence.participant",
@@ -2000,6 +2082,7 @@ const DEFINITIONS: readonly ElementTypeDefinition[] = [
   ERD_RELATION,
   UML_CLASS,
   UML_ASSOCIATION,
+  ...UML_COMPONENT_TYPES,
   SEQUENCE_PARTICIPANT,
   SEQUENCE_MESSAGE,
   SEQUENCE_ACTIVATION,

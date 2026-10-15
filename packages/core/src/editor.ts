@@ -1,3 +1,14 @@
+import {
+  UmlComponentType,
+  UmlComponentRelationship,
+  type UmlComponentRelationshipKind,
+} from "@nodetto/ir";
+import {
+  isUmlComponentEndpoint,
+  nearestUmlPortAnchor,
+  umlPortAnchor,
+} from "./shapes/umlComponent.ts";
+import { planUmlPorts } from "./uml-ports.ts";
 // The editor facade: one object a renderer can hold.
 //
 // It owns the store, camera, selection and history, and it is the only
@@ -155,6 +166,10 @@ const EDITABLE_FIELDS: Readonly<Record<string, EditableField>> = {
   frame: "name",
   "erd.table": "tableName",
   "uml.class": "name",
+  [UmlComponentType.Component]: "name",
+  [UmlComponentType.Interface]: "name",
+  [UmlComponentType.Port]: "name",
+  [UmlComponentType.Relationship]: "label",
   "edge.generic": "label",
   "erd.relation": "label",
   "uml.association": "label",
@@ -196,6 +211,7 @@ const OPTIONAL_LABEL_TYPES: ReadonlySet<string> = new Set([
   "edge.generic",
   "erd.relation",
   "uml.association",
+  UmlComponentType.Relationship,
   "sequence.message",
 ]);
 
@@ -959,6 +975,7 @@ export class Editor {
         .getSnapshot()
         .elements.some(
           (element) =>
+            element.type === UmlComponentType.Port ||
             element.visual.colorTokens ||
             element.visual.numberTokens ||
             element.visual.textStyle ||
@@ -1017,6 +1034,7 @@ export class Editor {
         ),
       );
       derived.push(...planConstraints(beforeLayout, draft, this.registry));
+      derived.push(...planUmlPorts(this.store, draft));
     }
     const result = applyCommands(this.store, [...permitted, ...derived]);
     if (options.history !== "ignore") {
@@ -1032,6 +1050,7 @@ export class Editor {
         .getSnapshot()
         .elements.some(
           (element) =>
+            element.type === UmlComponentType.Port ||
             element.visual.colorTokens ||
             element.visual.numberTokens ||
             element.visual.textStyle ||
@@ -1061,6 +1080,7 @@ export class Editor {
       commands.push(...planAutoLayout(draft, this.registry));
     commands.push(...planFrameTranslations(before, draft, this.registry));
     commands.push(...planConstraints(before, draft, this.registry));
+    commands.push(...planUmlPorts(before, draft));
     if (commands.length) applyCommands(this.store, commands);
   }
 
@@ -2575,7 +2595,65 @@ export class Editor {
         applyOptions,
       );
     }
+    if (
+      isUmlComponentEndpoint(source.type) &&
+      isUmlComponentEndpoint(target.type)
+    )
+      return this.connectComponent(
+        from,
+        to,
+        UmlComponentRelationship.Connector,
+        applyOptions,
+      );
     return this.connect(from, to, source.page, applyOptions);
+  }
+
+  /** Component relationships never borrow class-association semantics. */
+  connectComponent(
+    from: ElementId,
+    to: ElementId,
+    kind: UmlComponentRelationshipKind,
+    options: ApplyOptions = {},
+  ): ElementId | null {
+    const source = this.store.get(from);
+    const target = this.store.get(to);
+    const context = this.createShapeContext();
+    if (
+      this.readOnly ||
+      from === to ||
+      !source ||
+      !target ||
+      source.page !== target.page ||
+      !isUmlComponentEndpoint(source.type) ||
+      !isUmlComponentEndpoint(target.type) ||
+      context.isLocked?.(from) ||
+      context.isLocked?.(to)
+    )
+      return null;
+    return this.createElement(
+      UmlComponentType.Relationship,
+      { page: source.page, semantic: { from, to, kind } },
+      options,
+    );
+  }
+
+  /** Click a component to attach a port to its nearest boundary. */
+  createUmlPort(ownerId: ElementId, point: Vec): ElementId | null {
+    const owner = this.store.get(ownerId);
+    if (
+      this.readOnly ||
+      !owner ||
+      owner.type !== UmlComponentType.Component ||
+      this.createShapeContext().isLocked?.(ownerId)
+    )
+      return null;
+    const anchor = nearestUmlPortAnchor(owner, point);
+    const position = umlPortAnchor(owner, anchor.side, anchor.offset);
+    return this.createElement(UmlComponentType.Port, {
+      page: owner.page,
+      semantic: { name: "Port", owner: ownerId, ...anchor },
+      visual: { x: position.x - 7, y: position.y - 7 },
+    });
   }
 
   private applyPlan(

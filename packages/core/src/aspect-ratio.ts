@@ -1,3 +1,4 @@
+import { UmlComponentType } from "@nodetto/ir";
 import type { Element, FrameSemantic, Visual } from "@nodetto/ir";
 import { applyCommands, type Command } from "./commands.ts";
 import { frameParents } from "./frame-tree.ts";
@@ -16,7 +17,9 @@ export function supportsAspectRatio(element: Element): boolean {
       "erd.relation",
       "erd.table",
       "uml.association",
+      UmlComponentType.Relationship,
       "uml.class",
+      UmlComponentType.Port,
       "sequence.message",
       "sequence.activation",
     ].includes(element.type) &&
