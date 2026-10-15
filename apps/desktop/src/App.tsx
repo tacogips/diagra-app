@@ -21,11 +21,14 @@ import {
   type Editor,
   type NewReviewMessage,
   type Vec,
+  bpmnRouteResolver,
 } from "@nodetto/core";
 import type { ElementId } from "@nodetto/ir";
 import {
   type ActionContext,
   ContextMenu,
+  BpmnProblemsPanel,
+  createEditorSignals,
   NodettoCanvas,
   getAction,
   HelpHint,
@@ -137,11 +140,26 @@ export function App(props: AppProps): JSX.Element {
   );
   const simpleWorkspace = () => !workspaceById(workspace()).design;
   const changeWorkspace = (id: WorkspaceId) => {
+    const page = props.editor.store.getPage(props.editor.currentPageId);
+    if ((id === "bpmn") !== (page?.kind === "bpmn")) {
+      const existing = props.editor.store
+        .listPages()
+        .find((candidate) =>
+          id === "bpmn" ? candidate.kind === "bpmn" : candidate.kind !== "bpmn",
+        );
+      if (existing) props.editor.setCurrentPage(existing.id);
+      else
+        props.editor.createPage({
+          kind: id === "bpmn" ? "bpmn" : "freeform",
+          name: id === "bpmn" ? "Process" : "Page",
+        });
+    }
     setActiveTool("select");
     setContextMenu(null);
     setWorkspace(id);
     writeWorkspacePreference(preferenceStorage(), id);
   };
+  const editorSignals = createEditorSignals(props.editor);
   const [tool, setTool] = createSignal<ToolKind>("select");
   const [pendingComment, setPendingComment] = createSignal<{
     readonly input: NewReviewMessage;
@@ -173,6 +191,7 @@ export function App(props: AppProps): JSX.Element {
     InspectorFocus | undefined
   >(undefined);
   const [exportRequest, setExportRequest] = createSignal(0);
+  const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
   const [leftPaneOpen, setLeftPaneOpen] = createSignal(true);
   const [rightPaneOpen, setRightPaneOpen] = createSignal(true);
@@ -283,6 +302,18 @@ export function App(props: AppProps): JSX.Element {
       void props.session.openPath(path);
     }
   };
+
+  const isBpmnPage = (): boolean => {
+    editorSignals.rev();
+    return (
+      props.editor.store.getPage(props.editor.currentPageId)?.kind === "bpmn"
+    );
+  };
+
+  createEffect(() => {
+    if (isBpmnPage()) setWorkspace("bpmn");
+    else if (workspace() === "bpmn") setWorkspace("flow");
+  });
 
   onMount(() => {
     const launch = props.launchBackend;
@@ -527,6 +558,41 @@ export function App(props: AppProps): JSX.Element {
     return true;
   };
 
+  const exportBpmn = async (): Promise<void> => {
+    setExportError(null);
+    const page = props.editor.store.getPage(props.editor.currentPageId);
+    if (page?.kind !== "bpmn") return;
+    try {
+      const { exportBpmnXml } = await import("@nodetto/io/bpmn");
+      const { xml } = exportBpmnXml(
+        props.editor.store.getSnapshot(),
+        props.editor.currentPageId,
+        { routeOf: bpmnRouteResolver(props.editor) },
+      );
+      const name = `${exportBaseName(page.name)}.bpmn`;
+      if (!props.exportBackend.available) {
+        const url = URL.createObjectURL(
+          new Blob([xml], { type: "application/xml" }),
+        );
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = name;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        return;
+      }
+      const path = await props.exportBackend.pickExportPath(name, "bpmn");
+      if (path === null) return;
+      await props.exportBackend.writeText(path, xml);
+    } catch (error) {
+      setExportError(
+        `could not export: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  };
+
   /** Everything the shared action table needs from the shell. */
   const actionContext = (): ActionContext => ({
     editor: props.editor,
@@ -718,6 +784,22 @@ export function App(props: AppProps): JSX.Element {
                 type="button"
                 class="app-file-button"
                 disabled={!props.filesAvailable || isCloud()}
+                onClick={open}
+              >
+                Import BPMN…
+              </button>
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!isBpmnPage()}
+                onClick={() => void exportBpmn()}
+              >
+                Export BPMN…
+              </button>
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!props.filesAvailable || isCloud()}
                 onClick={() => void props.session.save()}
               >
                 Save
@@ -872,7 +954,7 @@ export function App(props: AppProps): JSX.Element {
       </Show>
       {/* A cloud failure is reported wherever it happens: a refused connect
           leaves the app in file mode, and its message still has to be read. */}
-      <Show when={cloud()?.error ?? file().error}>
+      <Show when={cloud()?.error ?? file().error ?? exportError()}>
         {(message) => <pre class="app-error">{message()}</pre>}
       </Show>
       <Show when={file().conflict && !isCloud()}>
@@ -1139,6 +1221,13 @@ export function App(props: AppProps): JSX.Element {
                 simple={workspace() !== "all"}
               />
             </div>
+            <Show when={isBpmnPage()}>
+              <BpmnProblemsPanel
+                editor={props.editor}
+                viewport={viewport}
+                importWarnings={file().importWarnings}
+              />
+            </Show>
           </div>
           <button
             type="button"

@@ -43,6 +43,15 @@
         "description": "Mermaid diagram source",
         "role": "Viewer",
         "rank": "Alternate"
+      },
+      {
+        "ext": [
+          "bpmn"
+        ],
+        "name": "BPMN diagram",
+        "description": "BPMN 2.0 process diagram",
+        "role": "Viewer",
+        "rank": "Alternate"
       }
     ]
   }

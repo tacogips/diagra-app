@@ -22,6 +22,7 @@ import {
   SCHEMA_VERSION,
 } from "@nodetto/ir";
 import { parseDocumentResult, serializeDocument } from "@nodetto/io";
+import type { BpmnImportWarning } from "@nodetto/io";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
 export type SessionStatus = "idle" | "loading" | "saving";
@@ -37,6 +38,7 @@ export interface SessionState {
   readonly dirty: boolean;
   readonly conflict: SessionConflict | null;
   readonly recent: readonly RecentEntry[];
+  readonly importWarnings: readonly BpmnImportWarning[];
   readonly status: SessionStatus;
   readonly error: string | null;
 }
@@ -96,6 +98,14 @@ function mermaidTitle(path: string): string {
   return baseName(path).replace(/\.(?:mmd|mermaid)$/i, "");
 }
 
+function isBpmnPath(path: string): boolean {
+  return /\.bpmn$/i.test(path);
+}
+
+function bpmnTitle(path: string): string {
+  return baseName(path).replace(/\.bpmn$/i, "");
+}
+
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -125,6 +135,7 @@ export class DocumentSession {
     dirty: false,
     conflict: null,
     recent: [],
+    importWarnings: [],
     status: "idle",
     error: null,
   };
@@ -202,6 +213,7 @@ export class DocumentSession {
       filePath: null,
       fileName: null,
       dirty: false,
+      importWarnings: [],
       conflict: null,
       status: "idle",
       error: null,
@@ -213,7 +225,11 @@ export class DocumentSession {
    * Returns false when refused (a cloud room owns the editor) or overtaken by
    * a newer open, import or hand-over while the old watch was stopping.
    */
-  async importDocument(document: Document, name: string): Promise<boolean> {
+  async importDocument(
+    document: Document,
+    name: string,
+    importWarnings: readonly BpmnImportWarning[] = [],
+  ): Promise<boolean> {
     assertValidDocument(document);
     if (this.refuseWhileSuspended()) {
       return false;
@@ -230,6 +246,7 @@ export class DocumentSession {
       filePath: null,
       fileName: baseName(name),
       dirty: true,
+      importWarnings,
       conflict: null,
       status: "idle",
       error: null,
@@ -304,6 +321,28 @@ export class DocumentSession {
       }
     }
 
+    if (isBpmnPath(path)) {
+      try {
+        const { importBpmnXml } = await import("@nodetto/io/bpmn");
+        if (stale()) {
+          return false;
+        }
+        const report = importBpmnXml(diskText, { title: bpmnTitle(path) });
+        // BPMN XML is an interchange source, not our persistence format.
+        // Keep it detached so autosave can never rewrite the source file.
+        return await this.importDocument(
+          report.document,
+          baseName(path),
+          report.warnings,
+        );
+      } catch (error) {
+        if (!stale()) {
+          this.fail(`could not import ${baseName(path)}: ${describe(error)}`);
+        }
+        return false;
+      }
+    }
+
     const parsed = parseDocumentResult(diskText);
     if (!parsed.ok) {
       // A file we cannot parse leaves the open document untouched: losing
@@ -323,6 +362,7 @@ export class DocumentSession {
       filePath: path,
       fileName: baseName(path),
       dirty: false,
+      importWarnings: [],
       conflict: null,
       status: "idle",
       error: null,

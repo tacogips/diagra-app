@@ -1,7 +1,7 @@
 # @nodetto/io
 
 Persistence and interchange adapters. Adapters consume and produce
-`@nodetto/ir` documents only — no editor state, no Yjs, no DOM, no framework.
+`@nodetto/ir` documents only - no editor state, no Yjs, no DOM, no framework.
 
 Phase 1 (design section 11) ships JSONL in and out. Mermaid semantic import
 and export are available for ER, UML class and sequence content; SVG/PNG
@@ -31,7 +31,7 @@ intervals. Cross-page or dangling relationships are omitted and reported in
 `warnings`; composite unique indexes are retained in the IR but warned because
 Mermaid cannot express them as one ER attribute key.
 
-`importMermaid` accepts `erDiagram`, `classDiagram`, and `sequenceDiagram`
+`importMermaid` accepts `erNodettom`, `classNodettom`, and `sequenceNodettom`
 source up to 1 MiB, returns a new validated document with deterministic IDs and
 an editable initial layout, and reports unsupported or lossy statements with
 source line numbers. It understands the subset emitted by Nodetto plus common
@@ -50,13 +50,22 @@ const report = exportD2(document, pageId);
 
 `exportD2` produces deterministic `.d2` source for mixed architecture and
 flow pages while using D2's native `sql_table`, `class`, and
-`sequence_diagram` shapes for semantic ER, UML, and sequence layers. Explicit
+`sequence_nodettom` shapes for semantic ER, UML, and sequence layers. Explicit
 frame/group membership becomes nested containers; relationships retain row
 targets, supported arrowheads, crow-foot cardinality, message order, return
 dashes, and activation spans. Portable solid paint, strokes, dimensions,
 opacity, typography flags, corner radius, and shadow presence are retained.
 Unsupported or lossy constructs are omitted or reduced with element-addressed
 warnings instead of generating dangling D2 references.
+
+## BPMN 2.0 XML
+
+`importBpmnXml` reads BPMN 2.0 XML into a BPMN page, and `exportBpmnXml`
+produces deterministic XML with the standard BPMN and nodettom-interchange
+namespaces. `bpmnSemanticProjection` provides the semantic comparison used
+for round-trip checks. The adapter has no XML package dependency; its parser
+rejects `DOCTYPE`. Unsupported BPMN constructs and foreign XML content are
+preserved as interchange metadata and reported with warnings.
 
 ## JSONL
 
@@ -79,15 +88,15 @@ await writeFile(path, serializeDocument(document));
 The design requires clean git diffs, so writers emit exactly one canonical
 form (section 6):
 
-- **Record order** — the document record, then pages by id, then elements by
+- **Record order** - the document record, then pages by id, then elements by
   page then id, then unmodelled record kinds sorted by their canonical text.
   Readers do not depend on order; only writers sort.
-- **Key order** — the declared order for the record and for the element's
+- **Key order** - the declared order for the record and for the element's
   registered semantic payload, then every remaining key sorted by code unit.
   This is why the writer builds JSON text itself rather than calling
   `JSON.stringify`: JS objects hoist integer-like keys, which would make
   output depend on how an object was built.
-- **Coordinates** — rounded to 0.01, half away from zero, with `-0`
+- **Coordinates** - rounded to 0.01, half away from zero, with `-0`
   normalized to `0`. Rounding is total over the finite doubles: a finite
   coordinate is never turned into a non-finite one, so the writer can never
   emit a `null` the reader would then reject. Only keys declared as
@@ -104,7 +113,7 @@ for ERD, UML class, sequence, freeform and forward-compatible documents.
 ## Forward compatibility
 
 Nothing a newer nodetto writes is dropped on the way back out, with one
-qualification for numeric literals that JavaScript itself cannot represent —
+qualification for numeric literals that JavaScript itself cannot represent -
 see "Numeric fidelity" below:
 
 - Record kinds this build does not model are kept verbatim in
@@ -117,7 +126,7 @@ see "Numeric fidelity" below:
   untouched.
 - Field names that collide with the prototype chain are preserved, in both
   directions. A key that came out of a file never indexes a plain object
-  directly — see `src/jsonl/objects.ts`. Writing through plain assignment
+  directly - see `src/jsonl/objects.ts`. Writing through plain assignment
   would hit `Object.prototype`'s `__proto__` setter, drop the field and swap
   the object's prototype for file-controlled data; reading a nested key order
   through plain indexing would resolve `constructor` to the global `Object`
@@ -127,7 +136,7 @@ see "Numeric fidelity" below:
 
 A malformed `visual` that is not an object is also written back exactly as
 it was read, so `{ validate: false }` on both ends round-trips it instead of
-deleting it. With validation on — the default — such a document is rejected.
+deleting it. With validation on - the default - such a document is rejected.
 
 ### Numeric fidelity
 
@@ -148,8 +157,8 @@ gone before the writer runs, because `JSON.parse` is what loses it:
 A `-0` literal is also written back as `0`, matching `JSON.stringify`.
 
 Recovering these would take a custom number parser that keeps the literal as
-text, which is not worth it for a diagram format. All four converge on the
-first write and are idempotent from then on, so the file stays stable — but a
+text, which is not worth it for a nodettom format. All four converge on the
+first write and are idempotent from then on, so the file stays stable - but a
 field a newer build wrote past the double range does not survive a load-save
 cycle through this build.
 

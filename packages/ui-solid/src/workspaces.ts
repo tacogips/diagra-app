@@ -8,6 +8,7 @@ export type WorkspaceId =
   | "component"
   | "sequence"
   | "flow"
+  | "bpmn"
   | "all";
 export interface Workspace {
   readonly id: WorkspaceId;
@@ -77,6 +78,19 @@ export const WORKSPACES = [
       { tool: Tool.Dependency, label: "Dependency" },
       { tool: Tool.Realization, label: "Realization" },
       { tool: Tool.ComponentConnector, label: "Connector" },
+    ],
+  },
+  {
+    id: "bpmn",
+    label: "BPMN",
+    design: false,
+    shapes: false,
+    tools: [
+      { tool: Tool.BpmnTask, label: "Task" },
+      { tool: Tool.BpmnStartEvent, label: "Start event" },
+      { tool: Tool.BpmnEndEvent, label: "End event" },
+      { tool: Tool.BpmnExclusiveGateway, label: "Exclusive gateway" },
+      { tool: Tool.Connector, label: "Connector" },
     ],
   },
   { id: "all", label: "All tools", design: true, shapes: true, tools: [] },

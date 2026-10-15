@@ -103,12 +103,19 @@ export const VISUAL_KEY_ORDER: KeyOrder = {
     "layoutGrow",
     "layoutPosition",
     "strokeBounds",
+    "labelBounds",
     "colorTokens",
     "numberTokens",
     "textStyle",
     "style",
   ],
-  children: { style: VISUAL_STYLE_KEY_ORDER },
+  children: {
+    labelBounds: {
+      keys: ["x", "y", "width", "height"],
+      coordinates: ["x", "y", "width", "height"],
+    },
+    style: VISUAL_STYLE_KEY_ORDER,
+  },
   coordinates: [
     "x",
     "y",

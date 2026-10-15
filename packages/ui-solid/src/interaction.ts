@@ -1244,6 +1244,39 @@ export function createInteraction(
       }
       return;
     }
+    if (tool === "bpmn:lane") {
+      const container = editor.store
+        .getPageElements(editor.currentPageId)
+        .filter(
+          (element) =>
+            element.type === "bpmn.lane" || element.type === "bpmn.participant",
+        )
+        .map((element) => ({ element, bounds: editor.getBounds(element.id) }))
+        .filter(
+          (
+            candidate,
+          ): candidate is {
+            element: Element;
+            bounds: Box;
+          } =>
+            candidate.bounds !== null &&
+            point.x >= candidate.bounds.x &&
+            point.x <= candidate.bounds.x + candidate.bounds.width &&
+            point.y >= candidate.bounds.y &&
+            point.y <= candidate.bounds.y + candidate.bounds.height,
+        )
+        .sort(
+          (left, right) =>
+            left.bounds.width * left.bounds.height -
+            right.bounds.width * right.bounds.height,
+        )[0]?.element;
+      if (container) {
+        const result = editor.addBpmnLane(container.id);
+        if (result.ok) editor.selection.set([result.id]);
+      }
+      options.setTool("select");
+      return;
+    }
     if (creation.type === "sequence.participant") {
       const semantic = creation.semantic as {
         kind?: "actor" | "service" | "db";
@@ -1263,8 +1296,23 @@ export function createInteraction(
     const box = editor
       .getShapeUtil(creation.type)
       .getBounds(draft, editor.createShapeContext());
+    const semantic =
+      creation.type.startsWith("bpmn.") &&
+      (creation.type === "bpmn.event" || creation.type === "bpmn.boundaryEvent")
+        ? {
+            ...(draft.semantic as Record<string, unknown>),
+            definitions: (
+              (draft.semantic as { definitions?: readonly { id: string }[] })
+                .definitions ?? []
+            ).map((definition, index) => ({
+              ...definition,
+              id: `def-${draft.id}-${index + 1}`,
+            })),
+          }
+        : draft.semantic;
     const element: Element = {
       ...draft,
+      semantic,
       visual: {
         ...draft.visual,
         x: point.x - (box?.width ?? 0) / 2,
@@ -1753,6 +1801,10 @@ export function createInteraction(
       !isUmlComponentEndpoint(editor.store.get(target)?.type ?? "")
     )
       return;
+    if (element.type.startsWith("bpmn.")) {
+      editor.reconnectBpmnFlow(id, end, target);
+      return;
+    }
     const current = endpointReaderFor(element.type)(element.semantic);
     if (current && current[end] === target) {
       return;

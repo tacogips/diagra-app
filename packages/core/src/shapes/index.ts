@@ -22,6 +22,13 @@ import {
 import { umlAssociationShapeUtil } from "./umlAssociation.ts";
 import { umlClassShapeUtil } from "./umlClass.ts";
 import { unknownShapeUtil } from "./unknown.ts";
+import {
+  bpmnAssociationShapeUtil,
+  bpmnDataAssociationShapeUtil,
+  bpmnMessageFlowShapeUtil,
+  bpmnNodeShapeUtils,
+  bpmnSequenceFlowShapeUtil,
+} from "./bpmn.ts";
 
 import { umlComponentShapeUtils } from "./umlComponent.ts";
 
@@ -111,5 +118,10 @@ export function createDefaultRegistry(): ShapeUtilRegistry {
     .register(textNoteShapeUtil)
     .register(groupShapeUtil);
   for (const util of umlComponentShapeUtils) registry.register(util);
-  return registry;
+  for (const util of bpmnNodeShapeUtils) registry.register(util);
+  return registry
+    .register(bpmnSequenceFlowShapeUtil)
+    .register(bpmnMessageFlowShapeUtil)
+    .register(bpmnAssociationShapeUtil)
+    .register(bpmnDataAssociationShapeUtil);
 }

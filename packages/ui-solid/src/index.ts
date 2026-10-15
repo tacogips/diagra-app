@@ -111,3 +111,12 @@ export {
   writeWorkspacePreference,
   type WorkspaceId,
 } from "./workspaces.ts";
+export {
+  BpmnProblemsPanel,
+  type BpmnProblemsPanelProps,
+} from "./BpmnProblemsPanel.tsx";
+export {
+  bpmnProblemRows,
+  focusBpmnProblem,
+  type BpmnProblemRow,
+} from "./bpmn-problems.ts";

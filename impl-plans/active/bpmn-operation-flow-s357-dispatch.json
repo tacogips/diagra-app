@@ -1,0 +1,730 @@
+{
+  "taskId": "bpmn-operation-flow-s357",
+  "workflowMode": "issue-resolution",
+  "workflowExecutionId": "opus-luna-design-and-implement-review-loop-session-357",
+  "implementationBranch": "feat/bpmn-operation-flow",
+  "baseBranch": "feat/bpmn-operation-flow",
+  "remote": "origin",
+  "originalHead": "86f955fff76569c4cced5a2e103ba796960b7f26",
+  "supersedes": {
+    "manifestPath": "impl-plans/active/bpmn-operation-flow-s356-dispatch.json",
+    "taskId": "bpmn-operation-flow-s356",
+    "reason": "Continuation of session-356. The accepted session-357 plans put this session's evidence under tmp/bpmn-operation-flow-s357, and evidenceRoot must equal tmp/<taskId>, so this manifest uses task id bpmn-operation-flow-s357. The s356 manifest is kept only as a historical record and must not be dispatched."
+  },
+  "designDocPaths": [
+    "design-docs/specs/design-bpmn.md",
+    "design-docs/user-qa/bpmn-operation-flow.md"
+  ],
+  "overviewPlanPath": "impl-plans/active/bpmn-00-overview.md",
+  "overviewPlanNote": "bpmn-00-overview is the accepted index and orchestrator protocol (waves, shared-file rules, per-worker protocol, serial reconciliation, final verification). It is not dispatched to a worker; the orchestrator applies it at every wave join.",
+  "revision": {
+    "session": "opus-luna-design-and-implement-review-loop-session-357",
+    "baseHead": "86f955fff76569c4cced5a2e103ba796960b7f26",
+    "summary": "Test-ownership revision (design-bpmn.md 3.5, 11, 11.1). bpmn-01 owns registry.test.ts, golden.test.ts and __fixtures__/bpmn.jsonl. bpmn-02 owns __fixtures__/bpmn/fixtures.test.ts. bpmn-14 owns core/src/bpmn/docs-example.test.ts and no longer runs the CLI. Every plan starts verification with a focused owned bun test. grep -P is replaced by a portable ASCII check. Wave 1 is a continuation: keep the uncommitted wave-1 work and progress logs and append a Resume section."
+  },
+  "evidenceRoot": "tmp/bpmn-operation-flow-s357",
+  "evidenceLayout": "tmp/bpmn-operation-flow-s357/<planId>/<command-name>.log per plan, with per-attempt dispatcher output under tmp/bpmn-operation-flow-s357/<planId>/attempt-<n>/. Untracked: tmp/ is git-ignored. The session-356 evidence under tmp/bpmn-operation-flow-s356 is kept as is.",
+  "reviewContext": {
+    "issueReference": "No GitHub issue. Workflow input 'Continue: BPMN 2.0 operation flow (business process) diagrams in nodetto'. Continuation of opus-luna-design-and-implement-review-loop-session-356 (design and plans committed in 86f955f). Execution opus-luna-design-and-implement-review-loop-session-357. Step 5 accepted the revised plans in comm-006098, reviewing the Step 4 output comm-006097 against the design accepted in comm-006096.",
+    "userProblem": "nodetto users cannot author and manage BPMN 2.0 operation flows the way the Future Tech Blog article does with bpmn.io: typed semantic BPMN elements in JSONL, BPMN-correct editing, bpmnlint-equivalent lint in editor and CI, BPMN 2.0 XML interchange with bpmn.io, BPMN rendering in SVG export, and AI-ready documentation.",
+    "requiredOutcomes": [
+      "A 'bpmn' page kind with a Descriptive BPMN palette; 16 bpmn.* registry types with typed semantic payloads, validation, key order and Yjs collab round trip; SCHEMA_VERSION stays 1 (user-QA Q3 default).",
+      "BPMN notation (pool/lane headers, task icons, event borders and filled/hollow icons, gateway markers, flow styles, labels below events/gateways) rendered from one shared notation module in both the ui-solid canvas and the core SVG export; the original purchase-request fixture SVG has the pinned role counts.",
+      "Editor intent methods reject or correct BPMN-invalid connections (message flow inside one pool, sequence flow across pools, incoming flow to start event, outgoing flow from end event), with tests; containment, pool/lane movement and lane stacking.",
+      "bpmnlint-equivalent lint with the 23 bpmnlint rule ids, recommended severities and .bpmnlintrc-style config; the draft fixture reports exactly label-required, no-implicit-end, no-implicit-start; complete, swapped and inverted fixtures lint clean.",
+      "nodetto-cli lint, bpmn import and bpmn export (--check like ddl --check, --format json, deterministic exit codes 0/1/2/3).",
+      "Dependency-free BPMN 2.0 XML import/export in packages/io; import->export->import semantically lossless; unsupported constructs imported with warnings; four local reference files import (test skipped when .reference is absent).",
+      "Desktop: Add BPMN page, problems panel selecting offending elements, Import BPMN.../Export BPMN... menu entries, .bpmn opening as a detached import, open-dialog filter and macOS file association.",
+      "README and docs/bpmn (format, lint rules, AI review guideline) plus an original purchase-request example document.",
+      "Every plan owns at least one bun test with a positive pass count, and owns every existing test that pins a list it changes (design 11.1).",
+      "Whole-repo bun run typecheck, bunx biome check . and bun test pass; cargo check/fmt pass for the Rust change."
+    ],
+    "nonGoals": [
+      "PNG/PDF export or a generic nodetto-cli export command",
+      "bpmn-js, bpmnlint, bpmn-moddle or any XML library dependency",
+      "choreography, conversation and transaction semantics (preserved as raw XML only)",
+      "executable/Camunda attributes beyond opaque preservation",
+      "vertical pools (imported with a warning, drawn horizontally)",
+      "native Tauri menu, desktop-editable lint config, lint plugin support",
+      "schema version bump or IR migration entry",
+      "version bumps, tags, releases, main-branch pushes, Homebrew cask changes",
+      "redesign of the accepted session-356 design"
+    ],
+    "constraints": [
+      "Public repository: no server code, auth, secrets, cloud endpoints or deployment config.",
+      "Commit and push only on feat/bpmn-operation-flow; workers perform no git write operations; orchestrator commits each wave serially with explicit paths; never git add -A.",
+      "Never copy files, text, labels, ids or geometry from .reference/; never commit .reference/.",
+      "No new npm or cargo dependencies; bun.lock unchanged.",
+      "Strict TypeScript (no any, no @ts-ignore), Biome style, ASCII only, no emojis; cargo commands with CARGO_TERM_QUIET=true.",
+      "Existing page kinds, fixtures and tests unchanged and passing, except the pinned-list tests explicitly owned by bpmn-01 (registry.test.ts, golden.test.ts).",
+      "Editor legality checks only in Editor intent methods, never in applyCommands, command validation, History, clipboard, imports or collab.",
+      "Each worker edits only its writePaths, its declared sharedPaths with the fresh-read and pre/post sha256 protocol, and its own impl-plans/progress/<planId>.md; foreground commands only; format only own files.",
+      "Wave 1 is a continuation: the uncommitted bpmn-01 and bpmn-02 work and progress logs in the working tree are preserved, never reverted, regenerated, checked out or stashed."
+    ],
+    "designDecisionsAndRationale": [
+      "BPMN elements are first-class registry types with semantic payloads (not styled shapes) so AI tools can read and diff semantics separately from visual data (design 3.2).",
+      "Waypoint-basis math moves from core connector.ts into @nodetto/ir because @nodetto/io needs it and cannot import @nodetto/core (design 5.2).",
+      "One renderer-neutral notation module feeds both the SVG export and ui-solid views so canvas and export cannot diverge and tests can count roles; MarkerKind is unchanged because it keys Record tables (design 6.1, 6.2).",
+      "Connection legality lives in Editor intent methods (connectBpmn, connectSmart delegation, reconnectBpmnFlow, updateBpmnSemantic) so imports, undo, clipboard and collab keep accepting stored documents (design 4.3).",
+      "Hand-written non-validating XML parser and deterministic serializer that rejects DOCTYPE, avoiding dependencies (design 5.1, 14).",
+      "Export route resolver is injected through options.routeOf so io does not depend on core (design 5.3).",
+      "Lint rule semantics are ported from bpmnlint documentation and pinned by per-rule tests and reference rule-id multisets; messages use nodetto's own wording (design 7.3, 13).",
+      "Cross-package fixture acceptance tests live in @nodetto/core because only core dev-depends on @nodetto/io (bpmn-13).",
+      "Test ownership (design 11.1): pinned-list tests registry.test.ts and golden.test.ts plus the new canonical __fixtures__/bpmn.jsonl belong to bpmn-01; bpmn-02 and bpmn-14 own bun tests so every plan reports a positive pass count.",
+      "User-QA defaults: lane delete cascades (Q1), desktop lint always uses recommended (Q2), SCHEMA_VERSION stays 1 with no migration (Q3)."
+    ],
+    "intentionalTradeoffs": [
+      "Deleting a lane deletes its member nodes (cascade), unlike bpmn-js; undo restores them.",
+      "BPMNDI ids (<id>_di) and edge docking points are regenerated on export; semantic ids, shape/label bounds and interior waypoints are preserved.",
+      "Older builds reject documents containing a bpmn page with a value.enum error instead of a newer-schema message.",
+      "A top-edge lane resize is treated as a bottom-edge resize; a direct lane width change is restored from the parent (design 4.4).",
+      "keyBetween RangeError fallback in addBpmnLane can leave a lane above its members until reordered.",
+      "No palette entry for boundary events (Descriptive palette); they are created through import and the API.",
+      "Text summary line of lint output has no leading symbol.",
+      "packages/core/src/bpmn/index.ts is a designated shared barrel appended by bpmn-03/04/05 in wave 2 under the pre/post sha256 protocol; the orchestrator verifies all 6 expected export lines after wave 2 (reconciliation.afterWave2)."
+    ],
+    "supportedEdgeCases": [
+      "Nested lanes, collapsed black-box pools, expanded and collapsed sub-processes, boundary events (interrupting and non-interrupting).",
+      "Message flow inside one pool, sequence flow across pools, incoming flow to a start event and outgoing flow from an end event are rejected or corrected at edit time but accepted on import/undo/collab.",
+      "Unsupported BPMN constructs and foreign XML extension content preserved with import warnings, never silently dropped; DOCTYPE and malformed XML rejected with a parse error.",
+      "Reference-file tests skip when .reference is absent (CI) and run locally.",
+      "Imported .bpmn in the desktop stays detached (filePath null) so autosave never overwrites the source file.",
+      "Pool move translates lanes and contents; lane resize restacks siblings with one undo step."
+    ],
+    "outOfScopeEdgeCases": [
+      "Vertical pools rendered vertically",
+      "Choreography/conversation diagrams and transaction semantics",
+      "Lane deletion that re-parents nodes instead of cascading",
+      "Per-document or desktop lint configuration; plugin:* extends (config error)",
+      "Rule options (accepted and ignored)",
+      "A pool placed over existing tasks uses generic nextIndex placement",
+      "PNG/PDF image output"
+    ],
+    "sourcePaths": [
+      "design-docs/specs/design-bpmn.md",
+      "design-docs/user-qa/bpmn-operation-flow.md",
+      "impl-plans/active/bpmn-00-overview.md",
+      "impl-plans/active/bpmn-01-ir-core-contract.md",
+      "impl-plans/active/bpmn-02-fixtures.md",
+      "impl-plans/active/bpmn-03-core-editing.md",
+      "impl-plans/active/bpmn-04-core-notation-svg.md",
+      "impl-plans/active/bpmn-05-core-lint.md",
+      "impl-plans/active/bpmn-06-io-bpmn-xml.md",
+      "impl-plans/active/bpmn-07-collab.md",
+      "impl-plans/active/bpmn-08-ui-solid-views.md",
+      "impl-plans/active/bpmn-09-ui-solid-palette.md",
+      "impl-plans/active/bpmn-10-ui-solid-inspector.md",
+      "impl-plans/active/bpmn-11-ui-solid-problems-panel.md",
+      "impl-plans/active/bpmn-12-cli.md",
+      "impl-plans/active/bpmn-13-core-integration-tests.md",
+      "impl-plans/active/bpmn-14-docs.md",
+      "impl-plans/active/bpmn-15-desktop.md"
+    ]
+  },
+  "acceptedDependencies": [],
+  "reconciliation": {
+    "owner": "orchestrator",
+    "afterEachWave": [
+      "bun run typecheck",
+      "bunx biome check .",
+      "bun test",
+      "test \"$(grep -c '^export \\* from' packages/core/src/bpmn/index.ts)\" -eq \"$(sort -u packages/core/src/bpmn/index.ts | grep -c '^export \\* from')\""
+    ],
+    "afterWave2": [
+      "for l in model.ts connection.ts containment.ts notation.ts routes.ts lint/index.ts; do test \"$(grep -cxF \"export * from \\\"./$l\\\";\" packages/core/src/bpmn/index.ts)\" -eq 1 || { echo \"missing or duplicate $l\"; exit 1; }; done",
+      "test \"$(grep -c '^export \\* from' packages/core/src/bpmn/index.ts)\" -eq 6"
+    ],
+    "afterWave3": [
+      "out=\"$(bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl)\" && test -z \"$out\""
+    ],
+    "finalVerification": [
+      "bun run typecheck",
+      "bunx biome check .",
+      "bun test",
+      "bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn; test $? -eq 1",
+      "out=\"$(bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" && test -z \"$out\"",
+      "test ! -d .reference/bpmn-article/docs || bun apps/cli/src/main.ts bpmn import .reference/bpmn-article/docs/purchase_request/purchase_request.bpmn > /dev/null",
+      "cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
+      "CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
+      "CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
+      "out=\"$(bun apps/cli/src/main.ts lint docs/bpmn/purchase-request.jsonl)\" && test -z \"$out\"",
+      "! LC_ALL=C grep -rl '[^[:print:][:space:]]' packages/core/src/bpmn packages/io/src/bpmn packages/io/src/__fixtures__/bpmn packages/io/src/__fixtures__/bpmn.jsonl apps/cli/src docs/bpmn design-docs impl-plans",
+      "test \"$(git status --short | grep -c '.reference')\" -eq 0"
+    ]
+  },
+  "plans": [
+    {
+      "planId": "bpmn-01-ir-core-contract",
+      "planPath": "impl-plans/active/bpmn-01-ir-core-contract.md",
+      "wave": 1,
+      "dependsOn": [],
+      "writePaths": [
+        "packages/ir/src/types.ts",
+        "packages/ir/src/semantics.ts",
+        "packages/ir/src/registry.ts",
+        "packages/ir/src/validate.ts",
+        "packages/ir/src/keyOrder.ts",
+        "packages/ir/src/connector-waypoints.ts",
+        "packages/ir/src/index.ts",
+        "packages/ir/src/bpmn.test.ts",
+        "packages/core/src/bpmn/model.ts",
+        "packages/core/src/bpmn/model.test.ts",
+        "packages/core/src/bpmn/index.ts",
+        "packages/core/src/index.ts",
+        "packages/core/src/shapes/bpmn.ts",
+        "packages/core/src/shapes/bpmn.test.ts",
+        "packages/core/src/shapes/index.ts",
+        "packages/core/src/shapes/outline.ts",
+        "packages/core/src/shapes/connector.ts",
+        "packages/io/src/jsonl/bpmn-compat.test.ts",
+        "packages/ir/src/registry.test.ts",
+        "packages/io/src/jsonl/golden.test.ts",
+        "packages/io/src/__fixtures__/bpmn.jsonl",
+        "impl-plans/progress/bpmn-01-ir-core-contract.md"
+      ],
+      "continuation": "The wave-1 implementation is already in the working tree. Keep it, re-hash it against the progress log and append a Resume section. Remaining work: extend registry.test.ts, append \"bpmn\" to GOLDEN in golden.test.ts, and add the canonical __fixtures__/bpmn.jsonl.",
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "writePathNotes": [
+        {
+          "path": "packages/core/src/bpmn/index.ts",
+          "intendedEdit": "bpmn-01 creates it with exactly one line `export * from \"./model.ts\";`; wave-2 plans bpmn-03/04/05 append their own export lines afterwards."
+        },
+        {
+          "path": "packages/core/src/shapes/connector.ts",
+          "intendedEdit": "bpmn-01 moves the two waypoint functions to @nodetto/ir, adds the local @nodetto/ir import and a re-export; bpmn-04 edits it later in wave 2."
+        },
+        {
+          "path": "packages/ir/src/registry.test.ts",
+          "intendedEdit": "Append the 16 bpmn.* types to the expected list of 'registers the design table plus assets and token resources'. Change nothing else."
+        },
+        {
+          "path": "packages/io/src/jsonl/golden.test.ts",
+          "intendedEdit": "Append \"bpmn\" to the GOLDEN tuple. Change nothing else."
+        },
+        {
+          "path": "packages/io/src/__fixtures__/bpmn.jsonl",
+          "intendedEdit": "New canonical type-coverage golden file: one bpmn page with all 16 bpmn.* types and no bpmn.* validation warnings. Write it through parseDocument + serializeDocument; never hand-format it."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "PAGE_KINDS ends with \"bpmn\"; registry.ts declares 16 bpmn.* types with typed semantic payloads and validation.",
+        "Visual.labelBounds exists and keyOrder.ts references labelBounds at least twice.",
+        "connectorWaypoint functions moved out of core connector.ts into packages/ir/src/connector-waypoints.ts and exported from @nodetto/ir; connector.ts imports and re-exports them.",
+        "packages/core/src/bpmn/index.ts contains exactly one export line; packages/ir/src/migrations.ts unchanged.",
+        "Existing page kinds unchanged. All verification commands exit 0. The progress log's Resume section lists hashes, test counts and log paths.",
+        "packages/ir/src/registry.test.ts and packages/io/src/jsonl/golden.test.ts pass with the 16 bpmn.* types. GOLDEN ends with \"bpmn\". packages/io/src/__fixtures__/bpmn.jsonl reserializes byte for byte and covers all 16 types.",
+        "Whole-repo bun test exits 0 with 0 failures."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/ir/src packages/core/src/bpmn packages/core/src/shapes packages/core/src/index.ts packages/io/src/jsonl",
+        "bun test packages/ir/src/bpmn.test.ts packages/ir/src/registry.test.ts packages/core/src/bpmn/model.test.ts packages/core/src/shapes/bpmn.test.ts packages/io/src/jsonl/bpmn-compat.test.ts packages/io/src/jsonl/golden.test.ts",
+        "bun test packages/ir packages/core/src/bpmn packages/core/src/shapes packages/io",
+        "bun test",
+        "test \"$(grep -c 'type: \"bpmn\\.' packages/ir/src/registry.ts)\" -eq 16",
+        "! grep -n 'export function connectorWaypoint' packages/core/src/shapes/connector.ts",
+        "grep -n connectorWaypointFromPage packages/ir/src/index.ts",
+        "test -z \"$(git diff --stat packages/ir/src/migrations.ts)\"",
+        "test \"$(grep -c '\"pageKind\":\"bpmn\"' packages/io/src/__fixtures__/bpmn.jsonl)\" -eq 1",
+        "grep -q '\"bpmn\"' packages/io/src/jsonl/golden.test.ts",
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn.jsonl"
+      ]
+    },
+    {
+      "planId": "bpmn-02-fixtures",
+      "planPath": "impl-plans/active/bpmn-02-fixtures.md",
+      "wave": 1,
+      "dependsOn": [],
+      "writePaths": [
+        "packages/io/src/__fixtures__/bpmn/purchase-request.bpmn",
+        "packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn",
+        "packages/io/src/__fixtures__/bpmn/purchase-request-swapped.bpmn",
+        "packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn",
+        "packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
+        "impl-plans/progress/bpmn-02-fixtures.md"
+      ],
+      "continuation": "The four .bpmn files are already in the working tree. Keep them, re-hash them against the progress log and append a Resume section. Remaining work: the owned fixtures-contract bun test.",
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "Four original .bpmn fixtures exist, well-formed per xmllint (or the gap is logged), with 12/11 sequence flows (complete/draft), 13 flowNodeRefs, 6 message event definitions, 17 BPMNShapes and 12 BPMNEdges in the complete file.",
+        "The inverted variant differs from the complete file only in the YES/NO name swaps (ignoring Definitions_ ids).",
+        "packages/io/src/__fixtures__/bpmn/fixtures.test.ts passes with a positive pass count and 0 failures. It uses only bun:test, node:fs and node:path (no io parser). It asserts the root and namespaces, tag balance, counts, the draft/swapped/inverted differences and ASCII-only.",
+        "ASCII only (portable LC_ALL=C check); no text, ids, labels or geometry from .reference/."
+      ],
+      "verification": [
+        "bun test packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
+        "bun run typecheck",
+        "bunx biome check packages/io/src/__fixtures__/bpmn/fixtures.test.ts",
+        "for f in packages/io/src/__fixtures__/bpmn/*.bpmn; do xmllint --noout \"$f\" || exit 1; done; echo ok",
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' packages/io/src/__fixtures__/bpmn/purchase-request.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-swapped.bpmn packages/io/src/__fixtures__/bpmn/purchase-request-inverted.bpmn packages/io/src/__fixtures__/bpmn/fixtures.test.ts"
+      ]
+    },
+    {
+      "planId": "bpmn-03-core-editing",
+      "planPath": "impl-plans/active/bpmn-03-core-editing.md",
+      "wave": 2,
+      "dependsOn": ["bpmn-01-ir-core-contract"],
+      "writePaths": [
+        "packages/core/src/bpmn/connection.ts",
+        "packages/core/src/bpmn/connection.test.ts",
+        "packages/core/src/bpmn/containment.ts",
+        "packages/core/src/bpmn/containment.test.ts",
+        "packages/core/src/bpmn/editor-bpmn.test.ts",
+        "packages/core/src/editor.ts",
+        "impl-plans/progress/bpmn-03-core-editing.md"
+      ],
+      "sharedPaths": ["packages/core/src/bpmn/index.ts"],
+      "sharedPathNotes": [
+        {
+          "path": "packages/core/src/bpmn/index.ts",
+          "intendedEdit": "Append exactly `export * from \"./connection.ts\";` and `export * from \"./containment.ts\";` at the end; fresh read and pre/post sha256 before and after; never reorder or delete other plans' lines."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "Editor rejects or corrects message flow inside one pool, sequence flow across pools, incoming flow to a start event and outgoing flow from an end event, with tests (acceptance criterion 3).",
+        "connectBpmn, connectSmart delegation, reconnectBpmnFlow, updateBpmnSemantic, addBpmnLane (keyBetween index, RangeError fallback to nextIndex) and onBpmnRejection exist per the pinned contracts.",
+        "planBpmnLaneLayout, planBpmnTranslations, planBpmnMembership each called once inside apply in that order, none in reconcileDerivedState; commands.ts contains no BPMN legality checks.",
+        "Lane layout tests with exact coordinates, shrink-clamp and nested-lane tests pass; one undo restores everything.",
+        "packages/core/src/bpmn/index.ts contains the two new lines exactly once plus the bpmn-01 line."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn packages/core/src/editor.ts",
+        "bun test packages/core/src/bpmn/connection.test.ts packages/core/src/bpmn/containment.test.ts packages/core/src/bpmn/editor-bpmn.test.ts",
+        "bun test packages/core",
+        "bun test packages/ui-solid packages/collab",
+        "! grep -n 'resolveBpmnConnection\\|bpmn' packages/core/src/commands.ts",
+        "test \"$(grep -c '^export \\* from \"./connection.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1",
+        "test \"$(grep -c '^export \\* from \"./containment.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1"
+      ]
+    },
+    {
+      "planId": "bpmn-04-core-notation-svg",
+      "planPath": "impl-plans/active/bpmn-04-core-notation-svg.md",
+      "wave": 2,
+      "dependsOn": ["bpmn-01-ir-core-contract"],
+      "writePaths": [
+        "packages/core/src/bpmn/notation.ts",
+        "packages/core/src/bpmn/notation.test.ts",
+        "packages/core/src/bpmn/routes.ts",
+        "packages/core/src/bpmn/routes.test.ts",
+        "packages/core/src/bpmn/svg-export-bpmn.test.ts",
+        "packages/core/src/svg-export.ts",
+        "impl-plans/progress/bpmn-04-core-notation-svg.md"
+      ],
+      "sharedPaths": [
+        "packages/core/src/bpmn/index.ts",
+        "packages/core/src/shapes/connector.ts"
+      ],
+      "sharedPathNotes": [
+        {
+          "path": "packages/core/src/bpmn/index.ts",
+          "intendedEdit": "Append exactly `export * from \"./notation.ts\";` and `export * from \"./routes.ts\";` at the end; fresh read and pre/post sha256; never reorder or delete other plans' lines."
+        },
+        {
+          "path": "packages/core/src/shapes/connector.ts",
+          "intendedEdit": "Created/edited first by bpmn-01 (wave 1); bpmn-04 adds bpmn.* branches only inside connectorDecoration and connectorDefaultDash. MarkerKind is not changed. No other plan edits it in wave 2."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "A renderer-neutral notation module (bpmnNotation, bpmnFlowDecoration) produces primitives with the pinned role classes for every BPMN element and flow decoration; svg-export maps them.",
+        "bpmnRouteResolver provides the waypoints used by BPMN XML export.",
+        "MarkerKind and MARKER_IDS unchanged; connector.ts changes after bpmn-01 limited to connectorDecoration and connectorDefaultDash.",
+        "Rendering of non-BPMN types unchanged; packages/core/src/bpmn/index.ts has the two new lines once each."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn packages/core/src/svg-export.ts packages/core/src/shapes/connector.ts",
+        "bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/routes.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts",
+        "bun test packages/core",
+        "bun test packages/ui-solid",
+        "test \"$(grep -c '^export \\* from \"./notation.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1",
+        "test \"$(grep -c '^export \\* from \"./routes.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1"
+      ]
+    },
+    {
+      "planId": "bpmn-05-core-lint",
+      "planPath": "impl-plans/active/bpmn-05-core-lint.md",
+      "wave": 2,
+      "dependsOn": ["bpmn-01-ir-core-contract"],
+      "writePaths": [
+        "packages/core/src/bpmn/lint",
+        "impl-plans/progress/bpmn-05-core-lint.md"
+      ],
+      "sharedPaths": ["packages/core/src/bpmn/index.ts"],
+      "sharedPathNotes": [
+        {
+          "path": "packages/core/src/bpmn/index.ts",
+          "intendedEdit": "Append exactly `export * from \"./lint/index.ts\";` at the end; fresh read and pre/post sha256; lint/index.ts must not re-export test-builder.ts."
+        }
+      ],
+      "writePathNotes": [
+        {
+          "path": "packages/core/src/bpmn/lint",
+          "intendedEdit": "New directory owned by bpmn-05: index.ts, engine.ts, config.ts, rules.ts, test-builder.ts, engine.test.ts, config.test.ts, rules.test.ts."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "BPMN_LINT_RULE_IDS has exactly the 23 bpmnlint rule ids with recommended severities, asserted in a test.",
+        ".bpmnlintrc-style config (extends recommended, per-rule off/warn/error); plugin:* extends is a config error; rule options accepted and ignored.",
+        "Deterministic findings with nodetto's own messages; every rule id has positive and negative tests in rules.test.ts.",
+        "packages/core/src/bpmn/index.ts has the lint line once."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn/lint",
+        "bun test packages/core/src/bpmn/lint",
+        "bun test packages/core",
+        "test -z \"$(for r in label-required no-implicit-end no-implicit-start start-event-required end-event-required no-disconnected conditional-flows no-duplicate-sequence-flows no-gateway-join-fork no-implicit-split single-blank-start-event single-event-definition superfluous-gateway fake-join no-complex-gateway no-inclusive-gateway no-overlapping-elements superfluous-termination sub-process-blank-start-event event-sub-process-typed-start-event link-event ad-hoc-sub-process no-bpmndi; do grep -q \"\\\"$r\\\"\" packages/core/src/bpmn/lint/rules.test.ts || echo missing $r; done)\"",
+        "test \"$(grep -c '^export \\* from \"./lint/index.ts\";$' packages/core/src/bpmn/index.ts)\" -eq 1"
+      ]
+    },
+    {
+      "planId": "bpmn-06-io-bpmn-xml",
+      "planPath": "impl-plans/active/bpmn-06-io-bpmn-xml.md",
+      "wave": 2,
+      "dependsOn": ["bpmn-01-ir-core-contract", "bpmn-02-fixtures"],
+      "writePaths": [
+        "packages/io/src/bpmn",
+        "packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
+        "packages/io/src/index.ts",
+        "packages/io/package.json",
+        "impl-plans/progress/bpmn-06-io-bpmn-xml.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "writePathNotes": [
+        {
+          "path": "packages/io/src/bpmn",
+          "intendedEdit": "New directory owned by bpmn-06: xml.ts, import.ts, export.ts, ids.ts, equivalence.ts, index.ts, xml.test.ts, import.test.ts, export.test.ts, roundtrip.test.ts, reference.test.ts."
+        },
+        {
+          "path": "packages/io/package.json",
+          "intendedEdit": "Add only the exports entry \"./bpmn\": \"./src/bpmn/index.ts\"; no dependency change; bun.lock unchanged."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "Dependency-free XML parser (DOCTYPE rejected, malformed input tests) and deterministic serializer.",
+        "importBpmnXml preserves ids, semantics, lanes, flows, labels and positions; unsupported and foreign content preserved with warnings; exportBpmnXml writes spec-valid BPMN 2.0 XML with bpmn/bpmndi/dc/di namespaces, byte-deterministic.",
+        "Import -> export -> import is semantically lossless via bpmnSemanticProjection; generated purchase-request.jsonl pinned by the round-trip test.",
+        "Reference test imports all four .reference files locally and skips when .reference is absent.",
+        "@nodetto/io does not import @nodetto/core; package.json diff touches only exports; .reference not tracked."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/io/src/bpmn packages/io/src/index.ts",
+        "test \"$(bun -e 'console.log(JSON.parse(require(\"fs\").readFileSync(\"packages/io/package.json\",\"utf8\")).exports[\"./bpmn\"])')\" = \"./src/bpmn/index.ts\"",
+        "bun test packages/io/src/bpmn",
+        "bun test packages/io",
+        "bun test",
+        "! grep -rn '@nodetto/core' packages/io/src",
+        "test -z \"$(git status --short .reference)\"",
+        "test -z \"$(git diff --stat bun.lock)\""
+      ]
+    },
+    {
+      "planId": "bpmn-07-collab",
+      "planPath": "impl-plans/active/bpmn-07-collab.md",
+      "wave": 2,
+      "dependsOn": ["bpmn-01-ir-core-contract"],
+      "writePaths": [
+        "packages/collab/src/test-fixtures.ts",
+        "packages/collab/src/bpmn.test.ts",
+        "impl-plans/progress/bpmn-07-collab.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "bpmnDocument() fixture added to allFixtures(); BPMN documents round-trip through irToYDoc/ydocToIr including labelBounds and definitions.",
+        "Two-client merges converge for parent move plus rename and for definitions edits merged by id; page kind bpmn survives.",
+        "No production collab code changed; any merge defect is reported as an open issue, not patched."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/collab/src/test-fixtures.ts packages/collab/src/bpmn.test.ts",
+        "bun test packages/collab/src/bpmn.test.ts",
+        "bun test packages/collab",
+        "test -z \"$(git diff --name-only packages/collab/src | grep -v -e 'packages/collab/src/test-fixtures.ts' -e 'packages/collab/src/bpmn.test.ts')\""
+      ]
+    },
+    {
+      "planId": "bpmn-08-ui-solid-views",
+      "planPath": "impl-plans/active/bpmn-08-ui-solid-views.md",
+      "wave": 3,
+      "dependsOn": ["bpmn-04-core-notation-svg"],
+      "writePaths": [
+        "packages/ui-solid/src/shapes/BpmnShapeView.tsx",
+        "packages/ui-solid/src/shapes/bpmn-primitive.ts",
+        "packages/ui-solid/src/shapes/bpmn-primitive.test.ts",
+        "packages/ui-solid/src/shapes/ShapeView.tsx",
+        "packages/ui-solid/src/shapes/ConnectorView.tsx",
+        "impl-plans/progress/bpmn-08-ui-solid-views.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "The canvas draws BPMN notation from the same bpmn-04 primitives as the SVG export, including labels below events and gateways.",
+        "ShapeView.tsx imports BpmnShapeView and has one Match for it; MARKER_ELEMENTS and ConnectorMarkers unchanged; non-BPMN views unchanged."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/ui-solid/src/shapes",
+        "bun test packages/ui-solid/src/shapes/bpmn-primitive.test.ts",
+        "bun test packages/ui-solid",
+        "grep -n BpmnShapeView packages/ui-solid/src/shapes/ShapeView.tsx"
+      ]
+    },
+    {
+      "planId": "bpmn-09-ui-solid-palette",
+      "planPath": "impl-plans/active/bpmn-09-ui-solid-palette.md",
+      "wave": 3,
+      "dependsOn": ["bpmn-03-core-editing"],
+      "writePaths": [
+        "packages/ui-solid/src/tools.ts",
+        "packages/ui-solid/src/Toolbar.tsx",
+        "packages/ui-solid/src/interaction.ts",
+        "packages/ui-solid/src/PageTabs.tsx",
+        "packages/ui-solid/src/bpmn-palette.test.ts",
+        "impl-plans/progress/bpmn-09-ui-solid-palette.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "A separate BPMN tool menu (Descriptive palette) shows on bpmn pages; TOOL_MENUS and ACTION_MENUS unchanged.",
+        "Every BPMN_TOOLS id carries a complete semantic payload; placing every tool except bpmn:lane creates one bpmn.* element with no error-severity validateDocument issues.",
+        "The lane tool calls editor.addBpmnLane; dragging a BPMN flow end calls editor.reconnectBpmnFlow; edge.generic reconnect unchanged.",
+        "Add BPMN page appears in PageTabs; Toolbar.test.ts and interaction.test.ts unchanged and passing."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/ui-solid/src/tools.ts packages/ui-solid/src/Toolbar.tsx packages/ui-solid/src/interaction.ts packages/ui-solid/src/PageTabs.tsx packages/ui-solid/src/bpmn-palette.test.ts",
+        "bun test packages/ui-solid/src/bpmn-palette.test.ts",
+        "bun test packages/ui-solid",
+        "test -z \"$(git diff packages/ui-solid/src/Toolbar.test.ts packages/ui-solid/src/interaction.test.ts)\"",
+        "grep -n reconnectBpmnFlow packages/ui-solid/src/interaction.ts",
+        "grep -n addBpmnLane packages/ui-solid/src/interaction.ts",
+        "grep -n validateDocument packages/ui-solid/src/bpmn-palette.test.ts"
+      ]
+    },
+    {
+      "planId": "bpmn-10-ui-solid-inspector",
+      "planPath": "impl-plans/active/bpmn-10-ui-solid-inspector.md",
+      "wave": 3,
+      "dependsOn": ["bpmn-03-core-editing"],
+      "writePaths": [
+        "packages/ui-solid/src/inspector/BpmnSection.tsx",
+        "packages/ui-solid/src/inspector/bpmn-edits.ts",
+        "packages/ui-solid/src/inspector/bpmn-edits.test.ts",
+        "packages/ui-solid/src/Inspector.tsx",
+        "impl-plans/progress/bpmn-10-ui-solid-inspector.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "BpmnSection edits BPMN semantic fields, including task type and catch/throw switching, through updateBpmnSemantic on the same element id so connections are kept.",
+        "Options that violate editing rules are disabled; BpmnSection does not use the generic updateSemantic path; other inspector sections unchanged."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/ui-solid/src/inspector/BpmnSection.tsx packages/ui-solid/src/inspector/bpmn-edits.ts packages/ui-solid/src/inspector/bpmn-edits.test.ts packages/ui-solid/src/Inspector.tsx",
+        "bun test packages/ui-solid/src/inspector/bpmn-edits.test.ts",
+        "bun test packages/ui-solid",
+        "! grep -n 'updateSemantic\"' packages/ui-solid/src/inspector/BpmnSection.tsx",
+        "grep -n updateBpmnSemantic packages/ui-solid/src/inspector/BpmnSection.tsx"
+      ]
+    },
+    {
+      "planId": "bpmn-11-ui-solid-problems-panel",
+      "planPath": "impl-plans/active/bpmn-11-ui-solid-problems-panel.md",
+      "wave": 3,
+      "dependsOn": [
+        "bpmn-03-core-editing",
+        "bpmn-05-core-lint",
+        "bpmn-06-io-bpmn-xml"
+      ],
+      "writePaths": [
+        "packages/ui-solid/src/BpmnProblemsPanel.tsx",
+        "packages/ui-solid/src/BpmnProblemsPanel.css",
+        "packages/ui-solid/src/bpmn-problems.ts",
+        "packages/ui-solid/src/bpmn-problems.test.ts",
+        "packages/ui-solid/src/index.ts",
+        "impl-plans/progress/bpmn-11-ui-solid-problems-panel.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "The problems panel lists lint findings of the active bpmn page with the recommended config; each row selects and frames the offending element.",
+        "A status line shows the last connection rejection via editor.onBpmnRejection; an Import warnings list shows BPMN import warnings.",
+        "BpmnProblemsPanel exported from packages/ui-solid/src/index.ts per the pinned contract."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/ui-solid/src/BpmnProblemsPanel.tsx packages/ui-solid/src/BpmnProblemsPanel.css packages/ui-solid/src/bpmn-problems.ts packages/ui-solid/src/bpmn-problems.test.ts packages/ui-solid/src/index.ts",
+        "bun test packages/ui-solid/src/bpmn-problems.test.ts",
+        "bun test packages/ui-solid",
+        "grep -n BpmnProblemsPanel packages/ui-solid/src/index.ts"
+      ]
+    },
+    {
+      "planId": "bpmn-12-cli",
+      "planPath": "impl-plans/active/bpmn-12-cli.md",
+      "wave": 3,
+      "dependsOn": [
+        "bpmn-04-core-notation-svg",
+        "bpmn-05-core-lint",
+        "bpmn-06-io-bpmn-xml"
+      ],
+      "writePaths": [
+        "apps/cli/src/commands.ts",
+        "apps/cli/src/main.ts",
+        "apps/cli/src/bpmn-commands.test.ts",
+        "impl-plans/progress/bpmn-12-cli.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "nodetto-cli lint <document.jsonl|file.bpmn> [--page] [--config] [--format text|json] with deterministic bpmnlint-like output and a summary line.",
+        "nodetto-cli bpmn import [--output] [--strict] and bpmn export [--page] [--output | --check] [--strict]; --check mirrors ddl --check.",
+        "Exit codes: 0 clean, 1 error findings or --check drift, 2 usage/parse/config error, 3 --strict warnings.",
+        "Draft fixture lint exits 1 with exactly label-required, no-implicit-end, no-implicit-start; complete fixture exits 0 with empty output; commands.test.ts unchanged; --help lists lint and bpmn."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check apps/cli/src",
+        "bun test apps/cli/src/bpmn-commands.test.ts",
+        "bun test apps/cli",
+        "bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request-draft.bpmn; test $? -eq 1",
+        "out=\"$(bun apps/cli/src/main.ts lint packages/io/src/__fixtures__/bpmn/purchase-request.bpmn)\" && test -z \"$out\"",
+        "test ! -d .reference/bpmn-article/docs || bun apps/cli/src/main.ts bpmn import .reference/bpmn-article/docs/purchase_request/purchase_request.bpmn > /dev/null",
+        "test ! -d .reference/bpmn-article/docs || { bun apps/cli/src/main.ts lint .reference/bpmn-article/docs/purchase_request_draft/purchase_request_draft.bpmn; test $? -eq 1; }",
+        "test -z \"$(git diff apps/cli/src/commands.test.ts)\"",
+        "bun apps/cli/src/main.ts --help | grep -q lint",
+        "bun apps/cli/src/main.ts --help | grep -q bpmn"
+      ]
+    },
+    {
+      "planId": "bpmn-13-core-integration-tests",
+      "planPath": "impl-plans/active/bpmn-13-core-integration-tests.md",
+      "wave": 3,
+      "dependsOn": [
+        "bpmn-03-core-editing",
+        "bpmn-04-core-notation-svg",
+        "bpmn-05-core-lint",
+        "bpmn-06-io-bpmn-xml"
+      ],
+      "writePaths": [
+        "packages/core/src/bpmn/fixtures.test.ts",
+        "packages/core/src/bpmn/reference-lint.test.ts",
+        "impl-plans/progress/bpmn-13-core-integration-tests.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "Complete, swapped and inverted fixtures lint clean; the draft reports exactly the three pinned [ruleId, elementId] findings at error severity.",
+        "The complete fixture SVG export has the pinned class counts, YES/NO flow labels, and a viewBox containing every label box.",
+        "connectBpmn from the end event to the first task on the fixture is rejected with bpmn.connection.endEventOutgoing.",
+        "Reference rule-id multisets match locally (skipIf when .reference is absent) without asserting reference text; no production code edited."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts",
+        "bun test packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/reference-lint.test.ts",
+        "bun test",
+        "! grep -n 'Office supply\\|Submit purchase' packages/core/src/bpmn/reference-lint.test.ts"
+      ]
+    },
+    {
+      "planId": "bpmn-14-docs",
+      "planPath": "impl-plans/active/bpmn-14-docs.md",
+      "wave": 3,
+      "dependsOn": ["bpmn-05-core-lint", "bpmn-06-io-bpmn-xml"],
+      "writePaths": [
+        "README.md",
+        "docs/bpmn/format.md",
+        "docs/bpmn/lint-rules.md",
+        "docs/bpmn/ai-review-rules.md",
+        "docs/bpmn/purchase-request.jsonl",
+        "packages/io/README.md",
+        "packages/core/src/bpmn/docs-example.test.ts",
+        "impl-plans/progress/bpmn-14-docs.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "writePathNotes": [
+        {
+          "path": "docs/bpmn/purchase-request.jsonl",
+          "intendedEdit": "Byte-identical cp of packages/io/src/__fixtures__/bpmn/purchase-request.jsonl generated by bpmn-06; never hand-edited."
+        }
+      ],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        "README has a BPMN operation flows section and nodetto-cli lint / bpmn import|export examples with exit codes matching bpmn-12 USAGE.",
+        "docs/bpmn/format.md documents every bpmn.* type with sample JSONL records; lint-rules.md lists all 23 rule ids with severities, .bpmnlintrc example, config discovery and divergences.",
+        "docs/bpmn/ai-review-rules.md is an original .claude/rules guideline; purchase-request.jsonl is a byte-identical copy of the io fixture.",
+        "packages/core/src/bpmn/docs-example.test.ts passes with a positive pass count and 0 failures. It checks that the example parses, equals the io fixture byte for byte and lints clean under recommendedLintConfig(); that the lint-rules.md rule-table ids equal BPMN_LINT_RULE_IDS; that format.md names all 16 bpmn.* types; that the docs are ASCII; and that README mentions nodetto-cli lint and nodetto-cli bpmn export.",
+        "ASCII only; no content from the article or .reference. The CLI lint of the example is orchestrator reconciliation evidence after wave 3 (reconciliation.afterWave3), not a bpmn-14 gate."
+      ],
+      "verification": [
+        "bun test packages/core/src/bpmn/docs-example.test.ts",
+        "bun run typecheck",
+        "bunx biome check packages/core/src/bpmn/docs-example.test.ts",
+        "cmp docs/bpmn/purchase-request.jsonl packages/io/src/__fixtures__/bpmn/purchase-request.jsonl",
+        "! LC_ALL=C grep -l '[^[:print:][:space:]]' docs/bpmn/format.md docs/bpmn/lint-rules.md docs/bpmn/ai-review-rules.md README.md packages/io/README.md"
+      ]
+    },
+    {
+      "planId": "bpmn-15-desktop",
+      "planPath": "impl-plans/active/bpmn-15-desktop.md",
+      "wave": 4,
+      "dependsOn": [
+        "bpmn-04-core-notation-svg",
+        "bpmn-06-io-bpmn-xml",
+        "bpmn-11-ui-solid-problems-panel"
+      ],
+      "writePaths": [
+        "apps/desktop/src/App.tsx",
+        "apps/desktop/src/file/session.ts",
+        "apps/desktop/src/file/session.test.ts",
+        "apps/desktop/src-tauri/src/dialogs.rs",
+        "apps/desktop/src-tauri/tauri.macos.release.conf.json",
+        "impl-plans/progress/bpmn-15-desktop.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "acceptanceCriteria": [
+        ".bpmn files open (dialog, launch, Open With) as a detached imported document (filePath null, dirty, no watcher) so autosave never overwrites the .bpmn; parse errors fail with 'could not import' and leave the document untouched.",
+        "File menu Import BPMN... and Export BPMN... (enabled only on bpmn pages) using exportBpmnXml with bpmnRouteResolver.",
+        "BpmnProblemsPanel mounted when the current page kind is bpmn, including import warnings.",
+        "OPEN_FILTER_EXTENSIONS includes bpmn and the macOS release config adds a bpmn file association; only those two Rust/Tauri files change; no version bump."
+      ],
+      "verification": [
+        "bun run typecheck",
+        "bunx biome check apps/desktop/src/App.tsx apps/desktop/src/file/session.ts apps/desktop/src/file/session.test.ts",
+        "bun test apps/desktop/src/file/session.test.ts",
+        "bun test apps/desktop",
+        "CARGO_TERM_QUIET=true cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",
+        "CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml",
+        "CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml dialogs",
+        "bun -e 'JSON.parse(require(\"fs\").readFileSync(\"apps/desktop/src-tauri/tauri.macos.release.conf.json\",\"utf8\"))'",
+        "bun --cwd=apps/desktop run build",
+        "test -z \"$(git diff --name-only apps/desktop/src-tauri | grep -v -e 'apps/desktop/src-tauri/src/dialogs.rs' -e 'apps/desktop/src-tauri/tauri.macos.release.conf.json')\""
+      ]
+    }
+  ]
+}

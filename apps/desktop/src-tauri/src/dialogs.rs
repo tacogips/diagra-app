@@ -11,7 +11,7 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 const FILTER_NAME: &str = "nodetto document";
-const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid"];
+const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid", "bpmn"];
 const SAVE_FILTER_EXTENSIONS: &[&str] = &["jsonl"];
 const DEFAULT_FILE_NAME: &str = "untitled.jsonl";
 
@@ -135,26 +135,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn open_filter_includes_bpmn() {
+        assert!(OPEN_FILTER_EXTENSIONS.contains(&"bpmn"));
+    }
+
+    #[test]
     fn appends_the_extension_when_none_was_typed() {
         assert_eq!(
-            ensure_jsonl_extension(PathBuf::from("/tmp/diagram")),
-            PathBuf::from("/tmp/diagram.jsonl")
+            ensure_jsonl_extension(PathBuf::from("/tmp/nodettom")),
+            PathBuf::from("/tmp/nodettom.jsonl")
         );
     }
 
     #[test]
     fn keeps_an_existing_jsonl_extension() {
         assert_eq!(
-            ensure_jsonl_extension(PathBuf::from("/tmp/diagram.jsonl")),
-            PathBuf::from("/tmp/diagram.jsonl")
+            ensure_jsonl_extension(PathBuf::from("/tmp/nodettom.jsonl")),
+            PathBuf::from("/tmp/nodettom.jsonl")
         );
     }
 
     #[test]
     fn keeps_a_foreign_extension() {
         assert_eq!(
-            ensure_jsonl_extension(PathBuf::from("/tmp/diagram.txt")),
-            PathBuf::from("/tmp/diagram.txt")
+            ensure_jsonl_extension(PathBuf::from("/tmp/nodettom.txt")),
+            PathBuf::from("/tmp/nodettom.txt")
         );
     }
 
@@ -171,16 +176,16 @@ mod tests {
     #[test]
     fn export_appends_the_requested_extension() {
         assert_eq!(
-            ensure_extension(PathBuf::from("/tmp/diagram"), "svg"),
-            PathBuf::from("/tmp/diagram.svg")
+            ensure_extension(PathBuf::from("/tmp/nodettom"), "svg"),
+            PathBuf::from("/tmp/nodettom.svg")
         );
         assert_eq!(
-            ensure_extension(PathBuf::from("/tmp/diagram.svg"), "svg"),
-            PathBuf::from("/tmp/diagram.svg")
+            ensure_extension(PathBuf::from("/tmp/nodettom.svg"), "svg"),
+            PathBuf::from("/tmp/nodettom.svg")
         );
         assert_eq!(
-            ensure_extension(PathBuf::from("/tmp/diagram.txt"), "svg"),
-            PathBuf::from("/tmp/diagram.txt")
+            ensure_extension(PathBuf::from("/tmp/nodettom.txt"), "svg"),
+            PathBuf::from("/tmp/nodettom.txt")
         );
     }
 

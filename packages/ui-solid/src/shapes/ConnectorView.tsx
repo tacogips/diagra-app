@@ -6,6 +6,7 @@
 
 import {
   angularGradientPatches,
+  bpmnFlowDecoration,
   connectorDefaultDash,
   connectorDecoration,
   diamondGradientPatches,
@@ -19,6 +20,7 @@ import {
 } from "@nodetto/core";
 import type { Element } from "@nodetto/ir";
 import { For, type JSX, Match, Show, Switch } from "solid-js";
+import { BpmnNotationPrimitiveView } from "./BpmnShapeView.tsx";
 import { svgStyle } from "./visual.ts";
 
 export const MARKER_ARROW = "nodetto-arrow";
@@ -244,6 +246,13 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
               fill="none"
             />
           </Show>
+          <For
+            each={bpmnFlowDecoration(props.element, resolved().points, (id) =>
+              props.context.resolve(id),
+            )}
+          >
+            {(primitive) => <BpmnNotationPrimitiveView primitive={primitive} />}
+          </For>
           <Show when={decoration().label}>
             <text
               class="nodetto-connector-label"

@@ -10,6 +10,27 @@ import { FRAME_PRESETS } from "@nodetto/core";
 import type { GeoKind, ParticipantKind, Visual } from "@nodetto/ir";
 
 export const Tool = {
+  BpmnPool: "bpmn:pool",
+  BpmnPoolCollapsed: "bpmn:pool-collapsed",
+  BpmnLane: "bpmn:lane",
+  BpmnTask: "bpmn:task",
+  BpmnUserTask: "bpmn:user-task",
+  BpmnServiceTask: "bpmn:service-task",
+  BpmnStartEvent: "bpmn:start-event",
+  BpmnMessageCatch: "bpmn:message-catch",
+  BpmnMessageThrow: "bpmn:message-throw",
+  BpmnTimerCatch: "bpmn:timer-catch",
+  BpmnEndEvent: "bpmn:end-event",
+  BpmnExclusiveGateway: "bpmn:exclusive-gateway",
+  BpmnParallelGateway: "bpmn:parallel-gateway",
+  BpmnSubProcess: "bpmn:sub-process",
+  BpmnSubProcessExpanded: "bpmn:sub-process-expanded",
+  BpmnCallActivity: "bpmn:call-activity",
+  BpmnDataObject: "bpmn:data-object",
+  BpmnDataStore: "bpmn:data-store",
+  BpmnTextAnnotation: "bpmn:text-annotation",
+  BpmnGroup: "bpmn:group",
+
   Select: "select",
   Hand: "hand",
   Comment: "comment",
@@ -63,6 +84,140 @@ export const GEO_TOOLS = [
   Tool.Star,
 ] as const;
 
+export const BPMN_TOOLS = [
+  Tool.BpmnPool,
+  Tool.BpmnPoolCollapsed,
+  Tool.BpmnLane,
+  Tool.BpmnTask,
+  Tool.BpmnUserTask,
+  Tool.BpmnServiceTask,
+  Tool.BpmnStartEvent,
+  Tool.BpmnMessageCatch,
+  Tool.BpmnMessageThrow,
+  Tool.BpmnTimerCatch,
+  Tool.BpmnEndEvent,
+  Tool.BpmnExclusiveGateway,
+  Tool.BpmnParallelGateway,
+  Tool.BpmnSubProcess,
+  Tool.BpmnSubProcessExpanded,
+  Tool.BpmnCallActivity,
+  Tool.BpmnDataObject,
+  Tool.BpmnDataStore,
+  Tool.BpmnTextAnnotation,
+  Tool.BpmnGroup,
+] as const;
+export type BpmnToolKind = (typeof BPMN_TOOLS)[number];
+
+const BPMN_CREATIONS: Readonly<Record<BpmnToolKind, CreationTool>> = {
+  [Tool.BpmnPool]: {
+    type: "bpmn.participant",
+    semantic: { name: "Pool", collapsed: false },
+    visual: { width: 600, height: 250 },
+  },
+  [Tool.BpmnPoolCollapsed]: {
+    type: "bpmn.participant",
+    semantic: { name: "Pool", collapsed: true },
+    visual: { width: 600, height: 60 },
+  },
+  [Tool.BpmnLane]: { type: "bpmn.lane" },
+  [Tool.BpmnTask]: {
+    type: "bpmn.task",
+    semantic: { name: "Task", taskType: "none", loop: "none" },
+  },
+  [Tool.BpmnUserTask]: {
+    type: "bpmn.task",
+    semantic: { name: "Task", taskType: "user", loop: "none" },
+  },
+  [Tool.BpmnServiceTask]: {
+    type: "bpmn.task",
+    semantic: { name: "Task", taskType: "service", loop: "none" },
+  },
+  [Tool.BpmnStartEvent]: {
+    type: "bpmn.event",
+    semantic: { name: "", position: "start", definitions: [] },
+  },
+  [Tool.BpmnMessageCatch]: {
+    type: "bpmn.event",
+    semantic: {
+      name: "",
+      position: "intermediateCatch",
+      definitions: [{ id: "def-1", kind: "message" }],
+    },
+  },
+  [Tool.BpmnMessageThrow]: {
+    type: "bpmn.event",
+    semantic: {
+      name: "",
+      position: "intermediateThrow",
+      definitions: [{ id: "def-1", kind: "message" }],
+    },
+  },
+  [Tool.BpmnTimerCatch]: {
+    type: "bpmn.event",
+    semantic: {
+      name: "",
+      position: "intermediateCatch",
+      definitions: [
+        {
+          id: "def-1",
+          kind: "timer",
+          timer: { type: "duration", value: "PT1H" },
+        },
+      ],
+    },
+  },
+  [Tool.BpmnEndEvent]: {
+    type: "bpmn.event",
+    semantic: { name: "", position: "end", definitions: [] },
+  },
+  [Tool.BpmnExclusiveGateway]: {
+    type: "bpmn.gateway",
+    semantic: { name: "", gatewayType: "exclusive" },
+  },
+  [Tool.BpmnParallelGateway]: {
+    type: "bpmn.gateway",
+    semantic: { name: "", gatewayType: "parallel" },
+  },
+  [Tool.BpmnSubProcess]: {
+    type: "bpmn.subProcess",
+    semantic: {
+      name: "Sub-process",
+      expanded: false,
+      triggeredByEvent: false,
+      adHoc: false,
+      loop: "none",
+    },
+  },
+  [Tool.BpmnSubProcessExpanded]: {
+    type: "bpmn.subProcess",
+    semantic: {
+      name: "Sub-process",
+      expanded: true,
+      triggeredByEvent: false,
+      adHoc: false,
+      loop: "none",
+    },
+    visual: { width: 350, height: 200 },
+  },
+  [Tool.BpmnCallActivity]: {
+    type: "bpmn.callActivity",
+    semantic: { name: "Call activity", loop: "none" },
+  },
+  [Tool.BpmnDataObject]: {
+    type: "bpmn.dataObject",
+    semantic: { name: "Data object", role: "reference", collection: false },
+  },
+  [Tool.BpmnDataStore]: {
+    type: "bpmn.dataStore",
+    semantic: { name: "Data store" },
+  },
+  [Tool.BpmnTextAnnotation]: {
+    type: "bpmn.textAnnotation",
+    semantic: { text: "" },
+  },
+  [Tool.BpmnGroup]: { type: "bpmn.group", semantic: { name: "" } },
+};
+
 const GEO_KINDS = {
   [Tool.Rectangle]: "rect",
   [Tool.Ellipse]: "ellipse",
@@ -108,6 +263,28 @@ export interface CreationTool {
 /** Exhaustive so adding a tool requires deciding its placement behavior. */
 export function creationFor(tool: ToolKind): CreationTool | null {
   switch (tool) {
+    case Tool.BpmnPool:
+    case Tool.BpmnPoolCollapsed:
+    case Tool.BpmnLane:
+    case Tool.BpmnTask:
+    case Tool.BpmnUserTask:
+    case Tool.BpmnServiceTask:
+    case Tool.BpmnStartEvent:
+    case Tool.BpmnMessageCatch:
+    case Tool.BpmnMessageThrow:
+    case Tool.BpmnTimerCatch:
+    case Tool.BpmnEndEvent:
+    case Tool.BpmnExclusiveGateway:
+    case Tool.BpmnParallelGateway:
+    case Tool.BpmnSubProcess:
+    case Tool.BpmnSubProcessExpanded:
+    case Tool.BpmnCallActivity:
+    case Tool.BpmnDataObject:
+    case Tool.BpmnDataStore:
+    case Tool.BpmnTextAnnotation:
+    case Tool.BpmnGroup:
+      return BPMN_CREATIONS[tool];
+
     case Tool.Component:
       return { type: UmlComponentType.Component };
     case Tool.ProvidedInterface:

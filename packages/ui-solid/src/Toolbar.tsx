@@ -26,7 +26,7 @@ import {
   getAction,
   runAction,
 } from "./shortcuts.ts";
-import { canUseTool, type ToolKind } from "./tools.ts";
+import { canUseTool, Tool, type ToolKind } from "./tools.ts";
 import { COMMON_SHAPES, DIAGRAM_SHAPES } from "./shape-palette.ts";
 import "./Toolbar.css";
 import { WORKSPACES, workspaceById, type WorkspaceId } from "./workspaces.ts";
@@ -57,6 +57,40 @@ const tools = (
   items: readonly [ToolKind, string, string][],
 ): readonly ToolbarTool[] =>
   items.map(([tool, label, title]) => ({ tool, label, title }));
+export const BPMN_TOOL_MENU: Readonly<{
+  id: "bpmn";
+  label: "BPMN";
+  tools: readonly ToolbarTool[];
+}> = {
+  id: "bpmn",
+  label: "BPMN",
+  tools: tools([
+    [Tool.BpmnPool, "Pool", "Pool"],
+    [Tool.BpmnPoolCollapsed, "Collapsed pool", "Collapsed pool"],
+    [Tool.BpmnLane, "Lane", "Lane"],
+    [Tool.BpmnTask, "Task", "Task"],
+    [Tool.BpmnUserTask, "User task", "User task"],
+    [Tool.BpmnServiceTask, "Service task", "Service task"],
+    [Tool.BpmnStartEvent, "Start event", "Start event"],
+    [Tool.BpmnMessageCatch, "Message catch", "Message catch event"],
+    [Tool.BpmnMessageThrow, "Message throw", "Message throw event"],
+    [Tool.BpmnTimerCatch, "Timer catch", "Timer catch event"],
+    [Tool.BpmnEndEvent, "End event", "End event"],
+    [Tool.BpmnExclusiveGateway, "Exclusive gateway", "Exclusive gateway"],
+    [Tool.BpmnParallelGateway, "Parallel gateway", "Parallel gateway"],
+    [Tool.BpmnSubProcess, "Collapsed sub-process", "Collapsed sub-process"],
+    [
+      Tool.BpmnSubProcessExpanded,
+      "Expanded sub-process",
+      "Expanded sub-process",
+    ],
+    [Tool.BpmnCallActivity, "Call activity", "Call activity"],
+    [Tool.BpmnDataObject, "Data object", "Data object"],
+    [Tool.BpmnDataStore, "Data store", "Data store"],
+    [Tool.BpmnTextAnnotation, "Text annotation", "Text annotation"],
+    [Tool.BpmnGroup, "Group", "Group"],
+  ]),
+};
 export const TOOL_MENUS: readonly Readonly<{
   id: string;
   label: string;
@@ -273,6 +307,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const readOnly = () => {
     signals.rev();
     return props.editor.readOnly;
+  };
+  const currentPageKind = () => {
+    signals.rev();
+    return props.editor.store.getPage(props.editor.currentPageId)?.kind;
   };
   const undo = () => {
     signals.rev();
@@ -592,6 +630,33 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         >
           <Icon name="text" />
         </button>
+        <Show when={currentPageKind() === "bpmn"}>
+          <button
+            type="button"
+            class="nodetto-toolbar-chevron"
+            aria-label="BPMN"
+            title="Descriptive BPMN palette"
+            aria-haspopup="menu"
+            aria-expanded={open() === BPMN_TOOL_MENU.id}
+            onClick={(event) => trigger(BPMN_TOOL_MENU.id, event.currentTarget)}
+            onKeyDown={(event) => triggerKey(BPMN_TOOL_MENU.id, event)}
+          >
+            BPMN
+          </button>
+        </Show>
+        <Show
+          when={open() === BPMN_TOOL_MENU.id && currentPageKind() === "bpmn"}
+        >
+          <div
+            class="nodetto-toolbar-menu"
+            role="menu"
+            aria-label="BPMN"
+            style={menuStyle()}
+            onKeyDown={menuKey}
+          >
+            {toolItems(BPMN_TOOL_MENU.tools)}
+          </div>
+        </Show>
         <Show when={open() === "frames" || open() === "shapes"}>
           <div
             class="nodetto-toolbar-menu"

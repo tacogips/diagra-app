@@ -68,6 +68,41 @@ export const DIAGRAM_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.Database, label: "Database", icon: "cylinder" },
 ];
 
+export const BPMN_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.BpmnPool, label: "Pool", icon: "frame" },
+  { tool: Tool.BpmnPoolCollapsed, label: "Pool collapsed", icon: "frame" },
+  { tool: Tool.BpmnLane, label: "Lane", icon: "frame" },
+  { tool: Tool.BpmnTask, label: "Task", icon: "rect" },
+  { tool: Tool.BpmnUserTask, label: "User task", icon: "rect" },
+  { tool: Tool.BpmnServiceTask, label: "Service task", icon: "rect" },
+  { tool: Tool.BpmnStartEvent, label: "Start event", icon: "ellipse" },
+  { tool: Tool.BpmnMessageCatch, label: "Message catch", icon: "ellipse" },
+  { tool: Tool.BpmnMessageThrow, label: "Message throw", icon: "ellipse" },
+  { tool: Tool.BpmnTimerCatch, label: "Timer catch", icon: "ellipse" },
+  { tool: Tool.BpmnEndEvent, label: "End event", icon: "ellipse" },
+  {
+    tool: Tool.BpmnExclusiveGateway,
+    label: "Exclusive gateway",
+    icon: "diamond",
+  },
+  {
+    tool: Tool.BpmnParallelGateway,
+    label: "Parallel gateway",
+    icon: "diamond",
+  },
+  { tool: Tool.BpmnSubProcess, label: "Sub process", icon: "frame" },
+  {
+    tool: Tool.BpmnSubProcessExpanded,
+    label: "Sub process expanded",
+    icon: "frame",
+  },
+  { tool: Tool.BpmnCallActivity, label: "Call activity", icon: "rect" },
+  { tool: Tool.BpmnDataObject, label: "Data object", icon: "rect" },
+  { tool: Tool.BpmnDataStore, label: "Data store", icon: "cylinder" },
+  { tool: Tool.BpmnTextAnnotation, label: "Text annotation", icon: "text" },
+  { tool: Tool.BpmnGroup, label: "Group", icon: "frame" },
+];
+
 export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.WebFrame, label: "Web", icon: "frame" },
   { tool: Tool.IPhoneFrame, label: "iPhone", icon: "frame" },
@@ -78,6 +113,12 @@ export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
 
 /** Ordered authoring priorities; every workspace must make an explicit choice. */
 const PRIMARY_TOOLS = {
+  bpmn: [
+    ...BPMN_SHAPES.map((item) => item.tool),
+    Tool.Connector,
+    Tool.Text,
+    Tool.Frame,
+  ],
   component: [
     Tool.Component,
     Tool.ProvidedInterface,
@@ -127,6 +168,7 @@ const PALETTE_SHAPES = [
   ...COMMON_SHAPES,
   ...DIAGRAM_SHAPES,
   ...ARTBOARD_SHAPES,
+  ...BPMN_SHAPES,
 ];
 
 /** Preserve semantic workspace labels, such as Relationship or Message. */

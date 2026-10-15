@@ -1,0 +1,192 @@
+{
+  "taskId": "bpmn-render-fix-s360",
+  "workflowMode": "issue-resolution",
+  "workflowExecutionId": "opus-luna-design-and-implement-review-loop-session-360",
+  "implementationBranch": "feat/bpmn-operation-flow",
+  "baseBranch": "feat/bpmn-operation-flow",
+  "remote": "origin",
+  "originalHead": "83717b59bb31acca6deb52a8c0b4c29bfc357fc1",
+  "designDocPaths": ["design-docs/specs/design-bpmn.md"],
+  "planIndexPath": "impl-plans/README.md",
+  "evidenceRoot": "tmp/bpmn-render-fix-s360",
+  "evidenceLayout": "tmp/bpmn-render-fix-s360/<planId>/<command-name>.log per plan, with per-attempt dispatcher output under tmp/bpmn-render-fix-s360/<planId>/attempt-<n>/. Untracked: tmp/ is git-ignored.",
+  "historicalManifests": {
+    "paths": [
+      "impl-plans/active/bpmn-operation-flow-s356-dispatch.json",
+      "impl-plans/active/bpmn-operation-flow-s357-dispatch.json",
+      "impl-plans/active/bpmn-operation-flow-s359-dispatch.json"
+    ],
+    "note": "Historical and complete (archived plans, commit 83717b5). Not dispatched and not changed by this checkpoint."
+  },
+  "reviewContext": {
+    "issueReference": "No GitHub issue. Workflow input 'Fix BPMN rendering defects found in end-to-end verification: flows hidden under pools/lanes, placeholder task-type icons' (comm-006276), intake comm-006277, design review comm-006279, plan comm-006280, plan review comm-006281 (accepted). Execution opus-luna-design-and-implement-review-loop-session-360. Follow-up to 83717b5 on feat/bpmn-operation-flow.",
+    "userProblem": "On BPMN pages the opaque pool and lane bodies paint over every sequence and message flow in the ui-solid canvas and in SVG export, because isConnectorBackdrop (packages/core/src/backdrops.ts) lowers only frames beneath the connector layer; and every task type shows the same top-right placeholder square instead of a distinct BPMN marker icon at the top-left.",
+    "requiredOutcomes": [
+      "isConnectorBackdrop is true for ungrouped frame, bpmn.participant (collapsed or not), bpmn.lane, bpmn.subProcess with semantic.expanded === true, and bpmn.group; false for every other type and for any grouped element (design 6.4).",
+      "SVG export of the committed purchase-request fixture paints all 12 sequence flows and their arrowheads after every participant and lane body; the canvas partition uses the same predicate.",
+      "Connector routing no longer treats pools, lanes, expanded sub-processes or BPMN groups as obstacles; a collapsed sub-process still is.",
+      "Seven distinct original task-type icons inside the local square x 6..22, y 6..22 (top-left); send filled with the stroke colour, receive hollow; one main role task-icon-<type> plus -detail roles (design 6.1).",
+      "bpmn.group body unfilled unless visual.style.fill is set.",
+      "labelText uses only the box origin, and svg-export renderBpmnShape passes the resolved absolute box, so canvas and export share one label origin (design 6.1 Labels, 6.2).",
+      "Regression tests as listed in design section 11 rendering-defect regressions; existing frame/ERD backdrop tests and all existing tests unchanged.",
+      "bun run typecheck, bunx biome check . and bun test pass at reconciliation."
+    ],
+    "nonGoals": [
+      "No edits to packages/ui-solid/src/Canvas.tsx, packages/core/src/shapes/connector.ts or packages/ui-solid/src/shapes/BpmnShapeView.tsx; they already consume the shared predicate and notation module.",
+      "No new layer, z-index, sort or reordering; backdrop paint order stays page z-order.",
+      "No change to frame behaviour, the !isGrouped rule or the connector-required rule in connectorBackdropIds.",
+      "No new NotationPrimitive kind or field; no change to activity label layout, markers, event icons, gateway markers, participant/lane/flow decorations or bpmnLabelBox.",
+      "No PNG/PDF export or generic nodetto-cli export command.",
+      "No bpmn-js, bpmnlint, bpmn-moddle or other new dependency.",
+      "No fixture edits under packages/io/src/__fixtures__/; no edits to packages/core/src/bpmn/fixtures.test.ts.",
+      "No redesign of other BPMN features; no version bumps, tags, releases or main-branch pushes."
+    ],
+    "constraints": [
+      "Public repository: no server code, auth, secrets, cloud endpoints or deployment config.",
+      "Commit and push only on feat/bpmn-operation-flow. Workers perform no git write operations, no worktrees, no stash; the orchestrator commits serially with explicit paths.",
+      "Never copy files, text or artwork from .reference/, bpmn-js or bpmn-font; never commit .reference/.",
+      "Strict TypeScript (no any, no @ts-ignore), Biome style, ASCII only, no emojis.",
+      "Each worker edits only its writePaths and its own impl-plans/progress/<planId>.md; fresh read plus pre/post sha256 per edit; foreground commands only; format only its own files.",
+      "Parallel-wave gate (design 11.1 rule 3): owner-scoped typecheck grep and focused bun test are blocking; sibling diagnostics and sibling test failures are recorded as non-blocking; whole-repo gates run at orchestrator reconciliation."
+    ],
+    "designDecisionsAndRationale": [
+      "Broaden the single predicate isConnectorBackdrop rather than touching its three consumers (svg-export connectorBackdropIds, Canvas.tsx backdrop layer, connector.ts obstacleBoxes), so editor, export and routing cannot diverge (design 6.4).",
+      "A collapsed (black-box) participant is also a backdrop, keeping the predicate a pure type test and ensuring it never hides a docked message flow (design 6.4).",
+      "Only expanded sub-processes are surfaces; a collapsed sub-process is a node and stays a shape and an obstacle (design 6.4).",
+      "Icons are fixed-coordinate primitives in the shared notation module so canvas and export match; one main role per icon keeps existing role-count tests unchanged (design 6.1).",
+      "Label origin uses the box origin only and export passes the resolved box, so canvas and export agree by construction (design 6.1 Labels, 6.2).",
+      "New SVG layer tests live in svg-export-layers.test.ts so the two parallel plans do not share a test file (design 11)."
+    ],
+    "intentionalTradeoffs": [
+      "Flows paint above pools, lanes, expanded sub-processes and groups but below flow nodes, including beneath an expanded sub-process's name and markers (design 13); bpmn-js paints connections above every shape.",
+      "Editor-authored z-order inside the backdrop layer is kept as authored (design 6.4).",
+      "The task icon may overlap the activity label on very small tasks (design 6.1).",
+      "Routing through pools and lanes may change CLI export waypoints; a failing apps/cli/src/bpmn-commands.test.ts escalates to the orchestrator without editing tests or fixtures."
+    ],
+    "supportedEdgeCases": [
+      "Collapsed black-box pools with docked message flows.",
+      "Nested lanes and expanded sub-processes inside lanes, painted in page z-order (pool below lanes below sub-process).",
+      "Grouped elements (nodetto group) keep group paint order and stay routing obstacles.",
+      "Pages without connectors have no backdrops.",
+      "Shapes without stored visual.x/visual.y but with labelBounds render their label at the same absolute point on canvas and in export.",
+      "visual.style.stroke overrides the filled send icon colour; visual.style.fill overrides the unfilled group body."
+    ],
+    "outOfScopeEdgeCases": [
+      "Reordering z-order of user-authored BPMN containers.",
+      "Painting flows above flow nodes (bpmn-js behaviour).",
+      "Icon scaling for very small tasks.",
+      "PNG/PDF image output."
+    ],
+    "sourcePaths": [
+      "design-docs/specs/design-bpmn.md",
+      "impl-plans/README.md",
+      "impl-plans/active/bpmn-r1-connector-backdrops.md",
+      "impl-plans/active/bpmn-r2-task-icons-labels.md"
+    ],
+    "reviewFindingsCarried": [
+      {
+        "path": "packages/core/src/svg-export.ts",
+        "note": "After bpmn-r1, the 'frames only' comments at svg-export.ts:1810-1813 and Canvas.tsx:318 become stale (low, cosmetic). Neither plan may edit them for this purpose; the orchestrator may refresh the wording at reconciliation."
+      },
+      {
+        "path": "impl-plans/active/bpmn-r1-connector-backdrops.md",
+        "note": "'parent: pool' for lanes means the semantic parent field (packages/ir/src/bpmn.test.ts:12); IR validation guides the worker (low)."
+      }
+    ]
+  },
+  "acceptedDependencies": [],
+  "reconciliation": {
+    "owner": "orchestrator",
+    "afterWave": [
+      "bun run typecheck",
+      "bunx biome check .",
+      "bun test packages/core packages/ui-solid",
+      "bun test"
+    ],
+    "routing": "Strictly blocking. Route each diagnostic or failing test file to the owning plan, or to the plan that caused it, using each plan's 'Sibling diagnostics' and 'Sibling test failures' lists. A bpmn-r1 step 7 CLI waypoint failure is an orchestrator decision; do not edit CLI tests or fixtures to make it pass.",
+    "optionalCosmetic": "Refresh the stale 'frames only' comments in packages/core/src/svg-export.ts (around 1810) and packages/ui-solid/src/Canvas.tsx (around 318) serially after both plans finish."
+  },
+  "plans": [
+    {
+      "planId": "bpmn-r1-connector-backdrops",
+      "planPath": "impl-plans/active/bpmn-r1-connector-backdrops.md",
+      "progressPath": "impl-plans/progress/bpmn-r1-connector-backdrops.md",
+      "wave": 1,
+      "dependsOn": [],
+      "writePaths": [
+        "packages/core/src/backdrops.ts",
+        "packages/core/src/backdrops.test.ts",
+        "packages/core/src/bpmn/svg-export-layers.test.ts",
+        "packages/core/src/shapes/connector.test.ts",
+        "packages/ui-solid/src/bpmn-backdrop.test.ts",
+        "impl-plans/progress/bpmn-r1-connector-backdrops.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "ownTypecheckRegex": "^(packages/core/src/(backdrops|backdrops\\.test|bpmn/svg-export-layers\\.test|shapes/connector\\.test)\\.ts|packages/ui-solid/src/bpmn-backdrop\\.test\\.ts)\\(",
+      "acceptanceCriteria": [
+        "isConnectorBackdrop is true exactly for the types in design 6.4 (ungrouped frame, bpmn.participant, bpmn.lane, expanded bpmn.subProcess, bpmn.group), and backdrops.test.ts passes.",
+        "svg-export-layers.test.ts (a) and (b) pass: participant/lane bodies in data-layer=\"backdrops\" before connectors; all flows and arrowheads after every pool/lane body; the purchase-request fixture has 12 sequence flows painted after every pool/lane body.",
+        "The four new routing tests in connector.test.ts pass, and the positive ones fail before the backdrops.ts change (evidence in the progress log).",
+        "bpmn-backdrop.test.ts passes (canvas partition via connectorBackdropIds with groupOf, z-order preserved, no backdrops without a connector).",
+        "Existing frame/ERD backdrop tests, fixtures.test.ts and apps/cli/src/bpmn-commands.test.ts pass unchanged.",
+        "svg-export.ts, Canvas.tsx and shapes/connector.ts are not edited; git diff lists only this plan's writePaths from this plan.",
+        "The progress log records commands, exit codes, counts and log paths under tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/."
+      ],
+      "verification": [
+        "mkdir -p tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops",
+        "bun test packages/core/src/shapes/connector.test.ts > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/connector-prechange.log 2>&1; echo \"prechange exit=$? (expected non-zero, run before editing backdrops.ts)\"",
+        "bun test packages/core/src/backdrops.test.ts packages/core/src/bpmn/svg-export-layers.test.ts packages/core/src/shapes/connector.test.ts packages/ui-solid/src/bpmn-backdrop.test.ts > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/focused.log 2>&1",
+        "bun test packages/core/src/svg-export.test.ts packages/core/src/bpmn/fixtures.test.ts packages/core/src/bpmn/routes.test.ts > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/existing.log 2>&1",
+        "bunx biome check packages/core/src/backdrops.ts packages/core/src/backdrops.test.ts packages/core/src/bpmn/svg-export-layers.test.ts packages/core/src/shapes/connector.test.ts packages/ui-solid/src/bpmn-backdrop.test.ts > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/biome.log 2>&1",
+        "bun run typecheck > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/typecheck.log 2>&1; echo \"typecheck exit=$?\"",
+        "! grep -E '^(packages/core/src/(backdrops|backdrops\\.test|bpmn/svg-export-layers\\.test|shapes/connector\\.test)\\.ts|packages/ui-solid/src/bpmn-backdrop\\.test\\.ts)\\(' tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/typecheck.log",
+        "! grep -E '^error TS' tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/typecheck.log",
+        "bun test packages/core packages/ui-solid > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/packages.log 2>&1; echo \"packages exit=$?\"",
+        "bun test apps/cli/src/bpmn-commands.test.ts > tmp/bpmn-render-fix-s360/bpmn-r1-connector-backdrops/cli-bpmn.log 2>&1",
+        "grep -n '\"bpmn.participant\"\\|\"bpmn.lane\"\\|\"bpmn.group\"\\|\"bpmn.subProcess\"' packages/core/src/backdrops.ts",
+        "test -z \"$(git diff --name-only -- packages/ui-solid/src/Canvas.tsx packages/core/src/shapes/connector.ts)\""
+      ]
+    },
+    {
+      "planId": "bpmn-r2-task-icons-labels",
+      "planPath": "impl-plans/active/bpmn-r2-task-icons-labels.md",
+      "progressPath": "impl-plans/progress/bpmn-r2-task-icons-labels.md",
+      "wave": 1,
+      "dependsOn": [],
+      "writePaths": [
+        "packages/core/src/bpmn/notation.ts",
+        "packages/core/src/bpmn/notation.test.ts",
+        "packages/core/src/svg-export.ts",
+        "packages/core/src/bpmn/svg-export-bpmn.test.ts",
+        "impl-plans/progress/bpmn-r2-task-icons-labels.md"
+      ],
+      "sharedPaths": [],
+      "sharedPathNotes": [],
+      "artifactRoots": [],
+      "ownTypecheckRegex": "^packages/core/src/(bpmn/(notation|notation\\.test|svg-export-bpmn\\.test)|svg-export)\\.ts\\(",
+      "acceptanceCriteria": [
+        "Seven distinct original top-left task icons within x 6..22, y 6..22; exactly one role task-icon-<type> per icon plus -detail roles; send filled with the stroke colour (honours visual.style.stroke), receive hollow; none draws no icon; icon independent of box width. All new notation tests pass.",
+        "The bpmn.group body is unfilled by default and honours visual.style.fill; roles group-body and group-label unchanged.",
+        "labelText uses the box origin only; svg-export renderBpmnShape passes the resolved box and keeps translate(box.x box.y); the stale-visual.x label test fails before and passes after; test (c) passes.",
+        "fixtures.test.ts (bpmn-task-icon-user: 3), svg-export-bpmn.test.ts:121, bpmn-primitive.test.ts and svg-export.test.ts pass unchanged; non-BPMN rendering byte-identical.",
+        "grep -c \"h14 v14\" packages/core/src/bpmn/notation.ts is 0; BpmnShapeView.tsx, fixtures.test.ts and backdrops.ts are not edited by this plan.",
+        "The progress log records commands, exit codes, counts, log paths and an icon originality note under tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/."
+      ],
+      "verification": [
+        "mkdir -p tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels",
+        "bun test packages/core/src/bpmn/svg-export-bpmn.test.ts packages/core/src/bpmn/notation.test.ts > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/label-prechange.log 2>&1; echo \"prechange exit=$? (expected non-zero, run before editing labelText/renderBpmnShape)\"",
+        "bun test packages/core/src/bpmn/notation.test.ts packages/core/src/bpmn/svg-export-bpmn.test.ts > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/focused.log 2>&1",
+        "bun test packages/core/src/bpmn/fixtures.test.ts packages/ui-solid/src/shapes/bpmn-primitive.test.ts packages/core/src/svg-export.test.ts > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/invariants.log 2>&1",
+        "bunx biome check packages/core/src/bpmn/notation.ts packages/core/src/bpmn/notation.test.ts packages/core/src/svg-export.ts packages/core/src/bpmn/svg-export-bpmn.test.ts > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/biome.log 2>&1",
+        "bun run typecheck > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/typecheck.log 2>&1; echo \"typecheck exit=$?\"",
+        "! grep -E '^packages/core/src/(bpmn/(notation|notation\\.test|svg-export-bpmn\\.test)|svg-export)\\.ts\\(' tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/typecheck.log",
+        "! grep -E '^error TS' tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/typecheck.log",
+        "bun test packages/core packages/ui-solid > tmp/bpmn-render-fix-s360/bpmn-r2-task-icons-labels/packages.log 2>&1; echo \"packages exit=$?\"",
+        "test \"$(grep -c 'h14 v14' packages/core/src/bpmn/notation.ts)\" -eq 0",
+        "test -z \"$(git diff --name-only -- packages/ui-solid/src/shapes/BpmnShapeView.tsx packages/core/src/bpmn/fixtures.test.ts)\""
+      ]
+    }
+  ]
+}

@@ -231,6 +231,16 @@ function validateVisual(
     optional: true,
     min: 0,
   });
+  const labelBounds = raw["labelBounds"];
+  if (
+    labelBounds !== undefined &&
+    checkObject(out, labelBounds, `${path}.labelBounds`)
+  ) {
+    for (const field of ["x", "y", "width", "height"])
+      checkNumber(out, labelBounds[field], `${path}.labelBounds.${field}`, {
+        ...(field === "width" || field === "height" ? { min: 0 } : {}),
+      });
+  }
   checkEnum(
     out,
     raw["layoutPosition"],
@@ -754,11 +764,15 @@ export function validateDocument(
   }
 
   const elementIds = new Set<string>();
+  const elementById = new Map<string, unknown>();
   for (const [i, element] of elements.entries()) {
     const path = `elements[${i}]`;
     validateElement(out, element, path, pageIds);
     const id = readField(element, "id");
     if (typeof id === "string") {
+      if (!elementById.has(id)) {
+        elementById.set(id, element);
+      }
       if (elementIds.has(id)) {
         out.push(
           error("id.duplicate", `${path}.id`, `duplicate element id "${id}"`),
@@ -789,6 +803,43 @@ export function validateDocument(
               `references unknown element "${reference.id}"`,
             ),
           );
+        } else if (type.startsWith("bpmn.")) {
+          const target = elementById.get(reference.id);
+          if (target) {
+            const targetType = readField(target, "type");
+            const invalidParent =
+              reference.field === "parent" &&
+              typeof targetType === "string" &&
+              (type === "bpmn.lane"
+                ? !["bpmn.participant", "bpmn.lane"].includes(targetType)
+                : ![
+                    "bpmn.lane",
+                    "bpmn.participant",
+                    "bpmn.subProcess",
+                  ].includes(targetType));
+            const invalidAttachment =
+              reference.field === "attachedTo" &&
+              typeof targetType === "string" &&
+              !["bpmn.task", "bpmn.subProcess", "bpmn.callActivity"].includes(
+                targetType,
+              );
+            if (invalidParent)
+              out.push(
+                warning(
+                  "bpmn.parentType",
+                  `elements[${i}].semantic.parent`,
+                  "parent must be a BPMN participant, lane, or sub-process",
+                ),
+              );
+            if (invalidAttachment)
+              out.push(
+                warning(
+                  "bpmn.attachedToType",
+                  `elements[${i}].semantic.attachedTo`,
+                  "boundary event host must be a BPMN activity",
+                ),
+              );
+          }
         }
       }
     }

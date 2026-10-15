@@ -1,13 +1,25 @@
 import {
-  type ArrangeMode,
+  BpmnLintConfigError,
   DATABASE_DIALECTS,
   type DatabaseDialect,
   Editor,
+  bpmnRouteResolver,
   generateDatabaseDdl,
+  lintBpmnPage,
+  parseLintConfig,
+  recommendedLintConfig,
+  type ArrangeMode,
   type LayoutDirection,
   planArrangement,
 } from "@nodetto/core";
-import { parseDocumentResult, serializeDocument } from "@nodetto/io";
+import {
+  exportBpmnXml,
+  importBpmnXml,
+  parseDocumentResult,
+  serializeDocument,
+  type BpmnExportReport,
+  type BpmnImportReport,
+} from "@nodetto/io";
 import type { Document, Page, ValidationIssue } from "@nodetto/ir";
 
 /** Result of one command: text for stdout/stderr plus a process exit code. */
@@ -35,6 +47,11 @@ export const USAGE = `Usage:
                      [--write] [--check]
   nodetto-cli format <document.jsonl> [--write] [--check]
   nodetto-cli validate <document.jsonl>
+  nodetto-cli lint <document.jsonl|file.bpmn> [--page <page id or name>]
+                 [--config <file>] [--format text|json]
+  nodetto-cli bpmn import <file.bpmn> [--output <doc.jsonl>] [--strict]
+  nodetto-cli bpmn export <document.jsonl> [--page <page id or name>]
+                  [--output <file.bpmn> | --check <file.bpmn>] [--strict]
   nodetto-cli --version | --help
 
 ddl       Print the deterministic schema DDL the editor's Database DDL panel
@@ -50,12 +67,18 @@ arrange   Run the editor's Tidy layout (default) or Remove overlaps on one
           exits 1 when arranging would move anything.
 format    Print the canonical JSONL form. --write rewrites the file in place;
           --check exits 1 when the file is not canonical.
-validate  Parse and validate a document; prints warnings and errors.`;
+validate  Parse and validate a document; prints warnings and errors.
+lint      Lint BPMN pages from JSONL or BPMN XML. Text output is empty when
+          clean; --format json always prints a report. Exit 1 for error
+          findings and 2 for usage, parse or config errors.
+bpmn      Import or export BPMN 2.0 XML. --strict exits 3 when import or
+          export reports warnings; export --check exits 1 when out of date.`;
 
 /** Reads and writes go through this seam so commands stay testable. */
 export interface CommandIo {
   readText(path: string): string;
   writeText(path: string, text: string): void;
+  exists?(path: string): boolean;
 }
 
 interface ParsedArgs {
@@ -66,6 +89,9 @@ interface ParsedArgs {
 
 const VALUE_OPTIONS = new Set(["--dialect", "--page", "--output", "--check"]);
 const ARRANGE_OPTIONS = new Set(["--mode", "--direction", "--page"]);
+const LINT_OPTIONS = new Set(["--page", "--config", "--format"]);
+const BPMN_IMPORT_OPTIONS = new Set(["--output"]);
+const BPMN_EXPORT_OPTIONS = new Set(["--page", "--output", "--check"]);
 
 function ok(stdout: string, stderr = ""): CommandResult {
   return { exitCode: EXIT_OK, stdout, stderr };
@@ -149,22 +175,299 @@ function erdPages(document: Document): readonly Page[] {
 function selectPage(
   document: Document,
   query: string | undefined,
+  candidatePages?: readonly Page[],
+  noneMessage = "The document contains no ERD tables.",
+  candidateDescription = "pages with ERD tables",
 ): Page | string {
+  const candidates = candidatePages ?? erdPages(document);
   if (query !== undefined) {
-    const byId = document.pages.find((page) => page.id === query);
+    const searchPages = candidatePages ?? document.pages;
+    const byId = searchPages.find((page) => page.id === query);
     if (byId) return byId;
-    const byName = document.pages.filter((page) => page.name === query);
+    const byName = searchPages.filter((page) => page.name === query);
     if (byName.length === 1) return byName[0] as Page;
     if (byName.length > 1)
       return `Several pages are named "${query}"; pass the page id instead.`;
     return `No page has the id or name "${query}".`;
   }
-  const candidates = erdPages(document);
   if (candidates.length === 1) return candidates[0] as Page;
-  if (!candidates.length) return "The document contains no ERD tables.";
-  return `The document has ${candidates.length} pages with ERD tables; choose one with --page:\n${candidates
+  if (!candidates.length) return noneMessage;
+  return `The document has ${candidates.length} ${candidateDescription}; choose one with --page:\n${candidates
     .map((page) => `  ${page.id}\t${page.name}`)
     .join("\n")}`;
+}
+
+function bpmnPages(document: Document): readonly Page[] {
+  return document.pages.filter((page) => page.kind === "bpmn");
+}
+
+function warningLines(
+  warnings: readonly {
+    readonly message: string;
+    readonly xmlId?: string;
+    readonly element?: string;
+    readonly elementId?: string;
+  }[],
+): string {
+  return warnings
+    .map((warning) => {
+      const subject = warning.xmlId ?? warning.elementId ?? "document";
+      const kind = warning.element ? `${warning.element} ` : "";
+      return `warning: ${kind}${subject}: ${warning.message}\n`;
+    })
+    .join("");
+}
+
+function lintCommand(io: CommandIo, args: readonly string[]): CommandResult {
+  const parsed = parseArgs(args, LINT_OPTIONS, new Set());
+  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (parsed.positional.length !== 1)
+    return fail(`lint expects exactly one input path.\n\n${USAGE}`);
+  const path = parsed.positional[0] as string;
+  const format = parsed.options.get("--format") ?? "text";
+  if (format !== "text" && format !== "json")
+    return fail(`Unsupported format "${format}". Choose text or json.`);
+
+  let document: Document;
+  let context: { readonly missingDi?: readonly string[] } = {};
+  let stderr = "";
+  if (path.toLowerCase().endsWith(".bpmn")) {
+    let source: string;
+    try {
+      source = io.readText(path);
+    } catch (cause) {
+      return fail(
+        `Cannot read ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+    try {
+      const imported = importBpmnXml(source, {
+        title: path
+          .split(/[\\/]/)
+          .at(-1)
+          ?.replace(/\.bpmn$/i, ""),
+      });
+      document = imported.document;
+      context = { missingDi: imported.missingDi };
+      stderr = warningLines(imported.warnings);
+    } catch (cause) {
+      return fail(
+        `Cannot parse BPMN ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+  } else {
+    const loaded = loadDocument(io, path);
+    if (typeof loaded === "string") return fail(loaded);
+    document = loaded.document;
+    stderr = loaded.warnings;
+  }
+
+  const pages = bpmnPages(document);
+  const query = parsed.options.get("--page");
+  let selectedPages: readonly Page[];
+  if (query !== undefined) {
+    const selected = selectPage(
+      document,
+      query,
+      pages,
+      "The document contains no BPMN pages.",
+    );
+    if (typeof selected === "string") return fail(selected);
+    selectedPages = [selected];
+  } else {
+    selectedPages = pages;
+  }
+  if (!selectedPages.length)
+    return fail("The document contains no BPMN pages.");
+
+  let config = recommendedLintConfig();
+  const configPath = parsed.options.get("--config");
+  const discoveredPath =
+    configPath ?? (io.exists?.(".bpmnlintrc") ? ".bpmnlintrc" : undefined);
+  if (discoveredPath !== undefined) {
+    let source: string;
+    try {
+      source = io.readText(discoveredPath);
+    } catch (cause) {
+      return fail(
+        `Cannot read ${discoveredPath}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+    try {
+      config = parseLintConfig(source);
+    } catch (cause) {
+      if (cause instanceof BpmnLintConfigError) return fail(cause.message);
+      return fail(
+        `Cannot parse ${discoveredPath}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+  }
+
+  const reports = selectedPages.map((page) => ({
+    page,
+    findings: lintBpmnPage(document, page.id, config, context),
+  }));
+  const allFindings = reports.flatMap((report) => report.findings);
+  const errors = allFindings.filter(
+    (finding) => finding.severity === "error",
+  ).length;
+  const warnings = allFindings.length - errors;
+  if (format === "json") {
+    const report = {
+      input: path,
+      pages: reports.map(({ page, findings }) => ({
+        pageId: page.id,
+        pageName: page.name,
+        findings: findings.map(({ elementId, severity, message, ruleId }) => ({
+          elementId,
+          severity,
+          message,
+          ruleId,
+        })),
+      })),
+      summary: { problems: allFindings.length, errors, warnings },
+    };
+    return {
+      exitCode: errors ? EXIT_DRIFT : EXIT_OK,
+      stdout: `${JSON.stringify(report, null, 2)}\n`,
+      stderr,
+    };
+  }
+  if (!allFindings.length) return ok("", stderr);
+  const output = [path];
+  for (const { page, findings } of reports) {
+    if (!findings.length) continue;
+    if (reports.length > 1) output.push(`page ${page.name} (${page.id})`);
+    const columns = findings.map((finding) => [
+      finding.elementId,
+      finding.severity,
+      finding.message,
+      finding.ruleId,
+    ]);
+    const widths = [0, 1, 2, 3].map((column) =>
+      Math.max(...columns.map((row) => (row[column] as string).length)),
+    );
+    for (const row of columns)
+      output.push(
+        `  ${row
+          .map((value, index) =>
+            (value as string).padEnd(widths[index] as number),
+          )
+          .join("  ")
+          .trimEnd()}`,
+      );
+  }
+  output.push(
+    "",
+    `${allFindings.length} ${allFindings.length === 1 ? "problem" : "problems"} (${errors} errors, ${warnings} warnings)`,
+  );
+  return {
+    exitCode: errors ? EXIT_DRIFT : EXIT_OK,
+    stdout: `${output.join("\n")}\n`,
+    stderr,
+  };
+}
+
+function bpmnImport(io: CommandIo, args: readonly string[]): CommandResult {
+  const parsed = parseArgs(args, BPMN_IMPORT_OPTIONS, new Set(["--strict"]));
+  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (parsed.positional.length !== 1)
+    return fail(`bpmn import expects exactly one BPMN file path.\n\n${USAGE}`);
+  const path = parsed.positional[0] as string;
+  let report: BpmnImportReport;
+  try {
+    const basename = path
+      .split(/[\\/]/)
+      .at(-1)
+      ?.replace(/\.bpmn$/i, "");
+    report = importBpmnXml(io.readText(path), { title: basename });
+  } catch (cause) {
+    return fail(
+      `Cannot import ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
+    );
+  }
+  const warnings = warningLines(report.warnings);
+  if (parsed.flags.has("--strict") && report.warnings.length)
+    return {
+      exitCode: EXIT_WARNINGS,
+      stdout: "",
+      stderr: `${warnings}${report.warnings.length} BPMN import warning(s) with --strict.\n`,
+    };
+  const jsonl = serializeDocument(report.document);
+  const outputPath = parsed.options.get("--output");
+  if (outputPath !== undefined) {
+    const failure = writeOutput(io, outputPath, jsonl);
+    if (failure) return fail(`${warnings}${failure}`);
+    return ok("", `${warnings}Wrote BPMN document to ${outputPath}.\n`);
+  }
+  return ok(jsonl, warnings);
+}
+
+function bpmnExport(io: CommandIo, args: readonly string[]): CommandResult {
+  const parsed = parseArgs(args, BPMN_EXPORT_OPTIONS, new Set(["--strict"]));
+  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (parsed.positional.length !== 1)
+    return fail(`bpmn export expects exactly one document path.\n\n${USAGE}`);
+  if (parsed.options.has("--output") && parsed.options.has("--check"))
+    return fail("--output and --check cannot be combined.");
+  const path = parsed.positional[0] as string;
+  const loaded = loadDocument(io, path);
+  if (typeof loaded === "string") return fail(loaded);
+  const page = selectPage(
+    loaded.document,
+    parsed.options.get("--page"),
+    bpmnPages(loaded.document),
+    "The document contains no BPMN pages.",
+    "BPMN pages",
+  );
+  if (typeof page === "string") return fail(page);
+  let report: BpmnExportReport;
+  try {
+    report = exportBpmnXml(loaded.document, page.id, {
+      routeOf: bpmnRouteResolver(new Editor({ document: loaded.document })),
+    });
+  } catch (cause) {
+    return fail(`${cause instanceof Error ? cause.message : String(cause)}`);
+  }
+  const warnings = `${loaded.warnings}${report.warnings.map((warning) => `warning: ${warning.elementId ?? "document"}: ${warning.message}\n`).join("")}`;
+  if (parsed.flags.has("--strict") && report.warnings.length)
+    return {
+      exitCode: EXIT_WARNINGS,
+      stdout: "",
+      stderr: `${warnings}${report.warnings.length} BPMN export warning(s) with --strict.\n`,
+    };
+  const checkPath = parsed.options.get("--check");
+  if (checkPath !== undefined) {
+    let current: string;
+    try {
+      current = io.readText(checkPath);
+    } catch (cause) {
+      return fail(
+        `Cannot read ${checkPath}: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+    if (normalizeNewlines(current) !== report.xml)
+      return {
+        exitCode: EXIT_DRIFT,
+        stdout: "",
+        stderr: `${warnings}${checkPath} is out of date with ${path} (page "${page.name}"). Regenerate it with nodetto-cli bpmn export --output.\n`,
+      };
+    return ok("", `${warnings}${checkPath} is up to date.\n`);
+  }
+  const outputPath = parsed.options.get("--output");
+  if (outputPath !== undefined) {
+    const failure = writeOutput(io, outputPath, report.xml);
+    if (failure) return fail(`${warnings}${failure}`);
+    return ok("", `${warnings}Wrote BPMN XML to ${outputPath}.\n`);
+  }
+  return ok(report.xml, warnings);
+}
+
+function bpmnCommand(io: CommandIo, args: readonly string[]): CommandResult {
+  const [subcommand, ...rest] = args;
+  if (subcommand === "import") return bpmnImport(io, rest);
+  if (subcommand === "export") return bpmnExport(io, rest);
+  return fail(`bpmn expects the import or export subcommand.\n\n${USAGE}`);
 }
 
 function isDialect(value: string): value is DatabaseDialect {
@@ -377,6 +680,10 @@ export function runCli(
       return formatCommand(io, rest);
     case "validate":
       return validateCommand(io, rest);
+    case "lint":
+      return lintCommand(io, rest);
+    case "bpmn":
+      return bpmnCommand(io, rest);
     case "--version":
     case "-V":
       return ok(`nodetto-cli ${version}\n`);
