@@ -751,72 +751,67 @@ export function App(props: AppProps): JSX.Element {
     <div class="app-shell" classList={{ "app-cloud-mode": isCloud() }}>
       <header class="app-header" ref={headerHost}>
         <span class="app-title">nodetto</span>
-        <details class="app-file-menu" ref={fileMenu}>
-          <summary
-            class="app-file-button"
-            title={
-              props.filesAvailable
-                ? undefined
-                : "Local file commands require the desktop app. In the browser, use Import design and Download design."
-            }
-          >
-            File
-          </summary>
-          <div class="app-file-controls">
-            <button
-              type="button"
-              class="app-file-button"
-              disabled={!props.filesAvailable || isCloud()}
-              onClick={newDocument}
-            >
-              New
-            </button>
-            <button
-              type="button"
-              class="app-file-button"
-              disabled={!props.filesAvailable || isCloud()}
-              onClick={open}
-            >
-              Open
-            </button>
-            <button
-              type="button"
-              class="app-file-button"
-              disabled={!props.filesAvailable || isCloud()}
-              onClick={() => void props.session.save()}
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              class="app-file-button"
-              disabled={!props.filesAvailable || isCloud()}
-              onClick={() => void props.session.saveAs()}
-            >
-              Save As
-            </button>
-            <select
-              class="app-recent-select"
-              disabled={
-                !props.filesAvailable || isCloud() || file().recent.length === 0
-              }
-              value=""
-              onChange={(event) => {
-                const path = event.currentTarget.value;
-                event.currentTarget.value = "";
-                openRecent(path);
-              }}
-            >
-              <option value="">Recent</option>
-              <For each={file().recent}>
-                {(entry) => <option value={entry.path}>{entry.path}</option>}
-              </For>
-            </select>
-          </div>
-        </details>
+        <Show when={props.filesAvailable}>
+          <details class="app-file-menu" ref={fileMenu}>
+            <summary class="app-file-button">File</summary>
+            <div class="app-file-controls">
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!props.filesAvailable || isCloud()}
+                onClick={newDocument}
+              >
+                New
+              </button>
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!props.filesAvailable || isCloud()}
+                onClick={open}
+              >
+                Open
+              </button>
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!props.filesAvailable || isCloud()}
+                onClick={() => void props.session.save()}
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                class="app-file-button"
+                disabled={!props.filesAvailable || isCloud()}
+                onClick={() => void props.session.saveAs()}
+              >
+                Save As
+              </button>
+              <select
+                class="app-recent-select"
+                disabled={
+                  !props.filesAvailable ||
+                  isCloud() ||
+                  file().recent.length === 0
+                }
+                value=""
+                onChange={(event) => {
+                  const path = event.currentTarget.value;
+                  event.currentTarget.value = "";
+                  openRecent(path);
+                }}
+              >
+                <option value="">Recent</option>
+                <For each={file().recent}>
+                  {(entry) => <option value={entry.path}>{entry.path}</option>}
+                </For>
+              </select>
+            </div>
+          </details>
+        </Show>
         <Show when={props.cloud}>
           <details class="app-settings-menu" ref={settingsMenu}>
-            <summary class="app-file-button">Settings</summary>
+            <summary class="app-file-button">Cloud settings</summary>
             <div class="app-settings-controls">
               <button
                 type="button"
@@ -1094,6 +1089,7 @@ export function App(props: AppProps): JSX.Element {
           </Show>
           <Show when={editing() === null}>
             <SelectionToolbar
+              simple={workspace() !== "all"}
               context={actionContext()}
               host={canvasHost()}
               onMore={() => {
@@ -1134,7 +1130,7 @@ export function App(props: AppProps): JSX.Element {
               : undefined
           }
           role="separator"
-          aria-label="Resize Inspector"
+          aria-label="Resize Properties"
           aria-orientation="vertical"
           aria-valuemin={paneBounds(paneInput("right")).min}
           aria-valuemax={paneBounds(paneInput("right")).max}
@@ -1152,7 +1148,7 @@ export function App(props: AppProps): JSX.Element {
             "is-overlay": rightPaneOpen() && paneOverlaysCanvas(),
           }}
           style={{ "--pane-width": `${rightPaneWidth()}px` }}
-          aria-label="Inspector"
+          aria-label="Properties"
         >
           <div
             class="app-pane-content"
@@ -1163,9 +1159,9 @@ export function App(props: AppProps): JSX.Element {
               type="button"
               class="app-pane-collapse"
               onClick={() => hidePane("right")}
-              aria-label="Hide Inspector"
+              aria-label="Hide Properties"
               ref={rightCollapseButton}
-              title="Hide Inspector"
+              title="Hide Properties"
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M9 4l5 6-5 6" />
@@ -1183,10 +1179,10 @@ export function App(props: AppProps): JSX.Element {
             type="button"
             class="app-pane-restore"
             onClick={() => restorePane("right", true)}
-            aria-label="Show Inspector"
+            aria-label="Show Properties"
             ref={rightRestoreButton}
           >
-            Inspector
+            Properties
           </button>
         </aside>
       </div>

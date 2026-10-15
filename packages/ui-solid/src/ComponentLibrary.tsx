@@ -142,16 +142,16 @@ export function ComponentLibrary(props: {
                         });
                     }}
                   >
-                    Go to source
+                    {readOnly() ? "View original" : "Edit original"}
                   </button>
                 </div>
                 <button
                   type="button"
-                  title="Select editable instances of this exact component on the current page"
+                  title="Select editable copies of this component on the current page"
                   disabled={!instances().get(id)?.length}
                   onClick={() => selectComponentInstances(props.editor, id)}
                 >
-                  Select instances ({instances().get(id)?.length ?? 0})
+                  Select copies ({instances().get(id)?.length ?? 0})
                 </button>
                 <Show when={previewId() === id}>
                   <Show
@@ -174,7 +174,11 @@ export function ComponentLibrary(props: {
         )}
       </For>
       <Show when={components().length === 0}>
-        <p>{query().trim() ? "No matches" : "No components"}</p>
+        <p>
+          {query().trim()
+            ? "No matches"
+            : "No reusable components yet. Select a frame and choose Create component in Properties."}
+        </p>
       </Show>
     </section>
   );

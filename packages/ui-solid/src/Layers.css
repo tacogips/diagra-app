@@ -58,3 +58,10 @@
   opacity: 0.5;
   cursor: default;
 }
+
+.nodetto-library-help {
+  margin: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--nodetto-muted);
+}

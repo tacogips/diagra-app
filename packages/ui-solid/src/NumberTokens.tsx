@@ -21,13 +21,13 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
   return (
     <section
       class="nodetto-number-tokens"
-      aria-label="Document measurement tokens"
+      aria-label="Shared sizes and spacing"
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
       <h2>
-        Measurements{" "}
-        <HelpHint text="Reusable pixels for spacing, sizing, corners and typography. Values use the current page mode from Color palette." />
+        Sizes and spacing{" "}
+        <HelpHint text="Save sizes in pixels, then apply them in Properties under Shared styles. These values follow the page theme chosen in Colors." />
       </h2>
       <form
         onSubmit={(event) => {
@@ -36,15 +36,15 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
         }}
       >
         <input
-          aria-label="New measurement name"
-          placeholder="Space medium"
+          aria-label="Size name"
+          placeholder="e.g. Card padding"
           required
           value={name()}
           onInput={(event) => setName(event.currentTarget.value)}
         />
         <input
           type="number"
-          aria-label="New measurement value"
+          aria-label="Size in pixels"
           min="0"
           step="any"
           required
@@ -55,7 +55,7 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
           type="submit"
           disabled={!name().trim() || !Number.isFinite(value())}
         >
-          Add measurement
+          Save size
         </button>
       </form>
       <For each={tokens()}>
@@ -103,30 +103,35 @@ export function NumberTokens(props: { readonly editor: Editor }): JSX.Element {
                     event.currentTarget.value = String(token.value);
                 }}
               />
-              <select
-                aria-label={`${token.name} alias`}
-                value={token.aliasId ?? ""}
-                disabled={locked()}
-                onChange={(event) => {
-                  if (
-                    !setNumberTokenAlias(
-                      props.editor,
-                      token.id,
-                      event.currentTarget.value || null,
+              <details>
+                <summary>Use another size</summary>
+                <select
+                  aria-label={`Size used by ${token.name}`}
+                  value={token.aliasId ?? ""}
+                  disabled={locked()}
+                  onChange={(event) => {
+                    if (
+                      !setNumberTokenAlias(
+                        props.editor,
+                        token.id,
+                        event.currentTarget.value || null,
+                      )
                     )
-                  )
-                    event.currentTarget.value = token.aliasId ?? "";
-                }}
-              >
-                <option value="">Direct value</option>
-                <For each={tokens().filter((entry) => entry.id !== token.id)}>
-                  {(entry) => (
-                    <option value={entry.id}>Alias {entry.name}</option>
-                  )}
-                </For>
-              </select>
+                      event.currentTarget.value = token.aliasId ?? "";
+                  }}
+                >
+                  <option value="">Custom size</option>
+                  <For each={tokens().filter((entry) => entry.id !== token.id)}>
+                    {(entry) => (
+                      <option value={entry.id}>Use {entry.name}</option>
+                    )}
+                  </For>
+                </select>
+              </details>
               <Show when={token.broken}>
-                <span role="status">Broken alias; using fallback</span>
+                <span role="status">
+                  Referenced size is missing; showing the saved size
+                </span>
               </Show>
               <button
                 type="button"

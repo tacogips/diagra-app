@@ -168,7 +168,7 @@ export function HandoffSection(props: {
   };
   return (
     <details class="nodetto-inspector-section">
-      <summary>Developer handoff</summary>
+      <summary>Generate code</summary>
       <HelpHint text={formatHelp()} />
       <label>
         Output
@@ -204,18 +204,18 @@ export function HandoffSection(props: {
           }}
         >
           <option value="css">CSS declarations</option>
-          <option value="linked">CSS with token variables</option>
+          <option value="linked">CSS with shared style variables</option>
           <option value="palette">Palette CSS variables</option>
           <option value="typography">Typography CSS variables</option>
           <option value="layout">Auto-layout flex CSS</option>
           <option value="html">Generated artboard HTML</option>
           <option value="code-css">Generated artboard CSS</option>
-          <option value="code-linked">Generated token-linked CSS</option>
+          <option value="code-linked">Generated CSS with shared styles</option>
           <option value="manifest">Generated semantic manifest</option>
           <option value="responsive-html">Responsive family HTML</option>
           <option value="responsive-css">Responsive family CSS</option>
           <option value="responsive-linked">
-            Responsive family token-linked CSS
+            Responsive CSS with shared styles
           </option>
           <option value="responsive-manifest">
             Responsive family manifest

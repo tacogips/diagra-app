@@ -33,6 +33,7 @@ import "./SelectionToolbar.css";
 
 export interface SelectionToolbarProps {
   readonly context: ActionContext;
+  readonly simple?: boolean;
   /** The canvas host: the toolbar is clamped to it and hides while pressed. */
   readonly host: HTMLElement | undefined;
   /** "More": the shell focuses the Inspector on the selection. */
@@ -95,12 +96,12 @@ export function placeAbove(
 }
 
 const ARRANGE_BUTTONS: readonly { id: ActionId; label: string }[] = [
-  { id: "alignLeft", label: "L" },
-  { id: "alignHCenter", label: "C" },
-  { id: "alignRight", label: "R" },
-  { id: "alignTop", label: "T" },
-  { id: "alignVCenter", label: "M" },
-  { id: "alignBottom", label: "B" },
+  { id: "alignLeft", label: "Align left" },
+  { id: "alignHCenter", label: "Center horizontally" },
+  { id: "alignRight", label: "Align right" },
+  { id: "alignTop", label: "Align top" },
+  { id: "alignVCenter", label: "Center vertically" },
+  { id: "alignBottom", label: "Align bottom" },
 ];
 
 export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
@@ -262,8 +263,8 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         onPointerDown={(event) => event.stopPropagation()}
       >
         <div class="nodetto-float-group">
-          {button("duplicate", "Dup")}
-          {button("delete", "Del")}
+          {button("duplicate", "Duplicate")}
+          {button("delete", "Delete")}
         </div>
         <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Colors</summary>
@@ -275,15 +276,19 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Arrange</summary>
           <div class="nodetto-selection-disclosure-body">
-            {button("bringToFront", "Front")}
-            {button("sendToBack", "Back")}
-            {button("frameSelection", "Frame")}
+            {button("bringToFront", "Bring to front")}
+            {button("sendToBack", "Send to back")}
+            <Show when={!props.simple}>
+              {button("frameSelection", "Frame selection")}
+            </Show>
             {button("group", "Group")}
-            {button("booleanUnion", "Union")}
-            {button("booleanSubtract", "Subtract")}
-            {button("booleanIntersect", "Intersect")}
-            {button("booleanExclude", "Exclude")}
-            {button("flattenBoolean", "Flatten")}
+            <Show when={!props.simple}>
+              {button("booleanUnion", "Union")}
+              {button("booleanSubtract", "Subtract")}
+              {button("booleanIntersect", "Intersect")}
+              {button("booleanExclude", "Exclude")}
+              {button("flattenBoolean", "Flatten")}
+            </Show>
             {button("ungroup", "Ungroup")}
             <Show when={isEnabled(getAction("alignLeft"))}>
               <For each={ARRANGE_BUTTONS}>
@@ -296,10 +301,10 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
           <button
             type="button"
             class="nodetto-float-button"
-            title="More options in the Inspector"
+            title="Edit selection properties"
             onClick={() => props.onMore()}
           >
-            More
+            Properties
           </button>
         </div>
       </div>

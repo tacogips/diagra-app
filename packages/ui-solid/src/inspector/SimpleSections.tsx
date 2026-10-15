@@ -924,7 +924,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           class="nodetto-inspector-button"
           onClick={() => props.editor.createComponentInstance(props.element.id)}
         >
-          Create instance
+          Insert linked copy
         </button>
       </Show>
       <Show when={semantic().instanceOf}>
@@ -1052,7 +1052,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
           class="nodetto-inspector-button"
           onClick={() => props.editor.detachComponentInstance(props.element.id)}
         >
-          Detach instance
+          Make independent copy
         </button>
       </Show>
       <Field label="Name">
@@ -1869,36 +1869,39 @@ export function PageSection(props: PageSectionProps): JSX.Element {
           onCommit={(name) => props.editor.renamePage(props.page.id, name)}
         />
       </Field>
-      <Field label="Kind">
-        <SelectInput
-          label="Page kind"
-          value={props.page.kind}
-          options={PAGE_KIND_OPTIONS}
-          onCommit={(kind) =>
-            props.editor.setPageKind(props.page.id, kind as PageKind)
-          }
-        />
-      </Field>
-      <Suspense>
-        <PageGuidesSection editor={props.editor} page={props.page} />
-      </Suspense>
-      <Field label="SQL input">
-        <SelectInput
-          label="Page SQL input dialect"
-          value={props.page.sqlDialect ?? "postgresql"}
-          options={[
-            { value: "postgresql", label: "PostgreSQL" },
-            { value: "mysql", label: "MySQL" },
-            { value: "sqlite", label: "SQLite" },
-          ]}
-          onCommit={(value) =>
-            props.editor.setPageSqlDialect(
-              props.page.id,
-              value as NonNullable<Page["sqlDialect"]>,
-            )
-          }
-        />
-      </Field>
+      <details class="nodetto-inspector-details">
+        <summary>Page settings</summary>
+        <Field label="Diagram format">
+          <SelectInput
+            label="Page diagram format"
+            value={props.page.kind}
+            options={PAGE_KIND_OPTIONS}
+            onCommit={(kind) =>
+              props.editor.setPageKind(props.page.id, kind as PageKind)
+            }
+          />
+        </Field>
+        <Suspense>
+          <PageGuidesSection editor={props.editor} page={props.page} />
+        </Suspense>
+        <Field label="SQL import format">
+          <SelectInput
+            label="Page SQL input dialect"
+            value={props.page.sqlDialect ?? "postgresql"}
+            options={[
+              { value: "postgresql", label: "PostgreSQL" },
+              { value: "mysql", label: "MySQL" },
+              { value: "sqlite", label: "SQLite" },
+            ]}
+            onCommit={(value) =>
+              props.editor.setPageSqlDialect(
+                props.page.id,
+                value as NonNullable<Page["sqlDialect"]>,
+              )
+            }
+          />
+        </Field>
+      </details>
     </Section>
   );
 }

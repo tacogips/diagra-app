@@ -42,78 +42,87 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
     >
       <h2>
         Color palette{" "}
-        <HelpHint text="Linked colors follow palette edits. Direct style edits unlink that field." />
+        <HelpHint text="Choose a color, then apply it to the selected items. Keep colors updated to apply future palette changes too." />
       </h2>
-      <label>
-        Page mode
-        <select
-          aria-label="Page token mode"
-          value={mode()}
-          onChange={(event) =>
-            props.editor.setPageTokenMode(
-              props.editor.currentPageId,
-              event.currentTarget.value || null,
-            )
-          }
+      <details class="nodetto-navigation-group">
+        <summary>Page themes</summary>
+        <p>
+          Use a theme such as Light or Dark to switch shared colors and sizes on
+          this page.
+        </p>
+        <label>
+          Page theme
+          <select
+            aria-label="Page theme"
+            value={mode()}
+            onChange={(event) =>
+              props.editor.setPageTokenMode(
+                props.editor.currentPageId,
+                event.currentTarget.value || null,
+              )
+            }
+          >
+            <option value="">Default</option>
+            <For each={modes()}>
+              {(entry) => <option value={entry}>{entry}</option>}
+            </For>
+          </select>
+        </label>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const name = newMode().trim();
+            if (!name || name.toLowerCase() === "default") return;
+            const changed = mode()
+              ? renameDesignTokenMode(props.editor, mode(), name)
+              : props.editor.setPageTokenMode(props.editor.currentPageId, name);
+            if (changed) setNewMode("");
+          }}
         >
-          <option value="">Default</option>
-          <For each={modes()}>
-            {(entry) => <option value={entry}>{entry}</option>}
-          </For>
-        </select>
-      </label>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          const name = newMode().trim();
-          if (!name || name.toLowerCase() === "default") return;
-          const changed = mode()
-            ? renameDesignTokenMode(props.editor, mode(), name)
-            : props.editor.setPageTokenMode(props.editor.currentPageId, name);
-          if (changed) setNewMode("");
-        }}
-      >
-        <input
-          aria-label="New token mode"
-          placeholder={mode() ? `Rename ${mode()}` : "Dark or Android"}
-          value={newMode()}
-          onInput={(event) => setNewMode(event.currentTarget.value)}
-        />
-        <button type="submit" disabled={!newMode().trim()}>
-          {mode() ? "Rename mode" : "Add mode"}
-        </button>
-        <Show when={mode()}>
-          {(active) => (
-            <button
-              type="button"
-              onClick={() => removeDesignTokenMode(props.editor, active())}
-            >
-              Remove mode
-            </button>
-          )}
-        </Show>
-      </form>
+          <input
+            aria-label="Theme name"
+            placeholder={mode() ? `Rename ${mode()}` : "e.g. Dark"}
+            value={newMode()}
+            onInput={(event) => setNewMode(event.currentTarget.value)}
+          />
+          <button type="submit" disabled={!newMode().trim()}>
+            {mode() ? "Rename theme" : "Add theme"}
+          </button>
+          <Show when={mode()}>
+            {(active) => (
+              <button
+                type="button"
+                onClick={() => removeDesignTokenMode(props.editor, active())}
+              >
+                Remove theme
+              </button>
+            )}
+          </Show>
+        </form>
+      </details>
       <label>
         <input
           type="checkbox"
           checked={linked()}
           onChange={(event) => setLinked(event.currentTarget.checked)}
         />
-        Link applied colors
+        Keep applied colors updated
       </label>
-      <div class="nodetto-color-entry">
-        <For each={["fill", "stroke", "color"] as const}>
-          {(field) => (
-            <button
-              type="button"
-              disabled={signals.selection().size === 0}
-              onClick={() => bindSelectionColor(props.editor, field, null)}
-            >
-              Unlink {field === "color" ? "text" : field}
-            </button>
-          )}
-        </For>
-      </div>
+      <Show when={signals.selection().size > 0}>
+        <div class="nodetto-color-entry">
+          <For each={["fill", "stroke", "color"] as const}>
+            {(field) => (
+              <button
+                type="button"
+                disabled={signals.selection().size === 0}
+                onClick={() => bindSelectionColor(props.editor, field, null)}
+              >
+                Stop updating {field === "color" ? "text" : field}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -177,30 +186,35 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
                   )
                 }
               />
-              <select
-                aria-label={`${token.name} alias`}
-                value={token.aliasId ?? ""}
-                disabled={locked()}
-                onChange={(event) => {
-                  if (
-                    !setColorTokenAlias(
-                      props.editor,
-                      token.id,
-                      event.currentTarget.value || null,
+              <details>
+                <summary>Use another color</summary>
+                <select
+                  aria-label={`Color used by ${token.name}`}
+                  value={token.aliasId ?? ""}
+                  disabled={locked()}
+                  onChange={(event) => {
+                    if (
+                      !setColorTokenAlias(
+                        props.editor,
+                        token.id,
+                        event.currentTarget.value || null,
+                      )
                     )
-                  )
-                    event.currentTarget.value = token.aliasId ?? "";
-                }}
-              >
-                <option value="">Direct value</option>
-                <For each={tokens().filter((entry) => entry.id !== token.id)}>
-                  {(entry) => (
-                    <option value={entry.id}>Alias {entry.name}</option>
-                  )}
-                </For>
-              </select>
+                      event.currentTarget.value = token.aliasId ?? "";
+                  }}
+                >
+                  <option value="">Custom color</option>
+                  <For each={tokens().filter((entry) => entry.id !== token.id)}>
+                    {(entry) => (
+                      <option value={entry.id}>Use {entry.name}</option>
+                    )}
+                  </For>
+                </select>
+              </details>
               <Show when={token.broken}>
-                <span role="status">Broken alias; using fallback</span>
+                <span role="status">
+                  Referenced color is missing; showing the saved color
+                </span>
               </Show>
               <div>
                 <For each={["fill", "stroke", "color"] as const}>

@@ -30,12 +30,12 @@ export function TextStyleBindingsSection(props: {
   return (
     <Show when={binding().count > 0}>
       <Section
-        title="Typography style"
-        help="A linked style updates every consumer. Direct type edits detach it."
+        title="Shared text style"
+        help="Changing a shared text style updates all text that uses it. Editing fonts here switches the selection to custom formatting."
       >
         <Field label="Text style">
           <select
-            aria-label="Typography style binding"
+            aria-label="Shared text style binding"
             value={current()}
             disabled={binding().editable === 0}
             onChange={(event) => {
@@ -53,7 +53,7 @@ export function TextStyleBindingsSection(props: {
                 Mixed styles
               </option>
             </Show>
-            <option value="unlinked">Unlinked</option>
+            <option value="unlinked">Custom formatting</option>
             <Show when={binding().missing}>
               <option value={JSON.stringify(binding().id)} disabled>
                 Missing style

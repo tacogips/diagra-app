@@ -105,7 +105,7 @@ export function Layers(props: {
             if (event.currentTarget.open) mountComponents(true);
           }}
         >
-          <summary>Components</summary>
+          <summary>Reusable components</summary>
           <Show when={componentsMounted()}>
             <ComponentLibrary editor={props.editor} showHeading={false} />
           </Show>
@@ -116,15 +116,28 @@ export function Layers(props: {
             if (event.currentTarget.open) mountStyles(true);
           }}
         >
-          <summary>Styles and tokens</summary>
+          <summary>Shared styles</summary>
           <Show when={stylesMounted()}>
             <fieldset
               disabled={readOnly()}
               style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
             >
-              <ColorTokens editor={props.editor} />
-              <NumberTokens editor={props.editor} />
-              <TypographyStyles editor={props.editor} />
+              <p class="nodetto-library-help">
+                Save colors, text styles and sizes to reuse across this
+                document. Editing a shared style updates items that use it.
+              </p>
+              <details class="nodetto-navigation-group">
+                <summary>Colors</summary>
+                <ColorTokens editor={props.editor} />
+              </details>
+              <details class="nodetto-navigation-group">
+                <summary>Sizes and spacing</summary>
+                <NumberTokens editor={props.editor} />
+              </details>
+              <details class="nodetto-navigation-group">
+                <summary>Text styles</summary>
+                <TypographyStyles editor={props.editor} />
+              </details>
             </fieldset>
           </Show>
         </details>

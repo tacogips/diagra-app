@@ -447,21 +447,24 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     >
       <div class="nodetto-toolbar-primary">
         <Show when={props.onWorkspaceChange}>
-          <select
-            class="nodetto-workspace-select"
-            aria-label="Diagram workspace"
-            value={workspace().id}
-            onKeyDown={(event) => event.stopPropagation()}
-            onChange={(event) =>
-              props.onWorkspaceChange?.(
-                workspaceById(event.currentTarget.value).id,
-              )
-            }
-          >
-            <For each={WORKSPACES}>
-              {(entry) => <option value={entry.id}>{entry.label}</option>}
-            </For>
-          </select>
+          <label class="nodetto-workspace-label">
+            Editing mode
+            <select
+              class="nodetto-workspace-select"
+              aria-label="Editing mode"
+              value={workspace().id}
+              onKeyDown={(event) => event.stopPropagation()}
+              onChange={(event) =>
+                props.onWorkspaceChange?.(
+                  workspaceById(event.currentTarget.value).id,
+                )
+              }
+            >
+              <For each={WORKSPACES}>
+                {(entry) => <option value={entry.id}>{entry.label}</option>}
+              </For>
+            </select>
+          </label>
         </Show>
         <button
           type="button"
@@ -612,21 +615,21 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         <div class="nodetto-toolbar-menu-wrap">
           <button
             type="button"
-            class="nodetto-toolbar-icon"
-            aria-label="More tools"
-            title="More tools"
+            class="nodetto-workspace-tool"
+            aria-label="Actions"
+            title="Arrange, export and access all tools"
             aria-haspopup="menu"
             aria-expanded={open() === "more"}
             onClick={(event) => trigger("more", event.currentTarget)}
             onKeyDown={(event) => triggerKey("more", event)}
           >
-            <Icon name="more" />
+            Actions
           </button>
           <Show when={open() === "more"}>
             <div
               class="nodetto-toolbar-menu nodetto-toolbar-more-menu"
               role="menu"
-              aria-label="More tools"
+              aria-label="Actions"
               style={menuStyle()}
               onKeyDown={menuKey}
             >

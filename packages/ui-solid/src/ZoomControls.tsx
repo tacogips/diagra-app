@@ -62,6 +62,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
       type="button"
       class="nodetto-zoom-button"
       title={actionTitle(getAction(id))}
+      aria-label={actionTitle(getAction(id))}
       disabled={!isEnabled(id)}
       onClick={(event) => {
         event.currentTarget.focus({ preventScroll: true });
@@ -118,7 +119,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
           <span aria-hidden="true">%</span>
         </div>
         {button("zoomIn", "+")}
-        {button("zoomFit", "Fit")}
+        {button("zoomFit", "Fit diagram")}
       </div>
       <details
         class="nodetto-view-menu"

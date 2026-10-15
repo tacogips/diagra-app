@@ -48,7 +48,7 @@ export function NumberBindingsSection(props: {
   return (
     <Show when={bindings().length > 0}>
       <Section
-        title="Measurement bindings"
+        title="Shared sizes and spacing"
         help="Link numeric properties to reusable values. Direct edits unlink only that property."
       >
         <For each={bindings()}>
@@ -62,7 +62,7 @@ export function NumberBindingsSection(props: {
             return (
               <Field label={LABELS[binding.field]}>
                 <select
-                  aria-label={`${LABELS[binding.field]} measurement binding`}
+                  aria-label={`${LABELS[binding.field]} shared size`}
                   value={current()}
                   disabled={binding.editable === 0}
                   onChange={(event) => {
@@ -80,13 +80,13 @@ export function NumberBindingsSection(props: {
                 >
                   <Show when={binding.mixed}>
                     <option value="mixed" disabled>
-                      Mixed bindings
+                      Different sizes
                     </option>
                   </Show>
-                  <option value="unlinked">Unlinked</option>
+                  <option value="unlinked">Custom size</option>
                   <Show when={binding.missing}>
                     <option value={JSON.stringify(binding.tokenId)} disabled>
-                      Missing token
+                      Missing shared size
                     </option>
                   </Show>
                   <For each={tokens()}>

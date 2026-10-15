@@ -11,7 +11,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
   return (
     <Suspense
       fallback={
-        <aside class="nodetto-inspector" aria-label="Inspector properties">
+        <aside class="nodetto-inspector" aria-label="Properties">
           <p class="nodetto-inspector-summary">Loading properties…</p>
         </aside>
       }

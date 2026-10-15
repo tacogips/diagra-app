@@ -196,3 +196,13 @@
   font-size: .75rem;
   color: #526071;
 }
+
+.nodetto-workspace-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  font-size: .75rem;
+  color: var(--nodetto-ink);
+}

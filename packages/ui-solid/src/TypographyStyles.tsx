@@ -33,12 +33,12 @@ export function TypographyStyles(props: {
   return (
     <section
       class="nodetto-typography-styles"
-      aria-label="Document typography styles"
+      aria-label="Shared text styles"
       onKeyDown={(event) => event.stopPropagation()}
       onKeyUp={(event) => event.stopPropagation()}
     >
       <h2>
-        Typography{" "}
+        Text styles{" "}
         <HelpHint text="Create from formatted text, then reuse and update it across screens." />
       </h2>
       <form
@@ -48,14 +48,14 @@ export function TypographyStyles(props: {
         }}
       >
         <input
-          aria-label="New typography style name"
+          aria-label="New text style name"
           placeholder="Heading large"
           required
           value={name()}
           onInput={(event) => setName(event.currentTarget.value)}
         />
         <button type="submit" disabled={!name().trim()}>
-          {selected() ? "Create from selection" : "Create default"}
+          {selected() ? "Create from selection" : "Create text style"}
         </button>
       </form>
       <For each={styles()}>
@@ -105,7 +105,7 @@ export function TypographyStyles(props: {
                     updateTextStyle(props.editor, style.id, style.name, value);
                 }}
               >
-                Update
+                Update from selection
               </button>
               <button
                 type="button"

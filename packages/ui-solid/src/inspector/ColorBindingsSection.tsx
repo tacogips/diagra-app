@@ -24,7 +24,7 @@ export function ColorBindingsSection(props: {
   return (
     <Show when={(bindings()[0]?.count ?? 0) > 0}>
       <Section
-        title="Color bindings"
+        title="Shared colors"
         help="Choose a shared color or unlink while keeping its current appearance. Locked layers are skipped."
       >
         <For each={bindings()}>
@@ -45,7 +45,7 @@ export function ColorBindingsSection(props: {
             return (
               <Field label={label}>
                 <select
-                  aria-label={`${label} color binding`}
+                  aria-label={`${label} shared color`}
                   value={current()}
                   disabled={binding.editable === 0}
                   onChange={(event) => {
@@ -63,13 +63,13 @@ export function ColorBindingsSection(props: {
                 >
                   <Show when={binding.mixed}>
                     <option value="mixed" disabled>
-                      Mixed bindings
+                      Different colors
                     </option>
                   </Show>
-                  <option value="unlinked">Unlinked</option>
+                  <option value="unlinked">Custom color</option>
                   <Show when={binding.missing}>
                     <option value={JSON.stringify(binding.tokenId)} disabled>
-                      Missing token
+                      Missing shared color
                     </option>
                   </Show>
                   <For each={tokens()}>

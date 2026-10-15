@@ -78,7 +78,7 @@ export function DatabaseExportSection(props: {
   };
   return (
     <details class="nodetto-inspector-section">
-      <summary>Database DDL</summary>
+      <summary>Export database SQL</summary>
       <label>
         SQL dialect
         <select
@@ -106,7 +106,7 @@ export function DatabaseExportSection(props: {
         Download .sql
       </button>
       <textarea
-        aria-label="Generated database DDL"
+        aria-label="Generated database SQL"
         readOnly
         rows={14}
         value={report().sql}

@@ -21,8 +21,11 @@ export function OverridesSection(props: {
         : JSON.stringify(value);
   return (
     <Show when={overrides().length}>
-      <section class="nodetto-inspector-section" aria-label="Source overrides">
-        <h3>Source overrides</h3>
+      <section
+        class="nodetto-inspector-section"
+        aria-label="Changes to this copy"
+      >
+        <h3>Changes to this copy</h3>
         <For each={overrides()}>
           {(item) => (
             <div>
@@ -30,7 +33,7 @@ export function OverridesSection(props: {
               <p style={{ "overflow-wrap": "anywhere" }}>
                 Current: {shown(item.current)}
                 <br />
-                Source: {shown(item.source)}
+                Original: {shown(item.source)}
               </p>
               <button
                 type="button"
@@ -42,8 +45,8 @@ export function OverridesSection(props: {
                       item.targetId,
                       item.field,
                     )
-                      ? "Override restored to source."
-                      : "Could not reset: the layer or source changed.",
+                      ? "Restored the original value."
+                      : "Could not reset: this item or its original changed.",
                   )
                 }
               >
