@@ -64,6 +64,21 @@ machine, or a ShapeUtil.
 Recorded results live with the change that required them; a run is only
 meaningful for the build it was performed against.
 
+### Left shape palette
+
+The left pane shows Shapes above Layers in every workspace. Choose a shape tile,
+then click the canvas to place it; use its handles to resize it. The tool returns
+to Select after placement, and Escape cancels a pending tool. The connector tile
+connects shapes by dragging from one shape to another.
+
+Select existing objects or a group and click **Frame selection** in the palette
+to enclose them in a frame. **Group** and **Ungroup** are alongside it. The
+**Frame** tile places a transparent general-purpose frame; design workspaces also
+have device and document presets under **Artboards**. ERD, UML class and sequence
+workspaces show their own diagram tools above the common shapes.
+
+See [the palette design](docs/left-shape-palette.md) for behavior and verification.
+
 ### Running it
 
 Every step above is automated against a real headless Chrome, driven with

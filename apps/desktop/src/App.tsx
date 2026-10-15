@@ -35,6 +35,7 @@ import {
   ReviewCommentPins,
   runAction,
   SelectionToolbar,
+  ShapePalette,
   type SnapSettings,
   TextEditor,
   Toolbar,
@@ -968,7 +969,7 @@ export function App(props: AppProps): JSX.Element {
             "is-overlay": leftPaneOpen() && paneOverlaysCanvas(),
           }}
           style={{ "--pane-width": `${leftPaneWidth()}px` }}
-          aria-label="Layers"
+          aria-label="Shapes and layers"
         >
           <div
             class="app-pane-content"
@@ -979,15 +980,22 @@ export function App(props: AppProps): JSX.Element {
               type="button"
               class="app-pane-collapse"
               onClick={() => hidePane("left")}
-              aria-label="Hide Layers"
+              aria-label="Hide Shapes and layers"
               ref={leftCollapseButton}
-              title="Hide Layers"
+              title="Hide Shapes and layers"
             >
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M11 4l-5 6 5 6" />
               </svg>
             </button>
             <div class="app-pane-navigation">{props.navigationContent}</div>
+            <ShapePalette
+              editor={props.editor}
+              workspace={workspace()}
+              tool={tool()}
+              onToolChange={setActiveTool}
+              context={actionContext()}
+            />
             <Layers
               simple={simpleWorkspace()}
               editor={props.editor}
@@ -1004,10 +1012,10 @@ export function App(props: AppProps): JSX.Element {
             type="button"
             class="app-pane-restore"
             onClick={() => restorePane("left", true)}
-            aria-label="Show Layers"
+            aria-label="Show Shapes and layers"
             ref={leftRestoreButton}
           >
-            Layers
+            Shapes &amp; layers
           </button>
         </aside>
         <button
@@ -1023,7 +1031,7 @@ export function App(props: AppProps): JSX.Element {
               : undefined
           }
           role="separator"
-          aria-label="Resize Layers"
+          aria-label="Resize Shapes and layers"
           aria-orientation="vertical"
           aria-valuemin={paneBounds(paneInput("left")).min}
           aria-valuemax={paneBounds(paneInput("left")).max}

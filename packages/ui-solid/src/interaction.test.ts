@@ -34,8 +34,14 @@ import {
   type Scheduler,
   shortcutKey,
 } from "./interaction.ts";
-import { creationFor, GEO_TOOLS, TOOLS } from "./tools.ts";
+import { creationFor, GEO_TOOLS, Tool, TOOLS } from "./tools.ts";
 import type { ToolKind } from "./tools.ts";
+import {
+  ARTBOARD_SHAPES,
+  COMMON_SHAPES,
+  DIAGRAM_SHAPES,
+  workspaceShapes,
+} from "./shape-palette.ts";
 
 const START = { x: 100, y: 100, width: 200, height: 100 };
 
@@ -933,6 +939,70 @@ describe("resizeBox", () => {
     const tiny = resizeBox(START, "se", -1000, -1000);
     expect(tiny.width).toBeGreaterThanOrEqual(MIN_SHAPE_SIZE);
     expect(tiny.height).toBeGreaterThanOrEqual(MIN_SHAPE_SIZE);
+  });
+});
+
+describe("left shape palette creation", () => {
+  for (const item of [
+    ...COMMON_SHAPES,
+    ...DIAGRAM_SHAPES,
+    ...ARTBOARD_SHAPES,
+  ]) {
+    if (item.tool === Tool.Connector) continue;
+    test(`${item.tool} places a selected shape, resets the tool, and undoes in one step`, () => {
+      const editor = new Editor();
+      editor.camera.set({ x: 10, y: 20, z: 2 });
+      const { interaction, tool } = interactionFor(editor, item.tool);
+      interaction.onPointerDown(pointer({ clientX: 410, clientY: 320 }));
+      interaction.onPointerUp(pointer({ clientX: 410, clientY: 320 }));
+      const [placed] = editor.store.listElements();
+      expect(placed).toBeDefined();
+      expect(editor.store.size).toBe(1);
+      expect(placed!.type).toBe(creationFor(item.tool)!.type);
+      expect(editor.selection.has(placed!.id)).toBe(true);
+      expect(tool()).toBe("select");
+      if (item.tool === Tool.Frame) {
+        expect(placed!.visual).toMatchObject({
+          x: 35,
+          y: 30,
+          width: 320,
+          height: 220,
+          style: { fill: "none", stroke: "#64748b", strokeWidth: 1.5 },
+        });
+        expect(placed!.semantic).not.toHaveProperty("platform");
+      }
+      editor.undo();
+      expect(editor.store.size).toBe(0);
+      expect(editor.canUndo()).toBe(false);
+      editor.redo();
+      expect(editor.store.get(placed!.id)).toEqual(placed!);
+      interaction.dispose();
+    });
+    test(`${item.tool} cannot place into a read-only document`, () => {
+      const editor = new Editor();
+      const { interaction } = interactionFor(editor, item.tool);
+      editor.setReadOnly(true);
+      interaction.onPointerDown(pointer());
+      interaction.onPointerUp(pointer());
+      expect(editor.store.size).toBe(0);
+      expect(editor.canUndo()).toBe(false);
+      interaction.dispose();
+    });
+  }
+
+  test("semantic palettes preserve endpoint tools and workspace terminology", () => {
+    expect(workspaceShapes("erd").map((item) => item.label)).toEqual([
+      "Table",
+      "Relationship",
+    ]);
+    expect(workspaceShapes("sequence").map((item) => item.tool)).toEqual([
+      "sequence.actor",
+      "sequence.service",
+      "sequence.database",
+      "edge",
+    ]);
+    expect(workspaceShapes("sequence").at(-1)?.label).toBe("Message");
+    expect(workspaceShapes("flow")).toEqual([]);
   });
 });
 

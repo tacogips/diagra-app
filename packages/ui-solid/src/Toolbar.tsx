@@ -27,6 +27,7 @@ import {
   runAction,
 } from "./shortcuts.ts";
 import { canUseTool, type ToolKind } from "./tools.ts";
+import { COMMON_SHAPES } from "./shape-palette.ts";
 import "./Toolbar.css";
 import { WORKSPACES, workspaceById, type WorkspaceId } from "./workspaces.ts";
 
@@ -607,9 +608,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </Show>
         <span class="nodetto-active-tool" role="status">
           {props.tool !== "select" && props.tool !== "hand"
-            ? ([...TOOL_MENUS.flatMap((menu) => menu.tools)].find(
-                (item) => item.tool === props.tool,
-              )?.label ?? props.tool)
+            ? ([
+                ...TOOL_MENUS.flatMap((menu) => menu.tools),
+                ...COMMON_SHAPES,
+              ].find((item) => item.tool === props.tool)?.label ?? props.tool)
             : ""}
         </span>
         <div class="nodetto-toolbar-menu-wrap">

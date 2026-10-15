@@ -1,0 +1,70 @@
+import { Tool, type ToolKind } from "./tools.ts";
+import { workspaceById, type WorkspaceId } from "./workspaces.ts";
+
+export const PALETTE_ICONS = {
+  rect: "M4 7h24v18H4z",
+  ellipse: "M29 16a13 9 0 11-26 0 13 9 0 0126 0z",
+  diamond: "M16 3l13 13-13 13L3 16z",
+  cylinder: "M5 8a11 4 0 0022 0v16a11 4 0 01-22 0zm0 0a11 4 0 1122 0",
+  triangle: "M16 4l13 24H3z",
+  hexagon: "M9 5h14l8 11-8 11H9L1 16z",
+  parallelogram: "M10 6h20l-8 20H2z",
+  star: "M16 2l4 9 10 1-8 7 3 11-9-6-9 6 3-11-8-7 10-1z",
+  text: "M5 6h22M16 6v21M11 27h10",
+  node: "M7 6h18a4 4 0 014 4v12a4 4 0 01-4 4H7a4 4 0 01-4-4V10a4 4 0 014-4zM10 16h12",
+  edge: "M3 25h9V8h16m-6-6l6 6-6 6",
+  frame: "M3 10V3h7m12 0h7v7m0 12v7h-7m-12 0H3v-7M7 7h18v18H7z",
+  table: "M3 4h26v24H3zM3 11h26M3 19h26M13 11v17",
+  class: "M3 3h26v26H3zM3 11h26M3 20h26M9 7h14M8 16h9M8 25h12",
+  actor: "M20 6a4 4 0 11-8 0 4 4 0 018 0zM16 10v12M7 15h18M16 22l-8 8m8-8l8 8",
+  service: "M4 5h24v15H4zM16 20v10M11 25h10",
+} as const;
+
+export interface ShapePaletteItem {
+  readonly tool: ToolKind;
+  readonly label: string;
+  readonly icon: keyof typeof PALETTE_ICONS;
+}
+
+export const COMMON_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.Rectangle, label: "Rectangle", icon: "rect" },
+  { tool: Tool.Ellipse, label: "Ellipse", icon: "ellipse" },
+  { tool: Tool.Diamond, label: "Diamond", icon: "diamond" },
+  { tool: Tool.Cylinder, label: "Cylinder", icon: "cylinder" },
+  { tool: Tool.Triangle, label: "Triangle", icon: "triangle" },
+  { tool: Tool.Hexagon, label: "Hexagon", icon: "hexagon" },
+  { tool: Tool.Parallelogram, label: "Parallelogram", icon: "parallelogram" },
+  { tool: Tool.Star, label: "Star", icon: "star" },
+  { tool: Tool.Text, label: "Text", icon: "text" },
+  { tool: Tool.Node, label: "Node", icon: "node" },
+  { tool: Tool.Connector, label: "Connector", icon: "edge" },
+  { tool: Tool.Frame, label: "Frame", icon: "frame" },
+];
+
+export const DIAGRAM_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.Table, label: "Table", icon: "table" },
+  { tool: Tool.Class, label: "Class", icon: "class" },
+  { tool: Tool.Actor, label: "Actor", icon: "actor" },
+  { tool: Tool.Service, label: "Service", icon: "service" },
+  { tool: Tool.Database, label: "Database", icon: "cylinder" },
+];
+
+export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.WebFrame, label: "Web", icon: "frame" },
+  { tool: Tool.IPhoneFrame, label: "iPhone", icon: "frame" },
+  { tool: Tool.AndroidFrame, label: "Android", icon: "frame" },
+  { tool: Tool.TabletFrame, label: "Tablet", icon: "frame" },
+  { tool: Tool.PaperFrame, label: "Document", icon: "frame" },
+];
+
+/** Preserve semantic workspace labels, such as Relationship or Message. */
+export function workspaceShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
+  if (id === "all") return DIAGRAM_SHAPES;
+  if (id === "flow") return [];
+  return workspaceById(id).tools.flatMap(({ tool, label }) => {
+    const item = [...DIAGRAM_SHAPES, ...COMMON_SHAPES].find(
+      (candidate) => candidate.tool === tool,
+    );
+    return item ? [{ ...item, label }] : [];
+  });
+}

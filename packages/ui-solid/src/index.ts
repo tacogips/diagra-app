@@ -25,10 +25,12 @@ export { NodeView } from "./shapes/NodeView.tsx";
 export { ShapeView, type ShapeViewProps } from "./shapes/ShapeView.tsx";
 export { UmlClassView } from "./shapes/UmlClassView.tsx";
 export { Toolbar, type ToolbarProps } from "./Toolbar.tsx";
+export { ShapePalette } from "./ShapePalette.tsx";
 export {
   type CreationTool,
   creationFor,
   GEO_TOOLS,
+  Tool,
   TOOLS,
   type ToolKind,
 } from "./tools.ts";

@@ -1,0 +1,120 @@
+.nodetto-shape-palette {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 12px 10px 10px;
+  border-bottom: 1px solid var(--app-chrome-line, #dfe3e6);
+  color: var(--nodetto-ink);
+}
+
+.nodetto-shape-palette h2 {
+  margin: 0 24px 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nodetto-palette-help {
+  margin: 0 0 10px;
+  color: var(--nodetto-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.nodetto-shape-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+  gap: 4px;
+}
+
+.nodetto-shape-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 7px 2px;
+  border: 1px solid transparent;
+  border-radius: var(--app-control-radius, 6px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.nodetto-shape-tile span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nodetto-shape-tile svg {
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nodetto-shape-tile:hover:not(:disabled),
+.nodetto-palette-action:hover:not(:disabled) {
+  background: var(--app-chrome-hover, #f1f3f4);
+}
+
+.nodetto-shape-tile[aria-pressed="true"] {
+  border-color: var(--nodetto-accent);
+  background: var(--app-chrome-active, #e5e9eb);
+  color: var(--nodetto-accent);
+}
+
+.nodetto-shape-tile:focus-visible,
+.nodetto-palette-action:focus-visible,
+.nodetto-palette-section > summary:focus-visible {
+  outline: 2px solid var(--nodetto-accent);
+  outline-offset: 1px;
+}
+
+.nodetto-shape-tile:disabled,
+.nodetto-palette-action:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.nodetto-palette-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.nodetto-palette-action {
+  flex: 1 1 auto;
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid var(--app-chrome-line, #dfe3e6);
+  border-radius: var(--app-control-radius, 6px);
+  background: var(--app-chrome-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.nodetto-palette-action:first-child {
+  flex-basis: 100%;
+}
+
+.nodetto-palette-section {
+  margin: 8px 0;
+}
+
+.nodetto-palette-section > summary {
+  padding: 5px 0;
+  color: var(--nodetto-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
