@@ -39,10 +39,10 @@ export function rasterExportSnapshot(
     background = null,
   } = options;
   if (!Number.isFinite(padding) || padding < 0 || padding > 256)
-    throw new Error("PNG padding must be between 0 and 256 canvas units.");
+    throw new Error("Export padding must be between 0 and 256 canvas units.");
   if (background !== null && !/^#[0-9a-f]{6}$/i.test(background))
     throw new Error(
-      "PNG background must be a six-digit hex color or transparent.",
+      "Export background must be a six-digit hex color or transparent.",
     );
   const svg = wholePage
     ? editor.exportPageSvg({ padding, background })
@@ -137,7 +137,7 @@ export async function rasterizeSvg(
   }
 }
 
-export function assetFileName(name: string, scale: number): string {
+export function exportFileStem(name: string): string {
   const base = Array.from(name, (char) =>
     char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127 ? "-" : char,
   )
@@ -146,5 +146,9 @@ export function assetFileName(name: string, scale: number): string {
     .replace(/^\.+|[. ]+$/g, "")
     .trim()
     .slice(0, 100);
-  return `${base || "artboard"}@${scale}x.png`;
+  return base || "artboard";
+}
+
+export function assetFileName(name: string, scale: number): string {
+  return `${exportFileStem(name)}@${scale}x.png`;
 }

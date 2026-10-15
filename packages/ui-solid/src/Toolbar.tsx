@@ -152,7 +152,7 @@ export const ACTION_MENUS: readonly Readonly<{
   {
     id: "export",
     label: "Export",
-    actions: actions([["exportSvg", "Export SVG"]]),
+    actions: actions([["exportSvg", "Export artwork…"]]),
   },
 ];
 const FRAME_TOOLS =

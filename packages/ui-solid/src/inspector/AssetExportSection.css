@@ -1,0 +1,38 @@
+.nodetto-export-settings {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px !important;
+}
+
+.nodetto-export-settings > label,
+.nodetto-export-settings > div {
+  display: grid;
+  gap: 5px;
+  color: var(--nodetto-muted);
+  font-size: 12px;
+}
+
+.nodetto-export-settings select {
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  color: var(--nodetto-ink);
+}
+
+.nodetto-export-settings > label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nodetto-export-settings input[type="color"] {
+  width: 100%;
+  min-height: 32px;
+}
+
+.nodetto-export-settings p {
+  margin: 0;
+  color: var(--nodetto-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

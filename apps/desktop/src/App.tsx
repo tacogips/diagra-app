@@ -117,34 +117,11 @@ export interface InspectorFocus {
 const DISCARD_PROMPT = "Discard unsaved changes?";
 /** Presence is a pointer trail; 20 Hz is plenty and keeps the socket quiet. */
 const CURSOR_THROTTLE_MS = 50;
-/** `--nodetto-canvas` in style.css; exports carry the same ground. */
-const CANVAS_BACKGROUND = "#f6f4ee";
-const EXPORT_EXTENSION = "svg";
-
 /** Drop a trailing extension and anything a filesystem would refuse. */
 export function exportBaseName(name: string): string {
   const stem = name.replace(/\.[^./\\]+$/, "");
   const safe = stem.replace(/[/\\:*?"<>|]+/g, "-").trim();
   return safe === "" ? "untitled" : safe;
-}
-
-/** Hand a text file to the browser when there is no native dialog. */
-function downloadText(name: string, contents: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([contents], { type }));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = name;
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  // Revoke after the click has been dispatched; a synchronous revoke races
-  // the download in some engines.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function describe(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 export function App(props: AppProps): JSX.Element {
@@ -195,7 +172,7 @@ export function App(props: AppProps): JSX.Element {
   const [inspectorFocus, setInspectorFocus] = createSignal<
     InspectorFocus | undefined
   >(undefined);
-  const [exportError, setExportError] = createSignal<string | null>(null);
+  const [exportRequest, setExportRequest] = createSignal(0);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
   const [leftPaneOpen, setLeftPaneOpen] = createSignal(true);
   const [rightPaneOpen, setRightPaneOpen] = createSignal(true);
@@ -531,58 +508,23 @@ export function App(props: AppProps): JSX.Element {
 
   // ------------------------------------------------------------- export
 
-  /** Document title or file name, as an `.svg` file name. */
-  const exportFileName = (): string => {
-    const base = isCloud()
-      ? (cloud()?.title ?? cloud()?.docId ?? "untitled")
-      : (file().fileName ?? props.editor.store.getMeta().title);
-    return `${exportBaseName(base ?? "untitled")}.${EXPORT_EXTENSION}`;
+  /** Reveal format-specific settings before choosing a save destination. */
+  const openExport = () => {
+    restorePane("right");
+    setExportRequest((value) => value + 1);
   };
-
-  /**
-   * Export the selection when there is one, else the page (design 10). The
-   * desktop asks where to write through the native dialog; a plain browser
-   * gets a download.
-   */
-  const exportSvg = async (): Promise<void> => {
-    setExportError(null);
-    const options = { background: CANVAS_BACKGROUND };
-    const selected = [...props.editor.selection.ids()];
-    const artboard =
-      selected.length === 1 &&
-      props.editor.store.get(selected[0] ?? "")?.type === "frame"
-        ? selected[0]
-        : undefined;
-    const svg = artboard
-      ? props.editor.exportArtboardSvg(artboard)
-      : props.editor.selection.size > 0
-        ? props.editor.exportSelectionSvg(options)
-        : props.editor.exportPageSvg(options);
-    if (svg === null) {
-      setExportError(
-        artboard
-          ? "Cannot export this artboard: it is hidden, rotated or has invalid dimensions."
-          : "nothing to export: the page is empty",
-      );
-      return;
-    }
-    const name = exportFileName();
-    if (!props.exportBackend.available) {
-      downloadText(name, svg, "image/svg+xml");
-      return;
-    }
-    try {
-      const path = await props.exportBackend.pickExportPath(
-        name,
-        EXPORT_EXTENSION,
-      );
-      if (path === null) {
-        return;
-      }
-      await props.exportBackend.writeText(path, svg);
-    } catch (error) {
-      setExportError(`could not export: ${describe(error)}`);
-    }
+  const saveArtwork = async (
+    name: string,
+    blob: Blob,
+    extension: string,
+  ): Promise<boolean> => {
+    const path = await props.exportBackend.pickExportPath(name, extension);
+    if (path === null) return false;
+    await props.exportBackend.writeBytes(
+      path,
+      new Uint8Array(await blob.arrayBuffer()),
+    );
+    return true;
   };
 
   /** Everything the shared action table needs from the shell. */
@@ -590,7 +532,7 @@ export function App(props: AppProps): JSX.Element {
     editor: props.editor,
     viewport: viewport(),
     requestEdit,
-    exportSvg: () => void exportSvg(),
+    exportSvg: openExport,
   });
 
   // ----------------------------------------------------------- keyboard
@@ -930,7 +872,7 @@ export function App(props: AppProps): JSX.Element {
       </Show>
       {/* A cloud failure is reported wherever it happens: a refused connect
           leaves the app in file mode, and its message still has to be read. */}
-      <Show when={cloud()?.error ?? file().error ?? exportError()}>
+      <Show when={cloud()?.error ?? file().error}>
         {(message) => <pre class="app-error">{message()}</pre>}
       </Show>
       <Show when={file().conflict && !isCloud()}>
@@ -973,6 +915,7 @@ export function App(props: AppProps): JSX.Element {
         >
           <div
             class="app-pane-content"
+            id="left-pane-content"
             aria-hidden={!leftPaneOpen()}
             inert={!leftPaneOpen()}
           >
@@ -980,10 +923,13 @@ export function App(props: AppProps): JSX.Element {
               type="button"
               class="app-pane-collapse"
               onClick={() => hidePane("left")}
-              aria-label="Hide Shapes and layers"
+              aria-label="Collapse Shapes and layers"
+              aria-expanded="true"
+              aria-controls="left-pane-content"
               ref={leftCollapseButton}
-              title="Hide Shapes and layers"
+              title="Collapse Shapes and layers"
             >
+              <span>Collapse</span>
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M11 4l-5 6 5 6" />
               </svg>
@@ -1014,8 +960,11 @@ export function App(props: AppProps): JSX.Element {
             onClick={() => restorePane("left", true)}
             aria-label="Show Shapes and layers"
             ref={leftRestoreButton}
+            aria-expanded="false"
+            aria-controls="left-pane-content"
+            title="Show Shapes and layers"
           >
-            Shapes &amp; layers
+            Show Shapes &amp; layers
           </button>
         </aside>
         <button
@@ -1160,6 +1109,7 @@ export function App(props: AppProps): JSX.Element {
         >
           <div
             class="app-pane-content"
+            id="right-pane-content"
             aria-hidden={!rightPaneOpen()}
             inert={!rightPaneOpen()}
           >
@@ -1167,16 +1117,23 @@ export function App(props: AppProps): JSX.Element {
               type="button"
               class="app-pane-collapse"
               onClick={() => hidePane("right")}
-              aria-label="Hide Properties"
+              aria-label="Collapse Properties"
+              aria-expanded="true"
+              aria-controls="right-pane-content"
               ref={rightCollapseButton}
-              title="Hide Properties"
+              title="Collapse Properties"
             >
+              <span>Collapse</span>
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M9 4l5 6-5 6" />
               </svg>
             </button>
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
               <Inspector
+                exportRequest={exportRequest()}
+                saveArtwork={
+                  props.exportBackend.available ? saveArtwork : undefined
+                }
                 editor={props.editor}
                 focus={inspectorFocus()}
                 simple={workspace() !== "all"}
@@ -1189,8 +1146,11 @@ export function App(props: AppProps): JSX.Element {
             onClick={() => restorePane("right", true)}
             aria-label="Show Properties"
             ref={rightRestoreButton}
+            aria-expanded="false"
+            aria-controls="right-pane-content"
+            title="Show Properties"
           >
-            Properties
+            Show Properties
           </button>
         </aside>
       </div>

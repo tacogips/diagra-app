@@ -566,7 +566,7 @@ const ACTION_DEFINITIONS: readonly EditorAction[] = [
   },
   {
     id: "exportSvg",
-    label: "Export SVG",
+    label: "Export artwork…",
     shortcut: chord(MOD, "Shift", "E"),
     group: "export",
     enabled: pageHasElements,

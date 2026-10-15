@@ -587,7 +587,7 @@ SVG selection export expands selected artboards and groups recursively, so
 component contents are included without selecting every child. Overlapping
 selections are deduplicated; hidden descendants and unrelated page content are
 omitted, and existing clipping applies. Selecting exactly one artboard and
-choosing Export SVG produces its exact designed dimensions, clips overflow and
+choosing SVG with Artboard envelope scope in Export artwork produces its exact designed dimensions, clips overflow and
 omits the root editor title, without adding the canvas background or padding.
 Hidden or rotated roots are rejected. Ancestor clipping still applies for
 nested artboards. Page and multi-selection exports retain padded content bounds.
@@ -599,22 +599,27 @@ moving page-space anchors or handles. The change supports undo and JSONL;
 subsequent point edits and open/close changes preserve that mode. Auto-layout
 parents may reflow after the frame changes. These are centerline bounds, not
 full stroked-outline measurements; rotated path bounds remain approximate.
-The inspector offers Download PNG for a whole page, selected layer, group or multi-selection
+The Export artwork settings offer PNG for a whole page, selected layer, group or multi-selection
 at 0.5×, 0.75×, 1×, 1.5×, 2×, 3× or 4×. Single artboards use their exact exported
 envelope by default; the scope selector can use selected artwork or the whole
 page instead. Page/selection export supports 0–256 units of padding; all scopes
 offer transparency or a solid background color without editing artwork. Raster dimensions
 come from the SVG viewport, including rotated artboards, rather than layout bounds.
-It renders a captured SVG snapshot through the browser and requests a download,
+It renders a captured SVG snapshot through the browser and saves through the desktop native dialog or a browser download,
 without changing the document. Allocations are limited to 8192 pixels per side
 and 32 megapixels; use a lower scale or SVG for larger assets. Installed fonts
-and browser image decoding can affect results. Browser/Tauri PNG rendering and
-download behavior have not yet been runtime-verified.
-PNG decoding and encoding each time out after 15 seconds. Cancel PNG export or
+and browser image decoding can affect results. SVG, PNG, and PDF browser exports
+were runtime-verified; native binary transport is covered by Rust tests.
+PNG decoding and encoding each time out after 15 seconds. Cancel export or
 switch pages to stop waiting and release export resources. Document reloads
 also cancel pending work. Changing or clearing selection does not retarget an
 already captured export. These
 deadlines cannot interrupt synchronous browser work such as drawing to canvas.
+PDF embeds the same rendered snapshot on one page, with Fit artwork, A4, and Letter
+page sizes. Paper sizes support orientation and millimeter margins; image density
+does not change paper size. PDF text is not selectable; use SVG for vectors.
+See apps/desktop/README.md for the export controls.
+
 Artboards can become components using Create component in the inspector.
 Create instance copies the complete design with a source reference. Reset
 from component replaces instance contents from the source while keeping

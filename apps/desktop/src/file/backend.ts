@@ -135,6 +135,7 @@ export interface ExportBackend {
   ): Promise<string | null>;
   /** Writes text atomically, like `writeDocument`, for any file type. */
   writeText(path: string, contents: string): Promise<void>;
+  writeBytes(path: string, contents: Uint8Array): Promise<void>;
 }
 
 export function createTauriExportBackend(): ExportBackend {
@@ -142,6 +143,11 @@ export function createTauriExportBackend(): ExportBackend {
     available: true,
     pickExportPath: (defaultName: string, extension: string) =>
       invoke<string | null>("pick_export_path", { defaultName, extension }),
+    writeBytes: (path, contents) =>
+      invoke<void>("write_export_atomic", {
+        path,
+        contents: Array.from(contents),
+      }),
     writeText: (path: string, contents: string) =>
       invoke<void>("write_document_atomic", { path, contents }),
   };
@@ -152,6 +158,7 @@ export function createUnavailableExportBackend(): ExportBackend {
     available: false,
     pickExportPath: () => Promise.resolve(null),
     writeText: unavailable,
+    writeBytes: unavailable,
   };
 }
 

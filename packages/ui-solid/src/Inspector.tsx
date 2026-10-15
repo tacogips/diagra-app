@@ -1,3 +1,4 @@
+import type { SaveArtwork } from "./inspector/AssetExportSection.tsx";
 import { UmlComponentType } from "@nodetto/ir";
 import { UmlComponentSection } from "./inspector/UmlComponentSection.tsx";
 // The Inspector: a right-hand panel that reads the selection and writes
@@ -21,6 +22,7 @@ import {
 } from "@nodetto/ir";
 import {
   createMemo,
+  createEffect,
   type JSX,
   lazy,
   Match,
@@ -100,6 +102,8 @@ export interface InspectorFocus {
 }
 
 export interface InspectorProps {
+  readonly exportRequest?: number;
+  readonly saveArtwork?: SaveArtwork;
   readonly simple?: boolean;
   readonly editor: Editor;
   readonly focus?: InspectorFocus;
@@ -121,6 +125,10 @@ function hasOwnGeometry(element: Element): boolean {
 
 export function Inspector(props: InspectorProps): JSX.Element {
   const signals = createEditorSignals(props.editor);
+  let exportSection: HTMLDetailsElement | undefined;
+  createEffect(() => {
+    if (props.exportRequest && exportSection) exportSection.open = true;
+  });
 
   const selectedIds = createMemo<readonly ElementId[]>(() => [
     ...signals.selection(),
@@ -386,7 +394,11 @@ export function Inspector(props: InspectorProps): JSX.Element {
           </fieldset>
         </details>
       </Show>
-      <details class="nodetto-inspector-details" open={!props.simple}>
+      <details
+        ref={exportSection}
+        class="nodetto-inspector-details"
+        open={!props.simple}
+      >
         <summary hidden={!props.simple}>Export</summary>
         <Show when={databasePage()} keyed>
           {(pageId) => (
@@ -413,6 +425,8 @@ export function Inspector(props: InspectorProps): JSX.Element {
         <Show when={page()}>
           <Suspense>
             <AssetExportSection
+              request={props.exportRequest}
+              save={props.saveArtwork}
               editor={props.editor}
               id={single()?.type === "frame" ? single()?.id : undefined}
               hasSelection={selectedIds().length > 0}

@@ -59,7 +59,7 @@ machine, or a ShapeUtil.
 | 26 | Shift+1, then select a shape and Shift+2 | Shift+1 fits the page; Shift+2 fits the selection (zooming in up to 400 %). The widget's percentage follows. |
 | 27 | Grid / Snap / Grid snap toggles in the zoom widget | Grid hides and shows the dot grid. With Snap on, dragging a shape near another's edge or centre pulls it into line and draws a guide; with Grid snap on, it lands on the 24-unit grid. Off, it moves freely. |
 | 28 | Page tabs: "+", double-click a tab, the "..." menu | "+" adds "Page N" and switches to it; double-click renames inline (Enter commits, Escape cancels, typing V or R in the field does not switch tools); the menu offers Rename, Duplicate and Delete. Delete is disabled on the last page and asks for confirmation when the page has elements; Duplicate copies the page and every element on it. Undo brings a deleted page back in place. |
-| 29 | Export SVG button, and Cmd/Ctrl+Shift+E | Desktop: a save dialog filtered to `.svg` opens with the document name pre-filled; the written file opens in a browser and matches the canvas, on the canvas background colour. With a selection, only the selection is exported. Browser: the same SVG downloads. |
+| 29 | Actions → Export artwork…, or Cmd/Ctrl+Shift+E | Properties opens with format, scope, and background settings. SVG, PNG, and PDF show format-specific options before the native save dialog or browser download. |
 
 Recorded results live with the change that required them; a run is only
 meaningful for the build it was performed against.
@@ -125,3 +125,28 @@ Port, Dependency, Realization, and Connector tools directly in the left palette.
 Click a component with Port to attach it to the nearest boundary; drag relationship
 tools between component-diagram elements. See [UML component mode](docs/uml-component-mode.md)
 for ownership, editing, persistence, and current notation scope.
+
+## Artwork export settings
+
+Use **Actions → Export artwork…** or **Cmd/Ctrl+Shift+E**. This opens the
+Properties pane and focuses the export settings, including when the pane was
+collapsed. The same settings are available in **Properties → Export → Export artwork**.
+
+- All formats offer current-page, selected-artwork, or selected-artboard scope,
+  background color, and 0–256 canvas units of padding for page/selection exports.
+  Artboard exports use the exact artboard envelope.
+- SVG preserves vector artwork and offers transparent backgrounds.
+- PNG offers transparency and 0.5×–4× resolution with pixel dimensions shown
+  before export. Allocations are limited to 8192 pixels per side / 32 megapixels.
+- PDF embeds the rendered artwork on one page. Choose Fit artwork, A4, or Letter;
+  paper sizes offer portrait/landscape and 0–50 mm margins, with proportional
+  fitting and no cropping. Image quality controls raster density without changing
+  paper dimensions. PDF text is not selectable; choose SVG for vector artwork.
+
+Desktop exports use the native save dialog and atomic binary writes. Browser
+previews download files. Cancelled dialogs do not write files; rendering errors
+remain visible in the export panel. The PDF library loads only on PDF export.
+
+Both panes have a visible **Collapse** header button and a persistent **Show**
+rail when folded. Buttons expose expanded state and support keyboard activation;
+restoring a pane retains its width and restores keyboard focus.

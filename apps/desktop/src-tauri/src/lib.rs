@@ -23,6 +23,7 @@ pub fn run() {
             dialogs::pick_export_path,
             fs::read_document,
             fs::write_document_atomic,
+            fs::write_export_atomic,
             recent::recent_files_list,
             recent::recent_files_add,
             recent::recent_files_remove,

@@ -26,26 +26,30 @@
 
 .app-pane-content {
   display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
 }
 
 .app-pane-collapse {
-  position: absolute;
+  position: sticky;
   z-index: 2;
-  top: 4px;
-  right: 4px;
-  display: grid;
-  width: 24px;
-  min-height: 24px;
-  padding: 4px;
-  place-items: center;
+  top: 0;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
   border: 0;
-  border-radius: 0;
-  color: var(--app-chrome-muted);
-  background: transparent;
-  font-size: 0.72rem;
+  border-bottom: 1px solid var(--app-chrome-line);
+  color: var(--nodetto-ink);
+  background: var(--app-chrome-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -132,6 +136,8 @@
   background: var(--app-chrome-surface);
   cursor: pointer;
   writing-mode: vertical-rl;
+  font-weight: 600;
+  text-align: start;
 }
 
 .app-pane.is-collapsed .app-pane-restore {
@@ -242,4 +248,10 @@
   .app-pane {
     --pane-width: 220px;
   }
+}
+
+.app-pane-collapse:focus-visible,
+.app-pane-restore:focus-visible {
+  outline: 2px solid var(--nodetto-ink);
+  outline-offset: -3px;
 }

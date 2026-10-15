@@ -34,9 +34,9 @@ fn temp_sibling(path: &Path) -> io::Result<PathBuf> {
     Ok(directory.join(temp_name))
 }
 
-fn write_then_rename(temp: &Path, target: &Path, contents: &str) -> io::Result<()> {
+fn write_then_rename(temp: &Path, target: &Path, contents: &[u8]) -> io::Result<()> {
     let mut file = File::create(temp)?;
-    file.write_all(contents.as_bytes())?;
+    file.write_all(contents)?;
     // Durability before visibility: the rename must never publish a name
     // that points at a half-written file.
     file.sync_all()?;
@@ -48,6 +48,10 @@ fn write_then_rename(temp: &Path, target: &Path, contents: &str) -> io::Result<(
 /// flush it to disk, then rename over the target. A reader either sees the
 /// previous file or the complete new one, never a partial write.
 pub fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
+    write_bytes_atomic(path, contents.as_bytes())
+}
+
+pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
     let temp = temp_sibling(path)?;
     match write_then_rename(&temp, path, contents) {
         Ok(()) => Ok(()),
@@ -80,6 +84,12 @@ pub fn write_document_atomic(path: String, contents: String) -> Result<(), Strin
         .map_err(|error| format!("failed to write {path}: {error}"))
 }
 
+#[tauri::command]
+pub fn write_export_atomic(path: String, contents: Vec<u8>) -> Result<(), String> {
+    write_bytes_atomic(Path::new(&path), &contents)
+        .map_err(|error| format!("failed to write {path}: {error}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -91,6 +101,17 @@ mod tests {
             .filter_map(|entry| entry.ok().map(|entry| entry.path()))
             .filter(|path| path.extension().is_some_and(|extension| extension == "tmp"))
             .collect()
+    }
+
+    #[test]
+    fn binary_exports_preserve_bytes_and_replace_atomically() {
+        let directory = tempdir().expect("temp dir");
+        let target = directory.path().join("diagram.pdf");
+        write_atomic(&target, "old").expect("old file");
+        let bytes = [0, 255, 128, 37, 80, 68, 70, 10];
+        write_export_atomic(target.to_string_lossy().into_owned(), bytes.to_vec()).expect("export");
+        assert_eq!(fs::read(&target).expect("read"), bytes);
+        assert!(temp_siblings(directory.path()).is_empty());
     }
 
     #[test]
