@@ -271,3 +271,7 @@
   --nodetto-switch-inset: 2px;
   --nodetto-switch-travel: 14px;
 }
+
+.app-pane-content > .app-inspector {
+  scrollbar-gutter: stable;
+}
