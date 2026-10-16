@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 import {
   type Editor,
   moveStrokeAnchor,
@@ -50,8 +51,7 @@ export function StrokeSection(props: {
           : "Fit frame to curve"}
       </button>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={(props.element.semantic as FreehandSemantic).closed === true}
           onChange={(event) =>
             props.editor.apply(
@@ -67,8 +67,7 @@ export function StrokeSection(props: {
             {(control) => (
               <>
                 <label>
-                  <input
-                    type="checkbox"
+                  <Switch
                     checked={Boolean(point()?.[control])}
                     onChange={(event) =>
                       write(

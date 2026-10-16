@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 // The Inspector's input vocabulary.
 //
 // Every control here commits on `change` (blur or Enter), never per
@@ -191,8 +192,7 @@ export interface CheckboxProps {
 export function Checkbox(props: CheckboxProps): JSX.Element {
   return (
     <label class="nodetto-check" title={props.title}>
-      <input
-        type="checkbox"
+      <Switch
         checked={props.checked}
         disabled={props.disabled}
         on:change={(event) => props.onCommit(event.currentTarget.checked)}

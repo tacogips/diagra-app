@@ -34,6 +34,10 @@
       },
       "a11y": {
         "noAriaHiddenOnFocusable": "off",
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": { "inputComponents": ["Switch"] }
+        },
         "useFocusableInteractive": "off",
         "useKeyWithClickEvents": "off",
         "useMediaCaption": "off",

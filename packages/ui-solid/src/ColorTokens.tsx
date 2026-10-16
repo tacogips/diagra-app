@@ -1,3 +1,4 @@
+import { Switch } from "./Switch.tsx";
 import {
   colorTokens,
   bindSelectionColor,
@@ -97,8 +98,7 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
         </form>
       </details>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={linked()}
           onChange={(event) => setLinked(event.currentTarget.checked)}
         />

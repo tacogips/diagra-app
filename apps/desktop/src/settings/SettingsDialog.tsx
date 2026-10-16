@@ -8,6 +8,7 @@ import {
 } from "solid-js";
 import {
   WORKSPACES,
+  Switch,
   type WorkspaceId,
   type SnapSettings,
 } from "@nodetto/ui-solid";
@@ -72,11 +73,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
   ) => (
     <label class="app-settings-row">
       <span>{label}</span>
-      <input
-        type="checkbox"
-        role="switch"
-        aria-checked={checked()}
-        class="app-settings-switch"
+      <Switch
         checked={checked()}
         onChange={(event) => change(event.currentTarget.checked)}
       />

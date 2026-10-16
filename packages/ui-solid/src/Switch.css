@@ -1,0 +1,56 @@
+input.nodetto-switch {
+  display: inline-block;
+  vertical-align: middle;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #a1a1aa;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+input.nodetto-switch::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px #0003;
+  transition: transform 160ms ease;
+}
+input.nodetto-switch:checked {
+  background: #34c759;
+}
+input.nodetto-switch:checked::before {
+  transform: translateX(18px);
+}
+
+label:has(> input.nodetto-switch) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+input.nodetto-switch:focus-visible {
+  outline: 2px solid var(--nodetto-accent, #335c67);
+  outline-offset: 3px;
+}
+input.nodetto-switch:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  input.nodetto-switch,
+  input.nodetto-switch::before {
+    transition: none;
+  }
+}

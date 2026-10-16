@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 import {
   type Editor,
   createSelectionResizeSnapshot,
@@ -84,8 +85,7 @@ export function SelectionGeometrySection(props: {
         </Field>
       </div>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={proportional()}
           disabled={!snapshot()}
           onChange={(event) => setProportional(event.currentTarget.checked)}

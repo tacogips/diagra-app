@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 import {
   type Editor,
   moveStrokeAnchor,
@@ -121,8 +122,7 @@ export function PathSection(props: {
           {(control) => (
             <>
               <label>
-                <input
-                  type="checkbox"
+                <Switch
                   checked={Boolean(point()?.[control])}
                   onChange={(event) =>
                     replacePoints(
