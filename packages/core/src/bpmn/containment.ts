@@ -267,6 +267,7 @@ export function planBpmnMembership(before: Store, after: Store): Command[] {
         (a, c) =>
           Math.hypot(a.x - cx, a.y - cy) - Math.hypot(c.x - cx, c.y - cy),
       )[0];
+      if (!nearest) continue;
       const command = updateVisual(after, element.id, {
         x: nearest.x - w / 2,
         y: nearest.y - h / 2,

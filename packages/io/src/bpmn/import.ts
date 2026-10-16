@@ -465,7 +465,7 @@ export function importBpmnXml(
           .filter(
             (item) => item.name === "xmlns" || item.name.startsWith("xmlns:"),
           )
-          .map((item) => [
+          .map((item): [string, string] => [
             item.name === "xmlns" ? "" : item.name.slice(6),
             item.value,
           ])
