@@ -11,6 +11,7 @@ import {
   connectorDecoration,
   diamondGradientPatches,
   endpointReaderFor,
+  erdForeignKeyWarning,
   linearGradientVector,
   type MarkerKind,
   resolveConnector,
@@ -57,6 +58,10 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
       endpointReaderFor(props.element.type),
     );
   const decoration = () => connectorDecoration(props.element);
+  const warning = () =>
+    erdForeignKeyWarning(props.element, (id) => props.context.resolve(id));
+  const warningStyle = (): JSX.CSSProperties | undefined =>
+    warning() ? { stroke: "#b45309", "stroke-dasharray": "6 4" } : undefined;
 
   return (
     <Show when={geometry()}>
@@ -232,6 +237,7 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
                 marker-end={markerUrl(decoration().end, props.markerPrefix)}
                 stroke-dasharray={connectorDefaultDash(props.element)}
                 {...svgStyle(props.element.visual, props.element.id)}
+                style={warningStyle()}
               />
             }
           >
@@ -243,6 +249,7 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
               marker-end={markerUrl(decoration().end, props.markerPrefix)}
               stroke-dasharray={connectorDefaultDash(props.element)}
               {...svgStyle(props.element.visual, props.element.id)}
+              style={warningStyle()}
               fill="none"
             />
           </Show>
@@ -253,6 +260,37 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
           >
             {(primitive) => <BpmnNotationPrimitiveView primitive={primitive} />}
           </For>
+          <Show when={warning()}>
+            {(message) => (
+              <g
+                aria-label={message()}
+                transform={`translate(${resolved().labelPoint.x - 65} ${resolved().labelPoint.y + 8})`}
+              >
+                <title>{message()}</title>
+                <rect
+                  width="130"
+                  height="22"
+                  rx="4"
+                  fill="#fffbeb"
+                  stroke="#b45309"
+                />
+                <path d="M12 3L21 18H3Z" fill="#fef3c7" stroke="#92400e" />
+                <text
+                  x="12"
+                  y="16"
+                  text-anchor="middle"
+                  fill="#92400e"
+                  font-size="12"
+                  font-weight="700"
+                >
+                  !
+                </text>
+                <text x="28" y="15" fill="#92400e" font-size="12">
+                  FK incomplete
+                </text>
+              </g>
+            )}
+          </Show>
           <Show when={decoration().label}>
             <text
               class="nodetto-connector-label"

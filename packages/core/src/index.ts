@@ -626,3 +626,5 @@ export {
   type DocumentChangeSource,
   type DocumentChangeSubscription,
 } from "./document-changes.ts";
+
+export { erdForeignKeyWarning } from "./erd-foreign-key.ts";

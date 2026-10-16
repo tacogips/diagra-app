@@ -152,7 +152,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
     const labels: Record<string, string> = {
       "erd.table": "Table",
       "uml.class": "Class",
-      "erd.relation": "Relation",
+      "erd.relation": "Foreign key",
       "uml.association": "Association",
       "sequence.participant": "Participant",
       "sequence.message": "Message",
