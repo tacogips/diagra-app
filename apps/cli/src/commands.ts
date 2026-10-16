@@ -21,6 +21,10 @@ import {
   type BpmnImportReport,
 } from "@nodetto/io";
 import type { Document, Page, ValidationIssue } from "@nodetto/ir";
+import { helpFor, OVERVIEW } from "./help.ts";
+import { inspectCommand } from "./inspect-command.ts";
+import { typesCommand } from "./types-command.ts";
+import { editCommand } from "./edit-command.ts";
 
 /** Result of one command: text for stdout/stderr plus a process exit code. */
 export interface CommandResult {
@@ -38,46 +42,16 @@ export const EXIT_ERROR = 2;
 /** `--strict` was given and the export produced warnings. */
 export const EXIT_WARNINGS = 3;
 
-export const USAGE = `Usage:
-  nodetto-cli ddl <document.jsonl> [--dialect postgresql|mysql|sqlite]
-                 [--page <page id or name>] [--output <file.sql>]
-                 [--check <file.sql>] [--strict]
-  nodetto-cli arrange <document.jsonl> [--mode tidy|overlaps]
-                     [--direction LR|TB] [--page <page id or name>]
-                     [--write] [--check]
-  nodetto-cli format <document.jsonl> [--write] [--check]
-  nodetto-cli validate <document.jsonl>
-  nodetto-cli lint <document.jsonl|file.bpmn> [--page <page id or name>]
-                 [--config <file>] [--format text|json]
-  nodetto-cli bpmn import <file.bpmn> [--output <doc.jsonl>] [--strict]
-  nodetto-cli bpmn export <document.jsonl> [--page <page id or name>]
-                  [--output <file.bpmn> | --check <file.bpmn>] [--strict]
-  nodetto-cli --version | --help
-
-ddl       Print the deterministic schema DDL the editor's Database DDL panel
-          generates for one ERD page. Without --page, the document must
-          contain exactly one page with ERD tables.
-          --output writes the SQL to a file instead of stdout.
-          --check compares the generated SQL with an existing file and exits
-          1 when it is out of date.
-          --strict exits 3 when the export reports warnings.
-arrange   Run the editor's Tidy layout (default) or Remove overlaps on one
-          page and print the canonical result. Without --page, the document
-          must have exactly one page. --write rewrites the file; --check
-          exits 1 when arranging would move anything.
-format    Print the canonical JSONL form. --write rewrites the file in place;
-          --check exits 1 when the file is not canonical.
-validate  Parse and validate a document; prints warnings and errors.
-lint      Lint BPMN pages from JSONL or BPMN XML. Text output is empty when
-          clean; --format json always prints a report. Exit 1 for error
-          findings and 2 for usage, parse or config errors.
-bpmn      Import or export BPMN 2.0 XML. --strict exits 3 when import or
-          export reports warnings; export --check exits 1 when out of date.`;
+export const USAGE = OVERVIEW;
 
 /** Reads and writes go through this seam so commands stay testable. */
 export interface CommandIo {
   readText(path: string): string;
   writeText(path: string, text: string): void;
+  /** Standard input, for `--ops -`. */
+  readStdin?(): string;
+  /** Binary output (PNG, PDF); required only by commands that write bytes. */
+  writeBytes?(path: string, bytes: Uint8Array): void;
   exists?(path: string): boolean;
 }
 
@@ -93,15 +67,15 @@ const LINT_OPTIONS = new Set(["--page", "--config", "--format"]);
 const BPMN_IMPORT_OPTIONS = new Set(["--output"]);
 const BPMN_EXPORT_OPTIONS = new Set(["--page", "--output", "--check"]);
 
-function ok(stdout: string, stderr = ""): CommandResult {
+export function ok(stdout: string, stderr = ""): CommandResult {
   return { exitCode: EXIT_OK, stdout, stderr };
 }
 
-function fail(message: string, exitCode = EXIT_ERROR): CommandResult {
+export function fail(message: string, exitCode = EXIT_ERROR): CommandResult {
   return { exitCode, stdout: "", stderr: `${message}\n` };
 }
 
-function parseArgs(
+export function parseArgs(
   args: readonly string[],
   valueOptions: ReadonlySet<string>,
   flagOptions: ReadonlySet<string>,
@@ -147,7 +121,7 @@ function formatIssue(issue: ValidationIssue): string {
   return `${issue.severity}: ${issue.path ? `${issue.path}: ` : ""}${issue.message}`;
 }
 
-function loadDocument(
+export function loadDocument(
   io: CommandIo,
   path: string,
 ): { readonly document: Document; readonly warnings: string } | string {
@@ -172,7 +146,7 @@ function erdPages(document: Document): readonly Page[] {
   return document.pages.filter((page) => pagesWithTables.has(page.id));
 }
 
-function selectPage(
+export function selectPage(
   document: Document,
   query: string | undefined,
   candidatePages?: readonly Page[],
@@ -220,9 +194,10 @@ function warningLines(
 
 function lintCommand(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, LINT_OPTIONS, new Set());
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("lint")}`);
   if (parsed.positional.length !== 1)
-    return fail(`lint expects exactly one input path.\n\n${USAGE}`);
+    return fail(`lint expects exactly one input path.\n\n${helpFor("lint")}`);
   const path = parsed.positional[0] as string;
   const format = parsed.options.get("--format") ?? "text";
   if (format !== "text" && format !== "json")
@@ -370,9 +345,12 @@ function lintCommand(io: CommandIo, args: readonly string[]): CommandResult {
 
 function bpmnImport(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, BPMN_IMPORT_OPTIONS, new Set(["--strict"]));
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("bpmn")}`);
   if (parsed.positional.length !== 1)
-    return fail(`bpmn import expects exactly one BPMN file path.\n\n${USAGE}`);
+    return fail(
+      `bpmn import expects exactly one BPMN file path.\n\n${helpFor("bpmn")}`,
+    );
   const path = parsed.positional[0] as string;
   let report: BpmnImportReport;
   try {
@@ -405,9 +383,12 @@ function bpmnImport(io: CommandIo, args: readonly string[]): CommandResult {
 
 function bpmnExport(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, BPMN_EXPORT_OPTIONS, new Set(["--strict"]));
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("bpmn")}`);
   if (parsed.positional.length !== 1)
-    return fail(`bpmn export expects exactly one document path.\n\n${USAGE}`);
+    return fail(
+      `bpmn export expects exactly one document path.\n\n${helpFor("bpmn")}`,
+    );
   if (parsed.options.has("--output") && parsed.options.has("--check"))
     return fail("--output and --check cannot be combined.");
   const path = parsed.positional[0] as string;
@@ -467,7 +448,9 @@ function bpmnCommand(io: CommandIo, args: readonly string[]): CommandResult {
   const [subcommand, ...rest] = args;
   if (subcommand === "import") return bpmnImport(io, rest);
   if (subcommand === "export") return bpmnExport(io, rest);
-  return fail(`bpmn expects the import or export subcommand.\n\n${USAGE}`);
+  return fail(
+    `bpmn expects the import or export subcommand.\n\n${helpFor("bpmn")}`,
+  );
 }
 
 function isDialect(value: string): value is DatabaseDialect {
@@ -475,7 +458,7 @@ function isDialect(value: string): value is DatabaseDialect {
 }
 
 /** Write through the seam; a failure is an operational error, not drift. */
-function writeOutput(
+export function writeOutput(
   io: CommandIo,
   path: string,
   text: string,
@@ -494,9 +477,9 @@ function normalizeNewlines(text: string): string {
 
 function ddlCommand(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, VALUE_OPTIONS, new Set(["--strict"]));
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string") return fail(`${parsed}\n\n${helpFor("ddl")}`);
   if (parsed.positional.length !== 1)
-    return fail(`ddl expects exactly one document path.\n\n${USAGE}`);
+    return fail(`ddl expects exactly one document path.\n\n${helpFor("ddl")}`);
   const path = parsed.positional[0] as string;
   const dialect = parsed.options.get("--dialect") ?? "postgresql";
   if (!isDialect(dialect))
@@ -557,9 +540,12 @@ function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
     ARRANGE_OPTIONS,
     new Set(["--write", "--check"]),
   );
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("arrange")}`);
   if (parsed.positional.length !== 1)
-    return fail(`arrange expects exactly one document path.\n\n${USAGE}`);
+    return fail(
+      `arrange expects exactly one document path.\n\n${helpFor("arrange")}`,
+    );
   if (parsed.flags.has("--write") && parsed.flags.has("--check"))
     return fail("--write and --check cannot be combined.");
   const mode = parsed.options.get("--mode") ?? "tidy";
@@ -612,9 +598,12 @@ function arrangeCommand(io: CommandIo, args: readonly string[]): CommandResult {
 
 function formatCommand(io: CommandIo, args: readonly string[]): CommandResult {
   const parsed = parseArgs(args, new Set(), new Set(["--write", "--check"]));
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("format")}`);
   if (parsed.positional.length !== 1)
-    return fail(`format expects exactly one document path.\n\n${USAGE}`);
+    return fail(
+      `format expects exactly one document path.\n\n${helpFor("format")}`,
+    );
   if (parsed.flags.has("--write") && parsed.flags.has("--check"))
     return fail("--write and --check cannot be combined.");
   const path = parsed.positional[0] as string;
@@ -651,9 +640,12 @@ function validateCommand(
   args: readonly string[],
 ): CommandResult {
   const parsed = parseArgs(args, new Set(), new Set());
-  if (typeof parsed === "string") return fail(`${parsed}\n\n${USAGE}`);
+  if (typeof parsed === "string")
+    return fail(`${parsed}\n\n${helpFor("validate")}`);
   if (parsed.positional.length !== 1)
-    return fail(`validate expects exactly one document path.\n\n${USAGE}`);
+    return fail(
+      `validate expects exactly one document path.\n\n${helpFor("validate")}`,
+    );
   const path = parsed.positional[0] as string;
   const loaded = loadDocument(io, path);
   if (typeof loaded === "string") return fail(loaded);
@@ -671,6 +663,13 @@ export function runCli(
   version: string,
 ): CommandResult {
   const [command, ...rest] = args;
+  if (command === "help") return ok(`${helpFor(rest[0])}\n`);
+  if (
+    command !== undefined &&
+    !command.startsWith("-") &&
+    (rest.includes("--help") || rest.includes("-h"))
+  )
+    return ok(`${helpFor(command)}\n`);
   switch (command) {
     case "ddl":
       return ddlCommand(io, rest);
@@ -684,13 +683,20 @@ export function runCli(
       return lintCommand(io, rest);
     case "bpmn":
       return bpmnCommand(io, rest);
+    case "edit":
+      return editCommand(io, rest);
+    case "types":
+      return typesCommand(io, rest);
+    case "inspect":
+      return inspectCommand(io, rest);
+    case "export":
+      return fail("export is asynchronous; call runCliAsync from cli.ts.");
     case "--version":
     case "-V":
       return ok(`nodetto-cli ${version}\n`);
     case "--help":
     case "-h":
-    case "help":
-      return ok(`${USAGE}\n`);
+      return ok(`${OVERVIEW}\n`);
     case undefined:
       return fail(USAGE);
     default:

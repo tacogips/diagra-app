@@ -121,6 +121,41 @@ findings exist, and 2 for usage, parse, or config errors; it has no `--strict`
 option. `bpmn import` and `bpmn export` exit 3 with `--strict` when they report
 warnings. `bpmn export --check` exits 1 on drift; usage or parse errors exit 2.
 
+### Drawing with AI agents and live co-editing
+
+`nodetto-cli` also lets an AI agent (or any script) draw, check its work as an
+image, and keep editing alongside a person who has the same file open in the
+desktop app. `nodetto-cli --help` is a one-screen overview; `nodetto-cli help
+<command>` (or `<command> --help`) gives full usage.
+
+```bash
+nodetto-cli inspect flow.jsonl                  # compact indented outline (or --format json)
+nodetto-cli types erd.table                     # fields, defaults and an example "add" op
+nodetto-cli edit flow.jsonl --ops ops.json      # add/update/move/delete, all-or-nothing
+nodetto-cli export flow.jsonl --page Flow --format png --output /tmp/flow.png
+nodetto-cli export flow.jsonl --format pdf --pdf-page a4 --output flow.pdf
+```
+
+- `inspect` prints one line per element, nested under its frame or container,
+  with short unique ids, geometry and the identifying semantic fields (table
+  columns, relation ends, labels) and no styling, which costs an agent far
+  fewer tokens than the JSONL.
+- `edit` operations reference elements by unique id prefix or by `@ref` names
+  given earlier in the batch; list items such as columns get generated ids, and
+  ERD relation ends may name a column instead of its id. Validation errors name
+  the operation and the field. If the file changes during the write (the person
+  saved), the batch is applied again to the new contents; it never overwrites
+  an unseen change.
+- `export` renders SVG with the editor's serializer, PNG with resvg using system
+  fonts (embedded in the compiled sidecar), and PDF with the app's page layout.
+- The desktop app applies outside changes to an open file live, keeping the
+  camera and selection. With unsaved local edits it merges three ways at element
+  and field level (a move and a rename of the same table both survive) and
+  autosaves the result; only the same field changed on both sides, or a file that
+  now holds a different document, raises the "File changed on disk" banner.
+
+See [the design](design-docs/specs/design-cli-ai-drawing.md).
+
 ## Tidy layout and overlap removal
 
 Arrange > Tidy layout (Cmd/Ctrl+Option+L) re-flows the current page, or the

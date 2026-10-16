@@ -22,7 +22,7 @@ import { basename, dirname, join, resolve } from "node:path";
  * target, as a plain write would), and an existing file keeps its exact
  * permission bits.
  */
-export function writeFileAtomic(path: string, text: string): void {
+export function writeFileAtomic(path: string, text: string | Uint8Array): void {
   let target = path;
   let mode: number | null = null;
   try {
@@ -41,7 +41,10 @@ export function writeFileAtomic(path: string, text: string): void {
     try {
       // openSync filters the mode through the umask; restore it exactly.
       if (mode !== null) fchmodSync(descriptor, mode);
-      const bytes = Buffer.from(text, "utf8");
+      const bytes =
+        typeof text === "string"
+          ? Buffer.from(text, "utf8")
+          : Buffer.from(text);
       for (let offset = 0; offset < bytes.length; )
         offset += writeSync(descriptor, bytes, offset, bytes.length - offset);
       fsyncSync(descriptor);

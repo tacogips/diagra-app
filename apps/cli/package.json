@@ -13,6 +13,8 @@
   "dependencies": {
     "@nodetto/core": "workspace:*",
     "@nodetto/io": "workspace:*",
-    "@nodetto/ir": "workspace:*"
+    "@nodetto/ir": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
+    "pdf-lib": "1.17.1"
   }
 }

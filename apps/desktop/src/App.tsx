@@ -959,13 +959,19 @@ export function App(props: AppProps): JSX.Element {
       </Show>
       <Show when={file().conflict && !isCloud()}>
         <div class="app-conflict" role="alert">
-          <span>File changed on disk.</span>
+          <span>
+            {file().conflict?.mergedConflicts?.length
+              ? `File changed on disk. ${file().conflict?.mergedConflicts?.length} item(s) were changed on both sides; your version was kept.`
+              : "File changed on disk."}
+          </span>
           <button
             type="button"
             class="app-file-button"
             onClick={() => void props.session.resolveConflict("reload")}
           >
-            Reload
+            {file().conflict?.mergedConflicts?.length
+              ? "Use disk version"
+              : "Reload"}
           </button>
           <button
             type="button"

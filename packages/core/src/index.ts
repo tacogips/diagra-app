@@ -602,3 +602,20 @@ export {
 } from "./token-modes.ts";
 
 export { isUmlComponentEndpoint } from "./shapes/umlComponent.ts";
+export {
+  PDF_PAGE_SIZES,
+  type PdfOptions,
+  type PdfOrientation,
+  type PdfPageSize,
+  RASTER_SCALES,
+  pdfLayout,
+  rasterDimensions,
+  svgRasterDimensions,
+} from "./export-geometry.ts";
+export {
+  diffDocuments,
+  isEmptyCommit,
+  type MergeConflict,
+  type MergeResult,
+  mergeDocuments,
+} from "./document-merge.ts";

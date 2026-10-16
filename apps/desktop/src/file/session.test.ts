@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { createDefaultRegistry, Editor } from "@nodetto/core";
-import { serializeDocument } from "@nodetto/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { seed } from "../seed.ts";
 import type {
   FileBackend,
@@ -669,12 +669,26 @@ describe("external changes", () => {
     expect(harness.session.state().error).toBeNull();
   });
 
-  test("different bytes on disk raise a conflict", async () => {
+  test("a change to the same document is shown live without a banner", async () => {
     const harness = await openedHarness();
     const external = `${harness.backend.files.get("/docs/a.jsonl")}`.replace(
       '"title":"Untitled"',
       '"title":"Edited elsewhere"',
     );
+    harness.backend.files.set("/docs/a.jsonl", external);
+
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict).toBeNull();
+    expect(harness.session.state().dirty).toBe(false);
+    expect(harness.editor.store.getMeta().title).toBe("Edited elsewhere");
+  });
+
+  test("a different document on disk raises a conflict", async () => {
+    const harness = await openedHarness();
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
     harness.backend.files.set("/docs/a.jsonl", external);
 
     harness.backend.emitFileChanged("/docs/a.jsonl");
@@ -824,6 +838,129 @@ describe("external changes", () => {
     await harness.settle();
 
     expect(harness.session.state().conflict).toBeNull();
+  });
+});
+
+describe("live outside changes (nodetto-cli and other writers)", () => {
+  async function opened(): Promise<Harness> {
+    const harness = createHarness({ seeded: false });
+    addShape(harness.editor, "first");
+    harness.backend.saveAnswers.push("/docs/live.jsonl");
+    await harness.session.save();
+    return harness;
+  }
+
+  /** What another writer would save: the disk document plus `change`. */
+  function writeElsewhere(
+    harness: Harness,
+    change: (editor: Editor) => void,
+  ): string {
+    const other = new Editor({
+      document: parseDocument(
+        `${harness.backend.files.get("/docs/live.jsonl")}`,
+      ),
+    });
+    change(other);
+    const text = serializeDocument(other.getSnapshot());
+    harness.backend.files.set("/docs/live.jsonl", text);
+    return text;
+  }
+
+  test("a clean document takes an outside change in place and keeps the camera", async () => {
+    const harness = await opened();
+    harness.editor.camera.set({ x: 120, y: -40, z: 1.5 });
+    const external = writeElsewhere(harness, (editor) =>
+      addShape(editor, "drawn by the CLI"),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict).toBeNull();
+    expect(harness.session.state().dirty).toBe(false);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(external);
+    expect(harness.editor.camera.get()).toEqual({ x: 120, y: -40, z: 1.5 });
+    expect(harness.timers.pendingCount).toBe(0);
+  });
+
+  test("unsaved local edits merge with a disjoint outside change and autosave the result", async () => {
+    const harness = await opened();
+    addShape(harness.editor, "drawn by the person");
+    writeElsewhere(harness, (editor) => addShape(editor, "drawn by the CLI"));
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    const labels = () =>
+      harness.editor.store
+        .listElements()
+        .map((element) => (element.semantic as { label?: string }).label)
+        .sort();
+    expect(harness.session.state().conflict).toBeNull();
+    expect(labels()).toEqual([
+      "drawn by the CLI",
+      "drawn by the person",
+      "first",
+    ]);
+    expect(harness.session.state().dirty).toBe(true);
+
+    harness.timers.fire();
+    await harness.settle();
+    const saved = parseDocument(
+      `${harness.backend.files.get("/docs/live.jsonl")}`,
+    );
+    expect(saved.elements).toHaveLength(3);
+  });
+
+  test("the same field changed on both sides keeps mine and asks", async () => {
+    const harness = await opened();
+    const id = harness.editor.store.listElements()[0]?.id ?? "";
+    harness.editor.apply([
+      { type: "updateSemantic", id, semantic: { geo: "rect", label: "mine" } },
+    ]);
+    const external = writeElsewhere(harness, (editor) =>
+      editor.apply([
+        {
+          type: "updateSemantic",
+          id,
+          semantic: { geo: "rect", label: "theirs" },
+        },
+      ]),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict?.mergedConflicts).toEqual([id]);
+    expect(
+      (harness.editor.store.get(id)?.semantic as { label?: string }).label,
+    ).toBe("mine");
+    expect(harness.timers.pendingCount).toBe(0);
+    expect(await harness.session.resolveConflict("reload")).toBe(true);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(external);
+  });
+
+  test("a move and a rename of the same element both survive", async () => {
+    const harness = await opened();
+    const id = harness.editor.store.listElements()[0]?.id ?? "";
+    harness.editor.moveElements([{ id, x: 300, y: 200 }]);
+    writeElsewhere(harness, (editor) =>
+      editor.apply([
+        {
+          type: "updateSemantic",
+          id,
+          semantic: { geo: "rect", label: "renamed" },
+        },
+      ]),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    const element = harness.editor.store.get(id);
+    expect(harness.session.state().conflict).toBeNull();
+    expect(element?.visual.x).toBe(300);
+    expect((element?.semantic as { label?: string }).label).toBe("renamed");
   });
 });
 

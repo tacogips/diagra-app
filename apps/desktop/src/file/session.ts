@@ -14,7 +14,13 @@
 //   - `loading` is set while the editor is being replaced, so the diffs a
 //     load produces never mark the fresh document dirty.
 
-import { type Editor, newElementId } from "@nodetto/core";
+import {
+  diffDocuments,
+  type Editor,
+  isEmptyCommit,
+  mergeDocuments,
+  newElementId,
+} from "@nodetto/core";
 import {
   assertValidDocument,
   type Document,
@@ -30,6 +36,12 @@ export type SessionStatus = "idle" | "loading" | "saving";
 export interface SessionConflict {
   /** What the file holds now, ready to be loaded if the user reloads. */
   readonly diskText: string;
+  /**
+   * Ids changed on both sides when an outside change was merged into unsaved
+   * local edits; the local version of those was kept. Absent when the disk
+   * change could not be merged at all.
+   */
+  readonly mergedConflicts?: readonly string[];
 }
 
 export interface SessionState {
@@ -630,7 +642,14 @@ export class DocumentSession {
       // event carries the settled contents.
       return;
     }
-    if (diskText === this.lastSavedText) {
+    if (
+      this.disposed ||
+      path !== this.current.filePath ||
+      diskText === this.lastSavedText
+    ) {
+      return;
+    }
+    if (this.applyOutsideChange(diskText)) {
       return;
     }
     // An autosave armed before the event arrived would otherwise land after
@@ -638,6 +657,69 @@ export class DocumentSession {
     // about. `resolveConflict` re-arms it once the question is answered.
     this.cancelAutosave();
     this.patch({ conflict: { diskText } });
+  }
+
+  /**
+   * Show another writer's change (nodetto-cli, a script, another editor) live.
+   *
+   * With no unsaved local edits the disk version is applied as an in-place
+   * diff, so camera, page and surviving selection stay put. With unsaved
+   * edits it is merged three ways against the last saved text; disjoint
+   * changes need no question and are autosaved, so the other writer sees the
+   * person's edits on its next read. Returns false when the change cannot be
+   * merged automatically and the banner has to ask.
+   */
+  private applyOutsideChange(diskText: string): boolean {
+    const remote = parseDocumentResult(diskText);
+    // Ask instead when: the file is unreadable, a question is already open,
+    // our own write is in flight (it would overwrite what we merge), or the
+    // file now holds a different document altogether.
+    if (
+      !remote.ok ||
+      this.current.conflict !== null ||
+      this.current.status === "saving"
+    ) {
+      return false;
+    }
+    const local = this.editor.getSnapshot();
+    if (remote.document.id !== local.id) {
+      return false;
+    }
+    let target = remote.document;
+    let conflicts: readonly string[] = [];
+    if (this.current.dirty) {
+      const base =
+        this.lastSavedText === null
+          ? null
+          : parseDocumentResult(this.lastSavedText);
+      if (base === null || !base.ok || base.document.id !== local.id) {
+        return false;
+      }
+      const merged = mergeDocuments(base.document, local, remote.document);
+      target = merged.document;
+      conflicts = merged.conflicts.map((conflict) => conflict.id);
+    }
+    const commit = diffDocuments(local, target);
+    this.loading = true;
+    try {
+      if (commit === null) {
+        this.editor.loadDocument(target, { preserveView: true });
+      } else if (!isEmptyCommit(commit)) {
+        this.editor.store.commit(commit);
+        this.editor.reconcileDerivedState();
+      }
+    } finally {
+      this.loading = false;
+    }
+    this.lastSavedText = diskText;
+    if (conflicts.length > 0) {
+      this.cancelAutosave();
+      this.patch({ conflict: { diskText, mergedConflicts: conflicts } });
+    } else if (this.current.dirty) {
+      // The merged document still holds local edits the file lacks.
+      this.markDirty();
+    }
+    return true;
   }
 
   private async startWatching(path: string): Promise<void> {
