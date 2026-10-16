@@ -487,10 +487,10 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       <div class="nodetto-toolbar-primary">
         <Show when={props.onWorkspaceChange}>
           <label class="nodetto-workspace-label">
-            Editing mode
+            Mode
             <select
               class="nodetto-workspace-select"
-              aria-label="Editing mode"
+              aria-label="Mode"
               value={workspace().id}
               onKeyDown={(event) => event.stopPropagation()}
               onChange={(event) =>

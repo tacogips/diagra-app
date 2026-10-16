@@ -3251,3 +3251,46 @@ test("palette drops share click creation, select the new element and remain one 
     expect(editor.getSnapshot()).toEqual(before);
   }
 });
+
+test("cancelling a right drag suppresses its menu and a later right click still works", () => {
+  for (const cancel of ["pointer", "escape", "blur"] as const) {
+    const { editor } = harness();
+    let menus = 0;
+    const { interaction } = interactionFor(editor, "select", {
+      onContextMenu: () => {
+        menus++;
+      },
+    });
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerMove(pointer({ button: 2, clientX: 130 }));
+    if (cancel === "pointer")
+      interaction.onPointerCancel(pointer({ button: 2 }));
+    else if (cancel === "escape") interaction.onKeyDown(keyboard("Escape"));
+    else interaction.onBlur();
+    const camera = editor.camera.get();
+    interaction.onPointerMove(pointer({ button: 2, clientX: 200 }));
+    interaction.onPointerUp(pointer({ button: 2, clientX: 200 }));
+    interaction.onContextMenu(mouse(200, 50));
+    expect(menus).toBe(0);
+    expect(editor.camera.get()).toEqual(camera);
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerUp(pointer({ button: 2 }));
+    expect(menus).toBe(1);
+  }
+});
+
+test("right drag tracks screen distance at every zoom and click jitter does not pan", () => {
+  for (const z of [0.5, 2, 4]) {
+    const { editor } = harness();
+    editor.camera.set({ x: 15, y: -20, z });
+    const { interaction } = interactionFor(editor, "select");
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerMove(pointer({ button: 2, clientX: 50.5 }));
+    expect(editor.camera.get()).toEqual({ x: 15, y: -20, z });
+    interaction.onPointerMove(
+      pointer({ button: 2, clientX: 130, clientY: 90 }),
+    );
+    interaction.onPointerUp(pointer({ button: 2, clientX: 130, clientY: 90 }));
+    expect(editor.camera.get()).toEqual({ x: 15 + 80 / z, y: -20 + 40 / z, z });
+  }
+});

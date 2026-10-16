@@ -1,6 +1,6 @@
 # UML component mode
 
-Choose **UML component** in Editing mode. The left palette exposes Component,
+Choose **UML component** in **Mode**. The left palette exposes Component,
 Provided interface (ball), Required interface (socket), Port, Dependency,
 Realization, and Connector, followed by Text and Frame. Common geometry remains
 available under More shapes. All tools also includes these tools.

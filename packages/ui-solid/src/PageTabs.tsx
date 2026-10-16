@@ -513,19 +513,6 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
       >
         +
       </button>
-      <button
-        type="button"
-        class="nodetto-page-add"
-        title="Add BPMN page"
-        aria-label="Add BPMN page"
-        disabled={readOnly()}
-        onClick={() => {
-          props.editor.createPage({ kind: "bpmn", name: "Process" });
-          focusPage(props.editor.currentPageId);
-        }}
-      >
-        BPMN
-      </button>
     </div>
   );
 }

@@ -1043,6 +1043,8 @@ export function createInteraction(
    * move or resize leaves no trace — not even an undo step.
    */
   const cancelGesture = (): void => {
+    if (gesture.kind === "panning" && gesture.rightButton)
+      suppressPointerContextMenu = true;
     discardDragFrame();
     if (
       gesture.kind === "translating" ||
@@ -1393,7 +1395,7 @@ export function createInteraction(
     const point = pagePoint(event);
     lastPointer = { screen: screenPoint(event), page: point };
 
-    // Middle button, the hand tool and held space always pan, whatever else
+    // Middle/right buttons, the hand tool and held space always pan, whatever else
     // is active.
     if (
       event.button === 1 ||
@@ -2279,6 +2281,7 @@ export function createInteraction(
   };
 
   const onBlur = (): void => {
+    if (gesture.kind === "panning" && gesture.rightButton) cancelGesture();
     releaseSpace();
     flushNudge();
   };
