@@ -2100,7 +2100,12 @@ export function createInteraction(
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
-    if (isEditableTarget(event.target) || insideSlot(event.target)) {
+    if (
+      event.defaultPrevented ||
+      event.isComposing ||
+      isEditableTarget(event.target) ||
+      insideSlot(event.target)
+    ) {
       // Typing in the inline editor or an inspector field: a tool letter
       // must insert the letter.
       return;
