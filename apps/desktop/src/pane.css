@@ -263,3 +263,11 @@
   flex: 0 0 auto;
   min-width: 0;
 }
+
+.app-pane input.nodetto-switch {
+  --nodetto-switch-width: 34px;
+  --nodetto-switch-height: 20px;
+  --nodetto-switch-thumb: 16px;
+  --nodetto-switch-inset: 2px;
+  --nodetto-switch-travel: 14px;
+}
