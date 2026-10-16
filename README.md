@@ -146,8 +146,9 @@ nodetto-cli export flow.jsonl --format pdf --pdf-page a4 --output flow.pdf
   given earlier in the batch; list items such as columns get generated ids, and
   ERD relation ends may name a column instead of its id. Validation errors name
   the operation and the field. If the file changes during the write (the person
-  saved), the batch is applied again to the new contents; it never overwrites
-  an unseen change.
+  saved before the final re-read), the batch is applied again to the new
+  contents. This optimistic check is not a filesystem compare-and-swap; changes
+  after that check can still race the atomic replacement.
 - `export` renders SVG with the editor's serializer, PNG with resvg using system
   fonts (embedded in the compiled sidecar), and PDF with the app's page layout.
 - The desktop app applies outside changes to an open file live, keeping the

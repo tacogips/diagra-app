@@ -94,7 +94,8 @@ Operations (a JSON array; JSON Lines is also accepted):
 - Concurrency: the CLI reads the file, applies the batch, and before the atomic rename
   re-reads the file. If a human saved in between, it reapplies the batch to the new
   contents (operations are intent-level, not byte patches) up to three times, then
-  fails with exit code 4. It never overwrites a change it has not seen.
+  fails with exit code 4. This is an optimistic check, not a filesystem
+  compare-and-swap: a save after the final re-read can still race the rename.
 
 ### Additions after the first live trial
 
