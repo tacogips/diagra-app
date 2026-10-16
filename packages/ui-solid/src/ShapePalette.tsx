@@ -1,12 +1,10 @@
 import type { Editor, Vec } from "@nodetto/core";
-import { For, type JSX, Show, onCleanup } from "solid-js";
+import { For, type JSX, onCleanup } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import {
-  additionalShapes,
-  artboardShapes,
   PALETTE_ICONS,
   type ShapePaletteItem,
-  workspaceShapes,
+  shapePaletteGroups,
 } from "./shape-palette.ts";
 import {
   type ActionContext,
@@ -22,7 +20,7 @@ import {
   Tool,
   type ToolKind,
 } from "./tools.ts";
-import { workspaceById, type WorkspaceId } from "./workspaces.ts";
+import type { WorkspaceId } from "./workspaces.ts";
 import "./ShapePalette.css";
 
 export function ShapePalette(props: {
@@ -156,36 +154,19 @@ export function ShapePalette(props: {
         }
       }}
     >
-      <h2>Shapes</h2>
-      <h3 class="nodetto-palette-mode">
-        {workspaceById(props.workspace).label}
-      </h3>
-      {tiles(workspaceShapes(props.workspace))}
+      <For each={shapePaletteGroups(props.workspace)}>
+        {(group, index) => (
+          <details class="nodetto-palette-section" open={index() === 0}>
+            <summary>{group.label}</summary>
+            {tiles(group.items)}
+          </details>
+        )}
+      </For>
       <div class="nodetto-palette-actions" role="group" aria-label="Grouping">
         {action("frameSelection", "Frame selection")}
         {action("group", "Group")}
         {action("ungroup", "Ungroup")}
       </div>
-      <Show
-        when={
-          additionalShapes(props.workspace).length > 0 ||
-          workspaceById(props.workspace).design
-        }
-      >
-        <details class="nodetto-palette-section">
-          <summary>More shapes</summary>
-          {tiles(additionalShapes(props.workspace))}
-          <Show when={workspaceById(props.workspace).design}>
-            {tiles([{ tool: Tool.Freehand, label: "Freehand", icon: "draw" }])}
-          </Show>
-        </details>
-      </Show>
-      <Show when={artboardShapes(props.workspace).length > 0}>
-        <details class="nodetto-palette-section">
-          <summary>Artboards</summary>
-          {tiles(artboardShapes(props.workspace))}
-        </details>
-      </Show>
     </section>
   );
 }
