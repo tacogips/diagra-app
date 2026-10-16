@@ -1,4 +1,4 @@
-// Page tabs above the canvas (design editor-ux 8).
+// Page tabs alongside the canvas (design editor-ux 8).
 //
 // The tab strip reads the store's page list on every revision and writes
 // only through the editor's page commands, so an undo puts a deleted tab back
@@ -28,6 +28,7 @@ import { pageRenameDraft } from "./page-rename.ts";
 
 export interface PageTabsProps {
   readonly editor: Editor;
+  readonly placement?: "top" | "bottom";
 }
 
 const DELETE_PROMPT = (page: Page, count: number): string =>
@@ -42,6 +43,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
     return props.editor.readOnly;
   };
   const [renaming, setRenaming] = createSignal<PageId | null>(null);
+  const [menuPosition, setMenuPosition] = createSignal<JSX.CSSProperties>();
   const [menuFor, setMenuFor] = createSignal<PageId | null>(null);
   createEffect(() => {
     if (!readOnly()) return;
@@ -116,6 +118,23 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
   };
   const openMenu = (id: PageId): void => {
     if (props.editor.readOnly) return;
+    if (props.placement === "bottom") {
+      const tab = Array.from(
+        strip?.querySelectorAll<HTMLElement>("[data-page-drag-target]") ?? [],
+      ).find((element) => element.dataset.pageDragTarget === id);
+      const box = tab?.getBoundingClientRect();
+      if (box)
+        setMenuPosition({
+          position: "fixed",
+          top: "auto",
+          bottom: `${window.innerHeight - box.top + 4}px`,
+          left: `${Math.max(4, Math.min(box.left, window.innerWidth - 184))}px`,
+          width: "180px",
+          "max-width": "calc(100vw - 8px)",
+          "max-height": `${Math.max(32, box.top - 8)}px`,
+          "overflow-y": "auto",
+        });
+    }
     setMenuFor(id);
     queueMicrotask(() =>
       strip
@@ -226,10 +245,13 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
       }
       setMenuFor(null);
     };
+    const close = () => setMenuFor(null);
     window.addEventListener("pointerdown", onPointerDown, true);
-    onCleanup(() =>
-      window.removeEventListener("pointerdown", onPointerDown, true),
-    );
+    window.addEventListener("resize", close);
+    onCleanup(() => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("resize", close);
+    });
   });
 
   const focusInput = (input: HTMLInputElement): void => {
@@ -245,7 +267,12 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
 
   return (
     <div class="nodetto-page-tabs" ref={strip}>
-      <div class="nodetto-page-tab-list" role="tablist" aria-label="Pages">
+      <div
+        class="nodetto-page-tab-list"
+        role="tablist"
+        aria-label="Pages"
+        onScroll={() => setMenuFor(null)}
+      >
         <For each={pageIds()}>
           {(id) => (
             <Show when={pagesById().get(id)}>
@@ -390,6 +417,7 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                   <Show when={menuFor() === id}>
                     <div
                       class="nodetto-page-menu"
+                      style={menuPosition()}
                       role="menu"
                       aria-label={`Options for ${page().name}`}
                       onKeyDown={(event) => {
