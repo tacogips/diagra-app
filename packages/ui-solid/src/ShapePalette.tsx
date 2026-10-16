@@ -93,11 +93,13 @@ export function ShapePalette(props: {
             aria-label={`Draw ${item.label.toLowerCase()}`}
             aria-pressed={props.tool === item.tool}
             title={
-              isConnectorTool(item.tool)
-                ? `${item.label} — drag from one shape to another`
-                : item.tool === Tool.Port
-                  ? "Port — click a component boundary"
-                  : `${item.label} — select, then click the canvas`
+              item.tool === Tool.Freehand
+                ? "Freehand — drag on the canvas"
+                : isConnectorTool(item.tool)
+                  ? `${item.label} — drag from one shape to another`
+                  : item.tool === Tool.Port
+                    ? "Port — click a component boundary"
+                    : `${item.label} — select, then click the canvas`
             }
             on:pointerdown={(event) => {
               if (event.button !== 0 || !creationFor(item.tool) || readOnly())
@@ -164,10 +166,18 @@ export function ShapePalette(props: {
         {action("group", "Group")}
         {action("ungroup", "Ungroup")}
       </div>
-      <Show when={additionalShapes(props.workspace).length > 0}>
+      <Show
+        when={
+          additionalShapes(props.workspace).length > 0 ||
+          workspaceById(props.workspace).design
+        }
+      >
         <details class="nodetto-palette-section">
           <summary>More shapes</summary>
           {tiles(additionalShapes(props.workspace))}
+          <Show when={workspaceById(props.workspace).design}>
+            {tiles([{ tool: Tool.Freehand, label: "Freehand", icon: "draw" }])}
+          </Show>
         </details>
       </Show>
       <Show when={artboardShapes(props.workspace).length > 0}>

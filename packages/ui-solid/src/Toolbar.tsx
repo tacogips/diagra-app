@@ -219,7 +219,9 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const [open, setOpen] = createSignal<string | null>(null);
   const [menuPosition, setMenuPosition] = createSignal({ x: 8, y: 44 });
   const signals = createEditorSignals(props.editor);
-  const workspace = () => workspaceById(props.workspace ?? "all");
+  const workspace = () => workspaceById(props.workspace ?? "flow");
+  const comprehensive = () =>
+    workspace().id === "flow" || workspace().id === "all";
   createEffect(() => {
     workspace().id;
     setOpen(null);
@@ -463,7 +465,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
                 />
                 {uiBlocks()}
               </Show>
-              <Show when={props.onWorkspaceChange && workspace().id !== "all"}>
+              <Show when={props.onWorkspaceChange && !comprehensive()}>
                 <button
                   type="button"
                   role="menuitem"
@@ -481,7 +483,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
                   Switch to All tools
                 </button>
               </Show>
-              <Show when={workspace().id === "all"}>
+              <Show when={comprehensive()}>
                 <section>
                   <h2>Diagram</h2>
                   {toolItems(DIAGRAM_TOOLS)}
@@ -502,7 +504,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
                     <For
                       each={menu.actions.filter(
                         (item) =>
-                          workspace().id === "all" ||
+                          comprehensive() ||
                           (!item.id.startsWith("boolean") &&
                             item.id !== "flattenBoolean" &&
                             item.id !== "frameSelection"),

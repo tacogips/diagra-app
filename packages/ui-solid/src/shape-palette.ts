@@ -2,6 +2,7 @@ import { Tool, type ToolKind } from "./tools.ts";
 import { workspaceById, type WorkspaceId } from "./workspaces.ts";
 
 export const PALETTE_ICONS = {
+  draw: "M4 25l3-8L22 2l8 8-15 15-8 3zM19 5l8 8",
   component: "M7 5h22v23H7zM3 10h8v5H3zM3 20h8v5H3z",
   provided: "M2 16h10m16 0a8 8 0 11-16 0 8 8 0 0116 0z",
   required: "M2 16h12m12-9a9 9 0 000 18",
@@ -145,17 +146,7 @@ const PRIMARY_TOOLS = {
     Tool.Text,
     Tool.Frame,
   ],
-  flow: [
-    Tool.Rectangle,
-    Tool.Ellipse,
-    Tool.Diamond,
-    Tool.Cylinder,
-    Tool.Node,
-    Tool.Connector,
-    Tool.Parallelogram,
-    Tool.Text,
-    Tool.Frame,
-  ],
+  flow: [...COMMON_SHAPES, ...DIAGRAM_SHAPES].map((item) => item.tool),
   app: [
     Tool.IPhoneFrame,
     Tool.AndroidFrame,

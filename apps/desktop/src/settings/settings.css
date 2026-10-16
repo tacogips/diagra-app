@@ -1,0 +1,120 @@
+.app-settings-dialog {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0;
+  border: 1px solid var(--nodetto-line);
+  color: var(--nodetto-ink);
+  background: var(--nodetto-surface, white);
+  overflow: hidden;
+  box-sizing: border-box;
+  font: inherit;
+}
+.app-settings-dialog::backdrop {
+  background: #0006;
+}
+.app-settings-dialog > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--nodetto-line);
+}
+.app-settings-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.app-settings-dialog h3 {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+.app-settings-layout {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  height: min(340px, calc(100dvh - 130px));
+  min-height: 0;
+  max-height: calc(100dvh - 130px);
+}
+.app-settings-layout > nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--nodetto-line);
+  overflow-y: auto;
+}
+.app-settings-dialog button {
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.app-settings-dialog button:hover {
+  background: var(--nodetto-accent-soft);
+}
+.app-settings-dialog [role="tab"] {
+  text-align: left;
+}
+.app-settings-dialog [role="tab"][aria-selected="true"] {
+  color: white;
+  background: var(--nodetto-accent);
+}
+.app-settings-layout > section {
+  padding: 20px;
+  overflow-y: auto;
+  outline: none;
+}
+.app-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.app-settings-row
+  :is(input:not([type="checkbox"]):not([type="color"]), select) {
+  max-width: 55%;
+  padding: 6px;
+  border: 1px solid var(--nodetto-line);
+  color: inherit;
+  background: var(--nodetto-surface);
+  font: inherit;
+}
+.app-settings-row input[type="checkbox"] {
+  accent-color: var(--nodetto-accent);
+  width: 16px;
+  height: 16px;
+}
+.app-settings-path {
+  margin-top: 20px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.app-settings-shortcuts {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.app-settings-shortcuts :is(th, td) {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--nodetto-line);
+  text-align: left;
+}
+@media (max-width: 520px) {
+  .app-settings-layout {
+    grid-template-columns: 110px minmax(0, 1fr);
+  }
+  .app-settings-layout > section {
+    padding: 12px;
+  }
+  .app-settings-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+  .app-settings-row :is(input, select) {
+    max-width: 100%;
+  }
+}
