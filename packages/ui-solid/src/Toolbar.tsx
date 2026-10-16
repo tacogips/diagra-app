@@ -509,6 +509,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           type="button"
           class="nodetto-toolbar-icon"
           aria-label="Select"
+          aria-keyshortcuts="V"
           title="Select and move (V)"
           aria-pressed={props.tool === "select"}
           disabled={!canUseTool("select", readOnly())}
@@ -520,6 +521,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           type="button"
           class="nodetto-toolbar-icon"
           aria-label="Hand"
+          aria-keyshortcuts="H"
           title="Pan the canvas (H, or hold Space)"
           aria-pressed={props.tool === "hand"}
           disabled={!canUseTool("hand", readOnly())}

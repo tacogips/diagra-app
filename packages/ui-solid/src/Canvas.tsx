@@ -77,6 +77,7 @@ import { GradientHandles } from "./GradientHandles.tsx";
 import {
   type ConnectorEnd,
   createInteraction,
+  isEditableTarget,
   type EditRegion,
   type ResizeHandle,
   RESIZE_HANDLES,
@@ -305,6 +306,50 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
       return;
     }
     element.focus();
+    // Navigation keys also work after focusing a toolbar or layer control.
+    // Text entry, modal/menu navigation and native Space activation keep ownership.
+    const shortcutRoot =
+      element.closest<HTMLElement>("[data-nodetto-editor]") ?? element;
+    const navigate = (event: KeyboardEvent): void => {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.shiftKey ||
+        isEditableTarget(event.target)
+      )
+        return;
+      const target =
+        event.target instanceof globalThis.Element ? event.target : null;
+      if (
+        target?.closest(
+          'dialog, [role="dialog"], [role="menu"], [role="listbox"]',
+        )
+      )
+        return;
+      const key = event.key.toLowerCase();
+      const space = key === " " || key === "spacebar" || event.code === "Space";
+      if (key !== "h" && key !== "v" && !space) return;
+      if (
+        space &&
+        target?.closest(
+          'button, a[href], summary, [role="button"], [role="tab"]',
+        )
+      )
+        return;
+      interaction.onKeyDown(event);
+      if (event.defaultPrevented) element.focus();
+    };
+    shortcutRoot.addEventListener("keydown", navigate);
+    window.addEventListener("keyup", interaction.onKeyUp);
+    window.addEventListener("blur", interaction.onBlur);
+    onCleanup(() => {
+      shortcutRoot.removeEventListener("keydown", navigate);
+      window.removeEventListener("keyup", interaction.onKeyUp);
+      window.removeEventListener("blur", interaction.onBlur);
+    });
     const report = (): void => {
       const rect = element.getBoundingClientRect();
       const size = { width: rect.width, height: rect.height };

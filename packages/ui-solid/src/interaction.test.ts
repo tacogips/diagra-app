@@ -1208,6 +1208,7 @@ function mouse(
 }
 
 interface KeyInput {
+  readonly isComposing?: boolean;
   readonly metaKey?: boolean;
   readonly ctrlKey?: boolean;
   readonly shiftKey?: boolean;
@@ -1224,6 +1225,7 @@ function keyboard(
   const event = {
     key,
     code: input.code ?? "",
+    isComposing: input.isComposing ?? false,
     metaKey: input.metaKey ?? false,
     ctrlKey: input.ctrlKey ?? false,
     shiftKey: input.shiftKey ?? false,
@@ -2408,6 +2410,16 @@ describe("keyboard map (design 5)", () => {
     // Shifted letters are not tool keys.
     interaction.onKeyDown(keyboard("R", { shiftKey: true }));
     expect(tool()).toBe("select");
+  });
+
+  test("handled keys and IME composition do not activate navigation tools", () => {
+    const { interaction, tool } = harness();
+    const handled = keyboard("h");
+    handled.preventDefault();
+    interaction.onKeyDown(handled);
+    interaction.onKeyDown(keyboard(" ", { code: "Space", isComposing: true }));
+    expect(tool()).toBe("select");
+    expect(interaction.temporaryHand()).toBe(false);
   });
 
   test("holding space pans with the select tool and lets go on keyup", () => {

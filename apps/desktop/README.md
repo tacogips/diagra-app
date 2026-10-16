@@ -12,6 +12,13 @@ bun --cwd=apps/desktop run dev  # browser only, http://localhost:1420
 Both entry points serve the same frontend, so the checklist below can be run
 in a browser when the native toolchain is not available.
 
+## Canvas navigation shortcuts
+
+- Hold **Space** and drag to pan temporarily; release it to restore the previous tool.
+- **H** selects Hand; **V** returns to Select. These keys also work after using
+  toolbar or layer controls.
+- Text fields and menu/dialog keyboard navigation keep their normal behavior.
+
 ## Layers
 
 The canvas is one CSS-transformed viewport holding three layers: an SVG layer

@@ -769,7 +769,11 @@ export function App(props: AppProps): JSX.Element {
   );
 
   return (
-    <div class="app-shell" classList={{ "app-cloud-mode": isCloud() }}>
+    <div
+      class="app-shell"
+      data-nodetto-editor=""
+      classList={{ "app-cloud-mode": isCloud() }}
+    >
       <header class="app-header" ref={headerHost}>
         <span class="app-title">nodetto</span>
         <Show when={props.filesAvailable}>
