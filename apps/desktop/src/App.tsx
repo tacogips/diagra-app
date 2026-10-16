@@ -1263,7 +1263,6 @@ export function App(props: AppProps): JSX.Element {
                 )}
               </Show>
             </div>
-            <PageTabs editor={props.editor} />
           </div>
           <div
             class="app-canvas-host"
@@ -1333,15 +1332,6 @@ export function App(props: AppProps): JSX.Element {
                 }}
               />
             </Show>
-            <ZoomControls
-              context={actionContext()}
-              snap={snap()}
-              showGrid={showGrid()}
-              showRulers={showRulers()}
-              onSnapChange={setSnap}
-              onShowGridChange={setShowGrid}
-              onShowRulersChange={changeShowRulers}
-            />
             <Show when={contextMenu()}>
               {(menu) => (
                 <ContextMenu
@@ -1353,6 +1343,30 @@ export function App(props: AppProps): JSX.Element {
                 />
               )}
             </Show>
+          </div>
+          <div
+            class="app-viewer-footer"
+            style={{
+              "margin-left":
+                leftPaneOpen() && paneOverlaysCanvas()
+                  ? `${leftPaneWidth()}px`
+                  : undefined,
+              "margin-right":
+                rightPaneOpen() && paneOverlaysCanvas()
+                  ? `${rightPaneWidth()}px`
+                  : undefined,
+            }}
+          >
+            <PageTabs editor={props.editor} placement="bottom" />
+            <ZoomControls
+              context={actionContext()}
+              snap={snap()}
+              showGrid={showGrid()}
+              showRulers={showRulers()}
+              onSnapChange={setSnap}
+              onShowGridChange={setShowGrid}
+              onShowRulersChange={changeShowRulers}
+            />
           </div>
         </div>
         <button

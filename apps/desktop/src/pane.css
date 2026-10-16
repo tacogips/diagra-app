@@ -275,3 +275,59 @@
 .app-pane-content > .app-inspector {
   scrollbar-gutter: stable;
 }
+
+.app-viewer-footer {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  padding: 4px 8px;
+  border-top: 1px solid var(--app-chrome-line);
+  background: var(--app-chrome-surface);
+}
+.app-viewer-footer > .nodetto-page-tabs {
+  flex: 1 1 180px;
+  flex-wrap: nowrap;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.app-viewer-footer .nodetto-page-tab-list {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+  overflow-x: auto;
+}
+.app-viewer-footer .nodetto-page-tab {
+  flex: 0 0 auto;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-weight: 500;
+}
+.app-viewer-footer .nodetto-page-tab.nodetto-active {
+  border-bottom-color: var(--nodetto-accent);
+  background: var(--app-chrome-active, #e5e9eb);
+  box-shadow: none;
+}
+.app-viewer-footer .nodetto-page-tab-name {
+  white-space: nowrap;
+}
+.app-viewer-footer .nodetto-page-add {
+  flex: 0 0 auto;
+}
+.app-viewer-footer > .nodetto-zoom-controls {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  flex: 0 1 auto;
+  max-width: 100%;
+  margin-left: auto;
+  gap: 4px;
+}
+.app-viewer-footer .nodetto-zoom-group {
+  box-shadow: none;
+}
