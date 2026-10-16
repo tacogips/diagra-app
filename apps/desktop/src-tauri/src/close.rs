@@ -56,5 +56,28 @@ pub fn menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
             position,
         )?;
     }
+    for item in menu.items()? {
+        if let MenuItemKind::Submenu(file) = item {
+            if file.text()? != "File" {
+                continue;
+            }
+            for (position, (id, label, shortcut)) in [
+                ("file-new", "New", "CmdOrCtrl+N"),
+                ("file-open", "Open…", "CmdOrCtrl+O"),
+                ("file-save", "Save", "CmdOrCtrl+S"),
+                ("file-reload", "Reload from Disk", "CmdOrCtrl+R"),
+                ("file-save-as", "Save As…", "CmdOrCtrl+Shift+S"),
+                ("file-export", "Export…", "CmdOrCtrl+Shift+E"),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                file.insert(
+                    &MenuItem::with_id(app, id, label, true, Some(shortcut))?,
+                    position,
+                )?;
+            }
+        }
+    }
     Ok(menu)
 }

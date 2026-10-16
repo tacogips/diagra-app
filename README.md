@@ -1115,6 +1115,13 @@ a bend handle to remove just that point; removing the final bend makes the line
 straight. A focused bend handle also supports Delete/Backspace. Undo restores
 the removed points.
 
-Header actions and mode tools use icons with hover labels. BPMN import is a
-header action shown in BPMN mode; File > Open continues to accept all supported
-formats, and BPMN export remains in the shared Export dialog.
+The toolbar has File and Settings icons with hover labels. File offers New,
+Open, Reload from disk, Export, Save and Save As icons; Recent lists previous
+files. macOS also exposes these actions in its native File menu, including
+Cmd+O to open, Cmd+S to save and Cmd+R to reload. Reload asks before discarding
+unsaved changes. BPMN import appears in BPMN mode, and BPMN export remains in
+the shared Export dialog.
+
+Shape creation lives in the left pane. Pan with right-click drag; H/V remain
+available as shortcuts. Filename and save status sit directly above the page
+tabs within the viewer column. Pane corners have small collapse chevrons.

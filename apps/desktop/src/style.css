@@ -42,7 +42,13 @@ input {
 
 /* Normalize native field bevels in application chrome only. Do not
  * restyle controls drawn inside documents or interactive prototype content. */
-:is(.app-header, .app-pane, .app-cloud-panel, .nodetto-zoom-controls)
+:is(
+    .app-document-status,
+    .app-file-actions,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-zoom-controls
+  )
   :is(
     input:where(
         :not(
@@ -74,7 +80,13 @@ input {
   font: inherit;
 }
 
-:is(.app-header, .app-pane, .app-cloud-panel, .nodetto-zoom-controls)
+:is(
+    .app-document-status,
+    .app-file-actions,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-zoom-controls
+  )
   :is(input, textarea, select):focus-visible {
   outline: 2px solid var(--nodetto-accent);
   outline-offset: -1px;
@@ -83,7 +95,13 @@ input {
 
 /* Keep the native select semantics, but draw a flat, square closed control.
  * The arrow is decorative; the select remains the keyboard/click target. */
-:is(.app-header, .app-pane, .app-cloud-panel, .nodetto-zoom-controls)
+:is(
+    .app-document-status,
+    .app-file-actions,
+    .app-pane,
+    .app-cloud-panel,
+    .nodetto-zoom-controls
+  )
   select:not([multiple], [size]) {
   padding-inline-end: 24px;
   background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
@@ -94,11 +112,24 @@ input {
 }
 
 @media (forced-colors: active) {
-  :is(.app-header, .app-pane, .app-cloud-panel, .nodetto-zoom-controls) select {
+  :is(
+      .app-document-status,
+      .app-file-actions,
+      .app-pane,
+      .app-cloud-panel,
+      .nodetto-zoom-controls
+    )
+    select {
     -webkit-appearance: auto;
     appearance: auto;
   }
-  :is(.app-header, .app-pane, .app-cloud-panel, .nodetto-zoom-controls)
+  :is(
+      .app-document-status,
+      .app-file-actions,
+      .app-pane,
+      .app-cloud-panel,
+      .nodetto-zoom-controls
+    )
     select:not([multiple], [size]) {
     background-image: none;
   }
@@ -129,17 +160,6 @@ input {
   min-height: 0;
 }
 
-.app-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-  min-height: 40px;
-  padding: 4px 10px;
-  border-bottom: 1px solid var(--app-chrome-line);
-  background: var(--app-chrome-surface);
-}
-
 /* File controls */
 
 .app-file-controls {
@@ -151,57 +171,6 @@ input {
 .app-file-menu,
 .app-settings-menu {
   position: relative;
-}
-
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
-  > summary {
-  display: flex;
-  min-height: 32px;
-  align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-  border: 0;
-  color: var(--nodetto-ink);
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  list-style: none;
-}
-
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
-  > summary::-webkit-details-marker {
-  display: none;
-}
-
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
-  > summary::after {
-  width: 5px;
-  height: 5px;
-  margin-top: -3px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  content: "";
-  transform: rotate(45deg);
-}
-
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
-  > summary:hover,
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)[open]
-  > summary {
-  background: var(--app-chrome-hover);
-}
-
-.app-header
-  :is(.app-file-menu, .app-settings-menu, .app-hint-details)
-  > summary:focus-visible {
-  outline: 2px solid #5d7480;
-  outline-offset: 1px;
 }
 
 .app-settings-controls {
@@ -291,14 +260,6 @@ input {
   border-bottom: 1px solid var(--nodetto-line);
   background: var(--nodetto-accent-soft);
   font-size: 0.8rem;
-}
-
-.app-title {
-  color: #2e363b;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .app-hint {
@@ -1094,7 +1055,7 @@ input {
   min-height: 0;
 }
 
-.app-editor-body > .app-canvas-host {
+.app-viewer-column > .app-canvas-host {
   flex: 1;
   min-width: 0;
 }
@@ -2118,8 +2079,67 @@ input {
   width: 18px;
   height: 18px;
 }
-.app-header
-  :is(.app-file-menu, .app-settings-menu)
-  > summary.app-header-icon::after {
-  content: none;
+
+.app-document-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 10px;
+  background: var(--app-chrome-surface);
+  border-bottom: 1px solid var(--app-chrome-line);
+}
+
+.app-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.app-file-actions summary {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  min-height: 30px;
+  padding: 4px;
+  cursor: pointer;
+  list-style: none;
+}
+.app-file-actions summary::-webkit-details-marker {
+  display: none;
+}
+.app-file-actions summary:hover,
+.app-file-actions details[open] > summary {
+  background: var(--app-chrome-hover);
+}
+.app-file-actions .app-file-controls {
+  display: grid;
+  grid-template-columns: repeat(3, 32px);
+  gap: 6px;
+}
+.app-file-actions .app-file-controls > button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  padding: 4px;
+}
+.app-file-actions .app-file-controls > button svg {
+  width: 18px;
+  height: 18px;
+}
+.app-file-actions .app-recent-select {
+  grid-column: 1 / -1;
+  max-width: 100%;
+  width: 100%;
+}
+.app-file-actions .app-settings-controls {
+  z-index: 40;
+}
+
+.app-document-status .app-file-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

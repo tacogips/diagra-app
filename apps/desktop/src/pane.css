@@ -3,7 +3,7 @@
   min-width: 0;
 }
 
-.app-editor-body > .app-canvas-host {
+.app-viewer-column > .app-canvas-host {
   isolation: isolate;
 }
 
@@ -33,23 +33,19 @@
 }
 
 .app-pane-collapse {
-  position: sticky;
-  z-index: 2;
-  top: 0;
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  width: 100%;
-  min-height: 32px;
-  padding: 6px 10px;
+  position: absolute;
+  z-index: 4;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 4px;
   border: 0;
-  border-bottom: 1px solid var(--app-chrome-line);
   color: var(--nodetto-ink);
   background: var(--app-chrome-surface);
-  font-size: 0.75rem;
-  font-weight: 600;
   cursor: pointer;
 }
 
@@ -254,4 +250,16 @@
 .app-pane-restore:focus-visible {
   outline: 2px solid var(--nodetto-ink);
   outline-offset: -3px;
+}
+
+.app-viewer-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+.app-viewer-heading {
+  flex: 0 0 auto;
+  min-width: 0;
 }
