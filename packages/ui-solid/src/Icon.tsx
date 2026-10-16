@@ -17,6 +17,11 @@ export function Icon(props: {
     | "image"
     | "more"
     | "chevron"
+    | "reload"
+    | "newFile"
+    | "openFile"
+    | "save"
+    | "saveAs"
     | "file"
     | "settings"
     | "import"
@@ -57,6 +62,11 @@ export function Icon(props: {
     more: "M4 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4.5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4.5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z",
     chevron: "M6 8l4 4 4-4z",
 
+    reload: "M17 8a7 7 0 10.4 5M17 3v5h-5",
+    newFile: "M4 2h8l4 4v12H4zM12 2v5h4M7 12h6m-3-3v6",
+    openFile: "M2 8V4h6l2 2h6v2M2 8h17l-3 9H2z",
+    save: "M3 2h12l3 3v13H2V2zM6 2v6h8V2M6 18v-7h8v7",
+    saveAs: "M3 2h12l3 3v5M6 2v6h8V2M3 2v16h6m1-2 6-6 3 3-6 6h-3z",
     file: "M2 6h6l2 2h8v9H2zM2 8V4h6l2 2h6v2",
     settings:
       "M8 2h4l1 3 3 1 2 3-2 3-1 3-3 1-1 2H8l-1-3-3-1-2-3 2-3 1-3 3-1zm2 5a3 3 0 100 6 3 3 0 000-6z",
@@ -89,6 +99,11 @@ export function Icon(props: {
     "cylinder",
     "text",
     "image",
+    "reload",
+    "newFile",
+    "openFile",
+    "save",
+    "saveAs",
     "file",
     "settings",
     "import",

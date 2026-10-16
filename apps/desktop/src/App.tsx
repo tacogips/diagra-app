@@ -1,3 +1,4 @@
+import { watchNativeFileMenu } from "./file/native-menu.ts";
 // App shell: file controls, cloud controls, the toolbar, page tabs, the
 // canvas with its floating chrome, and the Inspector column.
 //
@@ -237,7 +238,7 @@ export function App(props: AppProps): JSX.Element {
   let fileMenu: HTMLDetailsElement | undefined;
   let settingsMenu: HTMLDetailsElement | undefined;
   let cloudPanelHost: HTMLDivElement | undefined;
-  let headerHost: HTMLElement | undefined;
+  let documentStatusHost: HTMLDivElement | undefined;
   const [cloudPanelTop, setCloudPanelTop] = createSignal(44);
   const dismissCloudPanel = (): void => {
     setCloudPanelExpanded(false);
@@ -323,6 +324,11 @@ export function App(props: AppProps): JSX.Element {
     if (mayDiscard()) {
       void props.session.open();
     }
+  };
+
+  const reload = (): void => {
+    const path = file().filePath;
+    if (path !== null && mayDiscard()) void props.session.openPath(path);
   };
 
   const openRecent = (path: string): void => {
@@ -532,7 +538,7 @@ export function App(props: AppProps): JSX.Element {
     }
   });
   onMount(() => {
-    const header = headerHost;
+    const header = documentStatusHost;
     if (!header) return;
     const positionCloud = (): void => {
       setCloudPanelTop(header.getBoundingClientRect().bottom + 4);
@@ -633,6 +639,25 @@ export function App(props: AppProps): JSX.Element {
       setCommentRequest((value) => value + 1);
     },
     exportSvg: openExport,
+  });
+
+  onMount(() => {
+    const stop = watchNativeFileMenu({
+      canEdit: () => props.filesAvailable && !isCloud(),
+      newDocument,
+      open,
+      save: () => {
+        void props.session.save();
+      },
+      reload,
+      saveAs: () => {
+        void props.session.saveAs();
+      },
+      exportDocument: () => {
+        runAction(getAction("exportSvg"), actionContext());
+      },
+    });
+    onCleanup(stop);
   });
 
   // ----------------------------------------------------------- keyboard
@@ -796,224 +821,6 @@ export function App(props: AppProps): JSX.Element {
       data-nodetto-editor=""
       classList={{ "app-cloud-mode": isCloud() }}
     >
-      <header class="app-header" ref={headerHost}>
-        <span class="app-title">nodetto</span>
-        <Show when={props.filesAvailable}>
-          <details class="app-file-menu" ref={fileMenu}>
-            <summary
-              class="app-file-button app-header-icon"
-              aria-label="File"
-              title="File"
-            >
-              <Icon name="file" />
-            </summary>
-            <div class="app-file-controls">
-              <button
-                type="button"
-                class="app-file-button"
-                disabled={!props.filesAvailable || isCloud()}
-                onClick={newDocument}
-              >
-                New
-              </button>
-              <button
-                type="button"
-                class="app-file-button"
-                disabled={!props.filesAvailable || isCloud()}
-                onClick={open}
-              >
-                Open
-              </button>
-              <button
-                type="button"
-                class="app-file-button"
-                onClick={openExport}
-              >
-                Export…
-              </button>
-              <button
-                type="button"
-                class="app-file-button"
-                disabled={!props.filesAvailable || isCloud()}
-                onClick={() => void props.session.save()}
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                class="app-file-button"
-                disabled={!props.filesAvailable || isCloud()}
-                onClick={() => void props.session.saveAs()}
-              >
-                Save As
-              </button>
-              <select
-                class="app-recent-select"
-                disabled={
-                  !props.filesAvailable ||
-                  isCloud() ||
-                  file().recent.length === 0
-                }
-                value=""
-                onChange={(event) => {
-                  const path = event.currentTarget.value;
-                  event.currentTarget.value = "";
-                  openRecent(path);
-                }}
-              >
-                <option value="">Recent</option>
-                <For each={file().recent}>
-                  {(entry) => <option value={entry.path}>{entry.path}</option>}
-                </For>
-              </select>
-            </div>
-          </details>
-        </Show>
-        <Show when={props.filesAvailable || props.cloud}>
-          <details class="app-settings-menu" ref={settingsMenu}>
-            <summary
-              class="app-file-button app-header-icon"
-              aria-label="Settings"
-              title="Settings"
-            >
-              <Icon name="settings" />
-            </summary>
-            <div class="app-settings-controls">
-              <Show when={props.filesAvailable}>
-                <label class="app-saving-setting">
-                  File saving
-                  <select
-                    aria-label="File saving"
-                    value={file().saveMode}
-                    onChange={(event) => {
-                      const mode =
-                        event.currentTarget.value === "manual"
-                          ? "manual"
-                          : "automatic";
-                      props.session.setSaveMode(mode);
-                      storeSaveMode(mode, preferenceStorage());
-                    }}
-                  >
-                    <option value="automatic">Automatic</option>
-                    <option value="manual">Manual</option>
-                  </select>
-                </label>
-              </Show>
-              <Show when={props.cloud}>
-                <button
-                  type="button"
-                  class="app-file-button"
-                  aria-expanded={cloudPanelExpanded()}
-                  onClick={() => {
-                    const next = !cloudPanelExpanded();
-                    setCloudPanelExpanded(next);
-                    settingsMenu?.removeAttribute("open");
-                    queueMicrotask(() => {
-                      if (next) {
-                        cloudPanelHost
-                          ?.querySelector<HTMLElement>(
-                            ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
-                          )
-                          ?.focus();
-                      } else {
-                        settingsMenu
-                          ?.querySelector<HTMLElement>("summary")
-                          ?.focus();
-                      }
-                    });
-                  }}
-                >
-                  {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
-                </button>
-              </Show>
-            </div>
-          </details>
-        </Show>
-        <Show
-          when={workspace() === "bpmn" && isBpmnPage() && props.filesAvailable}
-        >
-          <button
-            type="button"
-            class="app-file-button app-header-icon"
-            aria-label="Import BPMN"
-            title="Import BPMN"
-            disabled={isCloud()}
-            onClick={open}
-          >
-            <Icon name="import" />
-          </button>
-        </Show>
-        <div class="app-header-slot">{props.headerContent}</div>
-        <Show
-          when={isCloud()}
-          fallback={
-            <span class="app-file-name">
-              {file().fileName ?? "untitled"}
-              <Show when={file().dirty}>
-                <span class="app-dirty-marker" title="unsaved changes">
-                  *
-                </span>
-              </Show>
-            </span>
-          }
-        >
-          <span class="app-file-name">{cloud()?.title ?? cloud()?.docId}</span>
-          <span class="app-cloud-badge" data-status={cloud()?.status}>
-            {cloud()?.status}
-            {cloud()?.role === "viewer" ? " · Viewer" : ""}
-          </span>
-          <PresenceChip peers={cloud()?.peers ?? []} />
-          <div class="app-file-controls">
-            <button
-              type="button"
-              class="app-file-button"
-              aria-label="Undo"
-              title="Undo (Cmd/Ctrl+Z)"
-              disabled={!cloud()?.canUndo}
-              onClick={() => props.cloud?.undo()}
-            >
-              <svg
-                class="app-history-icon"
-                viewBox="0 0 20 20"
-                aria-hidden="true"
-              >
-                <path d="M8 6l-5 5 5 5v-3c5 0 7 2 8 5 0-6-3-9-8-9z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="app-file-button"
-              aria-label="Redo"
-              title="Redo (Cmd/Ctrl+Shift+Z)"
-              disabled={!cloud()?.canRedo}
-              onClick={() => props.cloud?.redo()}
-            >
-              <svg
-                class="app-history-icon"
-                viewBox="0 0 20 20"
-                aria-hidden="true"
-              >
-                <path d="M12 6l5 5-5 5v-3c-5 0-7 2-8 5 0-6 3-9 8-9z" />
-              </svg>
-            </button>
-          </div>
-        </Show>
-        <Show when={file().status === "saving" && !isCloud()}>
-          <span class="app-file-status">saving…</span>
-        </Show>
-        <Show when={!isCloud() && file().outsideChange}>
-          {(change) => (
-            <span
-              class="app-file-status app-outside-change"
-              role="status"
-              title="Another program (for example nodetto-cli) changed this file; the canvas shows its changes."
-            >
-              {`updated from disk +${change().added} ~${change().updated} -${change().removed}${change().merged ? " (merged)" : ""}`}
-            </span>
-          )}
-        </Show>
-        <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
-      </header>
       <Show when={exportRequest() > 0}>
         <ExportDialog
           editor={props.editor}
@@ -1086,8 +893,188 @@ export function App(props: AppProps): JSX.Element {
         tool={tool()}
         onToolChange={setActiveTool}
         context={actionContext()}
+        leadingContent={
+          <div class="app-file-actions">
+            <Show when={props.filesAvailable}>
+              <details class="app-file-menu" ref={fileMenu}>
+                <summary
+                  class="app-file-button app-header-icon"
+                  aria-label="File"
+                  title="File"
+                >
+                  <Icon name="file" />
+                </summary>
+                <div class="app-file-controls">
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    disabled={!props.filesAvailable || isCloud()}
+                    onClick={newDocument}
+                    aria-label="New"
+                    title="New"
+                  >
+                    <Icon name="newFile" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    disabled={!props.filesAvailable || isCloud()}
+                    onClick={open}
+                    aria-label="Open"
+                    title="Open"
+                  >
+                    <Icon name="openFile" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    aria-label="Reload from disk"
+                    title="Reload from disk"
+                    disabled={!file().filePath || isCloud()}
+                    onClick={reload}
+                  >
+                    <Icon name="reload" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    onClick={openExport}
+                    aria-label="Export…"
+                    title="Export…"
+                  >
+                    <Icon name="export" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    disabled={!props.filesAvailable || isCloud()}
+                    onClick={() => void props.session.save()}
+                    aria-label="Save"
+                    title="Save"
+                  >
+                    <Icon name="save" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    disabled={!props.filesAvailable || isCloud()}
+                    onClick={() => void props.session.saveAs()}
+                    aria-label="Save As"
+                    title="Save As"
+                  >
+                    <Icon name="saveAs" />
+                  </button>
+                  <select
+                    class="app-recent-select"
+                    disabled={
+                      !props.filesAvailable ||
+                      isCloud() ||
+                      file().recent.length === 0
+                    }
+                    value=""
+                    onChange={(event) => {
+                      const path = event.currentTarget.value;
+                      event.currentTarget.value = "";
+                      openRecent(path);
+                    }}
+                  >
+                    <option value="">Recent</option>
+                    <For each={file().recent}>
+                      {(entry) => (
+                        <option value={entry.path}>{entry.path}</option>
+                      )}
+                    </For>
+                  </select>
+                </div>
+              </details>
+            </Show>
+            <Show when={props.filesAvailable || props.cloud}>
+              <details class="app-settings-menu" ref={settingsMenu}>
+                <summary
+                  class="app-file-button app-header-icon"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <Icon name="settings" />
+                </summary>
+                <div class="app-settings-controls">
+                  <Show when={props.filesAvailable}>
+                    <label class="app-saving-setting">
+                      File saving
+                      <select
+                        aria-label="File saving"
+                        value={file().saveMode}
+                        onChange={(event) => {
+                          const mode =
+                            event.currentTarget.value === "manual"
+                              ? "manual"
+                              : "automatic";
+                          props.session.setSaveMode(mode);
+                          storeSaveMode(mode, preferenceStorage());
+                        }}
+                      >
+                        <option value="automatic">Automatic</option>
+                        <option value="manual">Manual</option>
+                      </select>
+                    </label>
+                  </Show>
+                  <Show when={props.cloud}>
+                    <button
+                      type="button"
+                      class="app-file-button"
+                      aria-expanded={cloudPanelExpanded()}
+                      onClick={() => {
+                        const next = !cloudPanelExpanded();
+                        setCloudPanelExpanded(next);
+                        settingsMenu?.removeAttribute("open");
+                        queueMicrotask(() => {
+                          if (next) {
+                            cloudPanelHost
+                              ?.querySelector<HTMLElement>(
+                                ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
+                              )
+                              ?.focus();
+                          } else {
+                            settingsMenu
+                              ?.querySelector<HTMLElement>("summary")
+                              ?.focus();
+                          }
+                        });
+                      }}
+                    >
+                      {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
+                    </button>
+                  </Show>
+                </div>
+              </details>
+            </Show>
+          </div>
+        }
+        toolsContent={
+          <Show
+            when={
+              workspace() === "bpmn" && isBpmnPage() && props.filesAvailable
+            }
+          >
+            <button
+              type="button"
+              class="app-file-button app-header-icon"
+              aria-label="Import BPMN"
+              title="Import BPMN"
+              disabled={isCloud()}
+              onClick={open}
+            >
+              <Icon name="import" />
+            </button>
+          </Show>
+        }
+        utilitiesContent={
+          <>
+            <div class="app-header-slot">{props.headerContent}</div>
+            <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
+          </>
+        }
       />
-      <PageTabs editor={props.editor} />
       <div class="app-editor-body" ref={editorBody}>
         <aside
           class="app-pane app-pane-left"
@@ -1114,7 +1101,6 @@ export function App(props: AppProps): JSX.Element {
               ref={leftCollapseButton}
               title="Collapse Shapes and layers"
             >
-              <span>Collapse</span>
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M11 4l-5 6 5 6" />
               </svg>
@@ -1178,92 +1164,187 @@ export function App(props: AppProps): JSX.Element {
           onPointerCancel={endPaneResize}
           onKeyDown={(event) => resizePaneByKey("left", event)}
         />
-        <div
-          class="app-canvas-host"
-          ref={setCanvasHost}
-          onPointerMove={onCanvasPointerMove}
-          onPointerLeave={onCanvasPointerLeave}
-        >
-          <NodettoCanvas
-            shapeDrop={shapeDrop()}
-            editor={props.editor}
-            tool={tool()}
-            onToolChange={setActiveTool}
-            onMarquee={onMarquee}
-            onCommentPlace={placeComment}
-            snap={snap()}
-            showGrid={showGrid()}
-            showRulers={showRulers()}
-            onEditRequest={(id, region) => {
-              if (region === "title" || region === "body") {
-                requestEdit(id);
-              } else {
-                focusInspector({ id, row: region.row });
-              }
+        <div class="app-viewer-column">
+          <div
+            class="app-viewer-heading"
+            style={{
+              "margin-left":
+                leftPaneOpen() && paneOverlaysCanvas()
+                  ? `${leftPaneWidth()}px`
+                  : undefined,
+              "margin-right":
+                rightPaneOpen() && paneOverlaysCanvas()
+                  ? `${rightPaneWidth()}px`
+                  : undefined,
             }}
-            onContextMenu={(at, hit) => {
-              // The menu acts on the selection. The canvas already selects
-              // the hit before reporting it; this guard keeps that true if
-              // the gesture layer ever stops doing so.
-              if (hit !== null && !props.editor.selection.has(hit)) {
-                props.editor.selection.set([hit]);
-              }
-              setEditing(null);
-              setContextMenu({ at: at.screen });
-            }}
-            onViewportResize={setViewport}
           >
-            <ReviewCommentPins
+            <div
+              class="app-document-status"
+              ref={documentStatusHost}
+              aria-label="Document status"
+            >
+              <Show
+                when={isCloud()}
+                fallback={
+                  <span class="app-file-name">
+                    {file().fileName ?? "untitled"}
+                    <Show when={file().dirty}>
+                      <span class="app-dirty-marker" title="unsaved changes">
+                        *
+                      </span>
+                    </Show>
+                  </span>
+                }
+              >
+                <span class="app-file-name">
+                  {cloud()?.title ?? cloud()?.docId}
+                </span>
+                <span class="app-cloud-badge" data-status={cloud()?.status}>
+                  {cloud()?.status}
+                  {cloud()?.role === "viewer" ? " · Viewer" : ""}
+                </span>
+                <PresenceChip peers={cloud()?.peers ?? []} />
+                <div class="app-file-controls">
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    aria-label="Undo"
+                    title="Undo (Cmd/Ctrl+Z)"
+                    disabled={!cloud()?.canUndo}
+                    onClick={() => props.cloud?.undo()}
+                  >
+                    <svg
+                      class="app-history-icon"
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 6l-5 5 5 5v-3c5 0 7 2 8 5 0-6-3-9-8-9z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    aria-label="Redo"
+                    title="Redo (Cmd/Ctrl+Shift+Z)"
+                    disabled={!cloud()?.canRedo}
+                    onClick={() => props.cloud?.redo()}
+                  >
+                    <svg
+                      class="app-history-icon"
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 6l5 5-5 5v-3c-5 0-7 2-8 5 0-6 3-9 8-9z" />
+                    </svg>
+                  </button>
+                </div>
+              </Show>
+              <Show when={file().status === "saving" && !isCloud()}>
+                <span class="app-file-status">saving…</span>
+              </Show>
+              <Show when={!isCloud() && file().outsideChange}>
+                {(change) => (
+                  <span
+                    class="app-file-status app-outside-change"
+                    role="status"
+                    title="Another program (for example nodetto-cli) changed this file; the canvas shows its changes."
+                  >
+                    {`updated from disk +${change().added} ~${change().updated} -${change().removed}${change().merged ? " (merged)" : ""}`}
+                  </span>
+                )}
+              </Show>
+            </div>
+            <PageTabs editor={props.editor} />
+          </div>
+          <div
+            class="app-canvas-host"
+            ref={setCanvasHost}
+            onPointerMove={onCanvasPointerMove}
+            onPointerLeave={onCanvasPointerLeave}
+          >
+            <NodettoCanvas
+              shapeDrop={shapeDrop()}
               editor={props.editor}
-              author={settings().userName}
+              tool={tool()}
+              onToolChange={setActiveTool}
+              onMarquee={onMarquee}
+              onCommentPlace={placeComment}
+              snap={snap()}
+              showGrid={showGrid()}
+              showRulers={showRulers()}
+              onEditRequest={(id, region) => {
+                if (region === "title" || region === "body") {
+                  requestEdit(id);
+                } else {
+                  focusInspector({ id, row: region.row });
+                }
+              }}
+              onContextMenu={(at, hit) => {
+                // The menu acts on the selection. The canvas already selects
+                // the hit before reporting it; this guard keeps that true if
+                // the gesture layer ever stops doing so.
+                if (hit !== null && !props.editor.selection.has(hit)) {
+                  props.editor.selection.set([hit]);
+                }
+                setEditing(null);
+                setContextMenu({ at: at.screen });
+              }}
+              onViewportResize={setViewport}
+            >
+              <ReviewCommentPins
+                editor={props.editor}
+                author={settings().userName}
+              />
+              <Show when={editing()}>
+                {(target) => (
+                  <TextEditor
+                    editor={props.editor}
+                    target={target()}
+                    onDone={() => setEditing(null)}
+                  />
+                )}
+              </Show>
+            </NodettoCanvas>
+            <Show when={isCloud()}>
+              <PresenceOverlay
+                editor={props.editor}
+                peers={cloud()?.peers ?? []}
+              />
+            </Show>
+            <Show when={editing() === null}>
+              <SelectionToolbar
+                simple={workspace() !== "all"}
+                context={actionContext()}
+                host={canvasHost()}
+                onMore={() => {
+                  const [first] = props.editor.selection.ids();
+                  focusInspector(
+                    first === undefined ? undefined : { id: first },
+                  );
+                }}
+              />
+            </Show>
+            <ZoomControls
+              context={actionContext()}
+              snap={snap()}
+              showGrid={showGrid()}
+              showRulers={showRulers()}
+              onSnapChange={setSnap}
+              onShowGridChange={setShowGrid}
+              onShowRulersChange={changeShowRulers}
             />
-            <Show when={editing()}>
-              {(target) => (
-                <TextEditor
-                  editor={props.editor}
-                  target={target()}
-                  onDone={() => setEditing(null)}
+            <Show when={contextMenu()}>
+              {(menu) => (
+                <ContextMenu
+                  simple={simpleWorkspace()}
+                  context={actionContext()}
+                  at={menu().at}
+                  host={canvasHost()}
+                  onClose={() => setContextMenu(null)}
                 />
               )}
             </Show>
-          </NodettoCanvas>
-          <Show when={isCloud()}>
-            <PresenceOverlay
-              editor={props.editor}
-              peers={cloud()?.peers ?? []}
-            />
-          </Show>
-          <Show when={editing() === null}>
-            <SelectionToolbar
-              simple={workspace() !== "all"}
-              context={actionContext()}
-              host={canvasHost()}
-              onMore={() => {
-                const [first] = props.editor.selection.ids();
-                focusInspector(first === undefined ? undefined : { id: first });
-              }}
-            />
-          </Show>
-          <ZoomControls
-            context={actionContext()}
-            snap={snap()}
-            showGrid={showGrid()}
-            showRulers={showRulers()}
-            onSnapChange={setSnap}
-            onShowGridChange={setShowGrid}
-            onShowRulersChange={changeShowRulers}
-          />
-          <Show when={contextMenu()}>
-            {(menu) => (
-              <ContextMenu
-                simple={simpleWorkspace()}
-                context={actionContext()}
-                at={menu().at}
-                host={canvasHost()}
-                onClose={() => setContextMenu(null)}
-              />
-            )}
-          </Show>
+          </div>
         </div>
         <button
           type="button"
@@ -1314,7 +1395,6 @@ export function App(props: AppProps): JSX.Element {
               ref={rightCollapseButton}
               title="Collapse Properties"
             >
-              <span>Collapse</span>
               <svg viewBox="0 0 20 20" aria-hidden="true">
                 <path d="M9 4l5 6-5 6" />
               </svg>

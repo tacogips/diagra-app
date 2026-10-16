@@ -7,6 +7,7 @@
 
 mod close;
 mod dialogs;
+mod file_menu;
 mod fs;
 mod launch;
 mod recent;
@@ -16,17 +17,22 @@ pub fn run() {
     let builder = tauri::Builder::default();
     #[cfg(target_os = "macos")]
     let builder = builder.menu(close::menu).on_menu_event(|app, event| {
-        if event.id().as_ref() == "document-quit" {
+        let id = event.id().as_ref();
+        if id == "document-quit" {
             app.exit(0);
+        } else if let Some(action) = id.strip_prefix("file-") {
+            file_menu::request(app, action);
         }
     });
     builder
         .plugin(tauri_plugin_dialog::init())
         .manage(close::CloseState::default())
+        .manage(file_menu::FileMenuState::default())
         .manage(recent::RecentState::default())
         .manage(watch::WatchState::default())
         .manage(launch::LaunchState::from_args(std::env::args()))
         .invoke_handler(tauri::generate_handler![
+            file_menu::take_file_menu_actions,
             close::enable_close_guard,
             close::finish_document_close,
             dialogs::pick_open_path,

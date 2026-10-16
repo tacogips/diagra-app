@@ -28,7 +28,6 @@ import {
   runAction,
 } from "./shortcuts.ts";
 import { canUseTool, Tool, type ToolKind } from "./tools.ts";
-import { COMMON_SHAPES, DIAGRAM_SHAPES } from "./shape-palette.ts";
 import "./Toolbar.css";
 import { WORKSPACES, workspaceById, type WorkspaceId } from "./workspaces.ts";
 
@@ -38,6 +37,9 @@ const PrototypePreview = lazy(() =>
   })),
 );
 export interface ToolbarProps {
+  readonly leadingContent?: JSX.Element;
+  readonly toolsContent?: JSX.Element;
+  readonly utilitiesContent?: JSX.Element;
   readonly workspace?: WorkspaceId;
   readonly onWorkspaceChange?: (id: WorkspaceId) => void;
   readonly editor: Editor;
@@ -190,10 +192,6 @@ export const ACTION_MENUS: readonly Readonly<{
     actions: actions([["exportSvg", "Export…"]]),
   },
 ];
-const FRAME_TOOLS =
-  TOOL_MENUS.find((menu) => menu.id === "frames")?.tools ?? [];
-const SHAPE_TOOLS =
-  TOOL_MENUS.find((menu) => menu.id === "shapes")?.tools ?? [];
 const DIAGRAM_TOOLS = [
   ...(TOOL_MENUS.find((menu) => menu.id === "insert")?.tools.filter(
     (item) => item.tool !== "draw.freehand" && item.tool !== "text.note",
@@ -216,71 +214,18 @@ export function rememberedTool(
       : fallback;
 }
 
-function toolIcon(tool: ToolKind): Parameters<typeof Icon>[0]["name"] {
-  switch (tool) {
-    case Tool.Node:
-      return "node";
-    case Tool.Connector:
-    case Tool.ComponentConnector:
-      return "connector";
-    case Tool.Table:
-      return "table";
-    case Tool.Class:
-      return "class";
-    case Tool.Actor:
-      return "actor";
-    case Tool.Service:
-      return "service";
-    case Tool.Database:
-      return "cylinder";
-    case Tool.Component:
-      return "component";
-    case Tool.ProvidedInterface:
-      return "provided";
-    case Tool.RequiredInterface:
-      return "required";
-    case Tool.Port:
-      return "port";
-    case Tool.Dependency:
-      return "dependency";
-    case Tool.Realization:
-      return "realization";
-    case Tool.BpmnTask:
-      return "task";
-    case Tool.BpmnStartEvent:
-      return "start";
-    case Tool.BpmnEndEvent:
-      return "end";
-    case Tool.BpmnExclusiveGateway:
-      return "gateway";
-    default:
-      return "rect";
-  }
-}
-
 export function Toolbar(props: ToolbarProps): JSX.Element {
   const [preview, setPreview] = createSignal(false);
   const [open, setOpen] = createSignal<string | null>(null);
   const [menuPosition, setMenuPosition] = createSignal({ x: 8, y: 44 });
-  const [lastFrame, setLastFrame] = createSignal<ToolKind>("frame:web");
-  const [lastShape, setLastShape] = createSignal<ToolKind>("geo:rect");
   const signals = createEditorSignals(props.editor);
   const workspace = () => workspaceById(props.workspace ?? "all");
   createEffect(() => {
-    const id = workspace().id;
+    workspace().id;
     setOpen(null);
     setPreview(false);
-    setLastFrame(id === "app" ? "frame:iphone" : "frame:web");
   });
   let root: HTMLDivElement | undefined;
-  createEffect(() => {
-    if (FRAME_TOOLS.some((item) => item.tool === props.tool)) {
-      setLastFrame(props.tool);
-    }
-    if (SHAPE_TOOLS.some((item) => item.tool === props.tool)) {
-      setLastShape(props.tool);
-    }
-  });
   onMount(() => {
     const dismiss = (event: PointerEvent) => {
       if (root && !root.contains(event.target as Node)) setOpen(null);
@@ -291,10 +236,6 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
   const readOnly = () => {
     signals.rev();
     return props.editor.readOnly;
-  };
-  const currentPageKind = () => {
-    signals.rev();
-    return props.editor.store.getPage(props.editor.currentPageId)?.kind;
   };
   const undo = () => {
     signals.rev();
@@ -317,12 +258,14 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     setOpen(null);
     if (restoreFocus) queueMicrotask(() => trigger?.focus());
   };
-  const focusMenuItem = (menu: HTMLElement, index: number) => {
-    const items = [
+  const menuItems = (menu: HTMLElement) =>
+    [
       ...menu.querySelectorAll<HTMLElement>(
-        "button:not(:disabled), select:not(:disabled)",
+        "button:not(:disabled), select:not(:disabled), summary",
       ),
-    ];
+    ].filter((item) => item.getClientRects().length > 0);
+  const focusMenuItem = (menu: HTMLElement, index: number) => {
+    const items = menuItems(menu);
     items[index < 0 ? items.length - 1 : index]?.focus({
       preventScroll: true,
     });
@@ -332,11 +275,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     if (event.target instanceof HTMLSelectElement && event.key !== "Escape")
       return;
     const menu = event.currentTarget as HTMLElement;
-    const items = [
-      ...menu.querySelectorAll<HTMLElement>(
-        "button:not(:disabled), select:not(:disabled)",
-      ),
-    ];
+    const items = menuItems(menu);
     const active = items.indexOf(document.activeElement as HTMLElement);
     const order = items.map((_, index) => index);
     switch (event.key) {
@@ -372,14 +311,6 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     runAction(getAction(id), props.context);
     setOpen(null);
   };
-  const currentFrame = () =>
-    rememberedTool(FRAME_TOOLS, props.tool, lastFrame(), "frame:web");
-  const currentShape = () =>
-    rememberedTool(SHAPE_TOOLS, props.tool, lastShape(), "geo:rect");
-  const currentFrameInfo = () =>
-    FRAME_TOOLS.find((item) => item.tool === currentFrame());
-  const currentShapeInfo = () =>
-    SHAPE_TOOLS.find((item) => item.tool === currentShape());
   const trigger = (id: string, target: HTMLElement) => {
     // WebKit on macOS does not necessarily focus buttons on pointer clicks.
     // Keep subsequent Escape/arrow keys in this menu's keyboard scope.
@@ -469,6 +400,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       aria-label="Editor tools"
     >
       <div class="nodetto-toolbar-primary">
+        {props.leadingContent}
         <Show when={props.onWorkspaceChange}>
           <label class="nodetto-workspace-label">
             Mode
@@ -489,236 +421,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             </select>
           </label>
         </Show>
-        <button
-          type="button"
-          class="nodetto-toolbar-icon"
-          aria-label="Select"
-          aria-keyshortcuts="V"
-          title="Select and move (V)"
-          aria-pressed={props.tool === "select"}
-          disabled={!canUseTool("select", readOnly())}
-          onClick={() => chooseTool("select")}
-        >
-          <Icon name="select" />
-        </button>
-        <button
-          type="button"
-          class="nodetto-toolbar-icon"
-          aria-label="Hand"
-          aria-keyshortcuts="H"
-          title="Pan the canvas (H, or hold Space)"
-          aria-pressed={props.tool === "hand"}
-          disabled={!canUseTool("hand", readOnly())}
-          onClick={() => chooseTool("hand")}
-        >
-          <Icon name="hand" />
-        </button>
-        <Show when={workspace().design}>
-          <div class="nodetto-toolbar-split">
-            <button
-              type="button"
-              class="nodetto-toolbar-icon"
-              aria-label={`Insert ${currentFrameInfo()?.label ?? "frame"} frame`}
-              title={`Insert ${currentFrameInfo()?.title ?? "current frame"}`}
-              aria-pressed={FRAME_TOOLS.some(
-                (item) => item.tool === props.tool,
-              )}
-              disabled={!canUseTool(currentFrame(), readOnly())}
-              onClick={() => chooseTool(currentFrame())}
-            >
-              <Icon name="frame" />
-            </button>
-            <button
-              type="button"
-              class="nodetto-toolbar-chevron"
-              aria-label="Choose frame"
-              title="Choose frame"
-              aria-haspopup="menu"
-              aria-expanded={open() === "frames"}
-              onClick={(event) => trigger("frames", event.currentTarget)}
-              onKeyDown={(event) => triggerKey("frames", event)}
-            >
-              <Icon name="chevron" />
-            </button>
-          </div>
-        </Show>
-        <For each={workspace().tools}>
-          {(item) => (
-            <button
-              type="button"
-              class="nodetto-toolbar-icon"
-              aria-label={item.label}
-              title={item.label}
-              aria-pressed={props.tool === item.tool}
-              disabled={!canUseTool(item.tool, readOnly())}
-              onClick={() => chooseTool(item.tool)}
-            >
-              <Icon name={toolIcon(item.tool)} />
-            </button>
-          )}
-        </For>
-        <Show when={workspace().shapes}>
-          <div class="nodetto-toolbar-split">
-            <button
-              type="button"
-              class="nodetto-toolbar-icon"
-              aria-label={`Insert ${currentShapeInfo()?.label ?? "shape"} shape`}
-              title={`Insert ${currentShapeInfo()?.title ?? "current shape"}`}
-              aria-pressed={SHAPE_TOOLS.some(
-                (item) => item.tool === props.tool,
-              )}
-              disabled={!canUseTool(currentShape(), readOnly())}
-              onClick={() => chooseTool(currentShape())}
-            >
-              <Icon
-                name={
-                  currentShape().replace("geo:", "") as
-                    | "rect"
-                    | "ellipse"
-                    | "diamond"
-                    | "cylinder"
-                }
-              />
-            </button>
-            <button
-              type="button"
-              class="nodetto-toolbar-chevron"
-              aria-label="Choose shape"
-              title="Choose shape"
-              aria-haspopup="menu"
-              aria-expanded={open() === "shapes"}
-              onClick={(event) => trigger("shapes", event.currentTarget)}
-              onKeyDown={(event) => triggerKey("shapes", event)}
-            >
-              <Icon name="chevron" />
-            </button>
-          </div>
-        </Show>
-        <Show when={workspace().id === "all"}>
-          <button
-            type="button"
-            class="nodetto-toolbar-icon"
-            aria-label="Draw"
-            title="Draw a freehand stroke"
-            aria-pressed={props.tool === "draw.freehand"}
-            disabled={!canUseTool("draw.freehand", readOnly())}
-            onClick={() => chooseTool("draw.freehand")}
-          >
-            <Icon name="draw" />
-          </button>
-        </Show>
-        <button
-          type="button"
-          class="nodetto-toolbar-icon"
-          aria-label="Text"
-          title="Text (T)"
-          aria-pressed={props.tool === "text.note"}
-          disabled={!canUseTool("text.note", readOnly())}
-          onClick={() => chooseTool("text.note")}
-        >
-          <Icon name="text" />
-        </button>
-        <Show when={currentPageKind() === "bpmn"}>
-          <button
-            type="button"
-            class="nodetto-toolbar-icon"
-            aria-label="BPMN tools"
-            title="Descriptive BPMN palette"
-            aria-haspopup="menu"
-            aria-expanded={open() === BPMN_TOOL_MENU.id}
-            onClick={(event) => trigger(BPMN_TOOL_MENU.id, event.currentTarget)}
-            onKeyDown={(event) => triggerKey(BPMN_TOOL_MENU.id, event)}
-          >
-            <Icon name="bpmn" />
-          </button>
-        </Show>
-        <Show
-          when={open() === BPMN_TOOL_MENU.id && currentPageKind() === "bpmn"}
-        >
-          <div
-            class="nodetto-toolbar-menu"
-            role="menu"
-            aria-label="BPMN"
-            style={menuStyle()}
-            onKeyDown={menuKey}
-          >
-            {toolItems(BPMN_TOOL_MENU.tools)}
-          </div>
-        </Show>
-        <Show when={open() === "frames" || open() === "shapes"}>
-          <div
-            class="nodetto-toolbar-menu"
-            role="menu"
-            aria-label={open() === "frames" ? "Frames" : "Shapes"}
-            style={menuStyle()}
-            onKeyDown={menuKey}
-          >
-            {toolItems(open() === "frames" ? FRAME_TOOLS : SHAPE_TOOLS)}
-          </div>
-        </Show>
-        <Show when={workspace().design && workspace().id !== "all"}>
-          <button
-            type="button"
-            class="nodetto-toolbar-icon"
-            aria-label="Insert UI block"
-            title="Insert UI block"
-            aria-haspopup="menu"
-            aria-expanded={open() === "ui-blocks"}
-            disabled={readOnly()}
-            onClick={(event) => trigger("ui-blocks", event.currentTarget)}
-            onKeyDown={(event) => triggerKey("ui-blocks", event)}
-          >
-            <Icon name="component" />
-          </button>
-          <Show when={open() === "ui-blocks"}>
-            <div
-              class="nodetto-toolbar-menu"
-              role="menu"
-              aria-label="UI blocks"
-              style={menuStyle()}
-              onKeyDown={menuKey}
-            >
-              <For
-                each={
-                  [
-                    { kind: "button", label: "Primary button" },
-                    { kind: "input", label: "Text input" },
-                    { kind: "card", label: "Content card" },
-                    { kind: "navigation", label: "Navigation bar" },
-                  ] as const
-                }
-              >
-                {(block) => (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      if (readOnly()) return;
-                      insertUiBlock(
-                        props.editor,
-                        block.kind,
-                        props.editor.camera.screenToPage({ x: 40, y: 40 }),
-                      );
-                      props.onToolChange("select");
-                      setOpen(null);
-                    }}
-                  >
-                    {block.label}
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
-        </Show>
-        <span class="nodetto-active-tool" role="status">
-          {props.tool !== "select" && props.tool !== "hand"
-            ? ([
-                ...TOOL_MENUS.flatMap((menu) => menu.tools),
-                ...COMMON_SHAPES,
-                ...DIAGRAM_SHAPES,
-              ].find((item) => item.tool === props.tool)?.label ?? props.tool)
-            : ""}
-        </span>
+        {props.toolsContent}
         <button
           type="button"
           class="nodetto-toolbar-icon"
@@ -750,6 +453,16 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
               style={menuStyle()}
               onKeyDown={menuKey}
             >
+              <Show when={workspace().design}>
+                {" "}
+                <ImageImport
+                  hiddenWhenIdle={!workspace().design}
+                  editor={props.editor}
+                  compact
+                  label={<Icon name="image" />}
+                />
+                {uiBlocks()}
+              </Show>
               <Show when={props.onWorkspaceChange && workspace().id !== "all"}>
                 <button
                   type="button"
@@ -815,12 +528,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </div>
       </div>
       <div class="nodetto-toolbar-utilities">
-        <ImageImport
-          hiddenWhenIdle={!workspace().design}
-          editor={props.editor}
-          compact
-          label={<Icon name="image" />}
-        />
+        {props.utilitiesContent}
         <Show when={workspace().design}>
           <button
             type="button"
