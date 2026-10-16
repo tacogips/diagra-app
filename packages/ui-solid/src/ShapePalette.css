@@ -6,12 +6,6 @@
   color: var(--nodetto-ink);
 }
 
-.nodetto-shape-palette h2 {
-  margin: 0 24px 4px 0;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .nodetto-shape-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
@@ -112,9 +106,10 @@
   cursor: pointer;
 }
 
-.nodetto-palette-mode {
-  margin: 0 0 6px;
-  color: var(--nodetto-muted);
-  font-size: 11px;
-  font-weight: 600;
+.nodetto-palette-section:first-child {
+  margin-top: 0;
+}
+
+.nodetto-palette-section:first-child > summary {
+  padding-right: 48px;
 }

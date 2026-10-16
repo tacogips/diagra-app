@@ -1,4 +1,9 @@
-import { workspaceShapes, additionalShapes } from "./shape-palette.ts";
+import {
+  workspaceShapes,
+  additionalShapes,
+  artboardShapes,
+  shapePaletteGroups,
+} from "./shape-palette.ts";
 import { expect, test } from "bun:test";
 import {
   canUseTool,
@@ -113,4 +118,35 @@ test("General is first and provides cross-diagram drawing without a mode switch"
     Tool.Component,
   ])
     expect(tools).toContain(tool);
+});
+
+test("palette categories separate notations without losing or duplicating tools", () => {
+  for (const { id } of WORKSPACES) {
+    const groups = shapePaletteGroups(id);
+    const tools = groups.flatMap((group) =>
+      group.items.map((item) => item.tool),
+    );
+    expect(new Set(tools).size).toBe(tools.length);
+    for (const item of [
+      ...workspaceShapes(id),
+      ...additionalShapes(id),
+      ...artboardShapes(id),
+    ])
+      expect(tools).toContain(item.tool);
+  }
+  const general = shapePaletteGroups("flow");
+  expect(general[0]?.label).toBe("General");
+  expect(
+    general
+      .find((group) => group.label === "General")
+      ?.items.map((item) => item.tool),
+  ).not.toContain(Tool.Component);
+  expect(
+    general
+      .find((group) => group.label === "UML")
+      ?.items.map((item) => item.tool),
+  ).toEqual(expect.arrayContaining([Tool.Component, Tool.Class, Tool.Port]));
+  expect(shapePaletteGroups("component")[0]?.label).toBe("UML");
+  expect(shapePaletteGroups("erd")[0]?.label).toBe("ERD");
+  expect(shapePaletteGroups("sequence")[0]?.label).toBe("Sequence");
 });

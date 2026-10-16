@@ -191,3 +191,39 @@ export function artboardShapes(id: WorkspaceId): readonly ShapePaletteItem[] {
   const primary = new Set<ToolKind>(PRIMARY_TOOLS[id]);
   return ARTBOARD_SHAPES.filter((item) => !primary.has(item.tool));
 }
+
+export interface ShapePaletteGroup {
+  readonly label: string;
+  readonly items: readonly ShapePaletteItem[];
+}
+
+/** Group available tools by notation, keeping the active mode's category first. */
+export function shapePaletteGroups(
+  id: WorkspaceId,
+): readonly ShapePaletteGroup[] {
+  const items = [
+    ...workspaceShapes(id),
+    ...additionalShapes(id),
+    ...artboardShapes(id),
+    ...(workspaceById(id).design
+      ? [{ tool: Tool.Freehand, label: "Freehand", icon: "draw" } as const]
+      : []),
+  ];
+  const category = (tool: ToolKind): string => {
+    if (tool === Tool.Table) return "ERD";
+    if (tool === Tool.Actor || tool === Tool.Service || tool === Tool.Database)
+      return "Sequence";
+    if (DIAGRAM_SHAPES.some((item) => item.tool === tool)) return "UML";
+    if (BPMN_SHAPES.some((item) => item.tool === tool)) return "BPMN";
+    if (ARTBOARD_SHAPES.some((item) => item.tool === tool)) return "Artboards";
+    return "General";
+  };
+  const groups = new Map<string, ShapePaletteItem[]>();
+  for (const item of items) {
+    const label = category(item.tool);
+    const group = groups.get(label) ?? [];
+    group.push(item);
+    groups.set(label, group);
+  }
+  return [...groups].map(([label, items]) => ({ label, items }));
+}
