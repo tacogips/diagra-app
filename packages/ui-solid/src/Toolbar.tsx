@@ -1,3 +1,4 @@
+import { Icon } from "./Icon.tsx";
 import {
   type Editor,
   insertUiBlock,
@@ -215,65 +216,48 @@ export function rememberedTool(
       : fallback;
 }
 
-function Icon(props: {
-  readonly name:
-    | "select"
-    | "hand"
-    | "undo"
-    | "redo"
-    | "preview"
-    | "frame"
-    | "rect"
-    | "ellipse"
-    | "diamond"
-    | "cylinder"
-    | "draw"
-    | "text"
-    | "image"
-    | "more"
-    | "chevron";
-}): JSX.Element {
-  const paths = {
-    select: "M5 3l11 8-6 1 3 7-2 1-3-7-4 4z",
-    hand: "M7 11V5a1 1 0 012 0v5V3a1 1 0 012 0v7V4a1 1 0 012 0v6V6a1 1 0 012 0v7c0 3-2 5-5 5-3 0-5-2-5-5v-3a1 1 0 012 0v1z",
-    undo: "M8 6l-5 5 5 5v-3c5 0 7 2 8 5 0-6-3-9-8-9z",
-    redo: "M12 6l5 5-5 5v-3c-5 0-7 2-8 5 0-6 3-9 8-9z",
-    preview:
-      "M2 11s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5zm8 3a3 3 0 100-6 3 3 0 000 6z",
-    frame: "M3 3h14v14H3zM5 5v10h10V5z",
-    rect: "M3 5h14v10H3z",
-    ellipse: "M3 10a7 4 0 1014 0 7 4 0 10-14 0z",
-    diamond: "M10 2l8 8-8 8-8-8z",
-    cylinder: "M4 5a6 3 0 0012 0v10a6 3 0 01-12 0zm0 0a6 3 0 0012 0",
-    draw: "M4 15l1-4 8-8 3 3-8 8zm8-12l3 3",
-    text: "M4 4h12M10 4v12",
-    image: "M3 4h14v12H3zm2 9l3-3 2 2 2-3 3 4M6 7h.01",
-    more: "M4 10a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4.5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0zm4.5 0a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z",
-    chevron: "M6 8l4 4 4-4z",
-  } as const;
-  const outlined = new Set([
-    "preview",
-    "frame",
-    "rect",
-    "ellipse",
-    "diamond",
-    "cylinder",
-    "text",
-    "image",
-  ]);
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden="true">
-      <path
-        d={paths[props.name]}
-        fill={outlined.has(props.name) ? "none" : "currentColor"}
-        stroke={outlined.has(props.name) ? "currentColor" : undefined}
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width={outlined.has(props.name) ? "1.5" : undefined}
-      />
-    </svg>
-  );
+function toolIcon(tool: ToolKind): Parameters<typeof Icon>[0]["name"] {
+  switch (tool) {
+    case Tool.Node:
+      return "node";
+    case Tool.Connector:
+    case Tool.ComponentConnector:
+      return "connector";
+    case Tool.Table:
+      return "table";
+    case Tool.Class:
+      return "class";
+    case Tool.Actor:
+      return "actor";
+    case Tool.Service:
+      return "service";
+    case Tool.Database:
+      return "cylinder";
+    case Tool.Component:
+      return "component";
+    case Tool.ProvidedInterface:
+      return "provided";
+    case Tool.RequiredInterface:
+      return "required";
+    case Tool.Port:
+      return "port";
+    case Tool.Dependency:
+      return "dependency";
+    case Tool.Realization:
+      return "realization";
+    case Tool.BpmnTask:
+      return "task";
+    case Tool.BpmnStartEvent:
+      return "start";
+    case Tool.BpmnEndEvent:
+      return "end";
+    case Tool.BpmnExclusiveGateway:
+      return "gateway";
+    default:
+      return "rect";
+  }
 }
+
 export function Toolbar(props: ToolbarProps): JSX.Element {
   const [preview, setPreview] = createSignal(false);
   const [open, setOpen] = createSignal<string | null>(null);
@@ -562,12 +546,14 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           {(item) => (
             <button
               type="button"
-              class="nodetto-workspace-tool"
+              class="nodetto-toolbar-icon"
+              aria-label={item.label}
+              title={item.label}
               aria-pressed={props.tool === item.tool}
               disabled={!canUseTool(item.tool, readOnly())}
               onClick={() => chooseTool(item.tool)}
             >
-              {item.label}
+              <Icon name={toolIcon(item.tool)} />
             </button>
           )}
         </For>
@@ -635,15 +621,15 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         <Show when={currentPageKind() === "bpmn"}>
           <button
             type="button"
-            class="nodetto-workspace-tool"
-            aria-label="BPMN"
+            class="nodetto-toolbar-icon"
+            aria-label="BPMN tools"
             title="Descriptive BPMN palette"
             aria-haspopup="menu"
             aria-expanded={open() === BPMN_TOOL_MENU.id}
             onClick={(event) => trigger(BPMN_TOOL_MENU.id, event.currentTarget)}
             onKeyDown={(event) => triggerKey(BPMN_TOOL_MENU.id, event)}
           >
-            BPMN
+            <Icon name="bpmn" />
           </button>
         </Show>
         <Show
@@ -671,7 +657,58 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </div>
         </Show>
         <Show when={workspace().design && workspace().id !== "all"}>
-          {uiBlocks()}
+          <button
+            type="button"
+            class="nodetto-toolbar-icon"
+            aria-label="Insert UI block"
+            title="Insert UI block"
+            aria-haspopup="menu"
+            aria-expanded={open() === "ui-blocks"}
+            disabled={readOnly()}
+            onClick={(event) => trigger("ui-blocks", event.currentTarget)}
+            onKeyDown={(event) => triggerKey("ui-blocks", event)}
+          >
+            <Icon name="component" />
+          </button>
+          <Show when={open() === "ui-blocks"}>
+            <div
+              class="nodetto-toolbar-menu"
+              role="menu"
+              aria-label="UI blocks"
+              style={menuStyle()}
+              onKeyDown={menuKey}
+            >
+              <For
+                each={
+                  [
+                    { kind: "button", label: "Primary button" },
+                    { kind: "input", label: "Text input" },
+                    { kind: "card", label: "Content card" },
+                    { kind: "navigation", label: "Navigation bar" },
+                  ] as const
+                }
+              >
+                {(block) => (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      if (readOnly()) return;
+                      insertUiBlock(
+                        props.editor,
+                        block.kind,
+                        props.editor.camera.screenToPage({ x: 40, y: 40 }),
+                      );
+                      props.onToolChange("select");
+                      setOpen(null);
+                    }}
+                  >
+                    {block.label}
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
         </Show>
         <span class="nodetto-active-tool" role="status">
           {props.tool !== "select" && props.tool !== "hand"
@@ -684,17 +721,18 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </span>
         <button
           type="button"
-          class="nodetto-workspace-tool"
+          class="nodetto-toolbar-icon"
+          aria-label="Export"
           title={actionTitle(getAction("exportSvg"))}
           disabled={!enabled("exportSvg")}
           onClick={() => chooseAction("exportSvg")}
         >
-          Export
+          <Icon name="export" />
         </button>
         <div class="nodetto-toolbar-menu-wrap">
           <button
             type="button"
-            class="nodetto-workspace-tool"
+            class="nodetto-toolbar-icon"
             aria-label="Actions"
             title="Arrange and access all tools"
             aria-haspopup="menu"
@@ -702,7 +740,7 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
             onClick={(event) => trigger("more", event.currentTarget)}
             onKeyDown={(event) => triggerKey("more", event)}
           >
-            Actions
+            <Icon name="more" />
           </button>
           <Show when={open() === "more"}>
             <div
