@@ -1,0 +1,37 @@
+.nodetto-authoring-warnings {
+  padding: 8px 10px;
+  border-left: 3px solid #b45309;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.nodetto-authoring-warnings p {
+  margin: 0;
+}
+.nodetto-authoring-warnings p + p {
+  margin-top: 4px;
+}
+.nodetto-shape-warning,
+.nodetto-layer-warning {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #b45309;
+  border-radius: 50%;
+  color: #92400e;
+  background: #fffbeb;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.nodetto-shape-warning {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  right: -8px;
+}
+.nodetto-layer-warning {
+  margin-left: 6px;
+}

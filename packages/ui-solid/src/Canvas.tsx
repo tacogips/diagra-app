@@ -1,3 +1,4 @@
+import { shapeAuthoringWarnings } from "@nodetto/core";
 import {
   removeConnectorWaypoint,
   straightenConnectors,
@@ -767,6 +768,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
         }}
       >
         <ShapeView
+          warnings={shapeAuthoringWarnings(element, context())}
           element={element}
           box={box}
           selected={isSelected(element.id)}

@@ -37,7 +37,16 @@ const GENERAL = [
 const TYPICAL: Readonly<Record<PageKind, readonly string[]>> = {
   freeform: GENERAL,
   architecture: GENERAL,
-  erd: ["erd.table", "erd.relation", "text.note", "frame"],
+  erd: [
+    "erd.table",
+    "erd.view",
+    "erd.materialized-view",
+    "erd.function",
+    "erd.procedure",
+    "erd.relation",
+    "text.note",
+    "frame",
+  ],
   uml: [
     "uml.class",
     "uml.association",

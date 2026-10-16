@@ -260,9 +260,72 @@ test("short ids are unique prefixes of at least six characters", () => {
   expect(short.get("abc")).toBe("abc");
 });
 
+test("database objects can be authored, inspected and exported without a table", () => {
+  const io = memoryIo({ "doc.jsonl": EMPTY_ERD });
+  io.files.set(
+    "objects.json",
+    JSON.stringify([
+      {
+        op: "add",
+        page: "p1",
+        type: "erd.view",
+        semantic: {
+          name: "active_accounts",
+          definition: "SELECT 1 AS id",
+          columns: [{ name: "id", dataType: "integer" }],
+        },
+      },
+      {
+        op: "add",
+        page: "p1",
+        type: "erd.materialized-view",
+        semantic: { name: "totals", definition: "SELECT 1 AS total" },
+      },
+      {
+        op: "add",
+        page: "p1",
+        type: "erd.function",
+        semantic: {
+          name: "increment",
+          definition: "SELECT value + 1;",
+          parameters: [{ name: "value", dataType: "integer" }],
+          returnType: "integer",
+        },
+      },
+      {
+        op: "add",
+        page: "p1",
+        type: "erd.procedure",
+        semantic: { name: "refresh_accounts", definition: "SELECT 1;" },
+      },
+    ]),
+  );
+  const edited = runCli(
+    ["edit", "doc.jsonl", "--ops", "objects.json"],
+    io,
+    "t",
+  );
+  expect(edited.exitCode).toBe(EXIT_OK);
+  const document = parseDocument(io.files.get("doc.jsonl")!);
+  expect(document.elements).toHaveLength(4);
+  const outline = runCli(["inspect", "doc.jsonl"], io, "t");
+  expect(outline.stdout).toContain("column id integer");
+  expect(outline.stdout).toContain("parameter in value integer");
+  expect(outline.stdout).toContain("returns integer");
+  expect(outline.stdout).toContain("SELECT value + 1;");
+  const sql = runCli(["ddl", "doc.jsonl", "--strict"], io, "t");
+  expect(sql.exitCode).toBe(EXIT_OK);
+  expect(sql.stdout).toContain('CREATE VIEW "active_accounts"');
+  expect(sql.stdout).toContain('CREATE FUNCTION "increment"');
+  expect(sql.stdout).toContain('CREATE PROCEDURE "refresh_accounts"');
+  expect(sql.stdout).toContain('CREATE MATERIALIZED VIEW "totals"');
+});
+
 test("types lists types per page kind and describes one type with an example", () => {
   const list = runCli(["types", "--kind", "erd"], memoryIo({}), "t");
-  expect(list.stdout).toContain("erd: erd.table, erd.relation");
+  expect(list.stdout).toContain(
+    "erd: erd.table, erd.view, erd.materialized-view, erd.function, erd.procedure, erd.relation",
+  );
   const table = runCli(["types", "erd.table"], memoryIo({}), "t");
   expect(table.exitCode).toBe(EXIT_OK);
   expect(table.stdout).toContain("tableName");

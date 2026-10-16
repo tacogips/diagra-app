@@ -1,0 +1,38 @@
+.nodetto-database-object-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 52px;
+  gap: 2px;
+}
+.nodetto-database-object-header small {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+.nodetto-database-object-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nodetto-database-object-row {
+  height: 24px;
+  padding: 3px 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.nodetto-database-members {
+  display: grid;
+  gap: 6px;
+}
+.nodetto-database-member {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 4px;
+}
+.nodetto-database-member > input,
+.nodetto-database-member > select {
+  width: 100%;
+  min-width: 0;
+}

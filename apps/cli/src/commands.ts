@@ -20,7 +20,12 @@ import {
   type BpmnExportReport,
   type BpmnImportReport,
 } from "@nodetto/io";
-import type { Document, Page, ValidationIssue } from "@nodetto/ir";
+import {
+  isDatabaseObjectType,
+  type Document,
+  type Page,
+  type ValidationIssue,
+} from "@nodetto/ir";
 import { helpFor, OVERVIEW } from "./help.ts";
 import { inspectCommand } from "./inspect-command.ts";
 import { typesCommand } from "./types-command.ts";
@@ -141,7 +146,10 @@ export function loadDocument(
 function erdPages(document: Document): readonly Page[] {
   const pagesWithTables = new Set(
     document.elements
-      .filter((element) => element.type === "erd.table")
+      .filter(
+        (element) =>
+          element.type === "erd.table" || isDatabaseObjectType(element.type),
+      )
       .map((element) => element.page),
   );
   return document.pages.filter((page) => pagesWithTables.has(page.id));
@@ -151,8 +159,8 @@ export function selectPage(
   document: Document,
   query: string | undefined,
   candidatePages?: readonly Page[],
-  noneMessage = "The document contains no ERD tables.",
-  candidateDescription = "pages with ERD tables",
+  noneMessage = "The document contains no ERD tables or database objects.",
+  candidateDescription = "pages with ERD tables or database objects",
 ): Page | string {
   const candidates = candidatePages ?? erdPages(document);
   if (query !== undefined) {
@@ -529,7 +537,7 @@ function ddlCommand(io: CommandIo, args: readonly string[]): CommandResult {
     if (failure) return fail(`${stderr}${failure}`);
     return ok(
       "",
-      `${stderr}Wrote ${ddl.tableCount} table(s) and ${ddl.indexCount} index(es) to ${outputPath}.\n`,
+      `${stderr}Wrote ${ddl.tableCount} table(s)${ddl.objectCount ? `, ${ddl.objectCount} database object(s)` : ""} and ${ddl.indexCount} index(es) to ${outputPath}.\n`,
     );
   }
   return ok(ddl.sql, stderr);

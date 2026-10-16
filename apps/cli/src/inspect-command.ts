@@ -8,6 +8,7 @@
 
 import { type Box, Editor } from "@nodetto/core";
 import {
+  isDatabaseObjectType,
   type Document,
   type Element,
   getElementTypeDefinition,
@@ -183,6 +184,24 @@ function detailLines(element: Element): string[] {
       lines.push(
         `index ${String(index["name"] ?? "")}${index["unique"] === true ? " unique" : ""}`.trim(),
       );
+  } else if (isDatabaseObjectType(element.type)) {
+    for (const column of list("columns"))
+      lines.push(
+        `column ${String(column["name"])} ${String(column["dataType"])}`,
+      );
+    for (const parameter of list("parameters"))
+      lines.push(
+        `parameter ${String(parameter["mode"] ?? "in")} ${String(parameter["name"])} ${String(parameter["dataType"])}`,
+      );
+    if (semantic["returnType"])
+      lines.push(`returns ${String(semantic["returnType"])}`);
+    if (semantic["language"])
+      lines.push(`language ${String(semantic["language"])}`);
+    if (semantic["definition"])
+      lines.push(`definition ${quote(String(semantic["definition"]))}`);
+    if (Array.isArray(semantic["dependsOn"]))
+      for (const id of semantic["dependsOn"])
+        lines.push(`depends-on ${String(id)}`);
   } else if (element.type === "uml.class") {
     for (const attribute of list("attributes"))
       lines.push(

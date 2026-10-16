@@ -1,3 +1,9 @@
+import {
+  DATABASE_OBJECT_LABELS,
+  type DatabaseObjectSemantic,
+  type DatabaseObjectType,
+} from "@nodetto/ir";
+import { databaseObjectRows } from "./shapes/databaseObject.ts";
 import { umlComponentPaintBounds } from "./shapes/umlComponent.ts";
 import { UmlComponentType } from "@nodetto/ir";
 // Deterministic SVG export of a page or a selection.
@@ -1389,6 +1395,11 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
       return renderSequenceParticipant(element, box, theme);
     case "sequence.activation":
       return renderSequenceActivation(element, box, theme);
+    case "erd.view":
+    case "erd.materialized-view":
+    case "erd.function":
+    case "erd.procedure":
+      return renderDatabaseObject(element, box, theme);
     case "erd.table":
       return renderErdTable(element, box, theme);
     case UmlComponentType.Component:
@@ -1999,3 +2010,63 @@ export function renderArtboardSvg(
   });
 }
 import { freehandGeometry } from "./shapes/freehand.ts";
+
+function renderDatabaseObject(
+  element: Element,
+  box: Box,
+  theme: SvgTheme,
+): string {
+  const semantic = element.semantic as DatabaseObjectSemantic;
+  return (
+    tag(
+      "rect",
+      styled(
+        {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          rx: 4,
+          fill: theme.surface,
+          stroke: theme.ink,
+          "stroke-width": 1.5,
+        },
+        element.visual,
+      ),
+    ) +
+    tag("line", {
+      x1: box.x,
+      y1: box.y + 52,
+      x2: box.x + box.width,
+      y2: box.y + 52,
+      stroke: theme.ink,
+    }) +
+    text(
+      { x: box.x + 8, y: box.y + 15, fill: theme.ink, "font-size": 10 },
+      DATABASE_OBJECT_LABELS[element.type as DatabaseObjectType],
+    ) +
+    text(
+      {
+        x: box.x + 8,
+        y: box.y + 37,
+        fill: theme.ink,
+        "font-size": 14,
+        "font-weight": 600,
+      },
+      semantic.name,
+    ) +
+    databaseObjectRows(element)
+      .map((row, index) =>
+        text(
+          {
+            x: box.x + 8,
+            y: box.y + 69 + index * 24,
+            fill: theme.ink,
+            "font-size": 12,
+          },
+          row,
+        ),
+      )
+      .join("")
+  );
+}

@@ -11,7 +11,7 @@ import {
   connectorDecoration,
   diamondGradientPatches,
   endpointReaderFor,
-  erdForeignKeyWarning,
+  shapeAuthoringWarnings,
   linearGradientVector,
   type MarkerKind,
   resolveConnector,
@@ -59,7 +59,7 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
     );
   const decoration = () => connectorDecoration(props.element);
   const warning = () =>
-    erdForeignKeyWarning(props.element, (id) => props.context.resolve(id));
+    shapeAuthoringWarnings(props.element, props.context).join("\n");
   const warningStyle = (): JSX.CSSProperties | undefined =>
     warning() ? { stroke: "#b45309", "stroke-dasharray": "6 4" } : undefined;
 
@@ -286,7 +286,9 @@ export function ConnectorView(props: ConnectorViewProps): JSX.Element {
                   !
                 </text>
                 <text x="28" y="15" fill="#92400e" font-size="12">
-                  FK incomplete
+                  {props.element.type === "erd.relation"
+                    ? "FK incomplete"
+                    : "Needs setup"}
                 </text>
               </g>
             )}

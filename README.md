@@ -288,7 +288,24 @@ to extend the selection. Right expands a container or selects its first child;
 Left collapses it or selects its parent. Filtered paths remain expanded, and
 parent/child navigation never crosses a page boundary.
 
-Pages containing ERD tables expose a Database DDL section in the inspector.
+ERD shapes include Table, View, Materialized view, Function, and Procedure.
+Select a database object and open its inspector tab to edit its query/body,
+result columns or parameters, return type, language, and dependencies. New
+objects remain editable drafts and show a warning until required definitions
+are supplied. Dependencies refer to other database shapes on the same page;
+SQL export orders definitions after their dependencies and warns about missing
+or cyclic references. Foreign keys accept tables only, including endpoint
+dragging and CLI edits. Use ordinary connectors for other relationships.
+
+Views export to PostgreSQL, MySQL, and SQLite. Materialized views export to
+PostgreSQL; functions and procedures export to PostgreSQL or MySQL. Unsupported
+objects are omitted with an export warning. Routine bodies are authored SQL:
+PostgreSQL uses SQL or PL/pgSQL dollar-quoted bodies; MySQL uses mysql-client
+`DELIMITER` blocks. Function parameters currently use IN mode and scalar return
+types from the existing SQL type mapper. Queries and bodies are preserved, not
+translated between dialects.
+
+Pages containing ERD tables or database objects enable the SQL export tab.
 It generates deterministic PostgreSQL, MySQL, or SQLite SQL for every table on
 the current page, including primary keys, nullability, relation-derived foreign
 keys, one-to-one uniqueness, safe default expressions, and named or generated

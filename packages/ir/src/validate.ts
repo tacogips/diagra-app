@@ -1,3 +1,4 @@
+import { connectorEndpointIssues } from "./connector-policy.ts";
 // Document-level validation.
 //
 // Severity contract: `error` means the document is structurally unusable and
@@ -792,6 +793,26 @@ export function validateDocument(
       if (!definition) {
         continue;
       }
+      for (const issue of connectorEndpointIssues(
+        type,
+        readField(element, "semantic"),
+        String(readField(element, "page") ?? ""),
+        (id) => {
+          const target = elementById.get(id);
+          const type = readField(target, "type");
+          const page = readField(target, "page");
+          return typeof type === "string" && typeof page === "string"
+            ? { type, page }
+            : undefined;
+        },
+      ))
+        out.push(
+          warning(
+            issue.code,
+            `elements[${i}].semantic.${issue.field}`,
+            issue.message,
+          ),
+        );
       for (const reference of definition.references(
         readField(element, "semantic"),
       )) {

@@ -628,3 +628,10 @@ export {
 } from "./document-changes.ts";
 
 export { erdForeignKeyWarning } from "./erd-foreign-key.ts";
+
+export { shapeAuthoringWarnings } from "./shape-warnings.ts";
+
+export {
+  databaseObjectRows,
+  databaseObjectBounds,
+} from "./shapes/databaseObject.ts";

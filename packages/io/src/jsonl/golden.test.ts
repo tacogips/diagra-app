@@ -19,6 +19,7 @@ function readFixture(name: string): string {
  */
 const GOLDEN = [
   "erd",
+  "database-objects",
   "uml-class",
   "uml-component",
   "sequence",

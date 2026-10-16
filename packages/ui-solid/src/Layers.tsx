@@ -1,9 +1,11 @@
+import "./ShapeWarnings.css";
 import { Switch } from "./Switch.tsx";
 import {
   type Editor,
   type ViewportSize,
   layerRows,
   layerName,
+  shapeAuthoringWarnings,
   selectLayerRow,
   selectLayerSearchMatches,
 } from "@nodetto/core";
@@ -102,6 +104,14 @@ export function Layers(props: {
         !context.isLocked?.(row.element.id),
     );
   });
+  const warningContext = createMemo(() => {
+    signals.rev();
+    return props.editor.createShapeContext();
+  });
+  const warningsFor = (id: ElementId) => {
+    const element = props.editor.store.get(id);
+    return element ? shapeAuthoringWarnings(element, warningContext()) : [];
+  };
   const rowMap = createMemo(
     () => new Map(rows().map((row) => [row.element.id, row])),
   );
@@ -343,6 +353,15 @@ export function Layers(props: {
                       }}
                     >
                       {layerName(row().element)}
+                      <Show when={warningsFor(id).length}>
+                        <span
+                          class="nodetto-layer-warning"
+                          title={warningsFor(id).join("\n")}
+                          aria-label={warningsFor(id).join("\n")}
+                        >
+                          !
+                        </span>
+                      </Show>
                       <Show when={allPages()}>
                         <small
                           style={{ display: "block", "font-weight": "normal" }}

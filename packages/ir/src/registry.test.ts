@@ -50,6 +50,10 @@ describe("registry contents", () => {
       [
         ...DESIGN_TABLE_TYPES,
         ...Object.values(UmlComponentType),
+        "erd.view",
+        "erd.materialized-view",
+        "erd.function",
+        "erd.procedure",
         "image.raster",
         "design.token",
         "design.guide",

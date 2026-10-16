@@ -1,3 +1,6 @@
+import { isDatabaseObjectType } from "@nodetto/ir";
+import { DatabaseObjectView } from "./DatabaseObjectView.tsx";
+import "../ShapeWarnings.css";
 import { UmlComponentType } from "@nodetto/ir";
 import { UmlComponentView } from "./UmlComponentView.tsx";
 // Dispatch from element type to view, plus the positioned wrapper every
@@ -30,6 +33,7 @@ export interface ShapeViewProps {
   readonly element: Element;
   readonly box: Box;
   readonly selected: boolean;
+  readonly warnings?: readonly string[];
   /** Construction guides are canvas-only and excluded from preview/export. */
   readonly showLayoutGrids?: boolean;
   /** Expose authored semantics in interactive prototype DOM, not editor chrome. */
@@ -122,6 +126,15 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
           ...layerAppearanceStyle(props.element.visual),
         }}
       >
+        <Show when={props.warnings?.length}>
+          <span
+            class="nodetto-shape-warning"
+            aria-label={props.warnings?.join("\n")}
+            title={props.warnings?.join("\n")}
+          >
+            !
+          </span>
+        </Show>
         <Show
           when={
             props.exposeAccessibility &&
@@ -186,6 +199,9 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
           </Match>
           <Match when={props.element.type === "text.note"}>
             <TextNoteView element={props.element} />
+          </Match>
+          <Match when={isDatabaseObjectType(props.element.type)}>
+            <DatabaseObjectView element={props.element} />
           </Match>
           <Match when={props.element.type === "erd.table"}>
             <ErdTableView element={props.element} />

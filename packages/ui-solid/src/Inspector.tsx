@@ -1,3 +1,5 @@
+import { DATABASE_OBJECT_LABELS, isDatabaseObjectType } from "@nodetto/ir";
+import { DatabaseObjectSection } from "./inspector/DatabaseObjectSection.tsx";
 import { UmlComponentType } from "@nodetto/ir";
 import { UmlComponentSection } from "./inspector/UmlComponentSection.tsx";
 // The Inspector: a right-hand panel that reads the selection and writes
@@ -10,7 +12,8 @@ import { UmlComponentSection } from "./inspector/UmlComponentSection.tsx";
 // typed into a field must never reach a canvas or window shortcut. History
 // chords from non-editable controls may bubble to the shell's history owner.
 
-import type { Editor } from "@nodetto/core";
+import { type Editor, shapeAuthoringWarnings } from "@nodetto/core";
+import "./ShapeWarnings.css";
 import { leafElements, layerName, renameLayer } from "@nodetto/core";
 import { BatchRenameSection } from "./inspector/BatchRenameSection.tsx";
 import { ReplaceNoteTextSection } from "./inspector/ReplaceNoteTextSection.tsx";
@@ -140,12 +143,20 @@ export function Inspector(props: InspectorProps): JSX.Element {
       : undefined;
   };
 
+  const warnings = createMemo(() => {
+    signals.rev();
+    const element = single();
+    return element
+      ? shapeAuthoringWarnings(element, props.editor.createShapeContext())
+      : [];
+  });
   const selectedElementId = createMemo(() => single()?.id);
   const [activeTab, setActiveTab] = createSignal<"shape" | "specific">("shape");
   const tabId = `inspector-${createUniqueId()}`;
   const typeLabel = () => {
     const type = single()?.type;
     if (!type) return undefined;
+    if (isDatabaseObjectType(type)) return DATABASE_OBJECT_LABELS[type];
     if (Object.values(UmlComponentType).some((candidate) => candidate === type))
       return "Component";
     if (type.startsWith("bpmn.")) return "BPMN";
@@ -215,6 +226,9 @@ export function Inspector(props: InspectorProps): JSX.Element {
           <Match when={element().type === "edge.generic"}>
             <EdgeSection editor={props.editor} element={element()} />
           </Match>
+          <Match when={isDatabaseObjectType(element().type)}>
+            <DatabaseObjectSection editor={props.editor} element={element()} />
+          </Match>
           <Match when={element().type === "erd.table"}>
             <Suspense>
               <ErdTableSection
@@ -270,6 +284,15 @@ export function Inspector(props: InspectorProps): JSX.Element {
         })()}
       >
         <p role="status">View only</p>
+      </Show>
+      <Show when={warnings().length}>
+        <div
+          class="nodetto-authoring-warnings"
+          role="status"
+          aria-label="Shape warnings"
+        >
+          <For each={warnings()}>{(message) => <p>{message}</p>}</For>
+        </div>
       </Show>
       <Show when={typeLabel()}>
         <div
