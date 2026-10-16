@@ -186,7 +186,7 @@ export const ACTION_MENUS: readonly Readonly<{
   {
     id: "export",
     label: "Export",
-    actions: actions([["exportSvg", "Export artwork…"]]),
+    actions: actions([["exportSvg", "Export…"]]),
   },
 ];
 const FRAME_TOOLS =
@@ -680,12 +680,21 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
               ].find((item) => item.tool === props.tool)?.label ?? props.tool)
             : ""}
         </span>
+        <button
+          type="button"
+          class="nodetto-workspace-tool"
+          title={actionTitle(getAction("exportSvg"))}
+          disabled={!enabled("exportSvg")}
+          onClick={() => chooseAction("exportSvg")}
+        >
+          Export
+        </button>
         <div class="nodetto-toolbar-menu-wrap">
           <button
             type="button"
             class="nodetto-workspace-tool"
             aria-label="Actions"
-            title="Arrange, export and access all tools"
+            title="Arrange and access all tools"
             aria-haspopup="menu"
             aria-expanded={open() === "more"}
             onClick={(event) => trigger("more", event.currentTarget)}

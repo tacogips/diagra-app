@@ -619,3 +619,10 @@ export {
   type MergeResult,
   mergeDocuments,
 } from "./document-merge.ts";
+
+export {
+  DocumentChangeMonitor,
+  type DocumentChange,
+  type DocumentChangeSource,
+  type DocumentChangeSubscription,
+} from "./document-changes.ts";

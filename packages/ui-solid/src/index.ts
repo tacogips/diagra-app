@@ -120,3 +120,5 @@ export {
   focusBpmnProblem,
   type BpmnProblemRow,
 } from "./bpmn-problems.ts";
+
+export { ExportDialog } from "./LazyExportDialog.tsx";

@@ -46,10 +46,6 @@ export function ColorTokens(props: { readonly editor: Editor }): JSX.Element {
       </h2>
       <details class="nodetto-navigation-group">
         <summary>Page themes</summary>
-        <p>
-          Use a theme such as Light or Dark to switch shared colors and sizes on
-          this page.
-        </p>
         <label>
           Page theme
           <select

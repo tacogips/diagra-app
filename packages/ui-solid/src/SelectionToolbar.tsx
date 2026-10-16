@@ -265,6 +265,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
         <div class="nodetto-float-group">
           {button("duplicate", "Duplicate")}
           {button("delete", "Delete")}
+          {button("comment", "Comment")}
         </div>
         <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Colors</summary>

@@ -347,7 +347,11 @@ export class CloudSession {
       }
       return;
     }
-    const binding = new CollabBinding({ editor: this.editor, doc: this.doc });
+    const binding = new CollabBinding({
+      editor: this.editor,
+      doc: this.doc,
+      documentId: this.current.docId ?? this.doc.guid,
+    });
     // The host must retire its local-file owner before this binding can mutate
     // the editor. It intentionally stays false through initial probing/sync.
     this.patch({ ownsEditor: true });

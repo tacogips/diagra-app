@@ -15,7 +15,14 @@ import {
   getAction,
   runAction,
 } from "./shortcuts.ts";
-import { canUseTool, isConnectorTool, Tool, type ToolKind } from "./tools.ts";
+import { SHAPE_DRAG_TYPE } from "./shape-drag.ts";
+import {
+  creationFor,
+  canUseTool,
+  isConnectorTool,
+  Tool,
+  type ToolKind,
+} from "./tools.ts";
 import { workspaceById, type WorkspaceId } from "./workspaces.ts";
 import "./ShapePalette.css";
 
@@ -52,6 +59,19 @@ export function ShapePalette(props: {
                   ? "Port — click a component boundary"
                   : `${item.label} — select, then click the canvas`
             }
+            draggable={!readOnly() && creationFor(item.tool) !== null}
+            onDragStart={(event) => {
+              if (
+                props.editor.readOnly ||
+                !creationFor(item.tool) ||
+                !event.dataTransfer
+              ) {
+                event.preventDefault();
+                return;
+              }
+              event.dataTransfer.setData(SHAPE_DRAG_TYPE, item.tool);
+              event.dataTransfer.effectAllowed = "copy";
+            }}
             disabled={!canUseTool(item.tool, readOnly())}
             onClick={() => {
               if (canUseTool(item.tool, props.editor.readOnly))
@@ -91,15 +111,6 @@ export function ShapePalette(props: {
       }}
     >
       <h2>Shapes</h2>
-      <p class="nodetto-palette-help" aria-live="polite">
-        {readOnly()
-          ? "View only"
-          : isConnectorTool(props.tool)
-            ? "Drag between shapes to connect them."
-            : props.tool === Tool.Port
-              ? "Click a component to attach a port to its boundary."
-              : "Choose a shape, then click the canvas."}
-      </p>
       <h3 class="nodetto-palette-mode">
         {workspaceById(props.workspace).label}
       </h3>

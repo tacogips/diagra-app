@@ -22,9 +22,16 @@
 // in-memory docs in `binding.test.ts` and by two websockets against a real
 // Durable Object in the cloud repo's `collab-binding.test.ts`.
 
-import type { Editor, StoreCommit, StoreDiff } from "@nodetto/core";
+import {
+  DocumentChangeMonitor,
+  type DocumentChangeSource,
+  type Editor,
+  type StoreCommit,
+  type StoreDiff,
+} from "@nodetto/core";
 import type { Element, ElementId, Page, PageId } from "@nodetto/ir";
 import * as Y from "yjs";
+import { createYjsDocumentChangeSource } from "./change-source.ts";
 import { syncElementToY, syncPageToY } from "./diff.ts";
 import { captureColors, type ColorUndo } from "./color-undo.ts";
 import {
@@ -42,16 +49,19 @@ import {
 export interface CollabBindingOptions {
   readonly editor: Editor;
   readonly doc: Y.Doc;
+  readonly changes?: DocumentChangeSource;
+  readonly documentId?: string;
   /** Origin tag for local transactions; defaults to the binding itself. */
   readonly origin?: unknown;
   /** `Y.UndoManager` capture window. Tests set 0 to keep steps separate. */
   readonly captureTimeout?: number;
 }
 
-type YMapEvents = readonly Y.YEvent<Y.AbstractType<unknown>>[];
-
 export class CollabBinding {
   private readonly editor: Editor;
+  private readonly changes: DocumentChangeSource;
+  private readonly documentId: string;
+  private readonly changeMonitor = new DocumentChangeMonitor();
   private readonly doc: Y.Doc;
   private readonly localOrigin: unknown;
   private readonly captureTimeout: number | undefined;
@@ -77,18 +87,6 @@ export class CollabBinding {
   private readonly colorUndo = new WeakMap<object, Map<string, ColorUndo>>();
   private attached = false;
 
-  private readonly onElements = (
-    events: YMapEvents,
-    transaction: Y.Transaction,
-  ): void => {
-    this.applyRemoteElements(events, transaction);
-  };
-  private readonly onDocument = (
-    _events: YMapEvents,
-    transaction: Y.Transaction,
-  ): void => {
-    this.applyRemoteDocument(transaction);
-  };
   private readonly onUndoStack = (): void => {
     for (const listener of [...this.undoListeners]) {
       listener();
@@ -98,6 +96,9 @@ export class CollabBinding {
   constructor(options: CollabBindingOptions) {
     this.editor = options.editor;
     this.doc = options.doc;
+    this.changes =
+      options.changes ?? createYjsDocumentChangeSource(options.doc);
+    this.documentId = options.documentId ?? options.doc.guid;
     this.localOrigin = options.origin ?? this;
     this.captureTimeout = options.captureTimeout;
     this.meta = this.doc.getMap<unknown>(META_KEY);
@@ -135,9 +136,11 @@ export class CollabBinding {
     this.unsubscribeStore = this.editor.store.subscribe((diff) => {
       this.applyLocalDiff(diff);
     });
-    this.elements.observeDeep(this.onElements);
-    this.meta.observeDeep(this.onDocument);
-    this.pages.observeDeep(this.onDocument);
+    void this.changeMonitor.watch(this.changes, this.documentId, (change) => {
+      if (change.elementIds === undefined)
+        this.applyRemoteDocument(change.origin);
+      else this.applyRemoteElements(change.elementIds, change.origin);
+    });
 
     this.undoManager = new Y.UndoManager(
       [this.meta, this.pages, this.elements],
@@ -165,9 +168,7 @@ export class CollabBinding {
     this.attached = false;
     this.unsubscribeStore?.();
     this.unsubscribeStore = null;
-    this.elements.unobserveDeep(this.onElements);
-    this.meta.unobserveDeep(this.onDocument);
-    this.pages.unobserveDeep(this.onDocument);
+    void this.changeMonitor.close();
     if (this.undoManager) {
       this.undoManager.off("stack-item-added", this.onUndoStack);
       this.undoManager.off("stack-item-popped", this.onUndoStack);
@@ -376,30 +377,18 @@ export class CollabBinding {
 
   /** Remote element edits -> one commit (design 4.3). */
   private applyRemoteElements(
-    events: YMapEvents,
-    transaction: Y.Transaction,
+    touchedIds: readonly ElementId[],
+    origin: unknown,
   ): void {
     if (
-      transaction.origin === this.localOrigin ||
-      transaction.origin === this.derivedOrigin ||
+      origin === this.localOrigin ||
+      origin === this.derivedOrigin ||
       !this.attached
     ) {
       return;
     }
 
-    const touched = new Set<ElementId>();
-    for (const event of events) {
-      const [head] = event.path;
-      if (head === undefined) {
-        // The `elements` map itself: added or removed element ids.
-        for (const id of event.changes.keys.keys()) {
-          touched.add(id);
-        }
-      } else if (typeof head === "string") {
-        // Anything deeper belongs to exactly one element.
-        touched.add(head);
-      }
-    }
+    const touched = new Set(touchedIds);
     if (touched.size === 0) {
       return;
     }
@@ -439,10 +428,10 @@ export class CollabBinding {
   }
 
   /** Remote document-level edits -> reload (design 4.3, coarse but atomic). */
-  private applyRemoteDocument(transaction: Y.Transaction): void {
+  private applyRemoteDocument(origin: unknown): void {
     if (
-      transaction.origin === this.localOrigin ||
-      transaction.origin === this.derivedOrigin ||
+      origin === this.localOrigin ||
+      origin === this.derivedOrigin ||
       !this.attached
     ) {
       return;

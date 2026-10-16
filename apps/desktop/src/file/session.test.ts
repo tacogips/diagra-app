@@ -469,7 +469,7 @@ describe("opening", () => {
     expect(harness.editor.getSnapshot().title).toBe("order-flow");
     expect(harness.editor.getSnapshot().pages[0]?.kind).toBe("sequence");
     expect(harness.editor.store.listElements()).toHaveLength(3);
-    expect(harness.backend.watched).toEqual([null]);
+    expect(harness.backend.watched).toEqual([]);
 
     addShape(harness.editor, "local edit");
     harness.timers.fire();
@@ -521,7 +521,7 @@ describe("opening", () => {
           ["bpmn.event", "bpmn.task", "bpmn.gateway"].includes(element.type),
         ),
     ).toHaveLength(13);
-    expect(harness.backend.watched).toEqual([null]);
+    expect(harness.backend.watched).toEqual([]);
 
     addShape(harness.editor, "local edit");
     harness.timers.fire();
@@ -1085,6 +1085,7 @@ describe("handing the editor to another document mode", () => {
     harness.session.suspend();
     expect(harness.session.state().filePath).toBeNull();
     expect(harness.session.state().fileName).toBeNull();
+    await harness.settle();
     expect(harness.backend.watched.at(-1)).toBeNull();
 
     // Everything a cloud room writes into the store arrives as an ordinary
@@ -1253,4 +1254,38 @@ describe("overlapping imports", () => {
     expect(editor.getSnapshot().title).toBe("b");
     expect(session.state().filePath).toBe("/docs/b.jsonl");
   });
+});
+
+test("page-only edits autosave their names and order, while changing the active page stays clean", async () => {
+  const h = createHarness({ seeded: false });
+  try {
+    h.backend.saveAnswers.push("/docs/pages.jsonl");
+    await h.session.save();
+    const first = h.editor.currentPageId;
+    const second = h.editor.createPage({ name: "Second" });
+    expect(h.session.state().dirty).toBe(true);
+    expect(h.timers.pendingCount).toBe(1);
+    h.timers.fire();
+    await h.settle();
+    expect(h.session.state().dirty).toBe(false);
+    h.editor.setCurrentPage(first);
+    expect(h.session.state().dirty).toBe(false);
+    expect(h.timers.pendingCount).toBe(0);
+    h.editor.renamePage(first, "Renamed first");
+    h.editor.reorderPageTo(first, 1);
+    h.timers.fire();
+    await h.settle();
+    const reopened = parseDocument(
+      h.backend.files.get("/docs/pages.jsonl") ?? "",
+    );
+    expect(
+      new Editor({ document: reopened }).store.listPages().map((p) => p.id),
+    ).toEqual([second, first]);
+    expect(reopened.pages.find((p) => p.id === first)?.name).toBe(
+      "Renamed first",
+    );
+    expect(h.session.state().dirty).toBe(false);
+  } finally {
+    h.session.dispose();
+  }
 });

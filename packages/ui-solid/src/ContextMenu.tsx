@@ -94,7 +94,7 @@ function selectionEntries(simple = false): readonly MenuEntry[] {
           getAction(id as ActionId),
         ),
       },
-      ...actions(["editText"]),
+      ...actions(["editText", "comment"]),
     ];
   return [
     ...actions(["cut", "copy", "paste", "duplicate", "delete"]),
@@ -130,7 +130,7 @@ function selectionEntries(simple = false): readonly MenuEntry[] {
       items: ARRANGE_ITEMS.map(getAction),
     },
     SEPARATOR,
-    ...actions(["editText"]),
+    ...actions(["editText", "comment"]),
   ];
 }
 

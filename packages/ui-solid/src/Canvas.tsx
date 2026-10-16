@@ -84,6 +84,7 @@ import {
 } from "./interaction.ts";
 import { ConnectorMarkers, ConnectorView } from "./shapes/ConnectorView.tsx";
 import { ShapeView } from "./shapes/ShapeView.tsx";
+import { SHAPE_DRAG_TYPE, draggedShapeTool } from "./shape-drag.ts";
 import { Tool, isConnectorTool, type ToolKind } from "./tools.ts";
 
 const CanvasRulers = lazy(() => import("./CanvasRulers.tsx"));
@@ -229,7 +230,29 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
   const carriesFiles = (event: DragEvent): boolean =>
     Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
+  const carriesShape = (event: DragEvent): boolean =>
+    Array.from(event.dataTransfer?.types ?? []).includes(SHAPE_DRAG_TYPE);
+
   const importDrop = async (event: DragEvent): Promise<void> => {
+    if (carriesShape(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      setImageDropActive(false);
+      const tool = draggedShapeTool(
+        event.dataTransfer?.getData(SHAPE_DRAG_TYPE) ?? "",
+      );
+      if (!tool || props.editor.readOnly) return;
+      const bounds = container?.getBoundingClientRect();
+      interaction.placeTool(
+        tool,
+        props.editor.camera.screenToPage({
+          x: event.clientX - (bounds?.left ?? 0),
+          y: event.clientY - (bounds?.top ?? 0),
+        }),
+      );
+      container?.focus();
+      return;
+    }
     if (!carriesFiles(event)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -729,12 +752,12 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
       onContextMenu={interaction.onContextMenu}
       onBlur={() => interaction.onBlur()}
       onDragEnter={(event) => {
-        if (!carriesFiles(event)) return;
+        if (!carriesFiles(event) && !carriesShape(event)) return;
         event.preventDefault();
         setImageDropActive(!props.editor.readOnly);
       }}
       onDragOver={(event) => {
-        if (!carriesFiles(event)) return;
+        if (!carriesFiles(event) && !carriesShape(event)) return;
         event.preventDefault();
         if (event.dataTransfer)
           event.dataTransfer.dropEffect = props.editor.readOnly

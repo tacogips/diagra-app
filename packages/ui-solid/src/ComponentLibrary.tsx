@@ -174,11 +174,7 @@ export function ComponentLibrary(props: {
         )}
       </For>
       <Show when={components().length === 0}>
-        <p>
-          {query().trim()
-            ? "No matches"
-            : "No reusable components yet. Select a frame and choose Create component in Properties."}
-        </p>
+        <p>{query().trim() ? "No matches" : "No reusable components"}</p>
       </Show>
     </section>
   );

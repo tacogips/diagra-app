@@ -94,8 +94,7 @@ export function MermaidExportSection(props: {
   };
 
   return (
-    <details class="nodetto-inspector-section">
-      <summary>Mermaid export</summary>
+    <section class="nodetto-inspector-section">
       <Show
         when={kinds().length > 0}
         fallback={
@@ -152,7 +151,7 @@ export function MermaidExportSection(props: {
         </Show>
       </Show>
       <p role="status">{status()}</p>
-    </details>
+    </section>
   );
 }
 

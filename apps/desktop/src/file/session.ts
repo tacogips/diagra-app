@@ -16,6 +16,8 @@
 
 import {
   diffDocuments,
+  DocumentChangeMonitor,
+  type DocumentChangeSource,
   type Editor,
   isEmptyCommit,
   mergeDocuments,
@@ -29,6 +31,7 @@ import {
 } from "@nodetto/ir";
 import { parseDocumentResult, serializeDocument } from "@nodetto/io";
 import type { BpmnImportWarning } from "@nodetto/io";
+import { createFileDocumentChangeSource } from "./change-source.ts";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
 export type SessionStatus = "idle" | "loading" | "saving";
@@ -74,6 +77,7 @@ export type TimerHandle = unknown;
 export interface DocumentSessionOptions {
   readonly editor: Editor;
   readonly backend: FileBackend;
+  readonly changes?: DocumentChangeSource;
   /** Quiet period after the last edit before autosave writes. */
   readonly autosaveDelayMs?: number;
   readonly scheduleTimer?: (
@@ -141,6 +145,8 @@ function isMissingFile(error: unknown): boolean {
 export class DocumentSession {
   private readonly editor: Editor;
   private readonly backend: FileBackend;
+  private readonly changes: DocumentChangeSource;
+  private readonly changeMonitor = new DocumentChangeMonitor();
   private readonly autosaveDelayMs: number;
   private readonly scheduleTimer: (
     callback: () => void,
@@ -150,7 +156,6 @@ export class DocumentSession {
 
   private readonly listeners = new Set<SessionListener>();
   private readonly unsubscribeEditor: () => void;
-  private readonly unsubscribeFileChanged: () => void;
 
   private current: SessionState = {
     filePath: null,
@@ -186,6 +191,8 @@ export class DocumentSession {
   constructor(options: DocumentSessionOptions) {
     this.editor = options.editor;
     this.backend = options.backend;
+    this.changes =
+      options.changes ?? createFileDocumentChangeSource(options.backend);
     this.autosaveDelayMs = options.autosaveDelayMs ?? DEFAULT_AUTOSAVE_DELAY_MS;
     this.scheduleTimer =
       options.scheduleTimer ??
@@ -196,11 +203,11 @@ export class DocumentSession {
         clearTimeout(handle as ReturnType<typeof setTimeout>);
       });
 
-    this.unsubscribeEditor = this.editor.subscribe((diff) => {
-      // Page switches and history-only notifications carry no element
-      // change, and nothing in the current UI edits the page list, so an
-      // element diff is exactly "the document changed".
+    this.unsubscribeEditor = this.editor.store.subscribe((diff) => {
+      // Observe persisted content directly: editor notifications also include
+      // active-page switches and history availability, which are view state.
       const changed =
+        diff.pagesChanged ||
         diff.added.length > 0 ||
         diff.updated.length > 0 ||
         diff.removed.length > 0;
@@ -210,9 +217,6 @@ export class DocumentSession {
           this.patch({ outsideChange: null });
         this.markDirty();
       }
-    });
-    this.unsubscribeFileChanged = this.backend.onFileChanged((path) => {
-      void this.handleFileChanged(path);
     });
 
     void this.refreshRecent();
@@ -527,8 +531,7 @@ export class DocumentSession {
     this.disposed = true;
     this.cancelAutosave();
     this.unsubscribeEditor();
-    this.unsubscribeFileChanged();
-    void this.backend.unwatch().catch(() => {});
+    void this.changeMonitor.close().catch(() => {});
     this.listeners.clear();
   }
 
@@ -751,7 +754,9 @@ export class DocumentSession {
 
   private async startWatching(path: string): Promise<void> {
     try {
-      await this.backend.watch(path);
+      await this.changeMonitor.watch(this.changes, path, (change) => {
+        void this.handleFileChanged(change.documentId);
+      });
     } catch {
       // Losing the watch costs the reload prompt, not the document.
     }
@@ -759,7 +764,7 @@ export class DocumentSession {
 
   private async stopWatching(): Promise<void> {
     try {
-      await this.backend.unwatch();
+      await this.changeMonitor.close();
     } catch {
       // Nothing to recover: there is no longer a watch we depend on.
     }

@@ -2,7 +2,6 @@ import "./AssetExportSection.css";
 import type { Editor } from "@nodetto/core";
 import type { ElementId } from "@nodetto/ir";
 import {
-  createEffect,
   createMemo,
   createSignal,
   For,
@@ -39,12 +38,11 @@ export function AssetExportSection(props: {
   editor: Editor;
   id?: ElementId;
   hasSelection: boolean;
-  request?: number;
+  format: ExportFormat;
   save?: SaveArtwork;
 }): JSX.Element {
-  const [expanded, setExpanded] = createSignal(false);
   const signals = createEditorSignals(props.editor);
-  const [format, setFormat] = createSignal<ExportFormat>("svg");
+  const format = () => props.format;
   const [scale, setScale] = createSignal(2);
   const [preferredScope, setPreferredScope] = createSignal("auto");
   const scope = () =>
@@ -67,18 +65,8 @@ export function AssetExportSection(props: {
   const [busy, setBusy] = createSignal(false);
   const [saving, setSaving] = createSignal(false);
   const [status, setStatus] = createSignal("");
-  let section: HTMLDetailsElement | undefined;
-  let formatInput: HTMLSelectElement | undefined;
   let disposed = false;
   let pending: AbortController | undefined;
-  createEffect(() => {
-    if (props.request && section) {
-      section.open = true;
-      setExpanded(true);
-      formatInput?.focus();
-      section.scrollIntoView({ block: "nearest" });
-    }
-  });
   onCleanup(() => {
     disposed = true;
     pending?.abort();
@@ -92,7 +80,6 @@ export function AssetExportSection(props: {
         format() === "pdf" ? background() : transparent() ? null : background(),
     });
   const preview = createMemo(() => {
-    if (!expanded()) return { label: "", error: "" };
     signals.rev();
     signals.selection();
     try {
@@ -207,36 +194,12 @@ export function AssetExportSection(props: {
     }
   };
   return (
-    <details
-      class="nodetto-inspector-section"
-      ref={section}
-      onToggle={(e) => setExpanded(e.currentTarget.open)}
-    >
-      <summary>Export artwork</summary>
+    <section class="nodetto-inspector-section">
       <fieldset
         class="nodetto-export-settings"
         disabled={busy()}
         style={{ border: "none", padding: 0, margin: 0, "min-width": 0 }}
       >
-        <label>
-          Format
-          <select
-            ref={formatInput}
-            aria-label="Export format"
-            value={format()}
-            onChange={(e) => {
-              const value = e.currentTarget.value;
-              if (value === "svg" || value === "png" || value === "pdf") {
-                setFormat(value);
-                setStatus("");
-              }
-            }}
-          >
-            <option value="svg">SVG (vector)</option>
-            <option value="png">PNG (image)</option>
-            <option value="pdf">PDF (document)</option>
-          </select>
-        </label>
         <label>
           Scope
           <select
@@ -369,6 +332,6 @@ export function AssetExportSection(props: {
         </button>
       </Show>
       <p role="status">{status()}</p>
-    </details>
+    </section>
   );
 }

@@ -33,6 +33,7 @@ export function Layers(props: {
   readonly simple?: boolean;
   readonly viewport?: ViewportSize;
   readonly commentAuthor?: string;
+  readonly commentRequest?: number;
   readonly commentPlacementActive?: boolean;
   readonly onPlaceComment?: (
     input: {
@@ -60,6 +61,13 @@ export function Layers(props: {
   const [componentsMounted, mountComponents] = createSignal(false);
   const [stylesMounted, mountStyles] = createSignal(false);
   const [commentsMounted, mountComments] = createSignal(false);
+  let commentsPanel: HTMLDetailsElement | undefined;
+  createEffect(() => {
+    if (props.commentRequest && commentsPanel) {
+      mountComments(true);
+      commentsPanel.open = true;
+    }
+  });
   let selectionAnchor: ElementId | undefined;
   let searchInput: HTMLInputElement | undefined;
   const nameButtons = new Map<ElementId, HTMLButtonElement>();
@@ -122,10 +130,6 @@ export function Layers(props: {
               disabled={readOnly()}
               style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
             >
-              <p class="nodetto-library-help">
-                Save colors, text styles and sizes to reuse across this
-                document. Editing a shared style updates items that use it.
-              </p>
               <details class="nodetto-navigation-group">
                 <summary>Colors</summary>
                 <ColorTokens editor={props.editor} />
@@ -144,6 +148,7 @@ export function Layers(props: {
       </div>
       <details
         class="nodetto-navigation-group"
+        ref={commentsPanel}
         open={props.commentPlacementActive}
         onToggle={(event) => {
           if (event.currentTarget.open) mountComments(true);
@@ -156,6 +161,7 @@ export function Layers(props: {
             editor={props.editor}
             viewport={props.viewport}
             author={props.commentAuthor}
+            request={props.commentRequest}
             commentPlacementActive={props.commentPlacementActive}
             onPlaceComment={props.onPlaceComment}
             onCancelCommentPlacement={props.onCancelCommentPlacement}

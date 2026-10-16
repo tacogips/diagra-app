@@ -25,6 +25,7 @@ import {
 } from "@nodetto/core";
 import type { ElementId } from "@nodetto/ir";
 import {
+  ExportDialog,
   type ActionContext,
   ContextMenu,
   BpmnProblemsPanel,
@@ -190,6 +191,7 @@ export function App(props: AppProps): JSX.Element {
   const [inspectorFocus, setInspectorFocus] = createSignal<
     InspectorFocus | undefined
   >(undefined);
+  const [commentRequest, setCommentRequest] = createSignal(0);
   const [exportRequest, setExportRequest] = createSignal(0);
   const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
@@ -541,7 +543,6 @@ export function App(props: AppProps): JSX.Element {
 
   /** Reveal format-specific settings before choosing a save destination. */
   const openExport = () => {
-    restorePane("right");
     setExportRequest((value) => value + 1);
   };
   const saveArtwork = async (
@@ -598,6 +599,13 @@ export function App(props: AppProps): JSX.Element {
     editor: props.editor,
     viewport: viewport(),
     requestEdit,
+    requestComment: () => {
+      setActiveTool("select");
+      setEditing(null);
+      setContextMenu(null);
+      restorePane("left");
+      setCommentRequest((value) => value + 1);
+    },
     exportSvg: openExport,
   });
 
@@ -791,10 +799,9 @@ export function App(props: AppProps): JSX.Element {
               <button
                 type="button"
                 class="app-file-button"
-                disabled={!isBpmnPage()}
-                onClick={() => void exportBpmn()}
+                onClick={openExport}
               >
-                Export BPMN…
+                Export…
               </button>
               <button
                 type="button"
@@ -937,6 +944,15 @@ export function App(props: AppProps): JSX.Element {
         </Show>
         <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
       </header>
+      <Show when={exportRequest() > 0}>
+        <ExportDialog
+          editor={props.editor}
+          saveArtwork={props.exportBackend.available ? saveArtwork : undefined}
+          exportBpmn={exportBpmn}
+          error={exportError()}
+          onClose={() => setExportRequest(0)}
+        />
+      </Show>
       <Show when={props.cloud}>
         {(activeCloud) => (
           <div
@@ -1046,6 +1062,7 @@ export function App(props: AppProps): JSX.Element {
               editor={props.editor}
               viewport={viewport()}
               commentAuthor={settings().userName}
+              commentRequest={commentRequest()}
               commentPlacementActive={
                 tool() === "comment" && pendingComment() !== null
               }
@@ -1229,10 +1246,6 @@ export function App(props: AppProps): JSX.Element {
             </button>
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
               <Inspector
-                exportRequest={exportRequest()}
-                saveArtwork={
-                  props.exportBackend.available ? saveArtwork : undefined
-                }
                 editor={props.editor}
                 focus={inspectorFocus()}
                 simple={workspace() !== "all"}
