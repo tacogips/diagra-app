@@ -1,6 +1,6 @@
 {
   "name": "@nodetto/desktop",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "nodetto desktop client (Tauri 2): local JSONL files and cloud documents",
   "private": true,
   "type": "module",
