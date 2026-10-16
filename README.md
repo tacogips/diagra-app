@@ -1114,3 +1114,7 @@ selection toolbar or **Straighten connector** in its context menu. Double-click
 a bend handle to remove just that point; removing the final bend makes the line
 straight. A focused bend handle also supports Delete/Backspace. Undo restores
 the removed points.
+
+Header actions and mode tools use icons with hover labels. BPMN import is a
+header action shown in BPMN mode; File > Open continues to accept all supported
+formats, and BPMN export remains in the shared Export dialog.

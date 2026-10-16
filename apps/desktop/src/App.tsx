@@ -26,6 +26,7 @@ import {
 import type { ElementId } from "@nodetto/ir";
 import {
   ExportDialog,
+  Icon,
   type ActionContext,
   ContextMenu,
   BpmnProblemsPanel,
@@ -799,7 +800,13 @@ export function App(props: AppProps): JSX.Element {
         <span class="app-title">nodetto</span>
         <Show when={props.filesAvailable}>
           <details class="app-file-menu" ref={fileMenu}>
-            <summary class="app-file-button">File</summary>
+            <summary
+              class="app-file-button app-header-icon"
+              aria-label="File"
+              title="File"
+            >
+              <Icon name="file" />
+            </summary>
             <div class="app-file-controls">
               <button
                 type="button"
@@ -816,14 +823,6 @@ export function App(props: AppProps): JSX.Element {
                 onClick={open}
               >
                 Open
-              </button>
-              <button
-                type="button"
-                class="app-file-button"
-                disabled={!props.filesAvailable || isCloud()}
-                onClick={open}
-              >
-                Import BPMN…
               </button>
               <button
                 type="button"
@@ -872,7 +871,13 @@ export function App(props: AppProps): JSX.Element {
         </Show>
         <Show when={props.filesAvailable || props.cloud}>
           <details class="app-settings-menu" ref={settingsMenu}>
-            <summary class="app-file-button">Settings</summary>
+            <summary
+              class="app-file-button app-header-icon"
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Icon name="settings" />
+            </summary>
             <div class="app-settings-controls">
               <Show when={props.filesAvailable}>
                 <label class="app-saving-setting">
@@ -923,6 +928,20 @@ export function App(props: AppProps): JSX.Element {
               </Show>
             </div>
           </details>
+        </Show>
+        <Show
+          when={workspace() === "bpmn" && isBpmnPage() && props.filesAvailable}
+        >
+          <button
+            type="button"
+            class="app-file-button app-header-icon"
+            aria-label="Import BPMN"
+            title="Import BPMN"
+            disabled={isCloud()}
+            onClick={open}
+          >
+            <Icon name="import" />
+          </button>
         </Show>
         <div class="app-header-slot">{props.headerContent}</div>
         <Show

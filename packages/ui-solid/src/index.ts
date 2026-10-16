@@ -122,3 +122,5 @@ export {
 } from "./bpmn-problems.ts";
 
 export { ExportDialog } from "./LazyExportDialog.tsx";
+
+export { Icon } from "./Icon.tsx";

@@ -2107,3 +2107,19 @@ input {
   justify-content: center;
   min-width: 32px;
 }
+
+.app-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+.app-header-icon svg {
+  width: 18px;
+  height: 18px;
+}
+.app-header
+  :is(.app-file-menu, .app-settings-menu)
+  > summary.app-header-icon::after {
+  content: none;
+}
