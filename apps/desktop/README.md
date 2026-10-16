@@ -32,10 +32,10 @@ machine, or a ShapeUtil.
 | # | Step | Expected |
 | - | ---- | -------- |
 | 1 | Launch | Two ERD tables joined by a relation, two UML classes joined by an inheritance arrow, three geo shapes, and two nodes joined by a labelled arrow. |
-| 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the hand tool or middle-drag, and the dot grid tracks it. |
+| 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the Hand tool, middle-drag or right-drag, and the dot grid tracks it. |
 | 3 | Ctrl/Cmd + wheel | Zooms about the pointer; the page point under the cursor stays put. Stops at 0.1x and 8x. |
 | 4 | Wheel / shift-wheel | Pans vertically / horizontally without zooming. |
-| 5 | Middle-drag, and the Hand tool | Pan, whatever tool is active. |
+| 5 | Middle-drag, right-drag, and the Hand tool | Pan at any zoom without changing artwork, selection or undo history. A stationary right-click opens the context menu; Escape, blur or pointer cancellation stops a right-drag without opening it. |
 | 6 | Click a shape | It gets a dashed outline and eight resize handles. |
 | 7 | Shift-click a second shape | Both are outlined; handles disappear (multi-selection is not resizable). |
 | 8 | Drag a selected shape | The whole selection moves with the cursor, at any zoom. |

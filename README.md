@@ -343,7 +343,7 @@ preserves concurrent semantic edits.
 
 ## BPMN operation flows
 
-Create a `bpmn` page with **Add BPMN page**, then use the BPMN palette for
+Choose **BPMN** in **Mode** to open or create a BPMN page, then use its palette for
 participants, lanes, tasks, events, gateways, data, and flows. Semantic types
 and payloads are stored separately from geometry in JSONL; see the [BPMN
 format](docs/bpmn/format.md) and [lint rule reference](docs/bpmn/lint-rules.md).

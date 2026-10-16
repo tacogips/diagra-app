@@ -266,7 +266,12 @@ type Gesture =
       readonly startAngle: number;
       lastDegrees: number;
     }
-  | { readonly kind: "panning"; lastScreen: Vec }
+  | {
+      readonly kind: "panning";
+      lastScreen: Vec;
+      readonly rightButton?: boolean;
+      moved?: boolean;
+    }
   | {
       readonly kind: "sequence-reorder";
       readonly id: ElementId;
@@ -704,6 +709,7 @@ export function createInteraction(
   options: InteractionOptions,
 ): Interaction {
   let gesture: Gesture = { kind: "idle" };
+  let suppressPointerContextMenu = false;
   /** The pointer that owns the canvas, or `null` when none does. */
   let activePointerId: number | null = null;
   let gestureDocumentRevision = editor.documentOpenRevision;
@@ -1036,6 +1042,8 @@ export function createInteraction(
    * move or resize leaves no trace — not even an undo step.
    */
   const cancelGesture = (): void => {
+    if (gesture.kind === "panning" && gesture.rightButton)
+      suppressPointerContextMenu = true;
     discardDragFrame();
     if (
       gesture.kind === "translating" ||
@@ -1360,7 +1368,7 @@ export function createInteraction(
   };
 
   const onPointerDown = (event: PointerEvent): void => {
-    if (event.button !== 0 && event.button !== 1) {
+    if (event.button !== 0 && event.button !== 1 && event.button !== 2) {
       return;
     }
     // The inline editor and anything else in the slot layer handle their
@@ -1378,6 +1386,7 @@ export function createInteraction(
     // happens when the window loses the pointer). Close the stale gesture so
     // the batch it opened is accounted for before this one opens another.
     claim(event);
+    suppressPointerContextMenu = false;
     options.container()?.focus();
     const requestedTool = options.tool();
     const tool =
@@ -1385,10 +1394,21 @@ export function createInteraction(
     const point = pagePoint(event);
     lastPointer = { screen: screenPoint(event), page: point };
 
-    // Middle button, the hand tool and held space always pan, whatever else
+    // Middle/right buttons, the hand tool and held space always pan, whatever else
     // is active.
-    if (event.button === 1 || tool === "hand" || spaceHeld) {
-      gesture = { kind: "panning", lastScreen: screenPoint(event) };
+    if (
+      event.button === 1 ||
+      event.button === 2 ||
+      tool === "hand" ||
+      spaceHeld
+    ) {
+      gesture = {
+        kind: "panning",
+        lastScreen: screenPoint(event),
+        rightButton: event.button === 2,
+        moved: false,
+      };
+      if (event.button === 2) event.preventDefault();
       return;
     }
 
@@ -1454,6 +1474,16 @@ export function createInteraction(
     switch (gesture.kind) {
       case "panning": {
         const now = screenPoint(event);
+        if (
+          gesture.rightButton &&
+          !gesture.moved &&
+          Math.hypot(
+            now.x - gesture.lastScreen.x,
+            now.y - gesture.lastScreen.y,
+          ) <= CLICK_SLOP_PX
+        )
+          return;
+        gesture.moved = true;
         editor.camera.panBy(
           now.x - gesture.lastScreen.x,
           now.y - gesture.lastScreen.y,
@@ -1821,6 +1851,16 @@ export function createInteraction(
 
   const onPointerUp = (event: PointerEvent): void => {
     if (event.pointerId !== activePointerId) {
+      return;
+    }
+    if (gesture.kind === "panning" && gesture.rightButton) {
+      applyPointerMove(event);
+      const showMenu = !gesture.moved;
+      release(event);
+      activePointerId = null;
+      finishGesture();
+      suppressPointerContextMenu = true;
+      if (showMenu) contextMenuAt(screenPoint(event));
       return;
     }
     discardStaleTransform();
@@ -2231,6 +2271,7 @@ export function createInteraction(
       return;
     }
     event.preventDefault();
+    if (suppressPointerContextMenu) return;
     if (gesture.kind !== "idle") {
       return;
     }
@@ -2239,6 +2280,7 @@ export function createInteraction(
   };
 
   const onBlur = (): void => {
+    if (gesture.kind === "panning" && gesture.rightButton) cancelGesture();
     releaseSpace();
     flushNudge();
   };
