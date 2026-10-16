@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 import type { FillGradient, GradientStop } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { Field, NumberInput, SelectInput } from "./controls.tsx";
@@ -43,8 +44,7 @@ export function PaintGradientEditor(props: {
   return (
     <div class="nodetto-gradient-editor">
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={props.gradient !== undefined}
           onChange={(event) =>
             props.onCommit(

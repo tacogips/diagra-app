@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 import "./AssetExportSection.css";
 import type { Editor } from "@nodetto/core";
 import type { ElementId } from "@nodetto/ir";
@@ -230,8 +231,7 @@ export function AssetExportSection(props: {
         </Show>
         <Show when={format() !== "pdf"}>
           <label>
-            <input
-              type="checkbox"
+            <Switch
               checked={transparent()}
               onChange={(e) => setTransparent(e.currentTarget.checked)}
             />

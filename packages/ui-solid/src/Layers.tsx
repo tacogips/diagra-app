@@ -1,3 +1,4 @@
+import { Switch } from "./Switch.tsx";
 import {
   type Editor,
   type ViewportSize,
@@ -175,8 +176,7 @@ export function Layers(props: {
         />
       </h2>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={allPages()}
           onChange={(event) => setAllPages(event.currentTarget.checked)}
         />

@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 // Style section: the `VisualStyle` fields, for any selection.
 //
 // A mixed selection shows the first leaf's values and writes to every leaf
@@ -221,8 +222,7 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
         {(effect, index) => (
           <div class="nodetto-effect-entry">
             <label>
-              <input
-                type="checkbox"
+              <Switch
                 checked={effect.enabled !== false}
                 onChange={(event) =>
                   updateEffect(index(), {

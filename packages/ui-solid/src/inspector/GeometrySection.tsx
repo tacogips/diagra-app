@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 // Geometry section: position and size of a single box element.
 //
 // X and Y are the element's own `visual` origin. Width and height go through
@@ -84,8 +85,7 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
       </div>
       <Show when={resizable() && supportsAspectRatio(props.element)}>
         <label>
-          <input
-            type="checkbox"
+          <Switch
             checked={props.element.visual.aspectRatio !== undefined}
             onChange={(event) => {
               const current = box();
@@ -112,8 +112,7 @@ export function GeometrySection(props: GeometrySectionProps): JSX.Element {
         when={getElementTypeDefinition(props.element.type)?.category !== "edge"}
       >
         <label>
-          <input
-            type="checkbox"
+          <Switch
             checked={props.element.visual.prototypeFixed === true}
             onChange={(event) => {
               const { prototypeFixed: _old, ...rest } = props.element.visual;

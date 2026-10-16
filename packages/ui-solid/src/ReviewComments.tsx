@@ -1,3 +1,4 @@
+import { Switch } from "./Switch.tsx";
 import {
   createReviewComment,
   focusReviewComment,
@@ -150,8 +151,7 @@ export function ReviewComments(
         on:keyup={(event) => event.stopPropagation()}
       />
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={allPages()}
           onChange={(event) => setAllPages(event.currentTarget.checked)}
         />
@@ -200,8 +200,7 @@ export function ReviewComments(
           </button>
         </Show>
         <label>
-          <input
-            type="checkbox"
+          <Switch
             checked={showResolved()}
             onChange={(event) => setShowResolved(event.currentTarget.checked)}
           />

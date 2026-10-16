@@ -1,3 +1,4 @@
+import { Switch } from "../Switch.tsx";
 // The small semantic sections: one or two fields per type, plus the group
 // and page sections. Each control commits one whole-payload `updateSemantic`.
 
@@ -451,8 +452,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         />
       </Field>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={semantic().showTitle !== false}
           onChange={(event) =>
             writeSemantic(props.editor, props.element.id, {
@@ -466,8 +466,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
       <details>
         <summary>Device safe area</summary>
         <label>
-          <input
-            type="checkbox"
+          <Switch
             checked={semantic().safeArea !== undefined}
             onChange={(event) => {
               if (event.currentTarget.checked) {
@@ -595,8 +594,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         )}
       </Show>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={semantic().clipContent === true}
           onChange={(event) => {
             const parents = frameParents(
@@ -630,8 +628,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
                     : "Rows"}
               </summary>
               <label>
-                <input
-                  type="checkbox"
+                <Switch
                   checked={grid.visible !== false}
                   onChange={(event) =>
                     updateGrid(index(), {
@@ -735,8 +732,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         </div>
       </details>
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={semantic().prototypeStart === true}
           onChange={(event) => {
             const enabled = event.currentTarget.checked;
@@ -1000,8 +996,7 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
         </Show>
         <Show when={semantic().instanceBindings?.length}>
           <label>
-            <input
-              type="checkbox"
+            <Switch
               checked={semantic().autoRefresh === true}
               onChange={(event) =>
                 writeSemantic(props.editor, props.element.id, {
@@ -1396,8 +1391,7 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
       help="Prototype links can navigate to screens, change variants, or open and close overlays."
     >
       <label>
-        <input
-          type="checkbox"
+        <Switch
           checked={semantic()["prototype"] === true}
           onChange={(event) =>
             writeSemantic(props.editor, props.element.id, {
@@ -1482,8 +1476,7 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
             </Field>
           </Show>
           <label>
-            <input
-              type="checkbox"
+            <Switch
               checked={semantic()["prototypeOverlayBackdrop"] === true}
               onChange={(event) =>
                 writeSemantic(props.editor, props.element.id, {
@@ -1495,8 +1488,7 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
             Dim background
           </label>
           <label>
-            <input
-              type="checkbox"
+            <Switch
               checked={semantic()["prototypeOverlayDismiss"] === true}
               onChange={(event) =>
                 writeSemantic(props.editor, props.element.id, {
