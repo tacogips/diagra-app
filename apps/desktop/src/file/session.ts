@@ -44,11 +44,22 @@ export interface SessionConflict {
   readonly mergedConflicts?: readonly string[];
 }
 
+/** The last change another writer made to the open file, shown live. */
+export interface OutsideChange {
+  readonly added: number;
+  readonly updated: number;
+  readonly removed: number;
+  /** True when it was merged into unsaved local edits. */
+  readonly merged: boolean;
+}
+
 export interface SessionState {
   readonly filePath: string | null;
   readonly fileName: string | null;
   readonly dirty: boolean;
   readonly conflict: SessionConflict | null;
+  /** Cleared by the next local edit, open or new document. */
+  readonly outsideChange: OutsideChange | null;
   readonly recent: readonly RecentEntry[];
   readonly importWarnings: readonly BpmnImportWarning[];
   readonly status: SessionStatus;
@@ -146,6 +157,7 @@ export class DocumentSession {
     fileName: null,
     dirty: false,
     conflict: null,
+    outsideChange: null,
     recent: [],
     importWarnings: [],
     status: "idle",
@@ -193,6 +205,9 @@ export class DocumentSession {
         diff.updated.length > 0 ||
         diff.removed.length > 0;
       if (changed && !this.loading && !this.suspended) {
+        // The note describes the last outside change; a local edit retires it.
+        if (this.current.outsideChange !== null)
+          this.patch({ outsideChange: null });
         this.markDirty();
       }
     });
@@ -227,6 +242,7 @@ export class DocumentSession {
       dirty: false,
       importWarnings: [],
       conflict: null,
+      outsideChange: null,
       status: "idle",
       error: null,
     });
@@ -520,6 +536,8 @@ export class DocumentSession {
     // Every load retires the writes queued for the outgoing document; see
     // `performWrite`.
     this.documentGeneration += 1;
+    if (this.current.outsideChange !== null)
+      this.patch({ outsideChange: null });
     this.loading = true;
     try {
       this.editor.loadDocument(document);
@@ -700,6 +718,14 @@ export class DocumentSession {
       conflicts = merged.conflicts.map((conflict) => conflict.id);
     }
     const commit = diffDocuments(local, target);
+    const outsideChange = {
+      added: (commit?.insert?.length ?? 0) + (commit?.insertPages?.length ?? 0),
+      updated:
+        (commit?.update?.length ?? 0) + (commit?.updatePages?.length ?? 0),
+      removed:
+        (commit?.remove?.length ?? 0) + (commit?.removePages?.length ?? 0),
+      merged: this.current.dirty,
+    };
     this.loading = true;
     try {
       if (commit === null) {
@@ -712,6 +738,7 @@ export class DocumentSession {
       this.loading = false;
     }
     this.lastSavedText = diskText;
+    this.patch({ outsideChange });
     if (conflicts.length > 0) {
       this.cancelAutosave();
       this.patch({ conflict: { diskText, mergedConflicts: conflicts } });

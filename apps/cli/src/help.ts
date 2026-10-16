@@ -10,6 +10,7 @@ Look at a document
   nodetto-cli inspect <doc>       Compact outline (or JSON) of pages and elements
   nodetto-cli types [<type>]      Element types and the fields each one takes
   nodetto-cli validate <doc>      Check that a document parses and is valid
+  nodetto-cli diff <old> <new>    What changed between two versions
 
 Draw and edit
   nodetto-cli edit <doc>          Apply add/update/move/delete operations (JSON)
@@ -25,7 +26,8 @@ Convert and check
   nodetto-cli bpmn import|export  BPMN 2.0 XML conversion
 
 Run "nodetto-cli help <command>" or "nodetto-cli <command> --help" for details.
-Typical AI drawing loop: inspect -> types -> edit -> export (look at the PNG) -> repeat.
+Typical AI drawing loop: inspect -> types -> edit --snapshot -> export (look at
+the PNG) -> later, diff <snapshot> <doc> to see what the person changed -> repeat.
 The desktop app shows changes to an open file live and merges them with the
 human's own edits.`;
 
@@ -75,8 +77,8 @@ Example:
 
 ${EXIT_CODES}`,
 
-  edit: `Usage: nodetto-cli edit <doc.jsonl> [--ops <file.json|->] [--arrange] [--dry-run]
-                        [--format text|json]
+  edit: `Usage: nodetto-cli edit <doc.jsonl> --ops <file.json|-> [--arrange] [--dry-run]
+                        [--snapshot <file>] [--format text|json]
 
 Apply a batch of operations through the editor's command layer, so the result is
 exactly what the app would produce. The batch is all-or-nothing: an invalid
@@ -86,30 +88,68 @@ applied (for example the human saved in the app), the batch is applied again
 to the new contents (up to three times) so no human edit is overwritten.
 
 Operations (a JSON array, or JSON Lines; --ops - reads stdin):
-  {"op":"add-page","name":"Flow","kind":"bpmn","id":"p2"}
   {"op":"add","page":"p1","type":"erd.table","ref":"orders",
-   "semantic":{"tableName":"orders","columns":[{"name":"id","dataType":"uuid","pk":true}]},
-   "visual":{"x":320,"y":0}}
-  {"op":"update","id":"t-users","semantic":{"tableName":"accounts"}}
+   "semantic":{"tableName":"orders","columns":[{"name":"id","dataType":"uuid","pk":true}]}}
+  {"op":"add","page":"p1","type":"node.generic","semantic":{"label":"Pay"},
+   "place":{"rightOf":"@orders","gap":80,"align":"center"}}
+  {"op":"connect","from":"@a","to":"@b","label":"next"}
+  {"op":"connect","from":"@orders","to":"users","fromColumn":"user_id",
+   "toColumn":"id","cardinality":"*:1"}
+  {"op":"update","id":"t-users","semantic":{"tableName":"accounts"},"visual":{"x":40}}
+  {"op":"append","id":"@orders","field":"columns","items":[{"name":"total","dataType":"integer"}]}
+  {"op":"remove-item","id":"@orders","field":"columns","item":"total"}
   {"op":"move","id":"t-users","x":40,"y":80}
   {"op":"delete","id":"01M4WD"}
+  {"op":"add-page","name":"Flow","kind":"bpmn","ref":"flow"}
   {"op":"rename-page","id":"p1","name":"Shop schema"}
   {"op":"delete-page","id":"p2"}
 
-  - "id" accepts a unique id prefix, or "@ref" for an element added earlier in
-    the same batch with "ref".
-  - update deep-merges objects; arrays (columns, waypoints) are replaced whole.
-  - Omitted ids are generated; created ids are reported with their ref.
+  - "id", "from", "to" and place targets accept a unique id prefix, or "@ref"
+    for an element added earlier in the batch with "ref"; "page" accepts an id,
+    a name or "@ref".
+  - add: given semantic fields are merged over the type's defaults (run
+    "nodetto-cli types <type>"). Without x/y or "place", the element goes to the
+    right of the page content, centred on the previous auto-placed element.
+    place: one of rightOf, leftOf, below, above, with optional gap (default 80)
+    and align "start" (default) or "center".
+  - connect: picks the connector the app's connect tool would: ERD relation
+    (fromColumn/toColumn by name or id, cardinality default *:1), UML
+    association or component connector, sequence message on the next timeline
+    row, BPMN flow (BPMN rules apply), otherwise a generic edge with an arrow.
+    "label" sets the label (name for BPMN); "type" and "semantic" override.
+  - update deep-merges objects; arrays are replaced whole (use append and
+    remove-item for single list items); null removes a key.
+  - List items that need ids (columns, indexes, attributes) get generated ids.
 
   --arrange   Run Tidy layout on every page the batch touched.
   --dry-run   Validate and report without writing.
+  --snapshot  Also write the result to this file, as the baseline for a later
+              "nodetto-cli diff <snapshot> <doc>".
   --format    text (default) or json report on stdout.
 
 Exit codes: 0 applied, 2 usage, input or operation error, 4 the file kept
 changing during the write (retry later).`,
 
+  diff: `Usage: nodetto-cli diff <before.jsonl> <after.jsonl> [--format text|json] [--exit-code]
+
+Show elements and pages added (+), changed (~, with the changed fields) and
+removed (-) between two versions, as outline lines. An agent keeps the version
+it wrote ("edit --snapshot") and later diffs it against the file to see what
+the person changed in the app.
+
+  --format     text (default) or json.
+  --exit-code  Exit 1 when there are changes (like git diff --exit-code).
+
+Example:
+  nodetto-cli diff .nodetto-last.jsonl flow.jsonl
+  page p1 "Schema"
+    ~ erd.table 01M4WD accounts @40,0 240x80  [semantic.tableName, visual.x]
+  0 added, 1 changed, 0 removed.
+
+${EXIT_CODES}`,
+
   export: `Usage: nodetto-cli export <doc.jsonl> --format svg|png|pdf [--page <id|name>]
-                          [--output <file>] [--padding <n>]
+                          [--element <id>] [--output <file>] [--font-dir <dir>] [--padding <n>]
                           [--background <#rrggbb|transparent>] [--scale <n>]
                           [--pdf-page artwork|a4|letter]
                           [--orientation portrait|landscape] [--margin <mm>]
@@ -118,6 +158,9 @@ Render one page exactly as the app's page export does.
 
   --format       svg, png or pdf (required).
   --page         Page id or name; required when the document has several pages.
+  --element      Render only this element's area (a frame renders everything
+                 inside it). Accepts a unique id prefix; implies its page.
+                 Use it to check one part of a large diagram.
   --output       Output file. SVG prints to stdout without it; PNG and PDF
                  require it.
   --padding      Space around the content in canvas units, 0-256 (default 16).
@@ -125,12 +168,16 @@ Render one page exactly as the app's page export does.
                  and PDF, transparent for SVG.
   --scale        Raster density: 0.5, 0.75, 1, 1.5, 2, 3 or 4 (default 1 for
                  PNG, 2 for the image embedded in a PDF). Limited to 8192 pixels
-                 per side and 32 megapixels.
+                 per side and 32 megapixels; without --scale a drawing that is
+                 too large is rendered at the largest scale that fits.
   --pdf-page     artwork (page fits the drawing, default), a4 or letter.
   --orientation  portrait (default) or landscape, for a4 and letter.
   --margin       PDF margin in millimetres, 0-50 (default 10; artwork ignores it).
 
-PNG uses system fonts; text metrics can differ slightly from the app.
+  --font-dir     Extra directory of fonts for PNG and PDF (for example CJK
+                 fonts). Common system sans and mono faces are always loaded.
+
+PNG text uses those fonts, so metrics can differ slightly from the app.
 
 Example (check a drawing):
   nodetto-cli export flow.jsonl --page Flow --format png --output /tmp/flow.png

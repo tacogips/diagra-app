@@ -25,6 +25,7 @@ import { helpFor, OVERVIEW } from "./help.ts";
 import { inspectCommand } from "./inspect-command.ts";
 import { typesCommand } from "./types-command.ts";
 import { editCommand } from "./edit-command.ts";
+import { diffCommand } from "./diff-command.ts";
 
 /** Result of one command: text for stdout/stderr plus a process exit code. */
 export interface CommandResult {
@@ -683,6 +684,8 @@ export function runCli(
       return lintCommand(io, rest);
     case "bpmn":
       return bpmnCommand(io, rest);
+    case "diff":
+      return diffCommand(io, rest);
     case "edit":
       return editCommand(io, rest);
     case "types":

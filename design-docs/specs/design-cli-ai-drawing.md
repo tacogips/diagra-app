@@ -96,6 +96,26 @@ Operations (a JSON array; JSON Lines is also accepted):
   contents (operations are intent-level, not byte patches) up to three times, then
   fails with exit code 4. It never overwrites a change it has not seen.
 
+### Additions after the first live trial
+
+- `edit`: given semantic fields merge over the type defaults; `place` (rightOf,
+  leftOf, below, above, gap, align) and automatic row placement for elements without
+  a position; `connect` uses the editor's connectSmart (ERD relation with column
+  names, UML association or component connector, sequence message on the next row,
+  BPMN flow under BPMN rules, generic edge); `append` / `remove-item` for list
+  fields; `--snapshot` writes the result as a baseline.
+- `diff <before> <after>`: added, changed (with field names) and removed elements as
+  outline lines, so an agent sees what the person changed since its last write.
+- `export --element` renders one frame (artboard export) or element (selection
+  export); a page export clipped to a viewport made resvg panic. Without `--scale`
+  a too-large drawing renders at the largest scale that fits. PNG loads a short
+  list of common fonts (plus `--font-dir`) instead of scanning every system font,
+  which took tens of seconds on a busy machine.
+- `inspect` orders shapes by rows (vertical centre), then connectors; sequence
+  messages keep timeline order.
+- The app shows "updated from disk +a ~u -r" after an outside change until the next
+  local edit.
+
 ## Live co-editing in the desktop app
 
 The app already watches the open file (`watch.rs`, `document-file-changed`) and today
@@ -128,5 +148,7 @@ reads a partial file.
   sidecar smoke test (export PNG without node_modules).
 - Session tests for clean apply, dirty disjoint merge, field conflict, delete vs modify,
   invalid disk content and autosave after merge.
-- Manual end-to-end: open a file in the app, run `edit` and `export` from a terminal,
-  watch the canvas update, edit in the app, run `inspect` and see the human's change.
+- Live end-to-end (done 2026-10-16 with the dev app and the compiled CLI): a CLI edit
+  appeared in the open app without a banner (verified through the accessibility
+  tree); an app edit was autosaved and read back by the CLI; a concurrent app edit
+  and CLI edit both survived.

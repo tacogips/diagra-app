@@ -252,9 +252,32 @@ function pageOutline(
   const hasMatch = (element: Element): boolean =>
     matches(element) ||
     (children.get(element.id) ?? []).some((child) => hasMatch(child));
+  const isConnector = (element: Element): boolean =>
+    isKnownElementType(element.type) &&
+    getElementTypeDefinition(element.type)?.category === "edge";
+  // Shapes read top-to-bottom, left-to-right; connectors follow them, and
+  // sequence messages keep their timeline order.
+  const ordered = (list: readonly Element[]): Element[] =>
+    [...list].sort((left, right) => {
+      const edge = Number(isConnector(left)) - Number(isConnector(right));
+      if (edge !== 0) return edge;
+      const leftOrder = semanticOf(left)["order"];
+      const rightOrder = semanticOf(right)["order"];
+      if (typeof leftOrder === "string" && typeof rightOrder === "string")
+        return leftOrder < rightOrder ? -1 : leftOrder > rightOrder ? 1 : 0;
+      const a = bounds(left.id);
+      const b = bounds(right.id);
+      if (a && b) {
+        // Same row when the vertical centres are within half the smaller height.
+        const dy = a.y + a.height / 2 - (b.y + b.height / 2);
+        if (Math.abs(dy) > Math.min(a.height, b.height) / 2) return dy;
+        return a.x - b.x;
+      }
+      return left.id < right.id ? -1 : 1;
+    });
   const lines: string[] = [];
   const walk = (parent: string | undefined, depth: number): void => {
-    for (const element of children.get(parent) ?? []) {
+    for (const element of ordered(children.get(parent) ?? [])) {
       if (!hasMatch(element)) continue;
       const indent = "  ".repeat(depth);
       lines.push(`${indent}${headerLine(element, outlineContext)}`);
@@ -266,6 +289,24 @@ function pageOutline(
   };
   walk(undefined, 2);
   return lines;
+}
+
+/** One-line summaries (the outline's header line) for any element of a document. */
+export function summarizer(
+  document: Document,
+  short: (id: string) => string,
+): (element: Element) => string {
+  const editor = new Editor({ document });
+  const byId = new Map(
+    document.elements.map((element) => [element.id, element]),
+  );
+  const bounds = (id: string): Box | null => {
+    const element = byId.get(id);
+    if (!element) return null;
+    editor.setCurrentPage(element.page);
+    return editor.getBounds(id, editor.createShapeContext(1));
+  };
+  return (element) => headerLine(element, { short, byId, bounds });
 }
 
 export function inspectCommand(

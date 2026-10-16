@@ -4,6 +4,7 @@
 // export produces. PNG rasterizes that SVG with resvg instead of a browser
 // canvas, and PDF embeds the PNG with the app's page layout rules.
 
+import { existsSync } from "node:fs";
 import {
   Editor,
   PDF_PAGE_SIZES,
@@ -26,6 +27,7 @@ import {
   writeOutput,
 } from "./commands.ts";
 import { helpFor } from "./help.ts";
+import { resolveId } from "./ids.ts";
 
 const EXPORT_OPTIONS = new Set([
   "--format",
@@ -37,6 +39,8 @@ const EXPORT_OPTIONS = new Set([
   "--pdf-page",
   "--orientation",
   "--margin",
+  "--element",
+  "--font-dir",
 ]);
 
 type ExportFormat = "svg" | "png" | "pdf";
@@ -53,14 +57,57 @@ function parseNumber(value: string | undefined, fallback: number): number {
   return value === undefined ? fallback : Number(value);
 }
 
+/**
+ * Fonts for rasterizing. Scanning every system font is slow (tens of seconds
+ * on some machines), so a short list of common sans and mono faces is loaded;
+ * --font-dir adds more. Only when none of them exists does it fall back to a
+ * full system scan.
+ */
+const FONT_FILES: readonly string[] = [
+  "/System/Library/Fonts/Helvetica.ttc",
+  "/System/Library/Fonts/HelveticaNeue.ttc",
+  "/System/Library/Fonts/SFNS.ttf",
+  "/System/Library/Fonts/Menlo.ttc",
+  "/System/Library/Fonts/Hiragino Sans GB.ttc",
+  "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+  "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+  "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+  "/usr/share/fonts/TTF/DejaVuSans.ttf",
+  "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+  "C:\\Windows\\Fonts\\arial.ttf",
+  "C:\\Windows\\Fonts\\consola.ttf",
+  "C:\\Windows\\Fonts\\YuGothR.ttc",
+];
+
+function fontOptions(fontDir: string | undefined) {
+  const files = FONT_FILES.filter((path) => existsSync(path));
+  const dirs = fontDir === undefined ? [] : [fontDir];
+  if (!files.length && !dirs.length) return { loadSystemFonts: true };
+  const family = (prefix: string, fallback: string) =>
+    files.some((path) => path.includes(prefix)) ? prefix : fallback;
+  const sans = family("Helvetica", family("DejaVuSans", "Arial"));
+  return {
+    loadSystemFonts: false,
+    fontFiles: [...files],
+    fontDirs: dirs,
+    defaultFontFamily: sans,
+    sansSerifFamily: sans,
+    monospaceFamily: family("Menlo", family("DejaVuSansMono", "Consolas")),
+  };
+}
+
 /** Rasterize editor-generated SVG. resvg is loaded lazily: svg export never needs it. */
-async function rasterize(svg: string, scale: number): Promise<Uint8Array> {
+async function rasterize(
+  svg: string,
+  scale: number,
+  fontDir: string | undefined,
+): Promise<Uint8Array> {
   const viewport = svgRasterDimensions(svg);
   rasterDimensions(viewport.width, viewport.height, scale);
   const { Resvg } = await import("@resvg/resvg-js");
   const rendered = new Resvg(svg, {
     fitTo: { mode: "zoom", value: scale },
-    font: { loadSystemFonts: true },
+    font: fontOptions(fontDir),
   }).render();
   return rendered.asPng();
 }
@@ -122,11 +169,12 @@ export async function exportCommand(
     return fail(
       "--background must be a six-digit hex color (#rrggbb) or transparent.",
     );
-  const scale = parseNumber(
-    parsed.options.get("--scale"),
+  const scaleOption = parsed.options.get("--scale");
+  const requestedScale = parseNumber(
+    scaleOption,
     exportFormat === "pdf" ? 2 : 1,
   );
-  if (!RASTER_SCALES.some((value) => value === scale))
+  if (!RASTER_SCALES.some((value) => value === requestedScale))
     return fail(`--scale must be one of ${RASTER_SCALES.join(", ")}.`);
   const pageSize = parsed.options.get("--pdf-page") ?? "artwork";
   if (!isPdfPageSize(pageSize))
@@ -138,9 +186,24 @@ export async function exportCommand(
 
   const loaded = loadDocument(io, path);
   if (typeof loaded === "string") return fail(loaded);
+  const elementQuery = parsed.options.get("--element");
+  let pageQuery = parsed.options.get("--page");
+  let elementId: string | undefined;
+  if (elementQuery !== undefined) {
+    const resolved = resolveId(
+      elementQuery,
+      loaded.document.elements.map((element) => element.id),
+    );
+    if (!resolved.ok) return fail(resolved.message);
+    elementId = resolved.id;
+    const owner = loaded.document.elements.find(
+      (element) => element.id === resolved.id,
+    );
+    if (pageQuery === undefined) pageQuery = owner?.page;
+  }
   const page = selectPage(
     loaded.document,
-    parsed.options.get("--page"),
+    pageQuery,
     loaded.document.pages,
     "The document has no pages.",
     "pages",
@@ -148,7 +211,20 @@ export async function exportCommand(
   if (typeof page === "string") return fail(page);
   const editor = new Editor({ document: loaded.document });
   editor.setCurrentPage(page.id);
-  const svg = editor.exportPageSvg({ padding, background });
+  let svg: string | null;
+  if (elementId !== undefined) {
+    // A frame exports as its artboard; anything else as a one-element
+    // selection. (A page export clipped to a viewport can make resvg panic.)
+    const target = editor.store.get(elementId);
+    if (target?.type === "frame")
+      svg = editor.exportArtboardSvg(elementId, { background });
+    else {
+      editor.selection.set([elementId]);
+      svg = editor.exportSelectionSvg({ padding, background });
+    }
+    if (svg === null)
+      return fail(`Element ${elementId} has nothing visible to export.`);
+  } else svg = editor.exportPageSvg({ padding, background });
   if (svg === null)
     return fail(`Page "${page.name}" has no visible content to export.`);
 
@@ -161,10 +237,34 @@ export async function exportCommand(
 
   let bytes: Uint8Array;
   let pixels: { readonly width: number; readonly height: number };
+  let scale = requestedScale;
+  let note = "";
   try {
     const viewport = svgRasterDimensions(svg);
+    if (scaleOption === undefined) {
+      // Without an explicit --scale, step down until the image fits the limits.
+      const fitting = [...RASTER_SCALES]
+        .filter((value) => value <= requestedScale)
+        .reverse()
+        .find((value) => {
+          try {
+            rasterDimensions(viewport.width, viewport.height, value);
+            return true;
+          } catch {
+            return false;
+          }
+        });
+      if (fitting === undefined)
+        throw new Error(
+          "The drawing is too large to rasterize even at the smallest scale. Export one frame with --element, or use SVG.",
+        );
+      if (fitting !== requestedScale) {
+        scale = fitting;
+        note = `, scaled to ${fitting} to fit the pixel limit`;
+      }
+    }
     pixels = rasterDimensions(viewport.width, viewport.height, scale);
-    const png = await rasterize(svg, scale);
+    const png = await rasterize(svg, scale, parsed.options.get("--font-dir"));
     bytes =
       exportFormat === "png"
         ? png
@@ -186,8 +286,8 @@ export async function exportCommand(
   }
   const detail =
     exportFormat === "png"
-      ? `${pixels.width}x${pixels.height} px`
-      : `${PDF_PAGE_SIZES[pageSize]} page`;
+      ? `${pixels.width}x${pixels.height} px${note}`
+      : `${PDF_PAGE_SIZES[pageSize]} page${note}`;
   return ok(
     "",
     `${loaded.warnings}Wrote ${target} (page "${page.name}", ${detail}).\n`,

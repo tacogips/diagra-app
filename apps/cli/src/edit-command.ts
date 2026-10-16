@@ -8,6 +8,7 @@
 
 import {
   type ArrangeMode,
+  type Box,
   CommandError,
   Editor,
   newElementId,
@@ -34,11 +35,13 @@ import {
 import { helpFor } from "./help.ts";
 import { resolveId } from "./ids.ts";
 
-const EDIT_OPTIONS = new Set(["--ops", "--format"]);
+const EDIT_OPTIONS = new Set(["--ops", "--format", "--snapshot"]);
 const EDIT_FLAGS = new Set(["--arrange", "--dry-run"]);
 /** The file kept changing while the batch was being written. */
 export const EXIT_CONTENDED = 4;
 const MAX_ATTEMPTS = 3;
+/** Default space between placed elements, in canvas units. */
+const PLACE_GAP = 80;
 
 type Json = unknown;
 type JsonObject = Readonly<Record<string, Json>>;
@@ -147,6 +150,8 @@ class Batch {
   readonly refs = new Map<string, string>();
   readonly created: Created[] = [];
   readonly touchedPages = new Set<string>();
+  /** The element auto placement put last on each page, to line up with. */
+  private readonly lastPlaced = new Map<string, string>();
 
   constructor(readonly editor: Editor) {}
 
@@ -246,6 +251,240 @@ class Batch {
     return resolved;
   }
 
+  private boundsOf(id: string): Box | null {
+    const element = this.editor.store.get(id);
+    if (!element) return null;
+    this.editor.setCurrentPage(element.page);
+    return this.editor.getBounds(id, this.editor.createShapeContext(1));
+  }
+
+  /** Create one element; place it relative to another or beside the page content. */
+  add(operation: JsonObject, index: number): string {
+    const type = text(operation["type"], "type", index);
+    if (!isKnownElementType(type))
+      throw new OperationError(
+        index,
+        `Unknown element type "${type}". Run "nodetto-cli types".`,
+      );
+    const page = this.page(operation["page"], index);
+    const definition = getElementTypeDefinition(type);
+    const visual = operation["visual"];
+    if (visual !== undefined && !isPlainObject(visual))
+      throw new OperationError(index, `"visual" must be an object`);
+    const place = operation["place"];
+    if (place !== undefined && !isPlainObject(place))
+      throw new OperationError(index, `"place" must be an object`);
+    const positioned =
+      isPlainObject(visual) && ("x" in visual || "y" in visual);
+    const autoPlace =
+      definition?.category !== "edge" && !positioned && place === undefined;
+    this.editor.setCurrentPage(page.id);
+    const content = autoPlace ? this.editor.pageBounds(page.id) : null;
+    // Given fields are merged over the type's defaults, so an agent states
+    // only what it cares about (lists such as columns replace the default).
+    const semantic =
+      operation["semantic"] === undefined
+        ? undefined
+        : this.resolveReferences(
+            type,
+            fillIds(
+              deepMerge(
+                this.editor.registry.getOrFallback(type).defaultSemantic(),
+                operation["semantic"],
+              ),
+              definition?.keyOrder,
+            ),
+            index,
+          );
+    const id = this.editor.createElement(type, {
+      page: page.id,
+      ...(typeof operation["id"] === "string" ? { id: operation["id"] } : {}),
+      ...(semantic === undefined ? {} : { semantic }),
+      ...(visual === undefined ? {} : { visual }),
+    });
+    if (isPlainObject(place)) this.placeRelative(id, place, index);
+    else if (autoPlace && content) {
+      // Continue the row: right of everything, centred on the previous
+      // auto-placed element so connectors between them run straight.
+      const previous = this.lastPlaced.get(page.id);
+      const previousBox = previous ? this.boundsOf(previous) : null;
+      const own = this.boundsOf(id);
+      const y =
+        previousBox && own
+          ? previousBox.y + (previousBox.height - own.height) / 2
+          : content.y;
+      this.moveBoxTo(id, content.x + content.width + PLACE_GAP, y);
+    }
+    if (autoPlace) this.lastPlaced.set(page.id, id);
+    const ref = operation["ref"];
+    if (typeof ref === "string") {
+      if (this.refs.has(ref))
+        throw new OperationError(index, `ref "${ref}" is already used.`);
+      this.refs.set(ref, id);
+    }
+    this.created.push({
+      ...(typeof ref === "string" ? { ref } : {}),
+      id,
+      type,
+      page: page.id,
+    });
+    this.touchedPages.add(page.id);
+    return id;
+  }
+
+  /** Move an element so that its bounding box starts at (x, y). */
+  private moveBoxTo(id: string, x: number, y: number): void {
+    const element = this.editor.store.get(id);
+    const box = this.boundsOf(id);
+    if (!element || !box) return;
+    const vx = typeof element.visual.x === "number" ? element.visual.x : box.x;
+    const vy = typeof element.visual.y === "number" ? element.visual.y : box.y;
+    this.editor.moveElements([
+      { id, x: Math.round(vx + x - box.x), y: Math.round(vy + y - box.y) },
+    ]);
+  }
+
+  private placeRelative(id: string, place: JsonObject, index: number): void {
+    const sides = ["rightOf", "leftOf", "below", "above"] as const;
+    const side = sides.find((name) => place[name] !== undefined);
+    if (!side)
+      throw new OperationError(
+        index,
+        `"place" needs one of ${sides.join(", ")} with an element id or @ref`,
+      );
+    const anchor = this.element(place[side], index);
+    const gap =
+      place["gap"] === undefined
+        ? PLACE_GAP
+        : number(place["gap"], "place.gap", index);
+    const target = this.boundsOf(anchor.id);
+    const own = this.boundsOf(id);
+    if (!target || !own)
+      throw new OperationError(
+        index,
+        "Cannot place an element without bounds.",
+      );
+    const centered = place["align"] === "center";
+    const alignX = centered
+      ? target.x + (target.width - own.width) / 2
+      : target.x;
+    const alignY = centered
+      ? target.y + (target.height - own.height) / 2
+      : target.y;
+    const position =
+      side === "rightOf"
+        ? { x: target.x + target.width + gap, y: alignY }
+        : side === "leftOf"
+          ? { x: target.x - gap - own.width, y: alignY }
+          : side === "below"
+            ? { x: alignX, y: target.y + target.height + gap }
+            : { x: alignX, y: target.y - gap - own.height };
+    this.moveBoxTo(id, position.x, position.y);
+  }
+
+  /**
+   * Connect two elements the way the app's connect tool does (connectSmart):
+   * ERD tables get a relation, UML classes an association, sequence
+   * participants a message on the next timeline row (lifelines grow), BPMN
+   * nodes a flow that obeys BPMN rules, anything else a generic edge.
+   */
+  connect(operation: JsonObject, index: number): string {
+    const from = this.element(operation["from"], index);
+    const to = this.element(operation["to"], index);
+    if (from.page !== to.page)
+      throw new OperationError(
+        index,
+        "connect needs two elements on the same page.",
+      );
+    if (typeof operation["type"] === "string")
+      return this.add(
+        {
+          op: "add",
+          page: from.page,
+          type: operation["type"],
+          semantic: deepMerge(
+            { from: from.id, to: to.id },
+            isPlainObject(operation["semantic"]) ? operation["semantic"] : {},
+          ),
+          ...(typeof operation["ref"] === "string"
+            ? { ref: operation["ref"] }
+            : {}),
+        },
+        index,
+      );
+    this.editor.setCurrentPage(from.page);
+    const id = this.editor.connectSmart(from.id, to.id);
+    if (id === null)
+      throw new OperationError(
+        index,
+        `Cannot connect ${from.type} to ${to.type} here (a rule of this diagram kind forbids it, or an element is locked).`,
+      );
+    const created = this.editor.store.get(id);
+    if (!created)
+      throw new OperationError(index, "The connector was not created.");
+    let patch: Record<string, Json> = {};
+    if (created.type === "erd.relation") {
+      const column = (table: Element, query: Json, field: string) => {
+        if (query === undefined) return {};
+        const name = text(query, field, index);
+        const columns = isPlainObject(table.semantic)
+          ? table.semantic["columns"]
+          : undefined;
+        const match = Array.isArray(columns)
+          ? columns.find(
+              (item) =>
+                isPlainObject(item) &&
+                (item["id"] === name || item["name"] === name),
+            )
+          : undefined;
+        if (!isPlainObject(match) || typeof match["id"] !== "string")
+          throw new OperationError(
+            index,
+            `${field} "${name}" is not a column of that table.`,
+          );
+        return { column: match["id"] };
+      };
+      patch = {
+        from: {
+          table: from.id,
+          ...column(from, operation["fromColumn"], "fromColumn"),
+        },
+        to: { table: to.id, ...column(to, operation["toColumn"], "toColumn") },
+        cardinality:
+          typeof operation["cardinality"] === "string"
+            ? operation["cardinality"]
+            : "*:1",
+      };
+    }
+    const label = operation["label"];
+    if (typeof label === "string")
+      patch[created.type.startsWith("bpmn.") ? "name" : "label"] = label;
+    if (isPlainObject(operation["semantic"]))
+      patch = deepMerge(patch, operation["semantic"]) as Record<string, Json>;
+    if (Object.keys(patch).length)
+      this.editor.apply([
+        {
+          type: "updateSemantic",
+          id,
+          semantic: deepMerge(created.semantic, patch),
+        },
+      ]);
+    const ref = operation["ref"];
+    if (typeof ref === "string") {
+      if (this.refs.has(ref))
+        throw new OperationError(index, `ref "${ref}" is already used.`);
+      this.refs.set(ref, id);
+    }
+    this.created.push({
+      ...(typeof ref === "string" ? { ref } : {}),
+      id,
+      type: created.type,
+      page: from.page,
+    });
+    this.touchedPages.add(from.page);
+    return id;
+  }
+
   apply(operation: JsonObject, index: number): void {
     const op = operation["op"];
     switch (op) {
@@ -281,46 +520,63 @@ class Batch {
         return;
       }
       case "add": {
-        const type = text(operation["type"], "type", index);
-        if (!isKnownElementType(type))
+        this.add(operation, index);
+        return;
+      }
+      case "connect": {
+        this.connect(operation, index);
+        return;
+      }
+      case "append":
+      case "remove-item": {
+        const element = this.element(operation["id"], index);
+        const field = text(operation["field"], "field", index);
+        const semantic = isPlainObject(element.semantic)
+          ? element.semantic
+          : {};
+        const current = semantic[field];
+        if (!Array.isArray(current))
           throw new OperationError(
             index,
-            `Unknown element type "${type}". Run "nodetto-cli types".`,
+            `${element.type} has no list field "${field}".`,
           );
-        const page = this.page(operation["page"], index);
-        const definition = getElementTypeDefinition(type);
-        const visual = operation["visual"];
-        if (visual !== undefined && !isPlainObject(visual))
-          throw new OperationError(index, `"visual" must be an object`);
-        const semantic =
-          operation["semantic"] === undefined
-            ? undefined
-            : this.resolveReferences(
-                type,
-                fillIds(operation["semantic"], definition?.keyOrder),
-                index,
-              );
-        const id = this.editor.createElement(type, {
-          page: page.id,
-          ...(typeof operation["id"] === "string"
-            ? { id: operation["id"] }
-            : {}),
-          ...(semantic === undefined ? {} : { semantic }),
-          ...(visual === undefined ? {} : { visual }),
-        });
-        const ref = operation["ref"];
-        if (typeof ref === "string") {
-          if (this.refs.has(ref))
-            throw new OperationError(index, `ref "${ref}" is already used.`);
-          this.refs.set(ref, id);
+        let next: Json[];
+        if (op === "append") {
+          const items = operation["items"];
+          if (!Array.isArray(items) || !items.length)
+            throw new OperationError(
+              index,
+              `"items" must be a non-empty array`,
+            );
+          next = [...current, ...items];
+        } else {
+          const item = text(operation["item"], "item", index);
+          const position = current.findIndex(
+            (entry) =>
+              isPlainObject(entry) &&
+              (entry["id"] === item || entry["name"] === item),
+          );
+          if (position < 0)
+            throw new OperationError(
+              index,
+              `No item with id or name "${item}" in ${field}.`,
+            );
+          next = current.filter((_, at) => at !== position);
         }
-        this.created.push({
-          ...(typeof ref === "string" ? { ref } : {}),
-          id,
-          type,
-          page: page.id,
-        });
-        this.touchedPages.add(page.id);
+        const definition = isKnownElementType(element.type)
+          ? getElementTypeDefinition(element.type)
+          : undefined;
+        this.editor.apply([
+          {
+            type: "updateSemantic",
+            id: element.id,
+            semantic: fillIds(
+              { ...semantic, [field]: next },
+              definition?.keyOrder,
+            ),
+          },
+        ]);
+        this.touchedPages.add(element.page);
         return;
       }
       case "update": {
@@ -381,7 +637,7 @@ class Batch {
       default:
         throw new OperationError(
           index,
-          `Unknown op "${String(op)}". Use add-page, rename-page, delete-page, add, update, move or delete.`,
+          `Unknown op "${String(op)}". Use add-page, rename-page, delete-page, add, connect, update, append, remove-item, move or delete.`,
         );
     }
   }
@@ -547,6 +803,15 @@ export function editCommand(
         `Cannot write ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
       );
     }
+    const snapshot = parsed.options.get("--snapshot");
+    if (snapshot !== undefined)
+      try {
+        io.writeText(snapshot, result.text);
+      } catch (cause) {
+        return fail(
+          `Wrote ${path}, but cannot write the snapshot ${snapshot}: ${cause instanceof Error ? cause.message : String(cause)}`,
+        );
+      }
     break;
   }
   if (!result)

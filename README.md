@@ -131,8 +131,10 @@ desktop app. `nodetto-cli --help` is a one-screen overview; `nodetto-cli help
 ```bash
 nodetto-cli inspect flow.jsonl                  # compact indented outline (or --format json)
 nodetto-cli types erd.table                     # fields, defaults and an example "add" op
-nodetto-cli edit flow.jsonl --ops ops.json      # add/update/move/delete, all-or-nothing
+nodetto-cli edit flow.jsonl --ops ops.json --snapshot .last.jsonl  # add/connect/update/..., all-or-nothing
+nodetto-cli diff .last.jsonl flow.jsonl         # what the person changed since the agent's last write
 nodetto-cli export flow.jsonl --page Flow --format png --output /tmp/flow.png
+nodetto-cli export schema.jsonl --element f-orders --format png --output /tmp/frame.png
 nodetto-cli export flow.jsonl --format pdf --pdf-page a4 --output flow.pdf
 ```
 

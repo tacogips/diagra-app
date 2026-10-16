@@ -151,7 +151,7 @@ test("a semantic validation error explains the field", () => {
         op: "add",
         page: "p1",
         type: "erd.table",
-        semantic: { tableName: "t" },
+        semantic: { tableName: "t", columns: "id" },
       },
     ]),
   });

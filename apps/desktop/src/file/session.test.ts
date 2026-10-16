@@ -881,6 +881,16 @@ describe("live outside changes (nodetto-cli and other writers)", () => {
     expect(serializeDocument(harness.editor.getSnapshot())).toBe(external);
     expect(harness.editor.camera.get()).toEqual({ x: 120, y: -40, z: 1.5 });
     expect(harness.timers.pendingCount).toBe(0);
+    expect(harness.session.state().outsideChange).toEqual({
+      added: 1,
+      updated: 0,
+      removed: 0,
+      merged: false,
+    });
+
+    // The note is about the last outside change; a local edit retires it.
+    addShape(harness.editor, "the person draws");
+    expect(harness.session.state().outsideChange).toBeNull();
   });
 
   test("unsaved local edits merge with a disjoint outside change and autosave the result", async () => {
@@ -903,6 +913,7 @@ describe("live outside changes (nodetto-cli and other writers)", () => {
       "first",
     ]);
     expect(harness.session.state().dirty).toBe(true);
+    expect(harness.session.state().outsideChange?.merged).toBe(true);
 
     harness.timers.fire();
     await harness.settle();

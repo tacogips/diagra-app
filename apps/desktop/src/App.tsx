@@ -924,6 +924,17 @@ export function App(props: AppProps): JSX.Element {
         <Show when={file().status === "saving" && !isCloud()}>
           <span class="app-file-status">saving…</span>
         </Show>
+        <Show when={!isCloud() && file().outsideChange}>
+          {(change) => (
+            <span
+              class="app-file-status app-outside-change"
+              role="status"
+              title="Another program (for example nodetto-cli) changed this file; the canvas shows its changes."
+            >
+              {`updated from disk +${change().added} ~${change().updated} -${change().removed}${change().merged ? " (merged)" : ""}`}
+            </span>
+          )}
+        </Show>
         <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
       </header>
       <Show when={props.cloud}>
