@@ -1527,6 +1527,12 @@ input {
   cursor: grab;
 }
 
+/* Active panning takes precedence over creation and resize-handle cursors. */
+.nodetto-canvas.nodetto-panning,
+.nodetto-canvas.nodetto-panning * {
+  cursor: grabbing !important;
+}
+
 .nodetto-canvas.nodetto-connecting {
   cursor: crosshair;
 }

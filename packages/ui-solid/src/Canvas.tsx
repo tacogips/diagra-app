@@ -733,6 +733,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
         [`nodetto-tool-${props.tool.replace(":", "-")}`]: true,
         "nodetto-grid-hidden": !props.showGrid,
         "nodetto-space-pan": interaction.temporaryHand(),
+        "nodetto-panning": interaction.panning(),
         "nodetto-connecting": interaction.pending() !== null,
         "nodetto-image-drop-active": imageDropActive(),
       }}

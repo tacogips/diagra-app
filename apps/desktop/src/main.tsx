@@ -1,9 +1,8 @@
 // Desktop entry point.
 //
-// Builds an editor, seeds the demo document, wires the document session to
-// the host filesystem, and mounts the Solid app. Seeding happens before the
-// session exists so the demo document is the clean starting state rather
-// than the user's first unsaved edit.
+// Starts with an empty untitled document, wires the document session to
+// the host filesystem, and mounts the Solid app. Explicit file-open requests
+// are handled by the launch backend.
 //
 // The packaged desktop client owns local files only. Cloud sessions are supplied
 // by the separately hosted web entry point, never by this application.
@@ -14,7 +13,6 @@ import { App } from "./App.tsx";
 import { createExportBackend, createFileBackend } from "./file/backend.ts";
 import { createLaunchBackend } from "./file/launch.ts";
 import { DocumentSession } from "./file/session.ts";
-import { seed } from "./seed.ts";
 import "./style.css";
 import "./inspector.css";
 
@@ -24,7 +22,6 @@ if (!root) {
 }
 
 const editor = new Editor({ registry: createDefaultRegistry() });
-seed(editor);
 
 const backend = createFileBackend();
 const session = new DocumentSession({ editor, backend });

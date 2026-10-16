@@ -1,8 +1,8 @@
-// The demo document the app opens with.
+// Mixed-diagram fixture used by renderer and file-session tests.
 //
-// It exercises every element type the phase-0 renderer knows, so launching
-// the app is itself a smoke test of the renderer. Kept free of DOM and Solid
-// imports so `seed.test.ts` can assert the same thing without a browser.
+// It exercises the initial renderer element types without populating the
+// application on startup. Kept free of DOM and Solid imports so tests can
+// use it without a browser.
 //
 // The whole thing is applied with `history: "ignore"`: the seed is the
 // starting state, not the user's first edit, so their first undo must not
