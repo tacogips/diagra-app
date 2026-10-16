@@ -1,3 +1,4 @@
+import { straightConnectorSemantic } from "../connector-routing.ts";
 import { MAX_CONNECTOR_WAYPOINTS } from "@nodetto/ir";
 import { For, type JSX, Show } from "solid-js";
 import { Checkbox, Field, NumberInput, SelectInput } from "./controls.tsx";
@@ -33,7 +34,11 @@ export function ConnectorRoutingFields(
       : "straight";
   const waypoints = () => waypointsOf(props.semantic);
   const writeWaypoints = (next: readonly WaypointValue[]): void =>
-    props.write({ ...props.semantic, routingWaypoints: next });
+    props.write(
+      next.length > 0
+        ? { ...props.semantic, routingWaypoints: next }
+        : straightConnectorSemantic(props.semantic),
+    );
   const updateWaypoint = (index: number, patch: Partial<WaypointValue>): void =>
     writeWaypoints(
       waypoints().map((waypoint, at) =>
@@ -149,6 +154,7 @@ export function ConnectorRoutingFields(
                 </button>
                 <button
                   type="button"
+                  aria-label={`Remove connector bend ${index() + 1}`}
                   onClick={() =>
                     writeWaypoints(
                       waypoints().filter((_, at) => at !== index()),

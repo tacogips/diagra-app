@@ -1108,3 +1108,9 @@ Manual saving writes only with File > Save or Cmd/Ctrl+S. Switching back to
 Automatic saves pending edits after the usual quiet period. Quitting waits for
 pending automatic writes; unsaved manual edits or failed saves require a discard
 decision. Outside file changes continue to appear live in either mode.
+
+To straighten a bent connector, select it and choose **Straighten** on the
+selection toolbar or **Straighten connector** in its context menu. Double-click
+a bend handle to remove just that point; removing the final bend makes the line
+straight. A focused bend handle also supports Delete/Backspace. Undo restores
+the removed points.

@@ -1,3 +1,7 @@
+import {
+  removeConnectorWaypoint,
+  straightenConnectors,
+} from "./connector-routing.ts";
 // The canvas: one CSS-transformed viewport holding four layers.
 //
 //   0. on pages with connectors, a DOM layer for frames, which are surfaces
@@ -58,6 +62,7 @@ import {
   createSignal,
   createUniqueId,
   For,
+  Index,
   type JSX,
   lazy,
   onCleanup,
@@ -1066,34 +1071,78 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
                       onPointerDown={(event) =>
                         interaction.startRouteBend(handles().id, event)
                       }
-                      onDblClick={(event) => event.stopPropagation()}
+                      onDblClick={(event) => {
+                        event.stopPropagation();
+                        straightenConnectors(props.editor, [handles().id]);
+                      }}
+                      role="button"
+                      tabindex={0}
+                      aria-label="Connector bend: double-click or press Delete to straighten"
+                      onKeyDown={(event) => {
+                        if (
+                          !["Delete", "Backspace", "Enter", " "].includes(
+                            event.key,
+                          )
+                        )
+                          return;
+                        event.stopPropagation();
+                        event.preventDefault();
+                        straightenConnectors(props.editor, [handles().id]);
+                      }}
                     >
-                      <title>Move orthogonal connector channel</title>
+                      <title>Drag to move; double-click to straighten</title>
                     </circle>
                   )}
                 </Show>
-                <For each={handles().waypoints ?? []}>
+                <Index each={handles().waypoints ?? []}>
                   {(waypoint, index) => (
                     <circle
                       class="nodetto-handle"
-                      cx={waypoint.x}
-                      cy={waypoint.y}
+                      cx={waypoint().x}
+                      cy={waypoint().y}
                       r={5 / zoom()}
                       style={{ cursor: "move" }}
                       vector-effect="non-scaling-stroke"
                       onPointerDown={(event) =>
                         interaction.startRouteWaypoint(
                           handles().id,
-                          index(),
+                          index,
                           event,
                         )
                       }
-                      onDblClick={(event) => event.stopPropagation()}
+                      onDblClick={(event) => {
+                        event.stopPropagation();
+                        removeConnectorWaypoint(
+                          props.editor,
+                          handles().id,
+                          index,
+                        );
+                      }}
+                      role="button"
+                      tabindex={0}
+                      aria-label={`Connector bend ${index + 1}: double-click or press Delete to remove`}
+                      onKeyDown={(event) => {
+                        if (
+                          !["Delete", "Backspace", "Enter", " "].includes(
+                            event.key,
+                          )
+                        )
+                          return;
+                        event.stopPropagation();
+                        event.preventDefault();
+                        removeConnectorWaypoint(
+                          props.editor,
+                          handles().id,
+                          index,
+                        );
+                      }}
                     >
-                      <title>Move connector waypoint {index() + 1}</title>
+                      <title>
+                        Drag to move; double-click to remove bend {index + 1}
+                      </title>
                     </circle>
                   )}
-                </For>
+                </Index>
               </>
             )}
           </Show>
