@@ -9,6 +9,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::Manager;
 
 /// Distinguishes concurrent writes to the same target within one process.
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -70,6 +71,29 @@ pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
 /// matched in `apps/desktop/src/file/session.ts`.
 pub const MISSING_FILE_MESSAGE: &str = "file not found";
 
+/// Allocate a managed document name without creating an empty file.
+fn autosave_path(directory: &Path) -> io::Result<PathBuf> {
+    fs::create_dir_all(directory)?;
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let counter = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    Ok(directory.join(format!("Untitled-{nanos}-{counter}.jsonl")))
+}
+
+#[tauri::command]
+pub fn autosave_document_path(app: tauri::AppHandle) -> Result<String, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("documents");
+    autosave_path(&directory)
+        .map(|path| path.to_string_lossy().into_owned())
+        .map_err(|error| format!("could not allocate autosave path: {error}"))
+}
+
 #[tauri::command]
 pub fn read_document(path: String) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|error| match error.kind() {
@@ -101,6 +125,19 @@ mod tests {
             .filter_map(|entry| entry.ok().map(|entry| entry.path()))
             .filter(|path| path.extension().is_some_and(|extension| extension == "tmp"))
             .collect()
+    }
+
+    #[test]
+    fn autosave_names_are_unique_and_do_not_create_empty_files() {
+        let directory = tempdir().expect("temp dir");
+        let documents = directory.path().join("documents");
+        let first = autosave_path(&documents).expect("first path");
+        let second = autosave_path(&documents).expect("second path");
+        assert_ne!(first, second);
+        assert_eq!(first.parent(), Some(documents.as_path()));
+        assert_eq!(fs::read_dir(&documents).expect("directory").count(), 0);
+        write_atomic(&first, "shape\n").expect("first actual save");
+        assert_eq!(fs::read_to_string(first).expect("read"), "shape\n");
     }
 
     #[test]

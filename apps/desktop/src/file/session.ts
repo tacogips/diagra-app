@@ -27,10 +27,12 @@ import {
   assertValidDocument,
   type Document,
   formatIssue,
+  getElementTypeDefinition,
   SCHEMA_VERSION,
 } from "@nodetto/ir";
 import { parseDocumentResult, serializeDocument } from "@nodetto/io";
 import type { BpmnImportWarning } from "@nodetto/io";
+import type { SaveMode } from "./save-mode.ts";
 import { createFileDocumentChangeSource } from "./change-source.ts";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
@@ -57,6 +59,7 @@ export interface OutsideChange {
 }
 
 export interface SessionState {
+  readonly saveMode: SaveMode;
   readonly filePath: string | null;
   readonly fileName: string | null;
   readonly dirty: boolean;
@@ -78,6 +81,7 @@ export interface DocumentSessionOptions {
   readonly editor: Editor;
   readonly backend: FileBackend;
   readonly changes?: DocumentChangeSource;
+  readonly saveMode?: SaveMode;
   /** Quiet period after the last edit before autosave writes. */
   readonly autosaveDelayMs?: number;
   readonly scheduleTimer?: (
@@ -158,6 +162,7 @@ export class DocumentSession {
   private readonly unsubscribeEditor: () => void;
 
   private current: SessionState = {
+    saveMode: "automatic",
     filePath: null,
     fileName: null,
     dirty: false,
@@ -187,8 +192,16 @@ export class DocumentSession {
   /** Serializes writes, so two saves can never interleave on one file. */
   private writes: Promise<unknown> = Promise.resolve();
   private disposed = false;
+  private automaticSave: {
+    generation: number;
+    promise: Promise<boolean>;
+  } | null = null;
 
   constructor(options: DocumentSessionOptions) {
+    this.current = {
+      ...this.current,
+      saveMode: options.saveMode ?? "automatic",
+    };
     this.editor = options.editor;
     this.backend = options.backend;
     this.changes =
@@ -231,6 +244,13 @@ export class DocumentSession {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  setSaveMode(mode: SaveMode): void {
+    if (mode === this.current.saveMode) return;
+    this.cancelAutosave();
+    this.patch({ saveMode: mode });
+    if (this.canAutosave()) this.scheduleAutosave();
   }
 
   /** Discard the open file and start from an empty document. */
@@ -482,10 +502,11 @@ export class DocumentSession {
    * that has not fired yet would otherwise take the last edit with it.
    */
   async flush(): Promise<boolean> {
-    if (this.autosaveHandle === null || this.current.filePath === null) {
-      return false;
-    }
-    return this.save();
+    const written = await this.saveAutomatically();
+    await this.writes;
+    // Edits made while the first write was in flight still need to land.
+    if (written && this.canAutosave()) return this.saveAutomatically();
+    return written;
   }
 
   /**
@@ -557,16 +578,77 @@ export class DocumentSession {
     // which version wins; writing while it is up would answer that question
     // for the user and destroy the other writer's work. Explicit saves are
     // still allowed - those are the user answering "keep mine" themselves.
-    if (this.current.filePath !== null && this.current.conflict === null) {
+    if (this.canAutosave()) {
       this.scheduleAutosave();
     }
+  }
+
+  private canAutosave(): boolean {
+    return (
+      !this.disposed &&
+      !this.suspended &&
+      this.backend.available &&
+      this.current.saveMode === "automatic" &&
+      this.current.dirty &&
+      this.current.conflict === null &&
+      (this.current.filePath !== null ||
+        (this.backend.autosavePath !== undefined &&
+          this.editor.store
+            .listElements()
+            .some(
+              (element) =>
+                getElementTypeDefinition(element.type)?.category !== "resource",
+            )))
+    );
+  }
+
+  private saveAutomatically(): Promise<boolean> {
+    this.cancelAutosave();
+    if (this.automaticSave?.generation === this.documentGeneration) {
+      return this.automaticSave.promise;
+    }
+    const pending = {
+      generation: this.documentGeneration,
+      promise: this.performAutomaticSave(),
+    };
+    this.automaticSave = pending;
+    void pending.promise.finally(() => {
+      if (this.automaticSave === pending) this.automaticSave = null;
+    });
+    return pending.promise;
+  }
+
+  private async performAutomaticSave(): Promise<boolean> {
+    if (!this.canAutosave()) return false;
+    const generation = this.documentGeneration;
+    let path = this.current.filePath;
+    const firstSave = path === null;
+    try {
+      if (path === null) path = (await this.backend.autosavePath?.()) ?? null;
+    } catch (error) {
+      if (generation === this.documentGeneration)
+        this.fail(`could not create autosave file: ${describe(error)}`);
+      return false;
+    }
+    if (!path || generation !== this.documentGeneration || !this.canAutosave())
+      return false;
+    // An explicit Save As may have chosen a path while allocation was pending.
+    path = this.current.filePath ?? path;
+    const written = await this.write(path, true);
+    const stale = () =>
+      generation !== this.documentGeneration || this.current.filePath !== path;
+    if (written && firstSave && !stale()) {
+      await this.rememberRecent(path, stale);
+      if (!stale()) await this.startWatching(path);
+    }
+    return written;
   }
 
   private scheduleAutosave(): void {
     this.cancelAutosave();
     this.autosaveHandle = this.scheduleTimer(() => {
       this.autosaveHandle = null;
-      void this.save();
+      void this.saveAutomatically();
     }, this.autosaveDelayMs);
   }
 
@@ -586,23 +668,25 @@ export class DocumentSession {
    * serialized later, so without it a write queued for one document would
    * write whatever document the session held by the time its turn came.
    */
-  private write(path: string): Promise<boolean> {
+  private write(path: string, automatic = false): Promise<boolean> {
     const generation = this.documentGeneration;
     // Which banner, if any, this write is an answer to.
     const answering = this.current.conflict;
     const queued = this.writes.then(
-      () => this.performWrite(path, generation, answering),
-      () => this.performWrite(path, generation, answering),
+      () => this.performWrite(path, generation, answering, automatic),
+      () => this.performWrite(path, generation, answering, automatic),
     );
     this.writes = queued;
     return queued;
   }
 
   private async performWrite(
-    path: string,
+    requestedPath: string,
     generation: number,
     answering: SessionConflict | null,
+    automatic: boolean,
   ): Promise<boolean> {
+    if (automatic && !this.canAutosave()) return false;
     if (generation !== this.documentGeneration) {
       // The session opened another document while this write waited its
       // turn. Writing now would put the new document into the old
@@ -610,6 +694,11 @@ export class DocumentSession {
       return false;
     }
 
+    // An explicit Save As may have completed while this automatic write
+    // waited in the queue. Keep following the chosen destination.
+    const path = automatic
+      ? (this.current.filePath ?? requestedPath)
+      : requestedPath;
     let text: string;
     try {
       text = serializeDocument(this.editor.getSnapshot());
@@ -635,10 +724,11 @@ export class DocumentSession {
     }
 
     this.lastSavedText = text;
+    const dirty = serializeDocument(this.editor.getSnapshot()) !== text;
     this.patch({
       filePath: path,
       fileName: baseName(path),
-      dirty: false,
+      dirty,
       // Saving with a banner up is the user choosing "keep mine", and disk
       // now holds their document, so that banner is answered. A banner
       // raised *during* this write is a different question about a change
@@ -648,6 +738,7 @@ export class DocumentSession {
       status: "idle",
       error: null,
     });
+    if (dirty) this.markDirty();
     return true;
   }
 

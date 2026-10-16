@@ -1095,3 +1095,16 @@ The circular handle above a selected leaf rotates it directly; hold Shift for
 15-degree snapping. A drag is one undo step; Escape or pointer cancellation
 discards it. Marquee selection tests oriented layer bounds after frame clipping,
 including group members, instead of the empty corners of their envelopes.
+
+## File saving
+
+Settings > File saving switches between Automatic (the default) and Manual.
+The preference is remembered across launches. Automatic saving creates a JSONL
+file in the app data directory's `documents` folder after the first shape is
+created; an empty document creates no file. These documents appear in File >
+Recent. File > Save as chooses a different location.
+
+Manual saving writes only with File > Save or Cmd/Ctrl+S. Switching back to
+Automatic saves pending edits after the usual quiet period. Quitting waits for
+pending automatic writes; unsaved manual edits or failed saves require a discard
+decision. Outside file changes continue to appear live in either mode.

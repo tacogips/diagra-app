@@ -67,6 +67,7 @@ import { bindCloudFileOwnership } from "./cloud/file-ownership.ts";
 import { type CloudSettings, defaultCloudSettings } from "./cloud/settings.ts";
 import type { ExportBackend } from "./file/backend.ts";
 import { type LaunchBackend, watchOpenRequests } from "./file/launch.ts";
+import { loadSaveMode, storeSaveMode } from "./file/save-mode.ts";
 import type { DocumentSession, SessionState } from "./file/session.ts";
 import {
   CANVAS_MIN_WIDTH,
@@ -167,6 +168,7 @@ export function App(props: AppProps): JSX.Element {
     readonly target: ElementId | undefined;
     readonly onPlaced: () => void;
   } | null>(null);
+  props.session.setSaveMode(loadSaveMode(preferenceStorage()));
   const [file, setFile] = createSignal<SessionState>(props.session.state());
   const [cloud, setCloud] = createSignal<CloudSessionState | undefined>(
     props.cloud?.state(),
@@ -849,35 +851,57 @@ export function App(props: AppProps): JSX.Element {
             </div>
           </details>
         </Show>
-        <Show when={props.cloud}>
+        <Show when={props.filesAvailable || props.cloud}>
           <details class="app-settings-menu" ref={settingsMenu}>
-            <summary class="app-file-button">Cloud settings</summary>
+            <summary class="app-file-button">Settings</summary>
             <div class="app-settings-controls">
-              <button
-                type="button"
-                class="app-file-button"
-                aria-expanded={cloudPanelExpanded()}
-                onClick={() => {
-                  const next = !cloudPanelExpanded();
-                  setCloudPanelExpanded(next);
-                  settingsMenu?.removeAttribute("open");
-                  queueMicrotask(() => {
-                    if (next) {
-                      cloudPanelHost
-                        ?.querySelector<HTMLElement>(
-                          ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
-                        )
-                        ?.focus();
-                    } else {
-                      settingsMenu
-                        ?.querySelector<HTMLElement>("summary")
-                        ?.focus();
-                    }
-                  });
-                }}
-              >
-                {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
-              </button>
+              <Show when={props.filesAvailable}>
+                <label class="app-saving-setting">
+                  File saving
+                  <select
+                    aria-label="File saving"
+                    value={file().saveMode}
+                    onChange={(event) => {
+                      const mode =
+                        event.currentTarget.value === "manual"
+                          ? "manual"
+                          : "automatic";
+                      props.session.setSaveMode(mode);
+                      storeSaveMode(mode, preferenceStorage());
+                    }}
+                  >
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </label>
+              </Show>
+              <Show when={props.cloud}>
+                <button
+                  type="button"
+                  class="app-file-button"
+                  aria-expanded={cloudPanelExpanded()}
+                  onClick={() => {
+                    const next = !cloudPanelExpanded();
+                    setCloudPanelExpanded(next);
+                    settingsMenu?.removeAttribute("open");
+                    queueMicrotask(() => {
+                      if (next) {
+                        cloudPanelHost
+                          ?.querySelector<HTMLElement>(
+                            ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
+                          )
+                          ?.focus();
+                      } else {
+                        settingsMenu
+                          ?.querySelector<HTMLElement>("summary")
+                          ?.focus();
+                      }
+                    });
+                  }}
+                >
+                  {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
+                </button>
+              </Show>
             </div>
           </details>
         </Show>
