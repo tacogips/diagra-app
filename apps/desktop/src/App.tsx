@@ -1,3 +1,8 @@
+import { SettingsDialog } from "./settings/SettingsDialog.tsx";
+import {
+  loadEditorPreferences,
+  storeEditorPreferences,
+} from "./settings/preferences.ts";
 import { watchNativeFileMenu } from "./file/native-menu.ts";
 // App shell: file controls, cloud controls, the toolbar, page tabs, the
 // canvas with its floating chrome, and the Inspector column.
@@ -181,31 +186,16 @@ export function App(props: AppProps): JSX.Element {
   const [cloudPanelExpanded, setCloudPanelExpanded] = createSignal(false);
 
   // Editor chrome state (design editor-ux 3.3, 3.5, 3.6, 4).
-  const [snap, setSnap] = createSignal<SnapSettings>({
-    grid: true,
-    objects: true,
-    guides: true,
-  });
-  const [showGrid, setShowGrid] = createSignal(true);
-  const [showRulers, setShowRulers] = createSignal(
-    (() => {
-      try {
-        return (
-          preferenceStorage()?.getItem("nodetto.view.show-rulers") !== "false"
-        );
-      } catch {
-        return true;
-      }
-    })(),
+  const preferences = loadEditorPreferences(preferenceStorage());
+  props.session.setAutosaveDelayMs(preferences.autosaveDelayMs);
+  const [autosaveDelayMs, setAutosaveDelayMs] = createSignal(
+    preferences.autosaveDelayMs,
   );
-  const changeShowRulers = (show: boolean) => {
-    setShowRulers(show);
-    try {
-      preferenceStorage()?.setItem("nodetto.view.show-rulers", String(show));
-    } catch {
-      // View controls still work when preference storage is unavailable.
-    }
-  };
+  const [settingsOpen, setSettingsOpen] = createSignal(false);
+  const [snap, setSnap] = createSignal<SnapSettings>(preferences.snap);
+  const [showGrid, setShowGrid] = createSignal(preferences.showGrid);
+  const [showRulers, setShowRulers] = createSignal(preferences.showRulers);
+  const changeShowRulers = setShowRulers;
   const [viewport, setViewport] = createSignal({ width: 0, height: 0 });
   const [editing, setEditing] = createSignal<EditingTarget | null>(null);
   const [contextMenu, setContextMenu] = createSignal<{
@@ -222,8 +212,25 @@ export function App(props: AppProps): JSX.Element {
   const [exportRequest, setExportRequest] = createSignal(0);
   const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
-  const [leftPaneOpen, setLeftPaneOpen] = createSignal(true);
-  const [rightPaneOpen, setRightPaneOpen] = createSignal(true);
+  const [leftPaneOpen, setLeftPaneOpen] = createSignal(
+    preferences.leftPaneOpen,
+  );
+  const [rightPaneOpen, setRightPaneOpen] = createSignal(
+    preferences.rightPaneOpen,
+  );
+  createEffect(() =>
+    storeEditorPreferences(
+      {
+        showGrid: showGrid(),
+        showRulers: showRulers(),
+        leftPaneOpen: leftPaneOpen(),
+        rightPaneOpen: rightPaneOpen(),
+        snap: snap(),
+        autosaveDelayMs: autosaveDelayMs(),
+      },
+      preferenceStorage(),
+    ),
+  );
   const [leftPaneWidth, setLeftPaneWidth] = createSignal(260);
   const [rightPaneWidth, setRightPaneWidth] = createSignal(300);
   const [draggingPane, setDraggingPane] = createSignal<PaneSide | null>(null);
@@ -236,13 +243,13 @@ export function App(props: AppProps): JSX.Element {
   let leftCollapseButton: HTMLButtonElement | undefined;
   let rightCollapseButton: HTMLButtonElement | undefined;
   let fileMenu: HTMLDetailsElement | undefined;
-  let settingsMenu: HTMLDetailsElement | undefined;
+  let settingsButton: HTMLButtonElement | undefined;
   let cloudPanelHost: HTMLDivElement | undefined;
   let documentStatusHost: HTMLDivElement | undefined;
   const [cloudPanelTop, setCloudPanelTop] = createSignal(44);
   const dismissCloudPanel = (): void => {
     setCloudPanelExpanded(false);
-    settingsMenu?.querySelector<HTMLElement>("summary")?.focus();
+    settingsButton?.focus();
   };
   const [editorBodyWidth, setEditorBodyWidth] = createSignal(0);
 
@@ -643,7 +650,7 @@ export function App(props: AppProps): JSX.Element {
 
   onMount(() => {
     const stop = watchNativeFileMenu({
-      canEdit: () => props.filesAvailable && !isCloud(),
+      canEdit: () => props.filesAvailable && !isCloud() && !settingsOpen(),
       newDocument,
       open,
       save: () => {
@@ -654,6 +661,7 @@ export function App(props: AppProps): JSX.Element {
         void props.session.saveAs();
       },
       exportDocument: () => {
+        if (settingsOpen()) return;
         runAction(getAction("exportSvg"), actionContext());
       },
     });
@@ -664,6 +672,7 @@ export function App(props: AppProps): JSX.Element {
 
   onMount(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
+      if (settingsOpen()) return;
       const modifier = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
 
@@ -700,6 +709,7 @@ export function App(props: AppProps): JSX.Element {
     };
     window.addEventListener("keydown", onKeyDown, true);
     const localHistory = (event: KeyboardEvent): void => {
+      if (settingsOpen()) return;
       if (!isCloud()) handleHistoryShortcut(event, props.editor);
     };
     // Bubble after canvas handlers so their nudge/gesture bookkeeping runs
@@ -711,7 +721,7 @@ export function App(props: AppProps): JSX.Element {
         event instanceof MouseEvent &&
         event.target instanceof Node &&
         !cloudPanelHost?.contains(event.target) &&
-        !settingsMenu?.contains(event.target) &&
+        !settingsButton?.contains(event.target) &&
         !(
           event.target instanceof Element &&
           event.target.closest(".nodetto-help-tooltip")
@@ -719,7 +729,7 @@ export function App(props: AppProps): JSX.Element {
       ) {
         setCloudPanelExpanded(false);
       }
-      for (const menu of [fileMenu, settingsMenu]) {
+      for (const menu of [fileMenu]) {
         if (
           !menu?.open ||
           !(
@@ -886,6 +896,51 @@ export function App(props: AppProps): JSX.Element {
           </button>
         </div>
       </Show>
+      <Show when={settingsOpen()}>
+        <SettingsDialog
+          workspace={workspace()}
+          onWorkspaceChange={changeWorkspace}
+          showGrid={showGrid()}
+          onShowGridChange={setShowGrid}
+          showRulers={showRulers()}
+          onShowRulersChange={changeShowRulers}
+          leftPaneOpen={leftPaneOpen()}
+          rightPaneOpen={rightPaneOpen()}
+          onPaneChange={(side, open) => {
+            if (open) restorePane(side);
+            else hidePane(side);
+          }}
+          snap={snap()}
+          onSnapChange={setSnap}
+          filesAvailable={props.filesAvailable}
+          saveMode={file().saveMode}
+          onSaveModeChange={(mode) => {
+            props.session.setSaveMode(mode);
+            storeSaveMode(mode, preferenceStorage());
+          }}
+          autosaveDelayMs={autosaveDelayMs()}
+          onAutosaveDelayChange={(delay) => {
+            props.session.setAutosaveDelayMs(delay);
+            setAutosaveDelayMs(delay);
+          }}
+          filePath={file().filePath}
+          cloud={props.cloud ? settings() : undefined}
+          onCloudChange={updateSettings}
+          onOpenCloud={() => {
+            setSettingsOpen(false);
+            setCloudPanelExpanded(true);
+            queueMicrotask(() =>
+              cloudPanelHost
+                ?.querySelector<HTMLElement>("input, button")
+                ?.focus(),
+            );
+          }}
+          onClose={() => {
+            setSettingsOpen(false);
+            queueMicrotask(() => settingsButton?.focus());
+          }}
+        />
+      </Show>
       <Toolbar
         workspace={workspace()}
         onWorkspaceChange={changeWorkspace}
@@ -988,66 +1043,17 @@ export function App(props: AppProps): JSX.Element {
                 </div>
               </details>
             </Show>
-            <Show when={props.filesAvailable || props.cloud}>
-              <details class="app-settings-menu" ref={settingsMenu}>
-                <summary
-                  class="app-file-button app-header-icon"
-                  aria-label="Settings"
-                  title="Settings"
-                >
-                  <Icon name="settings" />
-                </summary>
-                <div class="app-settings-controls">
-                  <Show when={props.filesAvailable}>
-                    <label class="app-saving-setting">
-                      File saving
-                      <select
-                        aria-label="File saving"
-                        value={file().saveMode}
-                        onChange={(event) => {
-                          const mode =
-                            event.currentTarget.value === "manual"
-                              ? "manual"
-                              : "automatic";
-                          props.session.setSaveMode(mode);
-                          storeSaveMode(mode, preferenceStorage());
-                        }}
-                      >
-                        <option value="automatic">Automatic</option>
-                        <option value="manual">Manual</option>
-                      </select>
-                    </label>
-                  </Show>
-                  <Show when={props.cloud}>
-                    <button
-                      type="button"
-                      class="app-file-button"
-                      aria-expanded={cloudPanelExpanded()}
-                      onClick={() => {
-                        const next = !cloudPanelExpanded();
-                        setCloudPanelExpanded(next);
-                        settingsMenu?.removeAttribute("open");
-                        queueMicrotask(() => {
-                          if (next) {
-                            cloudPanelHost
-                              ?.querySelector<HTMLElement>(
-                                ".app-cloud-body input, .app-cloud-body button, .app-cloud-body select",
-                              )
-                              ?.focus();
-                          } else {
-                            settingsMenu
-                              ?.querySelector<HTMLElement>("summary")
-                              ?.focus();
-                          }
-                        });
-                      }}
-                    >
-                      {cloudPanelExpanded() ? "Hide cloud" : "Cloud"}
-                    </button>
-                  </Show>
-                </div>
-              </details>
-            </Show>
+            <button
+              type="button"
+              class="app-file-button app-header-icon"
+              ref={settingsButton}
+              aria-label="Settings"
+              title="Settings"
+              aria-haspopup="dialog"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Icon name="settings" />
+            </button>
           </div>
         }
         toolsContent={
@@ -1313,7 +1319,7 @@ export function App(props: AppProps): JSX.Element {
             </Show>
             <Show when={editing() === null}>
               <SelectionToolbar
-                simple={workspace() !== "all"}
+                simple={simpleWorkspace()}
                 context={actionContext()}
                 host={canvasHost()}
                 onMore={() => {
@@ -1403,7 +1409,7 @@ export function App(props: AppProps): JSX.Element {
               <Inspector
                 editor={props.editor}
                 focus={inspectorFocus()}
-                simple={workspace() !== "all"}
+                simple={simpleWorkspace()}
               />
             </div>
             <Show when={isBpmnPage()}>

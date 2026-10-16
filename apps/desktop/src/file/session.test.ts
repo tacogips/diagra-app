@@ -1443,3 +1443,36 @@ test("explicit Save As wins over a pending first automatic save", async () => {
   expect(h.backend.writes).toHaveLength(1);
   h.session.dispose();
 });
+
+test("changing autosave delay re-arms pending edits and respects manual mode", async () => {
+  const h = createHarness({ seeded: false });
+  h.session.dispose();
+  h.backend.files.set("delay.jsonl", serializeDocument(h.editor.getSnapshot()));
+  const delays: number[] = [];
+  const cancelled: unknown[] = [];
+  const session = new DocumentSession({
+    editor: h.editor,
+    backend: h.backend,
+    scheduleTimer: (_callback, delay) => {
+      delays.push(delay);
+      return delays.length;
+    },
+    cancelTimer: (handle) => {
+      cancelled.push(handle);
+    },
+  });
+  await session.openPath("delay.jsonl");
+  addShape(h.editor, "pending");
+  session.setAutosaveDelayMs(3000);
+  expect(delays).toEqual([1000, 3000]);
+  expect(cancelled).toContain(1);
+  for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, -1, 50, 60001])
+    session.setAutosaveDelayMs(invalid);
+  expect(delays).toHaveLength(2);
+  session.setSaveMode("manual");
+  session.setAutosaveDelayMs(500);
+  expect(delays).toHaveLength(2);
+  session.setSaveMode("automatic");
+  expect(delays.at(-1)).toBe(500);
+  session.dispose();
+});

@@ -21,6 +21,16 @@ export interface Workspace {
   }[];
 }
 export const WORKSPACES = [
+  {
+    id: "flow",
+    label: "General",
+    design: true,
+    shapes: true,
+    tools: [
+      { tool: "node.generic", label: "Node" },
+      { tool: "edge", label: "Connector" },
+    ],
+  },
   { id: "app", label: "App design", design: true, shapes: true, tools: [] },
   { id: "web", label: "Web design", design: true, shapes: true, tools: [] },
   {
@@ -56,16 +66,6 @@ export const WORKSPACES = [
     ],
   },
   {
-    id: "flow",
-    label: "Flow & architecture",
-    design: false,
-    shapes: true,
-    tools: [
-      { tool: "node.generic", label: "Node" },
-      { tool: "edge", label: "Connector" },
-    ],
-  },
-  {
     id: "component",
     label: "UML component",
     design: false,
@@ -97,7 +97,7 @@ export const WORKSPACES = [
 ] as const satisfies readonly Workspace[];
 export const WORKSPACE_STORAGE_KEY = "nodetto.workspace.v1";
 export function workspaceById(value: unknown): Workspace {
-  return WORKSPACES.find((entry) => entry.id === value) ?? WORKSPACES[5];
+  return WORKSPACES.find((entry) => entry.id === value) ?? WORKSPACES[0];
 }
 export function readWorkspacePreference(
   storage: Pick<Storage, "getItem"> | undefined,

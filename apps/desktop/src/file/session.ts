@@ -151,7 +151,7 @@ export class DocumentSession {
   private readonly backend: FileBackend;
   private readonly changes: DocumentChangeSource;
   private readonly changeMonitor = new DocumentChangeMonitor();
-  private readonly autosaveDelayMs: number;
+  private autosaveDelayMs: number;
   private readonly scheduleTimer: (
     callback: () => void,
     delayMs: number,
@@ -250,6 +250,12 @@ export class DocumentSession {
     if (mode === this.current.saveMode) return;
     this.cancelAutosave();
     this.patch({ saveMode: mode });
+    if (this.canAutosave()) this.scheduleAutosave();
+  }
+
+  setAutosaveDelayMs(delayMs: number): void {
+    if (!Number.isFinite(delayMs) || delayMs < 100 || delayMs > 60000) return;
+    this.autosaveDelayMs = delayMs;
     if (this.canAutosave()) this.scheduleAutosave();
   }
 

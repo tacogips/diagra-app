@@ -1098,7 +1098,7 @@ including group members, instead of the empty corners of their envelopes.
 
 ## File saving
 
-Settings > File saving switches between Automatic (the default) and Manual.
+Settings > Files > File saving switches between Automatic (the default) and Manual.
 The preference is remembered across launches. Automatic saving creates a JSONL
 file in the app data directory's `documents` folder after the first shape is
 created; an empty document creates no file. These documents appear in File >
@@ -1125,3 +1125,12 @@ the shared Export dialog.
 Shape creation lives in the left pane. Pan with right-click drag; H/V remain
 available as shortcuts. Filename and save status sit directly above the page
 tabs within the viewer column. Pane corners have small collapse chevrons.
+
+General is the default mode and appears first in the mode selector. Its palette
+includes basic shapes, UML classes/components, ERD tables and sequence
+participants without switching modes; Freehand is available under More shapes.
+Settings opens a dialog with categories down the left: General, Canvas,
+Snapping, Files and Shortcuts, plus Collaboration when cloud features are
+available. Grid/rulers, snapping, pane visibility and autosave delay are remembered
+across launches. The same view preferences stay synchronized with the canvas
+controls.
