@@ -1289,3 +1289,157 @@ test("page-only edits autosave their names and order, while changing the active 
     h.session.dispose();
   }
 });
+
+describe("saving modes and first-shape autosave", () => {
+  test("empty documents and page-only changes create no file", async () => {
+    const h = createHarness({ seeded: false });
+    let allocations = 0;
+    h.backend.autosavePath = async () => {
+      allocations += 1;
+      return "managed.jsonl";
+    };
+    await h.session.flush();
+    h.editor.createPage({ kind: "freeform", name: "Extra" });
+    h.timers.fire();
+    await h.session.flush();
+    expect(allocations).toBe(0);
+    expect(h.backend.writes).toHaveLength(0);
+    h.session.dispose();
+  });
+
+  test("first shape saves without a dialog and is watched and listed in Recent", async () => {
+    const h = createHarness({ seeded: false });
+    h.backend.autosavePath = async () => "managed.jsonl";
+    addShape(h.editor, "first");
+    expect(h.backend.writes).toHaveLength(0);
+    expect(await h.session.flush()).toBe(true);
+    expect(h.session.state().filePath).toBe("managed.jsonl");
+    expect(h.session.state().dirty).toBe(false);
+    expect(
+      parseDocument(h.backend.files.get("managed.jsonl") ?? "").elements,
+    ).toHaveLength(1);
+    expect(h.backend.watched).toContain("managed.jsonl");
+    expect(h.session.state().recent[0]?.path).toBe("managed.jsonl");
+    h.session.dispose();
+  });
+
+  test("undoing the first shape before autosave leaves no file", async () => {
+    const h = createHarness({ seeded: false });
+    let allocations = 0;
+    h.backend.autosavePath = async () => {
+      allocations += 1;
+      return "managed.jsonl";
+    };
+    addShape(h.editor, "first");
+    h.editor.undo();
+    h.timers.fire();
+    await h.settle();
+    expect(allocations).toBe(0);
+    expect(h.backend.writes).toHaveLength(0);
+    h.session.dispose();
+  });
+
+  test("manual cancels pending autosave and flush, but explicit Save still works", async () => {
+    const h = createHarness({ seeded: false });
+    h.backend.autosavePath = async () => "managed.jsonl";
+    addShape(h.editor, "first");
+    expect(h.timers.pendingCount).toBe(1);
+    h.session.setSaveMode("manual");
+    expect(h.timers.pendingCount).toBe(0);
+    expect(await h.session.flush()).toBe(false);
+    expect(h.backend.writes).toHaveLength(0);
+    expect(h.session.state().dirty).toBe(true);
+    h.backend.saveAnswers.push("chosen.jsonl");
+    expect(await h.session.save()).toBe(true);
+    addShape(h.editor, "second");
+    h.timers.fire();
+    await h.settle();
+    expect(h.backend.writes).toHaveLength(1);
+    h.session.setSaveMode("automatic");
+    expect(h.timers.pendingCount).toBe(1);
+    await h.session.flush();
+    expect(h.backend.writes).toHaveLength(2);
+    expect(h.session.state().dirty).toBe(false);
+    h.session.dispose();
+  });
+
+  test("overlapping first saves allocate one file and flush preserves edits during a write", async () => {
+    const h = createHarness({ seeded: false });
+    let allocations = 0;
+    h.backend.autosavePath = async () => {
+      allocations += 1;
+      return "managed.jsonl";
+    };
+    h.backend.blockWrites();
+    addShape(h.editor, "first");
+    h.timers.fire();
+    await h.settle();
+    addShape(h.editor, "second");
+    h.timers.fire();
+    const flush = h.session.flush();
+    h.backend.releaseWrites();
+    await flush;
+    expect(allocations).toBe(1);
+    expect(
+      parseDocument(h.backend.files.get("managed.jsonl") ?? "").elements,
+    ).toHaveLength(2);
+    expect(h.session.state().dirty).toBe(false);
+    h.session.dispose();
+  });
+
+  for (const action of ["manual", "new"] as const) {
+    test(`pending path allocation is retired by ${action}`, async () => {
+      const h = createHarness({ seeded: false });
+      let release: (path: string) => void = () => {};
+      h.backend.autosavePath = () =>
+        new Promise((resolve) => {
+          release = resolve;
+        });
+      addShape(h.editor, "first");
+      h.timers.fire();
+      if (action === "manual") h.session.setSaveMode("manual");
+      else await h.session.newDocument();
+      release("managed.jsonl");
+      await h.settle();
+      expect(h.backend.writes).toHaveLength(0);
+      expect(h.session.state().filePath).toBeNull();
+      h.session.dispose();
+    });
+  }
+
+  test("switching to manual during a write keeps later edits dirty", async () => {
+    const h = createHarness({ seeded: false });
+    h.backend.autosavePath = async () => "managed.jsonl";
+    h.backend.blockWrites();
+    addShape(h.editor, "first");
+    h.timers.fire();
+    await h.settle();
+    addShape(h.editor, "later");
+    h.session.setSaveMode("manual");
+    h.backend.releaseWrites();
+    await h.session.flush();
+    expect(h.session.state().dirty).toBe(true);
+    expect(h.backend.writes).toHaveLength(1);
+    expect(h.timers.pendingCount).toBe(0);
+    h.session.dispose();
+  });
+});
+
+test("explicit Save As wins over a pending first automatic save", async () => {
+  const h = createHarness({ seeded: false });
+  let release: (path: string) => void = () => {};
+  h.backend.autosavePath = () =>
+    new Promise((resolve) => {
+      release = resolve;
+    });
+  addShape(h.editor, "first");
+  h.timers.fire();
+  h.backend.saveAnswers.push("chosen.jsonl");
+  expect(await h.session.saveAs()).toBe(true);
+  release("managed.jsonl");
+  await h.settle();
+  expect(h.session.state().filePath).toBe("chosen.jsonl");
+  expect(h.backend.files.has("managed.jsonl")).toBe(false);
+  expect(h.backend.writes).toHaveLength(1);
+  h.session.dispose();
+});

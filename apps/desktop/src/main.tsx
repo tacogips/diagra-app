@@ -12,6 +12,7 @@ import { render } from "solid-js/web";
 import { App } from "./App.tsx";
 import { createExportBackend, createFileBackend } from "./file/backend.ts";
 import { createLaunchBackend } from "./file/launch.ts";
+import { installCloseGuard } from "./file/close.ts";
 import { DocumentSession } from "./file/session.ts";
 import "./style.css";
 import "./inspector.css";
@@ -29,11 +30,9 @@ const session = new DocumentSession({ editor, backend });
 // an export never changes which file is open.
 const exportBackend = createExportBackend();
 
-// Best effort on the way out: an autosave still inside its debounce window
-// gets one chance to reach disk. A quit can still outrun it.
-window.addEventListener("beforeunload", () => {
-  void session.flush();
-  session.dispose();
+// The native window waits for writes before closing, including Cmd/Ctrl+Q.
+void installCloseGuard(session).catch((error) => {
+  console.error("Could not install document close guard", error);
 });
 
 render(

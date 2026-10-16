@@ -23,6 +23,8 @@ export interface FileBackend {
   /** The chosen path, or `null` when the dialog was cancelled. */
   pickOpenPath(): Promise<string | null>;
   pickSavePath(defaultName?: string): Promise<string | null>;
+  /** Allocate an app-managed path without a dialog; does not create a file. */
+  autosavePath?(): Promise<string | null>;
   readDocument(path: string): Promise<string>;
   /** Writes atomically: readers never observe a partial document. */
   writeDocument(path: string, contents: string): Promise<void>;
@@ -45,6 +47,7 @@ interface ChangedPayload {
 export function createTauriBackend(): FileBackend {
   return {
     available: true,
+    autosavePath: () => invoke<string>("autosave_document_path"),
     pickOpenPath: () => invoke<string | null>("pick_open_path"),
     pickSavePath: (defaultName?: string) =>
       invoke<string | null>("pick_save_path", {

@@ -2072,3 +2072,31 @@ input {
   max-width: none;
   max-height: none;
 }
+
+.app-saving-setting {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  font-size: 12px;
+}
+
+.app-saving-setting select {
+  color: inherit;
+  background: var(--nodetto-panel-bg, #fff);
+  border: 1px solid var(--nodetto-border, #ddd);
+  padding: 4px;
+}
+
+.app-close-dialog {
+  color: var(--nodetto-text, #172b35);
+  background: var(--nodetto-panel-bg, #fff);
+  border: 1px solid var(--nodetto-border, #ccc);
+  padding: 20px;
+}
+.app-close-dialog::backdrop {
+  background: rgb(0 0 0 / 30%);
+}
+.app-close-dialog button {
+  margin-right: 8px;
+  padding: 6px 12px;
+}
