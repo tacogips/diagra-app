@@ -1,6 +1,9 @@
 /* Keep structural chrome and text fields square. Action buttons and color
  * wells use the shared control styles; swatches retain their circular shape. */
-.app-shell.app-shell :is(input:not([type="color"]), select, textarea),
+.app-shell.app-shell
+  :is(input:not([type="color"]):not([role="switch"]), select, textarea):not(
+    :where(.app-settings-dialog *)
+  ),
 .app-shell
   :is(
     .app-recent-select,

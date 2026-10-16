@@ -74,6 +74,9 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
       <span>{label}</span>
       <input
         type="checkbox"
+        role="switch"
+        aria-checked={checked()}
+        class="app-settings-switch"
         checked={checked()}
         onChange={(event) => change(event.currentTarget.checked)}
       />
@@ -201,27 +204,17 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
             )}
           </Show>
           <Show when={category() === "files"}>
-            <label class="app-settings-row">
-              <span>File saving</span>
-              <select
-                aria-label="File saving"
-                value={props.saveMode}
-                onChange={(event) =>
-                  props.onSaveModeChange(
-                    event.currentTarget.value === "manual"
-                      ? "manual"
-                      : "automatic",
-                  )
-                }
-              >
-                <option value="automatic">Automatic</option>
-                <option value="manual">Manual</option>
-              </select>
-            </label>
+            {toggle(
+              "Automatic saving",
+              () => props.saveMode === "automatic",
+              (automatic) =>
+                props.onSaveModeChange(automatic ? "automatic" : "manual"),
+            )}
             <label class="app-settings-row">
               <span>Autosave delay</span>
               <select
                 aria-label="Autosave delay"
+                disabled={props.saveMode !== "automatic"}
                 value={props.autosaveDelayMs}
                 onChange={(event) =>
                   props.onAutosaveDelayChange(Number(event.currentTarget.value))
