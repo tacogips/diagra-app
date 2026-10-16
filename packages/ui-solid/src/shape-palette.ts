@@ -16,6 +16,7 @@ export const PALETTE_ICONS = {
   parallelogram: "M10 6h20l-8 20H2z",
   star: "M16 2l4 9 10 1-8 7 3 11-9-6-9 6 3-11-8-7 10-1z",
   text: "M5 6h22M16 6v21M11 27h10",
+  note: "M4 3h17l7 7v19H4zM21 3v7h7M9 16h14M9 22h10",
   node: "M7 6h18a4 4 0 014 4v12a4 4 0 01-4 4H7a4 4 0 01-4-4V10a4 4 0 014-4zM10 16h12",
   edge: "M3 25h9V8h16m-6-6l6 6-6 6",
   frame: "M3 10V3h7m12 0h7v7m0 12v7h-7m-12 0H3v-7M7 7h18v18H7z",
@@ -41,6 +42,7 @@ export const COMMON_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.Parallelogram, label: "Parallelogram", icon: "parallelogram" },
   { tool: Tool.Star, label: "Star", icon: "star" },
   { tool: Tool.Text, label: "Text", icon: "text" },
+  { tool: Tool.Note, label: "Note", icon: "note" },
   { tool: Tool.Node, label: "Node", icon: "node" },
   { tool: Tool.Connector, label: "Connector", icon: "edge" },
   { tool: Tool.Frame, label: "Frame", icon: "frame" },
@@ -210,6 +212,12 @@ export function shapePaletteGroups(
       : []),
   ];
   const category = (tool: ToolKind): string => {
+    if (tool === Tool.Connector) {
+      if (id === "erd") return "ERD";
+      if (id === "class" || id === "component") return "UML";
+      if (id === "sequence") return "Sequence";
+      if (id === "bpmn") return "BPMN";
+    }
     if (tool === Tool.Table) return "ERD";
     if (tool === Tool.Actor || tool === Tool.Service || tool === Tool.Database)
       return "Sequence";
