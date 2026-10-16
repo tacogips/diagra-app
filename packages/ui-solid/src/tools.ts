@@ -42,6 +42,7 @@ export const Tool = {
   Connector: "edge",
   Node: "node.generic",
   Text: "text.note",
+  Note: "text.note:note",
   Table: "erd.table",
   Class: "uml.class",
   Component: UmlComponentType.Component,
@@ -344,6 +345,12 @@ export function creationFor(tool: ToolKind): CreationTool | null {
         type: "sequence.participant",
         // Sequence-aware creation supplies the participant's order and name.
         semantic: { kind: PARTICIPANT_KINDS[tool] },
+      };
+    case Tool.Note:
+      return {
+        type: "text.note",
+        semantic: { text: "Note" },
+        visual: { width: 200, height: 140, style: { fill: "#fff1c9" } },
       };
     case Tool.Node:
     case Tool.Text:

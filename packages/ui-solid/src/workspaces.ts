@@ -40,7 +40,7 @@ export const WORKSPACES = [
     shapes: false,
     tools: [
       { tool: "erd.table", label: "Table" },
-      { tool: "edge", label: "Relationship" },
+      { tool: "edge", label: "Foreign key" },
     ],
   },
   {

@@ -22,6 +22,11 @@ import {
 } from "@nodetto/ir";
 import {
   createMemo,
+  createSignal,
+  createEffect,
+  createUniqueId,
+  on,
+  For,
   type JSX,
   lazy,
   Match,
@@ -29,6 +34,7 @@ import {
   Suspense,
   Switch,
 } from "solid-js";
+import "./Inspector.css";
 import { createEditorSignals } from "./adapter.ts";
 import { stopPanelKeyDown } from "./panel-keyboard.ts";
 import { GeometrySection } from "./inspector/GeometrySection.tsx";
@@ -127,11 +133,129 @@ export function Inspector(props: InspectorProps): JSX.Element {
   });
   const focusRow = (): number | undefined => {
     const element = single();
-    return element && props.focus?.id === element.id
+    return activeTab() === "specific" &&
+      element &&
+      props.focus?.id === element.id
       ? props.focus.row
       : undefined;
   };
 
+  const selectedElementId = createMemo(() => single()?.id);
+  const [activeTab, setActiveTab] = createSignal<"shape" | "specific">("shape");
+  const tabId = `inspector-${createUniqueId()}`;
+  const typeLabel = () => {
+    const type = single()?.type;
+    if (!type) return undefined;
+    if (Object.values(UmlComponentType).some((candidate) => candidate === type))
+      return "Component";
+    if (type.startsWith("bpmn.")) return "BPMN";
+    const labels: Record<string, string> = {
+      "erd.table": "Table",
+      "uml.class": "Class",
+      "erd.relation": "Relation",
+      "uml.association": "Association",
+      "sequence.participant": "Participant",
+      "sequence.message": "Message",
+      "edge.generic": "Connector",
+      "image.raster": "Image",
+      "draw.freehand": "Stroke",
+      "draw.path": "Path",
+      "text.note": "Text",
+      frame: "Frame",
+      group: "Group",
+    };
+    return labels[type];
+  };
+  const disabled = () => {
+    signals.rev();
+    if (props.editor.readOnly) return true;
+    const context = props.editor.createShapeContext();
+    return selectedIds().some((id) => context.isLocked?.(id));
+  };
+  createEffect(on(selectedElementId, () => setActiveTab("shape")));
+  createEffect(
+    on([() => props.focus, selectedElementId], ([focus, id]) => {
+      if (focus && focus.id === id && typeLabel()) setActiveTab("specific");
+    }),
+  );
+  const specificFields = () => (
+    <Show when={single()}>
+      {(element) => (
+        <Switch>
+          <Match when={element().type === "draw.freehand"}>
+            <StrokeSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "draw.path"}>
+            <PathSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "shape.geo"}>
+            <GeoSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "node.generic"}>
+            <NodeSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "sequence.participant"}>
+            <SequenceParticipantSection
+              editor={props.editor}
+              element={element()}
+            />
+          </Match>
+          <Match when={element().type === "sequence.message"}>
+            <SequenceMessageSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "image.raster"}>
+            <ImageSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "frame"}>
+            <FrameSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "text.note"}>
+            <TextNoteSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "edge.generic"}>
+            <EdgeSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "erd.table"}>
+            <Suspense>
+              <ErdTableSection
+                editor={props.editor}
+                element={element()}
+                focusRow={focusRow()}
+              />
+            </Suspense>
+          </Match>
+          <Match when={element().type === "erd.relation"}>
+            <Suspense>
+              <ErdRelationSection editor={props.editor} element={element()} />
+            </Suspense>
+          </Match>
+          <Match
+            when={Object.values(UmlComponentType).some(
+              (type) => element().type === type,
+            )}
+          >
+            <UmlComponentSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "uml.class"}>
+            <UmlClassSection
+              editor={props.editor}
+              element={element()}
+              focusRow={focusRow()}
+            />
+          </Match>
+          <Match when={element().type === "uml.association"}>
+            <AssociationSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type.startsWith("bpmn.")}>
+            <BpmnSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "group"}>
+            <GroupSection editor={props.editor} element={element()} />
+          </Match>
+        </Switch>
+      )}
+    </Show>
+  );
   return (
     <aside
       class="nodetto-inspector"
@@ -147,244 +271,221 @@ export function Inspector(props: InspectorProps): JSX.Element {
       >
         <p role="status">View only</p>
       </Show>
-      <fieldset
-        style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-        disabled={(() => {
-          signals.rev();
-          if (props.editor.readOnly) return true;
-          const context = props.editor.createShapeContext();
-          return selectedIds().some((id) => context.isLocked?.(id));
-        })()}
-      >
-        <Show when={selectedIds().length === 0}>
-          <Show when={page()}>
-            {(current) => (
-              <PageSection editor={props.editor} page={current()} />
-            )}
-          </Show>
-        </Show>
-
-        <Show when={selectedIds().length > 1}>
-          <p class="nodetto-inspector-summary">
-            {`${selectedIds().length} elements selected`}
-          </p>
-        </Show>
-
-        <Show when={single()}>
-          {(element) => (
-            <Switch>
-              <Match when={element().type === "draw.freehand"}>
-                <StrokeSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "draw.path"}>
-                <PathSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "shape.geo"}>
-                <GeoSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "node.generic"}>
-                <NodeSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "sequence.participant"}>
-                <SequenceParticipantSection
-                  editor={props.editor}
-                  element={element()}
-                />
-              </Match>
-              <Match when={element().type === "sequence.message"}>
-                <SequenceMessageSection
-                  editor={props.editor}
-                  element={element()}
-                />
-              </Match>
-              <Match when={element().type === "image.raster"}>
-                <ImageSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "frame"}>
-                <FrameSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "text.note"}>
-                <TextNoteSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "edge.generic"}>
-                <EdgeSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "erd.table"}>
-                <Suspense>
-                  <ErdTableSection
-                    editor={props.editor}
-                    element={element()}
-                    focusRow={focusRow()}
-                  />
-                </Suspense>
-              </Match>
-              <Match when={element().type === "erd.relation"}>
-                <Suspense>
-                  <ErdRelationSection
-                    editor={props.editor}
-                    element={element()}
-                  />
-                </Suspense>
-              </Match>
-              <Match
-                when={Object.values(UmlComponentType).some(
-                  (type) => element().type === type,
-                )}
+      <Show when={typeLabel()}>
+        <div
+          class="nodetto-inspector-tabs"
+          role="tablist"
+          aria-label="Properties categories"
+          on:keydown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+              return;
+            event.preventDefault();
+            const next =
+              event.key === "Home"
+                ? "shape"
+                : event.key === "End"
+                  ? "specific"
+                  : activeTab() === "shape"
+                    ? "specific"
+                    : "shape";
+            setActiveTab(next);
+            event.currentTarget
+              .querySelector<HTMLButtonElement>(`[data-tab="${next}"]`)
+              ?.focus();
+          }}
+        >
+          <For each={["shape", "specific"] as const}>
+            {(tab) => (
+              <button
+                type="button"
+                role="tab"
+                data-tab={tab}
+                id={`${tabId}-${tab}-tab`}
+                aria-controls={`${tabId}-${tab}-panel`}
+                aria-selected={activeTab() === tab}
+                tabIndex={activeTab() === tab ? 0 : -1}
+                onClick={() => setActiveTab(tab)}
               >
-                <UmlComponentSection
-                  editor={props.editor}
-                  element={element()}
-                />
-              </Match>
-              <Match when={element().type === "uml.class"}>
-                <UmlClassSection
-                  editor={props.editor}
-                  element={element()}
-                  focusRow={focusRow()}
-                />
-              </Match>
-              <Match when={element().type === "uml.association"}>
-                <AssociationSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type.startsWith("bpmn.")}>
-                <BpmnSection editor={props.editor} element={element()} />
-              </Match>
-              <Match when={element().type === "group"}>
-                <GroupSection editor={props.editor} element={element()} />
-              </Match>
-            </Switch>
-          )}
-        </Show>
-
-        <Show when={props.simple && leaves().length > 0}>
-          <BasicAppearance editor={props.editor} leaves={leaves()} />
-        </Show>
-        <Show when={selectedIds().length > 0}>
-          <details class="nodetto-inspector-details" open={!props.simple}>
-            <summary hidden={!props.simple}>Advanced properties</summary>
-            <Show when={single()}>
-              {(element) => (
-                <>
-                  <Section title="Layer">
-                    <Field label="Name">
-                      <TextInput
-                        label="Layer name"
-                        value={element().visual.layerName ?? ""}
-                        placeholder={layerName(element())}
-                        onCommit={(name) =>
-                          renameLayer(props.editor, element().id, name)
-                        }
-                      />
-                    </Field>
-                  </Section>
-                  <Show when={hasOwnGeometry(element())}>
-                    <GeometrySection
-                      editor={props.editor}
-                      element={element()}
-                    />
-                  </Show>
-                </>
+                {tab === "shape" ? "Shape" : typeLabel()}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+      <div
+        id={`${tabId}-shape-panel`}
+        role={typeLabel() ? "tabpanel" : undefined}
+        aria-labelledby={typeLabel() ? `${tabId}-shape-tab` : undefined}
+        hidden={!!typeLabel() && activeTab() !== "shape"}
+      >
+        <fieldset
+          style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+          disabled={disabled()}
+        >
+          <Show when={selectedIds().length === 0}>
+            <Show when={page()}>
+              {(current) => (
+                <PageSection editor={props.editor} page={current()} />
               )}
             </Show>
-            <Show when={selectedIds().length > 1}>
-              <SelectionGeometrySection editor={props.editor} />
-            </Show>
-            <Show when={leaves().length > 0}>
-              <StyleSection editor={props.editor} leaves={leaves()} />
-            </Show>
+          </Show>
 
-            <Show when={single()}>
-              {(element) => (
-                <>
-                  <details class="nodetto-inspector-details">
-                    <summary>Containing frame</summary>
-                    <ParentSection editor={props.editor} element={element()} />
-                  </details>
-                  <details class="nodetto-inspector-details">
-                    <summary>Accessibility</summary>
-                    <Suspense>
-                      <AccessibilitySection
+          <Show when={selectedIds().length > 1}>
+            <p class="nodetto-inspector-summary">
+              {`${selectedIds().length} elements selected`}
+            </p>
+          </Show>
+
+          <Show when={!typeLabel()}>{specificFields()}</Show>
+
+          <Show when={props.simple && leaves().length > 0}>
+            <BasicAppearance editor={props.editor} leaves={leaves()} />
+          </Show>
+          <Show when={selectedIds().length > 0}>
+            <details class="nodetto-inspector-details" open={!props.simple}>
+              <summary hidden={!props.simple}>Advanced properties</summary>
+              <Show when={single()}>
+                {(element) => (
+                  <>
+                    <Section title="Layer">
+                      <Field label="Name">
+                        <TextInput
+                          label="Layer name"
+                          value={element().visual.layerName ?? ""}
+                          placeholder={layerName(element())}
+                          onCommit={(name) =>
+                            renameLayer(props.editor, element().id, name)
+                          }
+                        />
+                      </Field>
+                    </Section>
+                    <Show when={hasOwnGeometry(element())}>
+                      <GeometrySection
                         editor={props.editor}
                         element={element()}
                       />
-                    </Suspense>
-                  </details>
-                </>
+                    </Show>
+                  </>
+                )}
+              </Show>
+              <Show when={selectedIds().length > 1}>
+                <SelectionGeometrySection editor={props.editor} />
+              </Show>
+              <Show when={leaves().length > 0}>
+                <StyleSection editor={props.editor} leaves={leaves()} />
+              </Show>
+
+              <Show when={single()}>
+                {(element) => (
+                  <>
+                    <details class="nodetto-inspector-details">
+                      <summary>Containing frame</summary>
+                      <ParentSection
+                        editor={props.editor}
+                        element={element()}
+                      />
+                    </details>
+                    <details class="nodetto-inspector-details">
+                      <summary>Accessibility</summary>
+                      <Suspense>
+                        <AccessibilitySection
+                          editor={props.editor}
+                          element={element()}
+                        />
+                      </Suspense>
+                    </details>
+                  </>
+                )}
+              </Show>
+            </details>
+          </Show>
+        </fieldset>
+        <Show when={selectedIds().length > 0}>
+          <details class="nodetto-inspector-details" open={!props.simple}>
+            <summary hidden={!props.simple}>Shared styles</summary>
+            <fieldset
+              style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
+              disabled={(() => {
+                signals.rev();
+                return props.editor.readOnly;
+              })()}
+            >
+              <ColorBindingsSection editor={props.editor} />
+              <NumberBindingsSection editor={props.editor} />
+              <TextStyleBindingsSection editor={props.editor} />
+            </fieldset>
+          </details>
+        </Show>
+        <Show
+          when={
+            selectedIds().length > 1 ||
+            selectedIds().some(
+              (id) => props.editor.store.get(id)?.type === "text.note",
+            )
+          }
+        >
+          <details class="nodetto-inspector-details">
+            <summary>Rename and replace text</summary>
+            <fieldset
+              disabled={(() => {
+                signals.rev();
+                return props.editor.readOnly;
+              })()}
+              style={{ border: "none", padding: 0, margin: 0, "min-width": 0 }}
+            >
+              <Show when={selectedIds().length > 1}>
+                <BatchRenameSection editor={props.editor} />
+              </Show>
+              <Show
+                when={selectedIds().some(
+                  (id) => props.editor.store.get(id)?.type === "text.note",
+                )}
+              >
+                <ReplaceNoteTextSection editor={props.editor} />
+              </Show>
+            </fieldset>
+          </details>
+        </Show>
+        <Show when={single()}>
+          <details class="nodetto-inspector-details" open={!props.simple}>
+            <summary hidden={!props.simple}>Component settings</summary>
+            <Show when={single()}>
+              {(element) => (
+                <Suspense>
+                  <fieldset
+                    style={{
+                      border: "none",
+                      margin: 0,
+                      padding: 0,
+                      "min-width": 0,
+                    }}
+                    disabled={(() => {
+                      signals.rev();
+                      return props.editor.readOnly;
+                    })()}
+                  >
+                    <OverridesSection editor={props.editor} id={element().id} />
+                  </fieldset>
+                </Suspense>
               )}
             </Show>
           </details>
         </Show>
-      </fieldset>
-      <Show when={selectedIds().length > 0}>
-        <details class="nodetto-inspector-details" open={!props.simple}>
-          <summary hidden={!props.simple}>Shared styles</summary>
+      </div>
+      <Show when={typeLabel()}>
+        <div
+          id={`${tabId}-specific-panel`}
+          role="tabpanel"
+          aria-labelledby={`${tabId}-specific-tab`}
+          hidden={activeTab() !== "specific"}
+        >
           <fieldset
+            disabled={disabled()}
             style={{ border: "none", margin: 0, padding: 0, "min-width": 0 }}
-            disabled={(() => {
-              signals.rev();
-              return props.editor.readOnly;
-            })()}
           >
-            <ColorBindingsSection editor={props.editor} />
-            <NumberBindingsSection editor={props.editor} />
-            <TextStyleBindingsSection editor={props.editor} />
+            {specificFields()}
           </fieldset>
-        </details>
-      </Show>
-      <Show
-        when={
-          selectedIds().length > 1 ||
-          selectedIds().some(
-            (id) => props.editor.store.get(id)?.type === "text.note",
-          )
-        }
-      >
-        <details class="nodetto-inspector-details">
-          <summary>Rename and replace text</summary>
-          <fieldset
-            disabled={(() => {
-              signals.rev();
-              return props.editor.readOnly;
-            })()}
-            style={{ border: "none", padding: 0, margin: 0, "min-width": 0 }}
-          >
-            <Show when={selectedIds().length > 1}>
-              <BatchRenameSection editor={props.editor} />
-            </Show>
-            <Show
-              when={selectedIds().some(
-                (id) => props.editor.store.get(id)?.type === "text.note",
-              )}
-            >
-              <ReplaceNoteTextSection editor={props.editor} />
-            </Show>
-          </fieldset>
-        </details>
-      </Show>
-      <Show when={single()}>
-        <details class="nodetto-inspector-details" open={!props.simple}>
-          <summary hidden={!props.simple}>Component settings</summary>
-          <Show when={single()}>
-            {(element) => (
-              <Suspense>
-                <fieldset
-                  style={{
-                    border: "none",
-                    margin: 0,
-                    padding: 0,
-                    "min-width": 0,
-                  }}
-                  disabled={(() => {
-                    signals.rev();
-                    return props.editor.readOnly;
-                  })()}
-                >
-                  <OverridesSection editor={props.editor} id={element().id} />
-                </fieldset>
-              </Suspense>
-            )}
-          </Show>
-        </details>
+        </div>
       </Show>
     </aside>
   );

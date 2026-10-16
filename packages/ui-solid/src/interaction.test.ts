@@ -997,7 +997,7 @@ describe("left shape palette creation", () => {
   test("semantic palettes preserve endpoint tools and workspace terminology", () => {
     expect(workspaceShapes("erd").map((item) => item.label)).toEqual([
       "Table",
-      "Relationship",
+      "Foreign key",
       "Text",
       "Frame",
     ]);

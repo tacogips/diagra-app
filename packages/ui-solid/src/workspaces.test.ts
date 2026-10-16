@@ -150,3 +150,20 @@ test("palette categories separate notations without losing or duplicating tools"
   expect(shapePaletteGroups("erd")[0]?.label).toBe("ERD");
   expect(shapePaletteGroups("sequence")[0]?.label).toBe("Sequence");
 });
+
+test("ERD foreign keys stay beside tables and General provides a separate Note tool", () => {
+  const erd = shapePaletteGroups("erd").find((group) => group.label === "ERD");
+  expect(erd?.items.map((item) => item.label)).toEqual([
+    "Table",
+    "Foreign key",
+  ]);
+  const general = shapePaletteGroups("flow").find(
+    (group) => group.label === "General",
+  );
+  expect(general?.items.map((item) => item.tool)).toEqual(
+    expect.arrayContaining([Tool.Text, Tool.Note]),
+  );
+  const note = creationFor(Tool.Note);
+  expect(note?.type).toBe("text.note");
+  expect(note?.visual?.style?.fill).toBe("#fff1c9");
+});
