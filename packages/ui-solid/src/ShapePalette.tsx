@@ -1,5 +1,5 @@
-import type { Editor } from "@nodetto/core";
-import { For, type JSX, Show } from "solid-js";
+import type { Editor, Vec } from "@nodetto/core";
+import { For, type JSX, Show, onCleanup } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
 import {
   additionalShapes,
@@ -15,7 +15,6 @@ import {
   getAction,
   runAction,
 } from "./shortcuts.ts";
-import { SHAPE_DRAG_TYPE } from "./shape-drag.ts";
 import {
   creationFor,
   canUseTool,
@@ -32,7 +31,48 @@ export function ShapePalette(props: {
   readonly tool: ToolKind;
   readonly onToolChange: (tool: ToolKind) => void;
   readonly context: ActionContext;
+  readonly onShapeDrop?: (tool: ToolKind, client: Vec) => void;
 }): JSX.Element {
+  let drag:
+    | { id: number; tool: ToolKind; x: number; y: number; moved: boolean }
+    | undefined;
+  let suppressClick = false;
+  const cancelDrag = () => {
+    drag = undefined;
+  };
+  window.addEventListener("blur", cancelDrag);
+  const cancelKey = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      suppressClick = drag?.moved ?? false;
+      cancelDrag();
+    }
+  };
+  const move = (event: PointerEvent) => {
+    if (
+      drag?.id === event.pointerId &&
+      Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 4
+    )
+      drag.moved = true;
+  };
+  const end = (event: PointerEvent) => {
+    if (drag?.id !== event.pointerId) return;
+    const ended = drag;
+    drag = undefined;
+    suppressClick = ended.moved;
+    if (ended.moved && !props.editor.readOnly)
+      props.onShapeDrop?.(ended.tool, { x: event.clientX, y: event.clientY });
+  };
+  window.addEventListener("pointermove", move, true);
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", cancelDrag, true);
+  window.addEventListener("keydown", cancelKey, true);
+  onCleanup(() => {
+    window.removeEventListener("blur", cancelDrag);
+    window.removeEventListener("keydown", cancelKey, true);
+    window.removeEventListener("pointermove", move, true);
+    window.removeEventListener("pointerup", end, true);
+    window.removeEventListener("pointercancel", cancelDrag, true);
+  });
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
     signals.rev();
@@ -59,21 +99,25 @@ export function ShapePalette(props: {
                   ? "Port — click a component boundary"
                   : `${item.label} — select, then click the canvas`
             }
-            draggable={!readOnly() && creationFor(item.tool) !== null}
-            onDragStart={(event) => {
-              if (
-                props.editor.readOnly ||
-                !creationFor(item.tool) ||
-                !event.dataTransfer
-              ) {
-                event.preventDefault();
+            on:pointerdown={(event) => {
+              if (event.button !== 0 || !creationFor(item.tool) || readOnly())
                 return;
-              }
-              event.dataTransfer.setData(SHAPE_DRAG_TYPE, item.tool);
-              event.dataTransfer.effectAllowed = "copy";
+              event.preventDefault();
+              suppressClick = false;
+              drag = {
+                id: event.pointerId,
+                tool: item.tool,
+                x: event.clientX,
+                y: event.clientY,
+                moved: false,
+              };
             }}
             disabled={!canUseTool(item.tool, readOnly())}
             onClick={() => {
+              if (suppressClick) {
+                suppressClick = false;
+                return;
+              }
               if (canUseTool(item.tool, props.editor.readOnly))
                 props.onToolChange(item.tool);
             }}

@@ -52,6 +52,8 @@ import {
 import {
   batch,
   createMemo,
+  createEffect,
+  untrack,
   createSelector,
   createSignal,
   createUniqueId,
@@ -84,7 +86,6 @@ import {
 } from "./interaction.ts";
 import { ConnectorMarkers, ConnectorView } from "./shapes/ConnectorView.tsx";
 import { ShapeView } from "./shapes/ShapeView.tsx";
-import { SHAPE_DRAG_TYPE, draggedShapeTool } from "./shape-drag.ts";
 import { Tool, isConnectorTool, type ToolKind } from "./tools.ts";
 
 const CanvasRulers = lazy(() => import("./CanvasRulers.tsx"));
@@ -103,6 +104,7 @@ export interface NodettoCanvasProps {
   readonly editor: Editor;
   readonly tool: ToolKind;
   readonly onToolChange?: (tool: ToolKind) => void;
+  readonly shapeDrop?: { readonly tool: ToolKind; readonly client: Vec };
   /** Fires as the marquee rectangle changes; `null` when the drag ends. */
   readonly onMarquee?: (rect: Box | null) => void;
   /** Review tool callback; point is already transformed into page space. */
@@ -230,29 +232,7 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
   const carriesFiles = (event: DragEvent): boolean =>
     Array.from(event.dataTransfer?.types ?? []).includes("Files");
 
-  const carriesShape = (event: DragEvent): boolean =>
-    Array.from(event.dataTransfer?.types ?? []).includes(SHAPE_DRAG_TYPE);
-
   const importDrop = async (event: DragEvent): Promise<void> => {
-    if (carriesShape(event)) {
-      event.preventDefault();
-      event.stopPropagation();
-      setImageDropActive(false);
-      const tool = draggedShapeTool(
-        event.dataTransfer?.getData(SHAPE_DRAG_TYPE) ?? "",
-      );
-      if (!tool || props.editor.readOnly) return;
-      const bounds = container?.getBoundingClientRect();
-      interaction.placeTool(
-        tool,
-        props.editor.camera.screenToPage({
-          x: event.clientX - (bounds?.left ?? 0),
-          y: event.clientY - (bounds?.top ?? 0),
-        }),
-      );
-      container?.focus();
-      return;
-    }
     if (!carriesFiles(event)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -292,6 +272,30 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
     viewport,
     onEditRequest: (id, region) => props.onEditRequest?.(id, region),
     onContextMenu: (at, hit) => props.onContextMenu?.(at, hit),
+  });
+
+  createEffect(() => {
+    const drop = props.shapeDrop;
+    const bounds = container?.getBoundingClientRect();
+    if (
+      !drop ||
+      !bounds ||
+      drop.client.x < bounds.left ||
+      drop.client.x > bounds.right ||
+      drop.client.y < bounds.top ||
+      drop.client.y > bounds.bottom
+    )
+      return;
+    untrack(() =>
+      interaction.placeTool(
+        drop.tool,
+        props.editor.camera.screenToPage({
+          x: drop.client.x - bounds.left,
+          y: drop.client.y - bounds.top,
+        }),
+      ),
+    );
+    container?.focus();
   });
 
   onMount(() => {
@@ -752,12 +756,12 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
       onContextMenu={interaction.onContextMenu}
       onBlur={() => interaction.onBlur()}
       onDragEnter={(event) => {
-        if (!carriesFiles(event) && !carriesShape(event)) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         setImageDropActive(!props.editor.readOnly);
       }}
       onDragOver={(event) => {
-        if (!carriesFiles(event) && !carriesShape(event)) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         if (event.dataTransfer)
           event.dataTransfer.dropEffect = props.editor.readOnly

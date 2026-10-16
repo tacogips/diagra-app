@@ -191,6 +191,10 @@ export function App(props: AppProps): JSX.Element {
   const [inspectorFocus, setInspectorFocus] = createSignal<
     InspectorFocus | undefined
   >(undefined);
+  const [shapeDrop, setShapeDrop] = createSignal<{
+    tool: ToolKind;
+    client: Vec;
+  }>();
   const [commentRequest, setCommentRequest] = createSignal(0);
   const [exportRequest, setExportRequest] = createSignal(0);
   const [exportError, setExportError] = createSignal<string | null>(null);
@@ -1056,6 +1060,7 @@ export function App(props: AppProps): JSX.Element {
               tool={tool()}
               onToolChange={setActiveTool}
               context={actionContext()}
+              onShapeDrop={(tool, client) => setShapeDrop({ tool, client })}
             />
             <Layers
               simple={simpleWorkspace()}
@@ -1114,6 +1119,7 @@ export function App(props: AppProps): JSX.Element {
           onPointerLeave={onCanvasPointerLeave}
         >
           <NodettoCanvas
+            shapeDrop={shapeDrop()}
             editor={props.editor}
             tool={tool()}
             onToolChange={setActiveTool}

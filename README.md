@@ -308,7 +308,7 @@ and the generated migration should be reviewed before it is applied.
 
 ## Mermaid import and export
 
-The shared inspector exports the current page's semantic ER, UML class or
+The **Export → Mermaid** tab exports the current page's semantic ER, UML class or
 sequence layers as deterministic Mermaid source. Choose any diagram family
 present on a mixed page, copy the source for Markdown/documentation, or download
 an `.mmd` file. ER export includes columns, supported keys and cardinality;
@@ -364,7 +364,7 @@ top-left (send is filled, receive is hollow). Canvas and export draw them
 from the same notation module.
 
 Open a `.bpmn` file for detached import, or use **Import BPMN...** and
-**Export BPMN...** in the desktop File menu. XML-only or unsupported content
+**Export → BPMN**. XML-only or unsupported content
 is retained with import warnings. Use `nodetto-cli lint` for CI checks and
 `nodetto-cli bpmn import|export` for BPMN 2.0 XML interchange. The [AI review
 guideline](docs/bpmn/ai-review-rules.md) is an original starting point for
@@ -395,7 +395,7 @@ unfinished.
 
 ## D2 export
 
-Every page also exposes a lazy D2 export panel for architecture documentation
+The **Export → D2** tab provides source for architecture documentation
 and version-controlled engineering diagrams. Generic flow shapes, nested
 frames/groups and connectors export alongside native D2 SQL tables, UML
 classes, and sequence diagrams. Copy the source or download `.d2`; unsupported
