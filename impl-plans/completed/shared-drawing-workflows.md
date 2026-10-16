@@ -38,5 +38,9 @@ Validation:
 - Existing two-editor collaboration tests exercise the cloud notification adapter
   through field merges, remote additions/deletions, page ordering and local undo.
 
-The private repository's full Worker runtime gate was still running without a
-terminal result when this record was written; it is not counted as passed here.
+The private repository's Worker suite passes all 242 tests across 45 files with
+file execution serialized. The installed Workers test pool stalled when files
+ran concurrently; its config now disables file parallelism without disabling
+per-file storage isolation. Real-provider two-client checks also pass concurrent
+move/rename convergence, offline reconnect, peer-preserving undo/redo, REST
+reopen, viewer updates and capability revocation.
