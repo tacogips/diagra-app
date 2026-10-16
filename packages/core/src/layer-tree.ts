@@ -2,6 +2,7 @@ import {
   type Element,
   type ElementId,
   getElementTypeDefinition,
+  isDatabaseObjectType,
 } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
@@ -77,6 +78,14 @@ function searchTerms(element: Element): string[] {
       terms.push(`Index: ${fields(index, ["name"])}`);
     for (const check of records(semantic.checks))
       terms.push(`Check: ${fields(check, ["name", "expression"])}`);
+  } else if (isDatabaseObjectType(element.type)) {
+    terms.push(fields(semantic, ["definition", "returnType", "language"]));
+    for (const column of records(semantic.columns))
+      terms.push(`Column: ${fields(column, ["name", "dataType"])}`);
+    for (const parameter of records(semantic.parameters))
+      terms.push(
+        `Parameter: ${fields(parameter, ["name", "dataType", "mode"])}`,
+      );
   } else if (element.type === "uml.class") {
     for (const attribute of records(semantic.attributes))
       terms.push(`Attribute: ${fields(attribute, ["name", "type"])}`);

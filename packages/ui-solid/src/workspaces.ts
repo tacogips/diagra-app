@@ -40,7 +40,7 @@ export const WORKSPACES = [
     shapes: false,
     tools: [
       { tool: "erd.table", label: "Table" },
-      { tool: "edge", label: "Foreign key" },
+      { tool: Tool.ForeignKey, label: "Foreign key" },
     ],
   },
   {
@@ -50,7 +50,7 @@ export const WORKSPACES = [
     shapes: false,
     tools: [
       { tool: "uml.class", label: "Class" },
-      { tool: "edge", label: "Association" },
+      { tool: Tool.Association, label: "Association" },
     ],
   },
   {
@@ -62,7 +62,7 @@ export const WORKSPACES = [
       { tool: "sequence.actor", label: "Actor" },
       { tool: "sequence.service", label: "Service" },
       { tool: "sequence.database", label: "Database" },
-      { tool: "edge", label: "Message" },
+      { tool: Tool.SequenceMessage, label: "Message" },
     ],
   },
   {

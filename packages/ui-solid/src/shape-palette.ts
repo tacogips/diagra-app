@@ -65,10 +65,17 @@ export const DIAGRAM_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.Realization, label: "Realization", icon: "edge" },
   { tool: Tool.ComponentConnector, label: "Component connector", icon: "edge" },
   { tool: Tool.Table, label: "Table", icon: "table" },
+  { tool: Tool.View, label: "View", icon: "table" },
+  { tool: Tool.MaterializedView, label: "Materialized view", icon: "table" },
+  { tool: Tool.Function, label: "Function", icon: "service" },
+  { tool: Tool.Procedure, label: "Procedure", icon: "service" },
+  { tool: Tool.ForeignKey, label: "Foreign key", icon: "edge" },
   { tool: Tool.Class, label: "Class", icon: "class" },
+  { tool: Tool.Association, label: "Association", icon: "edge" },
   { tool: Tool.Actor, label: "Actor", icon: "actor" },
   { tool: Tool.Service, label: "Service", icon: "service" },
   { tool: Tool.Database, label: "Database", icon: "cylinder" },
+  { tool: Tool.SequenceMessage, label: "Message", icon: "edge" },
 ];
 
 export const BPMN_SHAPES: readonly ShapePaletteItem[] = [
@@ -138,13 +145,22 @@ const PRIMARY_TOOLS = {
     Tool.Text,
     Tool.Frame,
   ],
-  erd: [Tool.Table, Tool.Connector, Tool.Text, Tool.Frame],
-  class: [Tool.Class, Tool.Connector, Tool.Text, Tool.Frame],
+  erd: [
+    Tool.Table,
+    Tool.View,
+    Tool.MaterializedView,
+    Tool.Function,
+    Tool.Procedure,
+    Tool.ForeignKey,
+    Tool.Text,
+    Tool.Frame,
+  ],
+  class: [Tool.Class, Tool.Association, Tool.Text, Tool.Frame],
   sequence: [
     Tool.Actor,
     Tool.Service,
     Tool.Database,
-    Tool.Connector,
+    Tool.SequenceMessage,
     Tool.Text,
     Tool.Frame,
   ],
@@ -212,14 +228,24 @@ export function shapePaletteGroups(
       : []),
   ];
   const category = (tool: ToolKind): string => {
-    if (tool === Tool.Connector) {
-      if (id === "erd") return "ERD";
-      if (id === "class" || id === "component") return "UML";
-      if (id === "sequence") return "Sequence";
-      if (id === "bpmn") return "BPMN";
-    }
-    if (tool === Tool.Table) return "ERD";
-    if (tool === Tool.Actor || tool === Tool.Service || tool === Tool.Database)
+    if (tool === Tool.Connector && id === "bpmn") return "BPMN";
+    if (
+      [
+        Tool.Table,
+        Tool.View,
+        Tool.MaterializedView,
+        Tool.Function,
+        Tool.Procedure,
+        Tool.ForeignKey,
+      ].some((candidate) => candidate === tool)
+    )
+      return "ERD";
+    if (
+      tool === Tool.Actor ||
+      tool === Tool.Service ||
+      tool === Tool.Database ||
+      tool === Tool.SequenceMessage
+    )
       return "Sequence";
     if (DIAGRAM_SHAPES.some((item) => item.tool === tool)) return "UML";
     if (BPMN_SHAPES.some((item) => item.tool === tool)) return "BPMN";

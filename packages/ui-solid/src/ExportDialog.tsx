@@ -1,3 +1,4 @@
+import { isDatabaseObjectType } from "@nodetto/ir";
 import type { Editor } from "@nodetto/core";
 import { availableMermaidKinds } from "@nodetto/io";
 import {
@@ -78,7 +79,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
         label: "SQL",
         enabled: props.editor.store
           .getPageElements(props.editor.currentPageId)
-          .some((e) => e.type === "erd.table"),
+          .some((e) => e.type === "erd.table" || isDatabaseObjectType(e.type)),
       },
       { id: "bpmn", label: "BPMN", enabled: page()?.kind === "bpmn" },
       { id: "code", label: "Code", enabled: selected() !== undefined },

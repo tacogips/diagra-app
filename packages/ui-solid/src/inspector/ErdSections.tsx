@@ -1,11 +1,10 @@
-import "./ErdSections.css";
 // ERD sections: the table's name and columns, and a relation's ends.
 //
 // The column editor is an `Index` rather than a `For`: rows keep their DOM
 // nodes across a commit, so the caret does not jump when the payload is
 // replaced, and the row a double-click asked for can be focused by index.
 
-import { type Editor, newElementId, erdForeignKeyWarning } from "@nodetto/core";
+import { type Editor, newElementId } from "@nodetto/core";
 import {
   CARDINALITIES,
   type Element,
@@ -525,20 +524,6 @@ export function ErdRelationSection(
 
   return (
     <Section title="Foreign key">
-      <Show
-        when={(() => {
-          signals.rev();
-          return erdForeignKeyWarning(props.element, (id) =>
-            props.editor.store.get(id),
-          );
-        })()}
-      >
-        {(message) => (
-          <p class="nodetto-foreign-key-warning" role="status">
-            {message()}
-          </p>
-        )}
-      </Show>
       <Field label="Cardinality">
         <SelectInput
           label="Cardinality"

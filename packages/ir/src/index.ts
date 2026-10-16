@@ -247,3 +247,17 @@ export {
   connectorWaypointToPage,
 } from "./connector-waypoints.ts";
 export type { LabelBounds } from "./types.ts";
+
+export {
+  CONNECTOR_ENDPOINT_TYPES,
+  connectorEndpointIssues,
+  type ConnectorEndpointIssue,
+} from "./connector-policy.ts";
+
+export {
+  DATABASE_OBJECT_LABELS,
+  isDatabaseObjectType,
+  type DatabaseObjectType,
+  type DatabaseObjectSemantic,
+  type DatabaseParameter,
+} from "./database-objects.ts";

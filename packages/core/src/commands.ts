@@ -18,6 +18,7 @@ import {
   error,
   type FractionalIndex,
   getElementTypeDefinition,
+  connectorEndpointIssues,
   hasErrors,
   isPageKind,
   isPlainObject,
@@ -758,6 +759,34 @@ export function applyCommands(
         break;
       }
     }
+  }
+
+  // Validate against the completed batch so forward references work atomically.
+  const semanticChanges = new Set(
+    commands.flatMap((command) =>
+      command.type === "createElement"
+        ? [command.element.id]
+        : command.type === "updateSemantic"
+          ? [command.id]
+          : [],
+    ),
+  );
+  for (const id of semanticChanges) {
+    const element = working.get(id);
+    if (!element) continue;
+    const issues = connectorEndpointIssues(
+      element.type,
+      element.semantic,
+      element.page,
+      (id) => working.get(id),
+    );
+    if (issues.length)
+      fail(
+        issues.map((issue) =>
+          error(issue.code, `semantic.${issue.field}`, issue.message),
+        ),
+        "Invalid connector endpoints",
+      );
   }
 
   const insert: Element[] = [];

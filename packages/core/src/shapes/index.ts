@@ -1,3 +1,4 @@
+import { databaseObjectShapeUtils } from "./databaseObject.ts";
 // The default ShapeUtil registry: every element type this build renders.
 //
 // Types that are registered in `@nodetto/ir` but not here fall through to the
@@ -117,6 +118,7 @@ export function createDefaultRegistry(): ShapeUtilRegistry {
     .register(sequenceActivationShapeUtil)
     .register(textNoteShapeUtil)
     .register(groupShapeUtil);
+  for (const util of databaseObjectShapeUtils) registry.register(util);
   for (const util of umlComponentShapeUtils) registry.register(util);
   for (const util of bpmnNodeShapeUtils) registry.register(util);
   return registry

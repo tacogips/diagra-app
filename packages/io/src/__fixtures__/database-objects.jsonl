@@ -1,0 +1,6 @@
+{"kind":"document","schemaVersion":1,"id":"database-objects","title":"Database objects"}
+{"kind":"page","id":"p1","name":"Database objects","pageKind":"erd"}
+{"kind":"element","id":"db-0","page":"p1","type":"erd.view","index":"K","semantic":{"name":"active_accounts","definition":"SELECT 1 AS id","columns":[{"id":"column-id","name":"id","dataType":"integer"}]},"visual":{"x":0,"y":0,"width":260}}
+{"kind":"element","id":"db-1","page":"p1","type":"erd.materialized-view","index":"W","semantic":{"name":"account_totals","definition":"SELECT id FROM active_accounts","dependsOn":["db-0"]},"visual":{"x":300,"y":0,"width":260}}
+{"kind":"element","id":"db-2","page":"p1","type":"erd.function","index":"k","semantic":{"name":"increment","definition":"SELECT value + 1;","parameters":[{"id":"parameter-value","name":"value","dataType":"integer","mode":"in"}],"returnType":"integer","language":"sql"},"visual":{"x":600,"y":0,"width":260}}
+{"kind":"element","id":"db-3","page":"p1","type":"erd.procedure","index":"u","semantic":{"name":"refresh_accounts","definition":"BEGIN result := 1; END;","parameters":[{"id":"parameter-result","name":"result","dataType":"integer","mode":"out"}],"language":"plpgsql"},"visual":{"x":900,"y":0,"width":260}}

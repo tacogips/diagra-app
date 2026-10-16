@@ -1,3 +1,4 @@
+import type { DatabaseObjectSemantic } from "./database-objects.ts";
 // Semantic payloads for the v1 element type registry.
 // See the product design (nodetto-cloud repo), section 5.2.
 
@@ -761,6 +762,10 @@ export interface SemanticByType {
   "node.generic": GenericNodeSemantic;
   "edge.generic": GenericEdgeSemantic;
   "erd.table": ErdTableSemantic;
+  "erd.view": DatabaseObjectSemantic;
+  "erd.materialized-view": DatabaseObjectSemantic;
+  "erd.function": DatabaseObjectSemantic;
+  "erd.procedure": DatabaseObjectSemantic;
   "erd.relation": ErdRelationSemantic;
   "uml.class": UmlClassSemantic;
   "uml.component": UmlComponentSemantic;

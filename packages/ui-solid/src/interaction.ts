@@ -1,3 +1,6 @@
+import { isDatabaseObjectType } from "@nodetto/ir";
+import { CONNECTOR_ENDPOINT_TYPES, connectorEndpointIssues } from "@nodetto/ir";
+import { typedConnectorFor } from "./tools.ts";
 import { isUmlComponentEndpoint } from "@nodetto/core";
 import {
   UmlComponentType,
@@ -139,7 +142,9 @@ export function shortcutKey(
 
 /** Derived-height engineering boxes expose only their authored width axis. */
 export function resizeHandlesFor(type: string): readonly ResizeHandle[] {
-  return type === "erd.table" || type === "uml.class"
+  return type === "erd.table" ||
+    type === "uml.class" ||
+    isDatabaseObjectType(type)
     ? (["e", "w"] as const)
     : RESIZE_HANDLES;
 }
@@ -345,6 +350,7 @@ type Gesture =
       readonly kind: "connecting";
       readonly from: ElementId;
       readonly componentKind?: UmlComponentRelationshipKind;
+      readonly connectorType?: string;
     }
   | {
       readonly kind: "reconnecting";
@@ -1239,11 +1245,29 @@ export function createInteraction(
     return true;
   };
 
+  const acceptsEndpoint = (type: string | undefined, id: ElementId): boolean =>
+    !type ||
+    !Object.hasOwn(CONNECTOR_ENDPOINT_TYPES, type) ||
+    Boolean(
+      CONNECTOR_ENDPOINT_TYPES[type]?.includes(
+        editor.store.get(id)?.type ?? "",
+      ),
+    );
+
   const beginConnect = (from: ElementId, point: Vec): void => {
+    const connectorType = typedConnectorFor(options.tool());
+    if (
+      connectorType &&
+      !CONNECTOR_ENDPOINT_TYPES[connectorType]?.includes(
+        editor.store.get(from)?.type ?? "",
+      )
+    )
+      return;
     gesture = {
       kind: "connecting",
       from,
       componentKind: componentRelationshipFor(options.tool()),
+      connectorType,
     };
     const bounds = editor.getBounds(from);
     setPending({ from: bounds ? boxCentre(bounds) : point, to: point });
@@ -1759,13 +1783,23 @@ export function createInteraction(
         const from = editor.getBounds(gesture.from);
         const point = pagePoint(event);
         setPending({ from: from ? boxCentre(from) : point, to: point });
-        setHoverTarget(targetUnder(point, [gesture.from]));
+        const target = targetUnder(point, [gesture.from]);
+        setHoverTarget(
+          target && acceptsEndpoint(gesture.connectorType, target)
+            ? target
+            : null,
+        );
         return;
       }
       case "reconnecting": {
         const point = pagePoint(event);
         setPending({ from: gesture.anchor, to: point });
-        setHoverTarget(targetUnder(point, [gesture.id, gesture.other]));
+        const target = targetUnder(point, [gesture.id, gesture.other]);
+        setHoverTarget(
+          target && acceptsEndpoint(editor.store.get(gesture.id)?.type, target)
+            ? target
+            : null,
+        );
         return;
       }
       case "marquee": {
@@ -1875,6 +1909,12 @@ export function createInteraction(
     // An ERD relation names a table (and optionally a column); the column
     // belonged to the old table, so the new endpoint carries none.
     base[end] = element.type === "erd.relation" ? { table: target } : target;
+    if (
+      connectorEndpointIssues(element.type, base, element.page, (id) =>
+        editor.store.get(id),
+      ).length
+    )
+      return;
     editor.apply([{ type: "updateSemantic", id, semantic: base }]);
   };
 
@@ -1924,7 +1964,11 @@ export function createInteraction(
     }
     if (gesture.kind === "connecting") {
       const target = targetUnder(pagePoint(event), [gesture.from]);
-      if (target) {
+      if (
+        target &&
+        acceptsEndpoint(gesture.connectorType, gesture.from) &&
+        acceptsEndpoint(gesture.connectorType, target)
+      ) {
         const created = gesture.componentKind
           ? editor.connectComponent(gesture.from, target, gesture.componentKind)
           : editor.connectSmart(gesture.from, target);
@@ -2412,7 +2456,9 @@ export function createInteraction(
       return;
     }
     const derivedHeight =
-      element.type === "erd.table" || element.type === "uml.class";
+      element.type === "erd.table" ||
+      element.type === "uml.class" ||
+      isDatabaseObjectType(element.type);
     if (derivedHeight && handle !== "e" && handle !== "w") return;
     event.stopPropagation();
     // Same recovery as `onPointerDown`: never open a batch over an open one.

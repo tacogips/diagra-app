@@ -997,6 +997,10 @@ describe("left shape palette creation", () => {
   test("semantic palettes preserve endpoint tools and workspace terminology", () => {
     expect(workspaceShapes("erd").map((item) => item.label)).toEqual([
       "Table",
+      "View",
+      "Materialized view",
+      "Function",
+      "Procedure",
       "Foreign key",
       "Text",
       "Frame",
@@ -1005,7 +1009,7 @@ describe("left shape palette creation", () => {
       "sequence.actor",
       "sequence.service",
       "sequence.database",
-      "edge",
+      Tool.SequenceMessage,
       "text.note",
       "frame",
     ]);
@@ -1105,6 +1109,9 @@ describe("creationFor", () => {
       Tool.Dependency,
       Tool.Realization,
       Tool.ComponentConnector,
+      Tool.ForeignKey,
+      Tool.Association,
+      Tool.SequenceMessage,
     ]);
     for (const tool of TOOLS) {
       expect(creationFor(tool) === null).toBe(gestures.has(tool));
@@ -2828,6 +2835,54 @@ describe("context menu (design 3.6)", () => {
       hit: shape,
     });
   });
+});
+
+test("typed drawing tools and endpoint drags reject incompatible shapes", () => {
+  for (const [tool, type, connector] of [
+    [Tool.ForeignKey, "erd.table", "erd.relation"],
+    [Tool.Association, "uml.class", "uml.association"],
+    [Tool.SequenceMessage, "sequence.participant", "sequence.message"],
+  ] as const) {
+    const editor = new Editor();
+    const a = editor.createElement(type, { visual: { x: 0, y: 0 } });
+    const b = editor.createElement(type, { visual: { x: 400, y: 0 } });
+    const note = editor.createElement("text.note", {
+      visual: { x: 800, y: 0 },
+    });
+    const { interaction, setTool } = interactionFor(editor, tool);
+    const point = (id: string) => {
+      const box = editor.registry
+        .get(editor.store.get(id)!.type)!
+        .getBounds(editor.store.get(id)!, editor.createShapeContext(1));
+      if (!box) throw new Error("expected endpoint bounds");
+      return pointer({ clientX: box.x + box.width / 2, clientY: box.y + 10 });
+    };
+    interaction.onPointerDown(point(note));
+    expect(interaction.pending()).toBeNull();
+    interaction.onPointerDown(point(a));
+    interaction.onPointerMove(point(note));
+    expect(interaction.hoverTarget()).toBeNull();
+    interaction.onPointerUp(point(note));
+    expect(
+      editor
+        .getSnapshot()
+        .elements.filter((element) => element.type === connector),
+    ).toHaveLength(0);
+    setTool(tool);
+    interaction.onPointerDown(point(a));
+    interaction.onPointerMove(point(b));
+    interaction.onPointerUp(point(b));
+    const edge = editor
+      .getSnapshot()
+      .elements.find((element) => element.type === connector)!;
+    expect(edge).toBeDefined();
+    const before = editor.getSnapshot();
+    interaction.startReconnect(edge.id, "to", point(b));
+    interaction.onPointerMove(point(note));
+    expect(interaction.hoverTarget()).toBeNull();
+    interaction.onPointerUp(point(note));
+    expect(editor.getSnapshot()).toEqual(before);
+  }
 });
 
 describe("connector handles (design 3.4)", () => {

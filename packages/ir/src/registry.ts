@@ -1,3 +1,4 @@
+import { databaseObjectDefinitions } from "./database-objects.ts";
 // Element type registry (v1). See the product design, section 5.2.
 //
 // Each entry owns three things for its element type:
@@ -2450,6 +2451,7 @@ const DEFINITIONS: readonly ElementTypeDefinition[] = [
   GENERIC_NODE,
   GENERIC_EDGE,
   ERD_TABLE,
+  ...databaseObjectDefinitions,
   ERD_RELATION,
   UML_CLASS,
   UML_ASSOCIATION,

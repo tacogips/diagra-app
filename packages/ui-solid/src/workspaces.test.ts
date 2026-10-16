@@ -62,17 +62,17 @@ test("every workspace preference round-trips", () => {
 test("semantic workspaces promote their own authoring tools and share endpoint-aware connectors", () => {
   expect(workspaceById("erd").tools.map((entry) => entry.tool)).toEqual([
     "erd.table",
-    "edge",
+    Tool.ForeignKey,
   ]);
   expect(workspaceById("class").tools.map((entry) => entry.tool)).toEqual([
     "uml.class",
-    "edge",
+    Tool.Association,
   ]);
   expect(workspaceById("sequence").tools.map((entry) => entry.tool)).toEqual([
     "sequence.actor",
     "sequence.service",
     "sequence.database",
-    "edge",
+    Tool.SequenceMessage,
   ]);
   for (const workspace of WORKSPACES.filter((entry) => !entry.design)) {
     for (const { tool } of workspace.tools) {
@@ -155,6 +155,10 @@ test("ERD foreign keys stay beside tables and General provides a separate Note t
   const erd = shapePaletteGroups("erd").find((group) => group.label === "ERD");
   expect(erd?.items.map((item) => item.label)).toEqual([
     "Table",
+    "View",
+    "Materialized view",
+    "Function",
+    "Procedure",
     "Foreign key",
   ]);
   const general = shapePaletteGroups("flow").find(

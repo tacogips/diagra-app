@@ -40,10 +40,17 @@ export const Tool = {
   EditStroke: "edit.stroke-paint",
   Crop: "crop",
   Connector: "edge",
+  ForeignKey: "erd.foreign-key",
+  Association: "uml.association",
+  SequenceMessage: "sequence.message",
   Node: "node.generic",
   Text: "text.note",
   Note: "text.note:note",
   Table: "erd.table",
+  View: "erd.view",
+  MaterializedView: "erd.materialized-view",
+  Function: "erd.function",
+  Procedure: "erd.procedure",
   Class: "uml.class",
   Component: UmlComponentType.Component,
   ProvidedInterface: "uml.interface:provided",
@@ -246,7 +253,7 @@ const PARTICIPANT_KINDS = {
   [Tool.Service]: "service",
   [Tool.Database]: "db",
 } as const satisfies Record<
-  Extract<ToolKind, `sequence.${string}`>,
+  Exclude<Extract<ToolKind, `sequence.${string}`>, typeof Tool.SequenceMessage>,
   ParticipantKind
 >;
 
@@ -355,12 +362,19 @@ export function creationFor(tool: ToolKind): CreationTool | null {
     case Tool.Node:
     case Tool.Text:
     case Tool.Table:
+    case Tool.View:
+    case Tool.MaterializedView:
+    case Tool.Function:
+    case Tool.Procedure:
     case Tool.Class:
       return { type: tool };
     case Tool.Select:
     case Tool.Hand:
     case Tool.Comment:
     case Tool.Connector:
+    case Tool.ForeignKey:
+    case Tool.Association:
+    case Tool.SequenceMessage:
     case Tool.Dependency:
     case Tool.Realization:
     case Tool.ComponentConnector:
@@ -393,6 +407,15 @@ export function componentRelationshipFor(
 }
 export function isConnectorTool(tool: ToolKind): boolean {
   return (
-    tool === Tool.Connector || componentRelationshipFor(tool) !== undefined
+    tool === Tool.Connector ||
+    typedConnectorFor(tool) !== undefined ||
+    componentRelationshipFor(tool) !== undefined
   );
+}
+
+export function typedConnectorFor(tool: ToolKind): string | undefined {
+  if (tool === Tool.ForeignKey) return "erd.relation";
+  if (tool === Tool.Association) return "uml.association";
+  if (tool === Tool.SequenceMessage) return "sequence.message";
+  return undefined;
 }
