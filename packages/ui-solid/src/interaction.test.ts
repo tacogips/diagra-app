@@ -3310,3 +3310,92 @@ test("right drag tracks screen distance at every zoom and click jitter does not 
     expect(editor.camera.get()).toEqual({ x: 15 + 80 / z, y: -20 + 40 / z, z });
   }
 });
+
+test("captured bend double-click removes a vertex without moving it or inserting another", () => {
+  const editor = new Editor();
+  const from = editor.createElement("shape.geo", {
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  const to = editor.createElement("shape.geo", {
+    visual: { x: 300, y: 200, width: 100, height: 100 },
+  });
+  const edge = editor.connect(from, to) as ElementId;
+  editor.apply([
+    {
+      type: "updateSemantic",
+      id: edge,
+      semantic: {
+        from,
+        to,
+        routing: "manual",
+        routingWaypoints: [{ u: 0.5, v: 40 }],
+      },
+    },
+  ]);
+  editor.selection.set([edge]);
+  const { interaction } = interactionFor(editor, "select", {
+    scheduleDragFrame: () => () => {},
+  });
+  const element = editor.store.get(edge);
+  if (!element) throw new Error("connector missing");
+  const point = resolveConnector(
+    element,
+    editor.createShapeContext(),
+    endpointReaderFor(element.type),
+  )?.waypointPoints?.[0];
+  if (!point) throw new Error("bend missing");
+  const before = editor.getSnapshot();
+  const undoSize = editor.history.undoSize;
+  // Real pointer coordinates need not fall on the exact fractional center.
+  const at = { clientX: point.x + 0.25, clientY: point.y - 0.25 };
+  for (let click = 0; click < 2; click += 1) {
+    interaction.startRouteWaypoint(edge, 0, pointer(at));
+    interaction.onPointerUp(pointer(at));
+  }
+  expect(editor.getSnapshot()).toEqual(before);
+  expect(editor.history.undoSize).toBe(undoSize);
+  // Canvas pointer capture retargets dblclick to the canvas itself.
+  interaction.onDoubleClick(mouse(at.clientX, at.clientY));
+  expect(editor.store.get(edge)?.semantic).toMatchObject({
+    from,
+    to,
+    routing: "straight",
+  });
+  expect(editor.history.undoSize).toBe(undoSize + 1);
+  editor.undo();
+  expect(editor.getSnapshot()).toEqual(before);
+});
+
+test("double-clicking a selected orthogonal channel straightens it", () => {
+  const editor = new Editor();
+  const from = editor.createElement("shape.geo", {
+    visual: { x: 0, y: 0, width: 100, height: 100 },
+  });
+  const to = editor.createElement("shape.geo", {
+    visual: { x: 300, y: 200, width: 100, height: 100 },
+  });
+  const edge = editor.connect(from, to) as ElementId;
+  editor.apply([
+    {
+      type: "updateSemantic",
+      id: edge,
+      semantic: { from, to, routing: "orthogonal" },
+    },
+  ]);
+  editor.selection.set([edge]);
+  const element = editor.store.get(edge);
+  if (!element) throw new Error("connector missing");
+  const point = resolveConnector(
+    element,
+    editor.createShapeContext(),
+    endpointReaderFor(element.type),
+  )?.bendPoint;
+  if (!point) throw new Error("channel missing");
+  const { interaction } = interactionFor(editor, "select");
+  interaction.onDoubleClick(mouse(point.x, point.y));
+  expect(editor.store.get(edge)?.semantic).toEqual({
+    from,
+    to,
+    routing: "straight",
+  });
+});

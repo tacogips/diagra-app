@@ -94,7 +94,7 @@ function selectionEntries(simple = false): readonly MenuEntry[] {
           getAction(id as ActionId),
         ),
       },
-      ...actions(["editText", "comment"]),
+      ...actions(["straightenConnector", "editText", "comment"]),
     ];
   return [
     ...actions(["cut", "copy", "paste", "duplicate", "delete"]),
@@ -130,7 +130,7 @@ function selectionEntries(simple = false): readonly MenuEntry[] {
       items: ARRANGE_ITEMS.map(getAction),
     },
     SEPARATOR,
-    ...actions(["editText", "comment"]),
+    ...actions(["straightenConnector", "editText", "comment"]),
   ];
 }
 
@@ -139,11 +139,19 @@ export function ContextMenu(props: ContextMenuProps): JSX.Element {
   let menu: HTMLDivElement | undefined;
   let submenu: HTMLDivElement | undefined;
 
-  const entries = createMemo<readonly MenuEntry[]>(() =>
-    signals.selection().size > 0
-      ? selectionEntries(props.simple)
-      : actions(EMPTY_CANVAS_ITEMS),
-  );
+  const entries = createMemo<readonly MenuEntry[]>(() => {
+    signals.rev();
+    const entries =
+      signals.selection().size > 0
+        ? selectionEntries(props.simple)
+        : actions(EMPTY_CANVAS_ITEMS);
+    return entries.filter(
+      (entry) =>
+        entry.kind !== "action" ||
+        entry.action.id !== "straightenConnector" ||
+        entry.action.enabled(props.context),
+    );
+  });
 
   const isEnabled = (action: EditorAction): boolean => {
     signals.rev();

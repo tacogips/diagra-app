@@ -1,3 +1,7 @@
+import {
+  canStraightenConnector,
+  straightenConnectors,
+} from "./connector-routing.ts";
 // The editor's action table: one definition per command the chrome exposes.
 //
 // The context menu, the floating selection toolbar, the main toolbar and the
@@ -81,6 +85,7 @@ export type ActionId =
   | "matchHeight"
   | "matchBoth"
   | "tidyLayout"
+  | "straightenConnector"
   | "removeOverlaps"
   | "editText"
   | "comment"
@@ -503,6 +508,17 @@ const ACTION_DEFINITIONS: readonly EditorAction[] = [
     run: ({ editor }) => {
       editor.arrangeLayout({ mode: "overlaps" });
     },
+  },
+  {
+    id: "straightenConnector",
+    label: "Straighten connector",
+    group: "layout",
+    enabled: ({ editor }) =>
+      [...editor.selection.ids()].some((id) =>
+        canStraightenConnector(editor, id),
+      ),
+    run: ({ editor }) =>
+      straightenConnectors(editor, [...editor.selection.ids()]),
   },
   {
     id: "comment",

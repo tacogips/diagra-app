@@ -266,6 +266,9 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element {
           {button("duplicate", "Duplicate")}
           {button("delete", "Delete")}
           {button("comment", "Comment")}
+          <Show when={isEnabled(getAction("straightenConnector"))}>
+            {button("straightenConnector", "Straighten")}
+          </Show>
         </div>
         <details class="nodetto-selection-disclosure" onKeyDown={disclosureKey}>
           <summary>Colors</summary>

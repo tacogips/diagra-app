@@ -28,6 +28,10 @@ import {
 // Camera changes deliberately do not touch history: panning and zooming are
 // not edits.
 
+import {
+  removeConnectorWaypoint,
+  straightenConnectors,
+} from "./connector-routing.ts";
 import type {
   Box,
   Editor,
@@ -321,6 +325,8 @@ type Gesture =
     }
   | {
       readonly kind: "routing-bend";
+      readonly startScreen: Vec;
+      moved: boolean;
       readonly id: ElementId;
       readonly axis: "x" | "y";
       readonly from: number;
@@ -328,6 +334,8 @@ type Gesture =
     }
   | {
       readonly kind: "routing-waypoint";
+      readonly startScreen: Vec;
+      moved: boolean;
       readonly id: ElementId;
       readonly index: number;
       readonly fromCenter: Vec;
@@ -1477,6 +1485,21 @@ export function createInteraction(
     if (event.pointerId !== activePointerId) {
       return;
     }
+    if (
+      gesture.kind === "routing-bend" ||
+      gesture.kind === "routing-waypoint"
+    ) {
+      const now = screenPoint(event);
+      if (
+        !gesture.moved &&
+        Math.hypot(
+          now.x - gesture.startScreen.x,
+          now.y - gesture.startScreen.y,
+        ) <= CLICK_SLOP_PX
+      )
+        return;
+      gesture.moved = true;
+    }
     switch (gesture.kind) {
       case "panning": {
         const now = screenPoint(event);
@@ -2234,6 +2257,34 @@ export function createInteraction(
       return;
     }
     const point = pagePoint(event);
+    // Pointer capture belongs to the canvas, so a handle's double-click can
+    // be retargeted here. Resolve the selected handle before inserting a point.
+    if (editor.selection.size === 1) {
+      const selected = editor.store.get(
+        [...editor.selection.ids()][0] as ElementId,
+      );
+      if (selected && MANUAL_ROUTE_TYPES.has(selected.type)) {
+        const resolved = resolveConnector(
+          selected,
+          editor.createShapeContext(),
+          endpointReaderFor(selected.type),
+        );
+        const close = (at: Vec) =>
+          Math.hypot(at.x - point.x, at.y - point.y) <=
+          8 / editor.camera.get().z;
+        const index = resolved?.waypointPoints?.findIndex(close) ?? -1;
+        if (index >= 0) {
+          event.preventDefault();
+          removeConnectorWaypoint(editor, selected.id, index);
+          return;
+        }
+        if (resolved?.bendPoint && close(resolved.bendPoint)) {
+          event.preventDefault();
+          straightenConnectors(editor, [selected.id]);
+          return;
+        }
+      }
+    }
     const hit = editor.hitTest(point);
     if (!hit) {
       return;
@@ -2428,6 +2479,8 @@ export function createInteraction(
     editor.beginBatch();
     gesture = {
       kind: "routing-bend",
+      startScreen: screenPoint(event),
+      moved: false,
       id,
       axis,
       from: resolved.start[axis],
@@ -2466,6 +2519,8 @@ export function createInteraction(
     editor.beginBatch();
     gesture = {
       kind: "routing-waypoint",
+      startScreen: screenPoint(event),
+      moved: false,
       id,
       index,
       fromCenter: boxCenter(fromBox),
