@@ -2100,3 +2100,10 @@ input {
   margin-right: 8px;
   padding: 6px 12px;
 }
+
+.nodetto-ruler-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
