@@ -1,11 +1,5 @@
-// What the app must show on launch.
-//
-// The manual checklist in this package's README opens with "the window shows
-// two ERD tables joined by a relation, ...". These assertions are the part of
-// that step a test can make: the seeded document is valid IR, every box shape
-// has bounds the renderer can position, and every connector resolves to two
-// endpoints — an unresolved one silently draws nothing, which is exactly the
-// failure a human would have to notice by eye.
+// Renderer coverage for the mixed-diagram test fixture. Startup stays blank;
+// these assertions check fixture geometry and connector endpoints.
 
 import { describe, expect, test } from "bun:test";
 import { createDefaultRegistry, Editor } from "@nodetto/core";

@@ -416,6 +416,8 @@ export interface Interaction {
   readonly hoverTarget: Accessor<ElementId | null>;
   /** True while space is held and the pointer pans instead of selecting. */
   readonly temporaryHand: Accessor<boolean>;
+  /** True for an active hand, space, middle-button or right-button pan. */
+  readonly panning: Accessor<boolean>;
 }
 
 /** True when two boxes overlap at all (touching edges count). */
@@ -746,6 +748,7 @@ export function createInteraction(
   const [guides, setGuides] = createSignal<readonly SnapGuide[]>(NO_GUIDES);
   const [hoverTarget, setHoverTarget] = createSignal<ElementId | null>(null);
   const [temporaryHand, setTemporaryHand] = createSignal(false);
+  const [panning, setPanning] = createSignal(false);
 
   const setMarquee = (rect: Box | null): void => {
     if (rect === null && marquee() === null) {
@@ -1011,6 +1014,7 @@ export function createInteraction(
   };
 
   const clearTransient = (): void => {
+    setPanning(false);
     setPending(null);
     setMarquee(null);
     clearGuides();
@@ -1409,6 +1413,7 @@ export function createInteraction(
         rightButton: event.button === 2,
         moved: false,
       };
+      setPanning(true);
       if (event.button === 2) event.preventDefault();
       return;
     }
@@ -2281,7 +2286,7 @@ export function createInteraction(
   };
 
   const onBlur = (): void => {
-    if (gesture.kind === "panning" && gesture.rightButton) cancelGesture();
+    if (gesture.kind === "panning") cancelGesture();
     releaseSpace();
     flushNudge();
   };
@@ -2555,5 +2560,6 @@ export function createInteraction(
     guides,
     hoverTarget,
     temporaryHand,
+    panning,
   };
 }

@@ -1,8 +1,8 @@
 # @nodetto/desktop
 
-The Tauri 2 desktop client. It builds an `Editor` from `@nodetto/core`, seeds a
-demo document that exercises every element type the phase-0 renderer knows,
-and mounts the `@nodetto/ui-solid` canvas.
+The Tauri 2 desktop client. It builds an `Editor` from `@nodetto/core` with
+one empty untitled page and mounts the `@nodetto/ui-solid` canvas. A document
+is loaded only when explicitly opened.
 
 ```bash
 mise run dev                    # Tauri window (Rust toolchain required)
@@ -27,15 +27,16 @@ Gestures need a real pointer, so they are verified by hand rather than in
 `packages/ui-solid/src/interaction.test.ts` and `packages/core`.
 
 Run through this after any change to the canvas, the interaction state
-machine, or a ShapeUtil.
+machine, or a ShapeUtil. After checking startup, create or open shapes as
+needed for the remaining gesture checks.
 
 | # | Step | Expected |
 | - | ---- | -------- |
-| 1 | Launch | Two ERD tables joined by a relation, two UML classes joined by an inheritance arrow, three geo shapes, and two nodes joined by a labelled arrow. |
+| 1 | Launch without opening a file | Empty untitled document with one page, no shapes, no selected file, and disabled Undo/Redo. |
 | 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the Hand tool, middle-drag or right-drag, and the dot grid tracks it. |
 | 3 | Ctrl/Cmd + wheel | Zooms about the pointer; the page point under the cursor stays put. Stops at 0.1x and 8x. |
 | 4 | Wheel / shift-wheel | Pans vertically / horizontally without zooming. |
-| 5 | Middle-drag, right-drag, and the Hand tool | Pan at any zoom without changing artwork, selection or undo history. A stationary right-click opens the context menu; Escape, blur or pointer cancellation stops a right-drag without opening it. |
+| 5 | Middle-drag, right-drag, and the Hand tool | Show a grabbing-hand cursor while panning at any zoom without changing artwork, selection or undo history. A stationary right-click opens the context menu; Escape, blur or pointer cancellation stops a right-drag without opening it. |
 | 6 | Click a shape | It gets a dashed outline and eight resize handles. |
 | 7 | Shift-click a second shape | Both are outlined; handles disappear (multi-selection is not resizable). |
 | 8 | Drag a selected shape | The whole selection moves with the cursor, at any zoom. |
@@ -49,7 +50,7 @@ machine, or a ShapeUtil.
 | 16 | Select a shape, press Delete or Backspace | The shape and any connector that referenced it go together. |
 | 17 | Ctrl/Cmd + Z | Undoes the last edit. A drag or resize undoes in one step, not pixel by pixel. |
 | 18 | Ctrl/Cmd + Shift + Z, and Ctrl/Cmd + Y | Redo. |
-| 19 | Undo/Redo toolbar buttons | Enabled exactly when the keyboard shortcuts would do something; the seeded document is not undoable. |
+| 19 | Undo/Redo toolbar buttons | Enabled exactly when the keyboard shortcuts would do something; the empty startup document has no undo history. |
 | 20 | Escape while dragging or resizing | The shape snaps back to where the gesture started. Nothing is added to the undo stack (the Undo button does not light up for the abandoned gesture), the selection is cleared, and the tool returns to Select. |
 | 21 | Middle-click, or put a second finger down, in the middle of a drag | The drag is unaffected by the stray contact. Afterwards Ctrl/Cmd + Z still works — a leaked history batch silently kills undo for the rest of the session, and this step is how a human catches it. |
 | 22 | Right-click a shape | A context menu opens at the pointer with cut / copy / paste / duplicate / delete, the z-order items, group / ungroup, an "Align and distribute" submenu and "Edit text"; items that would do nothing are greyed out. Right-click on empty canvas shows only paste, select all and zoom to fit. Escape, a wheel turn or a click elsewhere closes it; arrows and Enter drive it from the keyboard. |

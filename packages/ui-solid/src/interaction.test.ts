@@ -3199,7 +3199,9 @@ describe("right-button camera gestures", () => {
           menus++;
         },
       });
+      expect(interaction.panning()).toBe(false);
       interaction.onPointerDown(pointer({ button: 2 }));
+      expect(interaction.panning()).toBe(true);
       interaction.onContextMenu(mouse(50, 50));
       interaction.onPointerMove(
         pointer({ button: 2, clientX: 130, clientY: 90 }),
@@ -3207,6 +3209,7 @@ describe("right-button camera gestures", () => {
       interaction.onPointerUp(
         pointer({ button: 2, clientX: 130, clientY: 90 }),
       );
+      expect(interaction.panning()).toBe(false);
       interaction.onContextMenu(mouse(130, 90));
       expect(editor.camera.get()).toEqual({
         ...camera,
@@ -3267,6 +3270,7 @@ test("cancelling a right drag suppresses its menu and a later right click still 
       interaction.onPointerCancel(pointer({ button: 2 }));
     else if (cancel === "escape") interaction.onKeyDown(keyboard("Escape"));
     else interaction.onBlur();
+    expect(interaction.panning()).toBe(false);
     const camera = editor.camera.get();
     interaction.onPointerMove(pointer({ button: 2, clientX: 200 }));
     interaction.onPointerUp(pointer({ button: 2, clientX: 200 }));
