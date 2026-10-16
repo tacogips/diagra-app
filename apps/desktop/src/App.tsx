@@ -1192,8 +1192,11 @@ export function App(props: AppProps): JSX.Element {
               <Show
                 when={isCloud()}
                 fallback={
-                  <span class="app-file-name">
-                    {file().fileName ?? "untitled"}
+                  <span
+                    class="app-file-name"
+                    title={file().filePath ?? undefined}
+                  >
+                    {file().fileName?.replace(/\.jsonl$/i, "") ?? "untitled"}
                     <Show when={file().dirty}>
                       <span class="app-dirty-marker" title="unsaved changes">
                         *
