@@ -228,6 +228,12 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
     setPreview(false);
   });
   let root: HTMLDivElement | undefined;
+  const closePreview = () => {
+    setPreview(false);
+    queueMicrotask(() =>
+      root?.querySelector<HTMLButtonElement>('[aria-label="Preview"]')?.focus(),
+    );
+  };
   onMount(() => {
     const dismiss = (event: PointerEvent) => {
       if (root && !root.contains(event.target as Node)) setOpen(null);
@@ -394,14 +400,14 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
       <option value="navigation">Navigation bar</option>
     </select>
   );
-  return (
+  const toolbar = () => (
     <div
       ref={root}
       class="nodetto-compact-toolbar"
       role="toolbar"
       aria-label="Editor tools"
     >
-      <div class="nodetto-toolbar-primary">
+      <div class="nodetto-toolbar-primary" inert={preview()}>
         {props.leadingContent}
         <Show when={props.onWorkspaceChange}>
           <label class="nodetto-workspace-label">
@@ -530,22 +536,30 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
         </div>
       </div>
       <div class="nodetto-toolbar-utilities">
-        {props.utilitiesContent}
+        <div style={{ display: "contents" }} inert={preview()}>
+          {props.utilitiesContent}
+        </div>
         <Show when={workspace().design}>
           <button
             type="button"
             class="nodetto-toolbar-icon"
-            aria-label="Preview"
-            title="Preview prototype"
+            aria-label={preview() ? "Close preview" : "Preview"}
+            aria-pressed={preview()}
+            title={preview() ? "Close preview" : "Preview prototype"}
             onClick={(event) => {
               event.currentTarget.focus({ preventScroll: true });
-              setPreview(true);
+              if (preview()) closePreview();
+              else setPreview(true);
             }}
           >
             <Icon name="preview" />
           </button>
         </Show>
-        <div class="nodetto-local-history" aria-label="History">
+        <div
+          class="nodetto-local-history"
+          aria-label="History"
+          inert={preview()}
+        >
           <button
             type="button"
             class="nodetto-toolbar-icon"
@@ -568,14 +582,20 @@ export function Toolbar(props: ToolbarProps): JSX.Element {
           </button>
         </div>
       </div>
+    </div>
+  );
+  return (
+    <>
+      <Show when={!preview()}>{toolbar()}</Show>
       <Show when={preview()}>
         <Suspense>
           <PrototypePreview
             editor={props.editor}
-            onClose={() => setPreview(false)}
+            toolbar={toolbar()}
+            onClose={closePreview}
           />
         </Suspense>
       </Show>
-    </div>
+    </>
   );
 }

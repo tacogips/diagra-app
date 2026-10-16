@@ -210,6 +210,7 @@ function PrototypeLayer(props: {
 export function PrototypePreview(props: {
   editor: Editor;
   onClose: () => void;
+  toolbar?: JSX.Element;
 }): JSX.Element {
   let dialog: HTMLDialogElement | undefined;
   let stage: HTMLDivElement | undefined;
@@ -808,10 +809,13 @@ export function PrototypePreview(props: {
         else props.onClose();
       }}
     >
+      {props.toolbar}
       <header>
-        <button type="button" onClick={props.onClose}>
-          Close preview
-        </button>
+        <Show when={!props.toolbar}>
+          <button type="button" onClick={props.onClose}>
+            Close preview
+          </button>
+        </Show>
         <button
           type="button"
           disabled={!overlays().length && !history().length}
