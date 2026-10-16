@@ -119,6 +119,7 @@ export interface NodettoCanvasProps {
   readonly snap: SnapSettings;
   /** False hides the dotted background. */
   readonly showGrid: boolean;
+  readonly showRulers?: boolean;
   /** Double-click, Enter/F2, or a freshly placed text element. */
   readonly onEditRequest?: (id: ElementId, region: EditRegion) => void;
   /** Right-click or Shift+F10; `hit` is the group-resolved element. */
@@ -1232,13 +1233,15 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
       <Show when={!readOnly() && props.tool === "draw.freehand"}>
         <FreehandInput editor={props.editor} />
       </Show>
-      <Suspense>
-        <CanvasRulers
-          editor={props.editor}
-          viewport={viewport()}
-          container={() => container}
-        />
-      </Suspense>
+      <Show when={props.showRulers !== false}>
+        <Suspense>
+          <CanvasRulers
+            editor={props.editor}
+            viewport={viewport()}
+            container={() => container}
+          />
+        </Suspense>
+      </Show>
       <Show when={imageDropActive() || imageImportBusy()}>
         <div class="nodetto-image-drop-overlay" role="status">
           {imageImportBusy()

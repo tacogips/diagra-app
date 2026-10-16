@@ -185,6 +185,25 @@ export function App(props: AppProps): JSX.Element {
     guides: true,
   });
   const [showGrid, setShowGrid] = createSignal(true);
+  const [showRulers, setShowRulers] = createSignal(
+    (() => {
+      try {
+        return (
+          preferenceStorage()?.getItem("nodetto.view.show-rulers") !== "false"
+        );
+      } catch {
+        return true;
+      }
+    })(),
+  );
+  const changeShowRulers = (show: boolean) => {
+    setShowRulers(show);
+    try {
+      preferenceStorage()?.setItem("nodetto.view.show-rulers", String(show));
+    } catch {
+      // View controls still work when preference storage is unavailable.
+    }
+  };
   const [viewport, setViewport] = createSignal({ width: 0, height: 0 });
   const [editing, setEditing] = createSignal<EditingTarget | null>(null);
   const [contextMenu, setContextMenu] = createSignal<{
@@ -1155,6 +1174,7 @@ export function App(props: AppProps): JSX.Element {
             onCommentPlace={placeComment}
             snap={snap()}
             showGrid={showGrid()}
+            showRulers={showRulers()}
             onEditRequest={(id, region) => {
               if (region === "title" || region === "body") {
                 requestEdit(id);
@@ -1209,8 +1229,10 @@ export function App(props: AppProps): JSX.Element {
             context={actionContext()}
             snap={snap()}
             showGrid={showGrid()}
+            showRulers={showRulers()}
             onSnapChange={setSnap}
             onShowGridChange={setShowGrid}
+            onShowRulersChange={changeShowRulers}
           />
           <Show when={contextMenu()}>
             {(menu) => (

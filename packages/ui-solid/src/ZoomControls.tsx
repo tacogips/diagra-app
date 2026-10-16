@@ -4,7 +4,7 @@
 // from the action table; the grid and snap toggles are shell state passed
 // in and handed back, because the canvas reads them too.
 
-import { type JSX, onCleanup, onMount } from "solid-js";
+import { type JSX, onCleanup, onMount, Show } from "solid-js";
 import { MIN_ZOOM, MAX_ZOOM } from "@nodetto/core";
 import { NumberInput } from "./NumberInput.tsx";
 import { createEditorSignals } from "./adapter.ts";
@@ -25,6 +25,8 @@ export interface ZoomControlsProps {
   readonly context: ActionContext;
   readonly snap: SnapSettings;
   readonly showGrid: boolean;
+  readonly showRulers?: boolean;
+  readonly onShowRulersChange?: (show: boolean) => void;
   readonly onSnapChange: (snap: SnapSettings) => void;
   readonly onShowGridChange: (show: boolean) => void;
 }
@@ -121,6 +123,30 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
         {button("zoomIn", "+")}
         {button("zoomFit", "Fit diagram")}
       </div>
+      <Show when={props.onShowRulersChange}>
+        <button
+          type="button"
+          class="nodetto-zoom-button nodetto-zoom-toggle nodetto-ruler-toggle"
+          classList={{ "nodetto-active": props.showRulers !== false }}
+          aria-label="Rulers"
+          aria-pressed={props.showRulers !== false}
+          title={props.showRulers !== false ? "Hide rulers" : "Show rulers"}
+          onClick={() => props.onShowRulersChange?.(props.showRulers === false)}
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            aria-hidden="true"
+          >
+            <rect x="3" y="6" width="18" height="12" rx="1" />
+            <path d="M6 6v5m3-5v3m3-3v5m3-5v3m3-3v5" />
+          </svg>
+        </button>
+      </Show>
       <details
         class="nodetto-view-menu"
         ref={viewMenu}
