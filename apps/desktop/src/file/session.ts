@@ -14,7 +14,15 @@
 //   - `loading` is set while the editor is being replaced, so the diffs a
 //     load produces never mark the fresh document dirty.
 
-import { type Editor, newElementId } from "@nodetto/core";
+import {
+  diffDocuments,
+  DocumentChangeMonitor,
+  type DocumentChangeSource,
+  type Editor,
+  isEmptyCommit,
+  mergeDocuments,
+  newElementId,
+} from "@nodetto/core";
 import {
   assertValidDocument,
   type Document,
@@ -23,6 +31,7 @@ import {
 } from "@nodetto/ir";
 import { parseDocumentResult, serializeDocument } from "@nodetto/io";
 import type { BpmnImportWarning } from "@nodetto/io";
+import { createFileDocumentChangeSource } from "./change-source.ts";
 import type { FileBackend, RecentEntry } from "./backend.ts";
 
 export type SessionStatus = "idle" | "loading" | "saving";
@@ -30,6 +39,21 @@ export type SessionStatus = "idle" | "loading" | "saving";
 export interface SessionConflict {
   /** What the file holds now, ready to be loaded if the user reloads. */
   readonly diskText: string;
+  /**
+   * Ids changed on both sides when an outside change was merged into unsaved
+   * local edits; the local version of those was kept. Absent when the disk
+   * change could not be merged at all.
+   */
+  readonly mergedConflicts?: readonly string[];
+}
+
+/** The last change another writer made to the open file, shown live. */
+export interface OutsideChange {
+  readonly added: number;
+  readonly updated: number;
+  readonly removed: number;
+  /** True when it was merged into unsaved local edits. */
+  readonly merged: boolean;
 }
 
 export interface SessionState {
@@ -37,6 +61,8 @@ export interface SessionState {
   readonly fileName: string | null;
   readonly dirty: boolean;
   readonly conflict: SessionConflict | null;
+  /** Cleared by the next local edit, open or new document. */
+  readonly outsideChange: OutsideChange | null;
   readonly recent: readonly RecentEntry[];
   readonly importWarnings: readonly BpmnImportWarning[];
   readonly status: SessionStatus;
@@ -51,6 +77,7 @@ export type TimerHandle = unknown;
 export interface DocumentSessionOptions {
   readonly editor: Editor;
   readonly backend: FileBackend;
+  readonly changes?: DocumentChangeSource;
   /** Quiet period after the last edit before autosave writes. */
   readonly autosaveDelayMs?: number;
   readonly scheduleTimer?: (
@@ -118,6 +145,8 @@ function isMissingFile(error: unknown): boolean {
 export class DocumentSession {
   private readonly editor: Editor;
   private readonly backend: FileBackend;
+  private readonly changes: DocumentChangeSource;
+  private readonly changeMonitor = new DocumentChangeMonitor();
   private readonly autosaveDelayMs: number;
   private readonly scheduleTimer: (
     callback: () => void,
@@ -127,13 +156,13 @@ export class DocumentSession {
 
   private readonly listeners = new Set<SessionListener>();
   private readonly unsubscribeEditor: () => void;
-  private readonly unsubscribeFileChanged: () => void;
 
   private current: SessionState = {
     filePath: null,
     fileName: null,
     dirty: false,
     conflict: null,
+    outsideChange: null,
     recent: [],
     importWarnings: [],
     status: "idle",
@@ -162,6 +191,8 @@ export class DocumentSession {
   constructor(options: DocumentSessionOptions) {
     this.editor = options.editor;
     this.backend = options.backend;
+    this.changes =
+      options.changes ?? createFileDocumentChangeSource(options.backend);
     this.autosaveDelayMs = options.autosaveDelayMs ?? DEFAULT_AUTOSAVE_DELAY_MS;
     this.scheduleTimer =
       options.scheduleTimer ??
@@ -172,20 +203,20 @@ export class DocumentSession {
         clearTimeout(handle as ReturnType<typeof setTimeout>);
       });
 
-    this.unsubscribeEditor = this.editor.subscribe((diff) => {
-      // Page switches and history-only notifications carry no element
-      // change, and nothing in the current UI edits the page list, so an
-      // element diff is exactly "the document changed".
+    this.unsubscribeEditor = this.editor.store.subscribe((diff) => {
+      // Observe persisted content directly: editor notifications also include
+      // active-page switches and history availability, which are view state.
       const changed =
+        diff.pagesChanged ||
         diff.added.length > 0 ||
         diff.updated.length > 0 ||
         diff.removed.length > 0;
       if (changed && !this.loading && !this.suspended) {
+        // The note describes the last outside change; a local edit retires it.
+        if (this.current.outsideChange !== null)
+          this.patch({ outsideChange: null });
         this.markDirty();
       }
-    });
-    this.unsubscribeFileChanged = this.backend.onFileChanged((path) => {
-      void this.handleFileChanged(path);
     });
 
     void this.refreshRecent();
@@ -215,6 +246,7 @@ export class DocumentSession {
       dirty: false,
       importWarnings: [],
       conflict: null,
+      outsideChange: null,
       status: "idle",
       error: null,
     });
@@ -499,8 +531,7 @@ export class DocumentSession {
     this.disposed = true;
     this.cancelAutosave();
     this.unsubscribeEditor();
-    this.unsubscribeFileChanged();
-    void this.backend.unwatch().catch(() => {});
+    void this.changeMonitor.close().catch(() => {});
     this.listeners.clear();
   }
 
@@ -508,6 +539,8 @@ export class DocumentSession {
     // Every load retires the writes queued for the outgoing document; see
     // `performWrite`.
     this.documentGeneration += 1;
+    if (this.current.outsideChange !== null)
+      this.patch({ outsideChange: null });
     this.loading = true;
     try {
       this.editor.loadDocument(document);
@@ -630,7 +663,14 @@ export class DocumentSession {
       // event carries the settled contents.
       return;
     }
-    if (diskText === this.lastSavedText) {
+    if (
+      this.disposed ||
+      path !== this.current.filePath ||
+      diskText === this.lastSavedText
+    ) {
+      return;
+    }
+    if (this.applyOutsideChange(diskText)) {
       return;
     }
     // An autosave armed before the event arrived would otherwise land after
@@ -640,9 +680,83 @@ export class DocumentSession {
     this.patch({ conflict: { diskText } });
   }
 
+  /**
+   * Show another writer's change (nodetto-cli, a script, another editor) live.
+   *
+   * With no unsaved local edits the disk version is applied as an in-place
+   * diff, so camera, page and surviving selection stay put. With unsaved
+   * edits it is merged three ways against the last saved text; disjoint
+   * changes need no question and are autosaved, so the other writer sees the
+   * person's edits on its next read. Returns false when the change cannot be
+   * merged automatically and the banner has to ask.
+   */
+  private applyOutsideChange(diskText: string): boolean {
+    const remote = parseDocumentResult(diskText);
+    // Ask instead when: the file is unreadable, a question is already open,
+    // our own write is in flight (it would overwrite what we merge), or the
+    // file now holds a different document altogether.
+    if (
+      !remote.ok ||
+      this.current.conflict !== null ||
+      this.current.status === "saving"
+    ) {
+      return false;
+    }
+    const local = this.editor.getSnapshot();
+    if (remote.document.id !== local.id) {
+      return false;
+    }
+    let target = remote.document;
+    let conflicts: readonly string[] = [];
+    if (this.current.dirty) {
+      const base =
+        this.lastSavedText === null
+          ? null
+          : parseDocumentResult(this.lastSavedText);
+      if (base === null || !base.ok || base.document.id !== local.id) {
+        return false;
+      }
+      const merged = mergeDocuments(base.document, local, remote.document);
+      target = merged.document;
+      conflicts = merged.conflicts.map((conflict) => conflict.id);
+    }
+    const commit = diffDocuments(local, target);
+    const outsideChange = {
+      added: (commit?.insert?.length ?? 0) + (commit?.insertPages?.length ?? 0),
+      updated:
+        (commit?.update?.length ?? 0) + (commit?.updatePages?.length ?? 0),
+      removed:
+        (commit?.remove?.length ?? 0) + (commit?.removePages?.length ?? 0),
+      merged: this.current.dirty,
+    };
+    this.loading = true;
+    try {
+      if (commit === null) {
+        this.editor.loadDocument(target, { preserveView: true });
+      } else if (!isEmptyCommit(commit)) {
+        this.editor.store.commit(commit);
+        this.editor.reconcileDerivedState();
+      }
+    } finally {
+      this.loading = false;
+    }
+    this.lastSavedText = diskText;
+    this.patch({ outsideChange });
+    if (conflicts.length > 0) {
+      this.cancelAutosave();
+      this.patch({ conflict: { diskText, mergedConflicts: conflicts } });
+    } else if (this.current.dirty) {
+      // The merged document still holds local edits the file lacks.
+      this.markDirty();
+    }
+    return true;
+  }
+
   private async startWatching(path: string): Promise<void> {
     try {
-      await this.backend.watch(path);
+      await this.changeMonitor.watch(this.changes, path, (change) => {
+        void this.handleFileChanged(change.documentId);
+      });
     } catch {
       // Losing the watch costs the reload prompt, not the document.
     }
@@ -650,7 +764,7 @@ export class DocumentSession {
 
   private async stopWatching(): Promise<void> {
     try {
-      await this.backend.unwatch();
+      await this.changeMonitor.close();
     } catch {
       // Nothing to recover: there is no longer a watch we depend on.
     }

@@ -167,8 +167,7 @@ export function HandoffSection(props: {
     }
   };
   return (
-    <details class="nodetto-inspector-section">
-      <summary>Generate code</summary>
+    <section class="nodetto-inspector-section">
       <HelpHint text={formatHelp()} />
       <label>
         Output
@@ -247,6 +246,6 @@ export function HandoffSection(props: {
         }}
       />
       <p role="status">{status()}</p>
-    </details>
+    </section>
   );
 }

@@ -1,16 +1,25 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
-import { EXIT_ERROR, runCli } from "./commands.ts";
+import { runCliAsync } from "./cli.ts";
+import { type CommandResult, EXIT_ERROR } from "./commands.ts";
 import { writeFileAtomic } from "./write-atomic.ts";
 
-let result: ReturnType<typeof runCli>;
+// A reader that stops early (`| head`) is not an error worth a stack trace.
+process.stdout.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.code === "EPIPE") process.exit(0);
+  throw error;
+});
+
+let result: CommandResult;
 try {
-  result = runCli(
+  result = await runCliAsync(
     process.argv.slice(2),
     {
       readText: (path) => readFileSync(path, "utf8"),
+      readStdin: () => readFileSync(0, "utf8"),
       writeText: writeFileAtomic,
+      writeBytes: writeFileAtomic,
       exists: (path) => existsSync(path),
     },
     packageJson.version,

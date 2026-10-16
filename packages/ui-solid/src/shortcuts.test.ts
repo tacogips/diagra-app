@@ -262,3 +262,42 @@ describe("action table", () => {
     expect(context.exports).toEqual([1]);
   });
 });
+
+test("Comment acts on one drawing selection, without mutating it, and is unavailable for viewers", () => {
+  const editor = new Editor();
+  const shape = rect(editor, 20, 30);
+  let requests = 0;
+  const context = {
+    ...makeContext(editor),
+    requestComment: () => {
+      requests++;
+    },
+  };
+  const action = getAction("comment");
+  expect(action.enabled(context)).toBe(false);
+  editor.selection.set([shape]);
+  const snapshot = editor.getSnapshot();
+  expect(runAction(action, context)).toBe(true);
+  expect(requests).toBe(1);
+  expect(editor.getSnapshot()).toEqual(snapshot);
+  editor.setReadOnly(true);
+  expect(runAction(action, context)).toBe(false);
+  editor.setReadOnly(false);
+  const other = rect(editor, 300, 30);
+  editor.selection.set([shape, other]);
+  expect(action.enabled(context)).toBe(false);
+  const comment = editor.createElement("review.comment", {
+    semantic: {
+      messages: [
+        {
+          id: "m1",
+          author: "User",
+          body: "Feedback",
+          createdAt: "2026-10-16T00:00:00Z",
+        },
+      ],
+    },
+  });
+  editor.selection.set([comment]);
+  expect(action.enabled(context)).toBe(false);
+});

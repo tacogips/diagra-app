@@ -39,3 +39,5 @@ export {
   toY,
   ydocToIr,
 } from "./ydoc.ts";
+
+export { createYjsDocumentChangeSource } from "./change-source.ts";

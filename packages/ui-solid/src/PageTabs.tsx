@@ -19,6 +19,11 @@ import {
   Show,
 } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import {
+  PageTabDrag,
+  type PageTabDrop,
+  type PageTabBox,
+} from "./page-tab-drag.ts";
 import { pageRenameDraft } from "./page-rename.ts";
 
 export interface PageTabsProps {
@@ -48,6 +53,58 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
   const [renameError, setRenameError] = createSignal("");
   const renameErrorId = createUniqueId();
   let strip: HTMLDivElement | undefined;
+  const drag = new PageTabDrag(props.editor);
+  const [draggedPage, setDraggedPage] = createSignal<PageId | null>(null);
+  const [drop, setDrop] = createSignal<PageTabDrop | null>(null);
+  let suppressClick = false;
+  const cancelDrag = (): void => {
+    suppressClick = suppressClick || drag.moved;
+    drag.cancel();
+    setDraggedPage(null);
+    setDrop(null);
+  };
+  const tabBoxes = (): PageTabBox[] =>
+    Array.from(
+      strip?.querySelectorAll<HTMLDivElement>("[data-page-drag-target]") ?? [],
+    ).map((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        id: element.dataset.pageDragTarget ?? "",
+        x: box.left,
+        y: box.top,
+        width: box.width,
+        height: box.height,
+      };
+    });
+  const moveDrag = (event: PointerEvent): void => {
+    if (!drag.owns(event.pointerId)) return;
+    setDrop(
+      drag.move(
+        event.pointerId,
+        { x: event.clientX, y: event.clientY },
+        tabBoxes(),
+      ),
+    );
+    if (drag.moved) setDraggedPage(drag.id);
+  };
+  createEffect(() => {
+    signals.rev();
+    if (drag.id && !drag.available) cancelDrag();
+  });
+  const cancelKey = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || drag.id === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancelDrag();
+  };
+  window.addEventListener("keydown", cancelKey, true);
+  window.addEventListener("blur", cancelDrag);
+  onCleanup(() => {
+    window.removeEventListener("keydown", cancelKey, true);
+    window.removeEventListener("blur", cancelDrag);
+    cancelDrag();
+  });
+
   const focusPage = (id: PageId): void => {
     queueMicrotask(() => {
       const button = Array.from(
@@ -195,7 +252,15 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
               {(page) => (
                 <div
                   class="nodetto-page-tab"
-                  classList={{ "nodetto-active": currentId() === id }}
+                  data-page-drag-target={id}
+                  classList={{
+                    "nodetto-active": currentId() === id,
+                    "is-dragging": draggedPage() === id,
+                    "is-drop-before":
+                      drop()?.id === id && drop()?.side === "before",
+                    "is-drop-after":
+                      drop()?.id === id && drop()?.side === "after",
+                  }}
                   role="presentation"
                 >
                   <Show
@@ -210,7 +275,51 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
                         tabindex={currentId() === id ? 0 : -1}
                         onKeyDown={(event) => tabKey(event, id)}
                         title={`${page().name} (${page().kind})${readOnly() ? "" : ". Double-click to rename"}`}
-                        onClick={() => props.editor.setCurrentPage(id)}
+                        draggable={false}
+                        onPointerDown={(event) => {
+                          suppressClick = false;
+                          if (event.button !== 0 || readOnly() || renaming())
+                            return;
+                          if (
+                            drag.start(id, event.pointerId, {
+                              x: event.clientX,
+                              y: event.clientY,
+                            })
+                          ) {
+                            setMenuFor(null);
+                            event.currentTarget.setPointerCapture(
+                              event.pointerId,
+                            );
+                          }
+                        }}
+                        onPointerMove={moveDrag}
+                        onPointerUp={(event) => {
+                          if (!drag.owns(event.pointerId)) return;
+                          moveDrag(event);
+                          const result = drag.finish(event.pointerId);
+                          suppressClick = suppressClick || result.dragged;
+                          setDraggedPage(null);
+                          setDrop(null);
+                          if (
+                            event.currentTarget.hasPointerCapture(
+                              event.pointerId,
+                            )
+                          )
+                            event.currentTarget.releasePointerCapture(
+                              event.pointerId,
+                            );
+                          if (result.reordered) focusPage(id);
+                        }}
+                        onPointerCancel={cancelDrag}
+                        onLostPointerCapture={cancelDrag}
+                        onClick={(event) => {
+                          if (suppressClick) {
+                            suppressClick = false;
+                            event.preventDefault();
+                            return;
+                          }
+                          props.editor.setCurrentPage(id);
+                        }}
                         onDblClick={() => startRename(id)}
                       >
                         {page().name}
@@ -403,19 +512,6 @@ export function PageTabs(props: PageTabsProps): JSX.Element {
         }}
       >
         +
-      </button>
-      <button
-        type="button"
-        class="nodetto-page-add"
-        title="Add BPMN page"
-        aria-label="Add BPMN page"
-        disabled={readOnly()}
-        onClick={() => {
-          props.editor.createPage({ kind: "bpmn", name: "Process" });
-          focusPage(props.editor.currentPageId);
-        }}
-      >
-        BPMN
       </button>
     </div>
   );

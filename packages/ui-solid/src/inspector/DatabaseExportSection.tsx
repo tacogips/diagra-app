@@ -77,8 +77,7 @@ export function DatabaseExportSection(props: {
     }
   };
   return (
-    <details class="nodetto-inspector-section">
-      <summary>Export database SQL</summary>
+    <section class="nodetto-inspector-section">
       <label>
         SQL dialect
         <select
@@ -117,7 +116,7 @@ export function DatabaseExportSection(props: {
         }}
       />
       <p role="status">{status()}</p>
-    </details>
+    </section>
   );
 }
 

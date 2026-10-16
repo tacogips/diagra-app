@@ -1,6 +1,6 @@
 {
   "name": "@nodetto/cli",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "Headless nodetto command line: document validation, canonical formatting and ERD DDL export",
   "private": true,
   "type": "module",
@@ -13,6 +13,8 @@
   "dependencies": {
     "@nodetto/core": "workspace:*",
     "@nodetto/io": "workspace:*",
-    "@nodetto/ir": "workspace:*"
+    "@nodetto/ir": "workspace:*",
+    "@resvg/resvg-js": "2.6.2",
+    "pdf-lib": "1.17.1"
   }
 }

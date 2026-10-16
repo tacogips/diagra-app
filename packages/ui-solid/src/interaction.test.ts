@@ -3183,3 +3183,114 @@ describe("component mode pointer authoring", () => {
     });
   }
 });
+
+describe("right-button camera gestures", () => {
+  for (const readOnly of [false, true]) {
+    test(`right drag pans without moving shapes, changing selection or opening a menu (readOnly=${readOnly})`, () => {
+      const { editor, shape } = harness();
+      editor.selection.set([shape]);
+      editor.setReadOnly(readOnly);
+      const before = editor.getSnapshot();
+      const undo = editor.history.undoSize;
+      const camera = editor.camera.get();
+      let menus = 0;
+      const { interaction } = interactionFor(editor, "select", {
+        onContextMenu: () => {
+          menus++;
+        },
+      });
+      interaction.onPointerDown(pointer({ button: 2 }));
+      interaction.onContextMenu(mouse(50, 50));
+      interaction.onPointerMove(
+        pointer({ button: 2, clientX: 130, clientY: 90 }),
+      );
+      interaction.onPointerUp(
+        pointer({ button: 2, clientX: 130, clientY: 90 }),
+      );
+      interaction.onContextMenu(mouse(130, 90));
+      expect(editor.camera.get()).toEqual({
+        ...camera,
+        x: camera.x + 80 / camera.z,
+        y: camera.y + 40 / camera.z,
+      });
+      expect(editor.getSnapshot()).toEqual(before);
+      expect([...editor.selection.ids()]).toEqual([shape]);
+      expect(editor.history.undoSize).toBe(undo);
+      expect(menus).toBe(0);
+    });
+  }
+  test("a stationary right click opens exactly one context menu despite browser event ordering", () => {
+    const { editor } = harness();
+    let menus = 0;
+    const { interaction } = interactionFor(editor, "select", {
+      onContextMenu: () => {
+        menus++;
+      },
+    });
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onContextMenu(mouse(50, 50));
+    interaction.onPointerUp(pointer({ button: 2 }));
+    interaction.onContextMenu(mouse(50, 50));
+    expect(menus).toBe(1);
+  });
+});
+
+test("palette drops share click creation, select the new element and remain one undo step", () => {
+  for (const tool of [Tool.Rectangle, Tool.Table, Tool.Class, Tool.Service]) {
+    const { editor } = harness();
+    const { interaction } = interactionFor(editor, "select");
+    const before = editor.getSnapshot();
+    interaction.placeTool(tool, { x: 500, y: 300 });
+    expect(editor.store.listElements()).toHaveLength(
+      before.elements.length + 1,
+    );
+    const [id] = editor.selection.ids();
+    const created = id ? editor.store.get(id) : undefined;
+    expect(created?.type).toBe(creationFor(tool)?.type);
+    editor.undo();
+    expect(editor.getSnapshot()).toEqual(before);
+  }
+});
+
+test("cancelling a right drag suppresses its menu and a later right click still works", () => {
+  for (const cancel of ["pointer", "escape", "blur"] as const) {
+    const { editor } = harness();
+    let menus = 0;
+    const { interaction } = interactionFor(editor, "select", {
+      onContextMenu: () => {
+        menus++;
+      },
+    });
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerMove(pointer({ button: 2, clientX: 130 }));
+    if (cancel === "pointer")
+      interaction.onPointerCancel(pointer({ button: 2 }));
+    else if (cancel === "escape") interaction.onKeyDown(keyboard("Escape"));
+    else interaction.onBlur();
+    const camera = editor.camera.get();
+    interaction.onPointerMove(pointer({ button: 2, clientX: 200 }));
+    interaction.onPointerUp(pointer({ button: 2, clientX: 200 }));
+    interaction.onContextMenu(mouse(200, 50));
+    expect(menus).toBe(0);
+    expect(editor.camera.get()).toEqual(camera);
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerUp(pointer({ button: 2 }));
+    expect(menus).toBe(1);
+  }
+});
+
+test("right drag tracks screen distance at every zoom and click jitter does not pan", () => {
+  for (const z of [0.5, 2, 4]) {
+    const { editor } = harness();
+    editor.camera.set({ x: 15, y: -20, z });
+    const { interaction } = interactionFor(editor, "select");
+    interaction.onPointerDown(pointer({ button: 2 }));
+    interaction.onPointerMove(pointer({ button: 2, clientX: 50.5 }));
+    expect(editor.camera.get()).toEqual({ x: 15, y: -20, z });
+    interaction.onPointerMove(
+      pointer({ button: 2, clientX: 130, clientY: 90 }),
+    );
+    interaction.onPointerUp(pointer({ button: 2, clientX: 130, clientY: 90 }));
+    expect(editor.camera.get()).toEqual({ x: 15 + 80 / z, y: -20 + 40 / z, z });
+  }
+});

@@ -1,4 +1,3 @@
-import type { SaveArtwork } from "./inspector/AssetExportSection.tsx";
 import { UmlComponentType } from "@nodetto/ir";
 import { UmlComponentSection } from "./inspector/UmlComponentSection.tsx";
 // The Inspector: a right-hand panel that reads the selection and writes
@@ -23,7 +22,6 @@ import {
 } from "@nodetto/ir";
 import {
   createMemo,
-  createEffect,
   type JSX,
   lazy,
   Match,
@@ -58,23 +56,6 @@ import { StrokeSection } from "./inspector/StrokeSection.tsx";
 import { PathSection } from "./inspector/PathSection.tsx";
 import { Field, Section, TextInput } from "./inspector/controls.tsx";
 
-const DatabaseExportSection = lazy(
-  () => import("./inspector/DatabaseExportSection.tsx"),
-);
-const MermaidExportSection = lazy(
-  () => import("./inspector/MermaidExportSection.tsx"),
-);
-const D2ExportSection = lazy(() => import("./inspector/D2ExportSection.tsx"));
-const AssetExportSection = lazy(() =>
-  import("./inspector/AssetExportSection.tsx").then((module) => ({
-    default: module.AssetExportSection,
-  })),
-);
-const HandoffSection = lazy(() =>
-  import("./inspector/HandoffSection.tsx").then((module) => ({
-    default: module.HandoffSection,
-  })),
-);
 const ErdTableSection = lazy(() =>
   import("./inspector/ErdSections.tsx").then((module) => ({
     default: module.ErdTableSection,
@@ -103,8 +84,6 @@ export interface InspectorFocus {
 }
 
 export interface InspectorProps {
-  readonly exportRequest?: number;
-  readonly saveArtwork?: SaveArtwork;
   readonly simple?: boolean;
   readonly editor: Editor;
   readonly focus?: InspectorFocus;
@@ -126,11 +105,6 @@ function hasOwnGeometry(element: Element): boolean {
 
 export function Inspector(props: InspectorProps): JSX.Element {
   const signals = createEditorSignals(props.editor);
-  let exportSection: HTMLDetailsElement | undefined;
-  createEffect(() => {
-    if (props.exportRequest && exportSection) exportSection.open = true;
-  });
-
   const selectedIds = createMemo<readonly ElementId[]>(() => [
     ...signals.selection(),
   ]);
@@ -151,17 +125,6 @@ export function Inspector(props: InspectorProps): JSX.Element {
     signals.rev();
     return props.editor.store.getPage(props.editor.currentPageId) ?? null;
   });
-  const databasePage = createMemo(() => {
-    signals.rev();
-    const current = page();
-    return current &&
-      props.editor.store
-        .getPageElements(current.id)
-        .some((element) => element.type === "erd.table")
-      ? current.id
-      : null;
-  });
-
   const focusRow = (): number | undefined => {
     const element = single();
     return element && props.focus?.id === element.id
@@ -398,49 +361,9 @@ export function Inspector(props: InspectorProps): JSX.Element {
           </fieldset>
         </details>
       </Show>
-      <details
-        ref={exportSection}
-        class="nodetto-inspector-details"
-        open={!props.simple}
-      >
-        <summary hidden={!props.simple}>Export</summary>
-        <Show when={databasePage()} keyed>
-          {(pageId) => (
-            <Suspense>
-              <DatabaseExportSection editor={props.editor} pageId={pageId} />
-            </Suspense>
-          )}
-        </Show>
-        <Show when={page()} keyed>
-          {(current) => (
-            <>
-              <Suspense>
-                <MermaidExportSection
-                  editor={props.editor}
-                  pageId={current.id}
-                />
-              </Suspense>
-              <Suspense>
-                <D2ExportSection editor={props.editor} pageId={current.id} />
-              </Suspense>
-            </>
-          )}
-        </Show>
-        <Show when={page()}>
-          <Suspense>
-            <AssetExportSection
-              request={props.exportRequest}
-              save={props.saveArtwork}
-              editor={props.editor}
-              id={single()?.type === "frame" ? single()?.id : undefined}
-              hasSelection={selectedIds().length > 0}
-            />
-          </Suspense>
-        </Show>
-      </details>
       <Show when={single()}>
         <details class="nodetto-inspector-details" open={!props.simple}>
-          <summary hidden={!props.simple}>Code and component settings</summary>
+          <summary hidden={!props.simple}>Component settings</summary>
           <Show when={single()}>
             {(element) => (
               <Suspense>
@@ -458,13 +381,6 @@ export function Inspector(props: InspectorProps): JSX.Element {
                 >
                   <OverridesSection editor={props.editor} id={element().id} />
                 </fieldset>
-              </Suspense>
-            )}
-          </Show>
-          <Show when={single()}>
-            {(element) => (
-              <Suspense>
-                <HandoffSection editor={props.editor} id={element().id} />
               </Suspense>
             )}
           </Show>

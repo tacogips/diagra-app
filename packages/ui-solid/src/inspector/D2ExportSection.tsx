@@ -68,8 +68,7 @@ export function D2ExportSection(props: {
   };
 
   return (
-    <details class="nodetto-inspector-section">
-      <summary>D2 export</summary>
+    <section class="nodetto-inspector-section">
       <button
         type="button"
         disabled={report().elementCount === 0}
@@ -109,7 +108,7 @@ export function D2ExportSection(props: {
         </ul>
       </Show>
       <p role="status">{status()}</p>
-    </details>
+    </section>
   );
 }
 

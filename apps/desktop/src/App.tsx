@@ -25,6 +25,7 @@ import {
 } from "@nodetto/core";
 import type { ElementId } from "@nodetto/ir";
 import {
+  ExportDialog,
   type ActionContext,
   ContextMenu,
   BpmnProblemsPanel,
@@ -190,6 +191,11 @@ export function App(props: AppProps): JSX.Element {
   const [inspectorFocus, setInspectorFocus] = createSignal<
     InspectorFocus | undefined
   >(undefined);
+  const [shapeDrop, setShapeDrop] = createSignal<{
+    tool: ToolKind;
+    client: Vec;
+  }>();
+  const [commentRequest, setCommentRequest] = createSignal(0);
   const [exportRequest, setExportRequest] = createSignal(0);
   const [exportError, setExportError] = createSignal<string | null>(null);
   const [canvasHost, setCanvasHost] = createSignal<HTMLDivElement>();
@@ -541,7 +547,6 @@ export function App(props: AppProps): JSX.Element {
 
   /** Reveal format-specific settings before choosing a save destination. */
   const openExport = () => {
-    restorePane("right");
     setExportRequest((value) => value + 1);
   };
   const saveArtwork = async (
@@ -598,6 +603,13 @@ export function App(props: AppProps): JSX.Element {
     editor: props.editor,
     viewport: viewport(),
     requestEdit,
+    requestComment: () => {
+      setActiveTool("select");
+      setEditing(null);
+      setContextMenu(null);
+      restorePane("left");
+      setCommentRequest((value) => value + 1);
+    },
     exportSvg: openExport,
   });
 
@@ -791,10 +803,9 @@ export function App(props: AppProps): JSX.Element {
               <button
                 type="button"
                 class="app-file-button"
-                disabled={!isBpmnPage()}
-                onClick={() => void exportBpmn()}
+                onClick={openExport}
               >
-                Export BPMN…
+                Export…
               </button>
               <button
                 type="button"
@@ -924,8 +935,28 @@ export function App(props: AppProps): JSX.Element {
         <Show when={file().status === "saving" && !isCloud()}>
           <span class="app-file-status">saving…</span>
         </Show>
+        <Show when={!isCloud() && file().outsideChange}>
+          {(change) => (
+            <span
+              class="app-file-status app-outside-change"
+              role="status"
+              title="Another program (for example nodetto-cli) changed this file; the canvas shows its changes."
+            >
+              {`updated from disk +${change().added} ~${change().updated} -${change().removed}${change().merged ? " (merged)" : ""}`}
+            </span>
+          )}
+        </Show>
         <HelpHint text="Double-click to edit text; right-click for the menu; Ctrl/Cmd + wheel to zoom; Shift + 1 to fit; Ctrl/Cmd + Z to undo; Ctrl/Cmd + S to save." />
       </header>
+      <Show when={exportRequest() > 0}>
+        <ExportDialog
+          editor={props.editor}
+          saveArtwork={props.exportBackend.available ? saveArtwork : undefined}
+          exportBpmn={exportBpmn}
+          error={exportError()}
+          onClose={() => setExportRequest(0)}
+        />
+      </Show>
       <Show when={props.cloud}>
         {(activeCloud) => (
           <div
@@ -959,13 +990,19 @@ export function App(props: AppProps): JSX.Element {
       </Show>
       <Show when={file().conflict && !isCloud()}>
         <div class="app-conflict" role="alert">
-          <span>File changed on disk.</span>
+          <span>
+            {file().conflict?.mergedConflicts?.length
+              ? `File changed on disk. ${file().conflict?.mergedConflicts?.length} item(s) were changed on both sides; your version was kept.`
+              : "File changed on disk."}
+          </span>
           <button
             type="button"
             class="app-file-button"
             onClick={() => void props.session.resolveConflict("reload")}
           >
-            Reload
+            {file().conflict?.mergedConflicts?.length
+              ? "Use disk version"
+              : "Reload"}
           </button>
           <button
             type="button"
@@ -1023,12 +1060,14 @@ export function App(props: AppProps): JSX.Element {
               tool={tool()}
               onToolChange={setActiveTool}
               context={actionContext()}
+              onShapeDrop={(tool, client) => setShapeDrop({ tool, client })}
             />
             <Layers
               simple={simpleWorkspace()}
               editor={props.editor}
               viewport={viewport()}
               commentAuthor={settings().userName}
+              commentRequest={commentRequest()}
               commentPlacementActive={
                 tool() === "comment" && pendingComment() !== null
               }
@@ -1080,6 +1119,7 @@ export function App(props: AppProps): JSX.Element {
           onPointerLeave={onCanvasPointerLeave}
         >
           <NodettoCanvas
+            shapeDrop={shapeDrop()}
             editor={props.editor}
             tool={tool()}
             onToolChange={setActiveTool}
@@ -1212,10 +1252,6 @@ export function App(props: AppProps): JSX.Element {
             </button>
             <div class="app-inspector" tabIndex={-1} ref={inspectorHost}>
               <Inspector
-                exportRequest={exportRequest()}
-                saveArtwork={
-                  props.exportBackend.available ? saveArtwork : undefined
-                }
                 editor={props.editor}
                 focus={inspectorFocus()}
                 simple={workspace() !== "all"}

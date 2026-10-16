@@ -29,6 +29,7 @@ import {
   type SizeDimension,
   type ViewportSize,
 } from "@nodetto/core";
+import { selectedCommentTarget } from "./comment-target.ts";
 import type { BooleanOperation, ElementId } from "@nodetto/ir";
 
 export type ActionGroup =
@@ -82,6 +83,7 @@ export type ActionId =
   | "tidyLayout"
   | "removeOverlaps"
   | "editText"
+  | "comment"
   | "zoomIn"
   | "zoomOut"
   | "zoomReset"
@@ -98,6 +100,7 @@ export interface ActionContext {
   readonly requestEdit: (id: ElementId) => void;
   /** Run the export flow: a save dialog on desktop, a download on the web. */
   readonly exportSvg: () => void;
+  readonly requestComment?: () => void;
 }
 
 export interface EditorAction {
@@ -502,6 +505,15 @@ const ACTION_DEFINITIONS: readonly EditorAction[] = [
     },
   },
   {
+    id: "comment",
+    label: "Comment",
+    group: "text",
+    enabled: ({ editor, requestComment }) =>
+      requestComment !== undefined &&
+      selectedCommentTarget(editor) !== undefined,
+    run: ({ requestComment }) => requestComment?.(),
+  },
+  {
     id: "editText",
     label: "Edit text",
     shortcut: "Enter",
@@ -566,7 +578,7 @@ const ACTION_DEFINITIONS: readonly EditorAction[] = [
   },
   {
     id: "exportSvg",
-    label: "Export artwork…",
+    label: "Export…",
     shortcut: chord(MOD, "Shift", "E"),
     group: "export",
     enabled: pageHasElements,

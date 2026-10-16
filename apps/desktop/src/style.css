@@ -1136,6 +1136,20 @@ input {
   font-size: 0.78rem;
 }
 
+.nodetto-page-tab.is-dragging {
+  opacity: 0.55;
+}
+.nodetto-page-tab.is-drop-before {
+  box-shadow: inset 3px 0 var(--nodetto-accent);
+}
+.nodetto-page-tab.is-drop-after {
+  box-shadow: inset -3px 0 var(--nodetto-accent);
+}
+.nodetto-page-tab-name {
+  touch-action: none;
+  user-select: none;
+}
+
 .nodetto-page-tab-list {
   display: flex;
   flex-wrap: wrap;

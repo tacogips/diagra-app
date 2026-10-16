@@ -2196,10 +2196,26 @@ export class Editor {
     delta: -1 | 1,
     applyOptions: ApplyOptions = {},
   ): boolean {
+    const index = this.store.listPages().findIndex((page) => page.id === id);
+    return index >= 0 && this.reorderPageTo(id, index + delta, applyOptions);
+  }
+
+  /** Move a tab directly to its final index as one undoable document command. */
+  reorderPageTo(
+    id: PageId,
+    target: number,
+    applyOptions: ApplyOptions = {},
+  ): boolean {
     const pages = this.store.listPages();
     const index = pages.findIndex((page) => page.id === id);
-    const target = index + delta;
-    if (index < 0 || target < 0 || target >= pages.length) return false;
+    if (
+      index < 0 ||
+      !Number.isInteger(target) ||
+      target < 0 ||
+      target >= pages.length ||
+      target === index
+    )
+      return false;
     const ordering = planPageOrder(pages, target, this.rng, id);
     this.apply(
       [

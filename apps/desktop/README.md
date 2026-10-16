@@ -32,10 +32,10 @@ machine, or a ShapeUtil.
 | # | Step | Expected |
 | - | ---- | -------- |
 | 1 | Launch | Two ERD tables joined by a relation, two UML classes joined by an inheritance arrow, three geo shapes, and two nodes joined by a labelled arrow. |
-| 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the hand tool or middle-drag, and the dot grid tracks it. |
+| 2 | Drag empty canvas (select tool) | A dashed marquee grows from the press point and selects everything it touches; shift-drag adds to the selection. Panning is the Hand tool, middle-drag or right-drag, and the dot grid tracks it. |
 | 3 | Ctrl/Cmd + wheel | Zooms about the pointer; the page point under the cursor stays put. Stops at 0.1x and 8x. |
 | 4 | Wheel / shift-wheel | Pans vertically / horizontally without zooming. |
-| 5 | Middle-drag, and the Hand tool | Pan, whatever tool is active. |
+| 5 | Middle-drag, right-drag, and the Hand tool | Pan at any zoom without changing artwork, selection or undo history. A stationary right-click opens the context menu; Escape, blur or pointer cancellation stops a right-drag without opening it. |
 | 6 | Click a shape | It gets a dashed outline and eight resize handles. |
 | 7 | Shift-click a second shape | Both are outlined; handles disappear (multi-selection is not resizable). |
 | 8 | Drag a selected shape | The whole selection moves with the cursor, at any zoom. |
@@ -59,7 +59,7 @@ machine, or a ShapeUtil.
 | 26 | Shift+1, then select a shape and Shift+2 | Shift+1 fits the page; Shift+2 fits the selection (zooming in up to 400 %). The widget's percentage follows. |
 | 27 | Grid / Snap / Grid snap toggles in the zoom widget | Grid hides and shows the dot grid. With Snap on, dragging a shape near another's edge or centre pulls it into line and draws a guide; with Grid snap on, it lands on the 24-unit grid. Off, it moves freely. |
 | 28 | Page tabs: "+", double-click a tab, the "..." menu | "+" adds "Page N" and switches to it; double-click renames inline (Enter commits, Escape cancels, typing V or R in the field does not switch tools); the menu offers Rename, Duplicate and Delete. Delete is disabled on the last page and asks for confirmation when the page has elements; Duplicate copies the page and every element on it. Undo brings a deleted page back in place. |
-| 29 | Actions → Export artwork…, or Cmd/Ctrl+Shift+E | Properties opens with format, scope, and background settings. SVG, PNG, and PDF show format-specific options before the native save dialog or browser download. |
+| 29 | Export, or Cmd/Ctrl+Shift+E | An Export popup opens with format tabs, scope, and background settings. SVG, PNG, and PDF show format-specific options before the native save dialog or browser download. |
 
 Recorded results live with the change that required them; a run is only
 meaningful for the build it was performed against.
@@ -128,9 +128,9 @@ for ownership, editing, persistence, and current notation scope.
 
 ## Artwork export settings
 
-Use **Actions → Export artwork…** or **Cmd/Ctrl+Shift+E**. This opens the
-Properties pane and focuses the export settings, including when the pane was
-collapsed. The same settings are available in **Properties → Export → Export artwork**.
+Use **Export** or **Cmd/Ctrl+Shift+E** to open the Export popup. Choose SVG,
+PNG, PDF, Mermaid, D2, SQL, BPMN, or Code in its tabs. Formats that require
+specific content or a selection are enabled when available.
 
 - All formats offer current-page, selected-artwork, or selected-artboard scope,
   background color, and 0–256 canvas units of padding for page/selection exports.

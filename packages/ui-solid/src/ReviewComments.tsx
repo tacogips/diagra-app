@@ -21,6 +21,7 @@ import {
   Show,
 } from "solid-js";
 import { createEditorSignals } from "./adapter.ts";
+import { selectedCommentTarget } from "./comment-target.ts";
 import { HelpHint } from "./HelpHint.tsx";
 
 interface CommentProps {
@@ -55,7 +56,10 @@ function threadTarget(editor: Editor, semantic: ReviewCommentSemantic): string {
 }
 
 export function ReviewComments(
-  props: CommentProps & { readonly showHeading?: boolean },
+  props: CommentProps & {
+    readonly showHeading?: boolean;
+    readonly request?: number;
+  },
 ): JSX.Element {
   const signals = createEditorSignals(props.editor);
   const readOnly = () => {
@@ -63,6 +67,15 @@ export function ReviewComments(
     return props.editor.readOnly;
   };
   const [body, setBody] = createSignal("");
+  let composer: HTMLTextAreaElement | undefined;
+  createEffect(() => {
+    if (props.request) queueMicrotask(() => composer?.focus());
+  });
+  const target = () => {
+    signals.rev();
+    signals.selection();
+    return selectedCommentTarget(props.editor);
+  };
   const [replies, setReplies] = createSignal<Readonly<Record<string, string>>>(
     {},
   );
@@ -97,14 +110,13 @@ export function ReviewComments(
     const point = bounds
       ? { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
       : props.editor.camera.screenToPage({ x: 320, y: 240 });
-    const [selected] = props.editor.selection.ids();
-    const target = props.editor.selection.size === 1 ? selected : undefined;
+    const selected = target();
     if (
       createReviewComment(
         props.editor,
         point,
         { author: authorName(props.author), body: body() },
-        target,
+        selected,
       )
     )
       setBody("");
@@ -145,7 +157,19 @@ export function ReviewComments(
         />
         All pages
       </label>
+      <Show when={target()}>
+        {(id) => (
+          <label for="nodetto-new-comment">
+            {(() => {
+              const element = props.editor.store.get(id());
+              return element ? layerName(element) : "Selection";
+            })()}
+          </label>
+        )}
+      </Show>
       <textarea
+        ref={composer}
+        id="nodetto-new-comment"
         aria-label="New comment"
         placeholder="Leave design feedback…"
         value={body()}
@@ -162,7 +186,7 @@ export function ReviewComments(
           }
           onClick={add}
         >
-          Add comment
+          {target() ? "Comment on selection" : "Add comment"}
         </button>
         <Show when={props.onPlaceComment}>
           <button

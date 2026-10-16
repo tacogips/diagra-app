@@ -52,6 +52,8 @@ import {
 import {
   batch,
   createMemo,
+  createEffect,
+  untrack,
   createSelector,
   createSignal,
   createUniqueId,
@@ -102,6 +104,7 @@ export interface NodettoCanvasProps {
   readonly editor: Editor;
   readonly tool: ToolKind;
   readonly onToolChange?: (tool: ToolKind) => void;
+  readonly shapeDrop?: { readonly tool: ToolKind; readonly client: Vec };
   /** Fires as the marquee rectangle changes; `null` when the drag ends. */
   readonly onMarquee?: (rect: Box | null) => void;
   /** Review tool callback; point is already transformed into page space. */
@@ -269,6 +272,30 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
     viewport,
     onEditRequest: (id, region) => props.onEditRequest?.(id, region),
     onContextMenu: (at, hit) => props.onContextMenu?.(at, hit),
+  });
+
+  createEffect(() => {
+    const drop = props.shapeDrop;
+    const bounds = container?.getBoundingClientRect();
+    if (
+      !drop ||
+      !bounds ||
+      drop.client.x < bounds.left ||
+      drop.client.x > bounds.right ||
+      drop.client.y < bounds.top ||
+      drop.client.y > bounds.bottom
+    )
+      return;
+    untrack(() =>
+      interaction.placeTool(
+        drop.tool,
+        props.editor.camera.screenToPage({
+          x: drop.client.x - bounds.left,
+          y: drop.client.y - bounds.top,
+        }),
+      ),
+    );
+    container?.focus();
   });
 
   onMount(() => {

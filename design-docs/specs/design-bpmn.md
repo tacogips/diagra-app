@@ -922,7 +922,7 @@ codes.
 
 ## 9. Desktop (apps/desktop)
 
-- **Page creation**: `PageTabs.tsx` gets "Add BPMN page" next to "Add page".
+- **Page creation**: choose BPMN in Mode to open or create a BPMN page. The tab strip uses the same Add page button for all modes.
   It calls `editor.createPage({kind: "bpmn"})`. The inspector's existing
   kind `<select>` also offers `bpmn`, because it is built from `PAGE_KINDS`.
 - **File menu** (`App.tsx`):

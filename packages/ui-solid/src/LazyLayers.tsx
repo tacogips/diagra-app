@@ -11,6 +11,7 @@ export function Layers(props: {
   readonly simple?: boolean;
   readonly viewport?: ViewportSize;
   readonly commentAuthor?: string;
+  readonly commentRequest?: number;
   readonly commentPlacementActive?: boolean;
   readonly onPlaceComment?: (
     input: {

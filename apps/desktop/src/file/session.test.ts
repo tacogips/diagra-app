@@ -7,7 +7,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { createDefaultRegistry, Editor } from "@nodetto/core";
-import { serializeDocument } from "@nodetto/io";
+import { parseDocument, serializeDocument } from "@nodetto/io";
 import { seed } from "../seed.ts";
 import type {
   FileBackend,
@@ -469,7 +469,7 @@ describe("opening", () => {
     expect(harness.editor.getSnapshot().title).toBe("order-flow");
     expect(harness.editor.getSnapshot().pages[0]?.kind).toBe("sequence");
     expect(harness.editor.store.listElements()).toHaveLength(3);
-    expect(harness.backend.watched).toEqual([null]);
+    expect(harness.backend.watched).toEqual([]);
 
     addShape(harness.editor, "local edit");
     harness.timers.fire();
@@ -521,7 +521,7 @@ describe("opening", () => {
           ["bpmn.event", "bpmn.task", "bpmn.gateway"].includes(element.type),
         ),
     ).toHaveLength(13);
-    expect(harness.backend.watched).toEqual([null]);
+    expect(harness.backend.watched).toEqual([]);
 
     addShape(harness.editor, "local edit");
     harness.timers.fire();
@@ -669,12 +669,26 @@ describe("external changes", () => {
     expect(harness.session.state().error).toBeNull();
   });
 
-  test("different bytes on disk raise a conflict", async () => {
+  test("a change to the same document is shown live without a banner", async () => {
     const harness = await openedHarness();
     const external = `${harness.backend.files.get("/docs/a.jsonl")}`.replace(
       '"title":"Untitled"',
       '"title":"Edited elsewhere"',
     );
+    harness.backend.files.set("/docs/a.jsonl", external);
+
+    harness.backend.emitFileChanged("/docs/a.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict).toBeNull();
+    expect(harness.session.state().dirty).toBe(false);
+    expect(harness.editor.store.getMeta().title).toBe("Edited elsewhere");
+  });
+
+  test("a different document on disk raises a conflict", async () => {
+    const harness = await openedHarness();
+    const external =
+      '{"kind":"document","schemaVersion":1,"id":"x","title":"Elsewhere"}\n';
     harness.backend.files.set("/docs/a.jsonl", external);
 
     harness.backend.emitFileChanged("/docs/a.jsonl");
@@ -827,6 +841,140 @@ describe("external changes", () => {
   });
 });
 
+describe("live outside changes (nodetto-cli and other writers)", () => {
+  async function opened(): Promise<Harness> {
+    const harness = createHarness({ seeded: false });
+    addShape(harness.editor, "first");
+    harness.backend.saveAnswers.push("/docs/live.jsonl");
+    await harness.session.save();
+    return harness;
+  }
+
+  /** What another writer would save: the disk document plus `change`. */
+  function writeElsewhere(
+    harness: Harness,
+    change: (editor: Editor) => void,
+  ): string {
+    const other = new Editor({
+      document: parseDocument(
+        `${harness.backend.files.get("/docs/live.jsonl")}`,
+      ),
+    });
+    change(other);
+    const text = serializeDocument(other.getSnapshot());
+    harness.backend.files.set("/docs/live.jsonl", text);
+    return text;
+  }
+
+  test("a clean document takes an outside change in place and keeps the camera", async () => {
+    const harness = await opened();
+    harness.editor.camera.set({ x: 120, y: -40, z: 1.5 });
+    const external = writeElsewhere(harness, (editor) =>
+      addShape(editor, "drawn by the CLI"),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict).toBeNull();
+    expect(harness.session.state().dirty).toBe(false);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(external);
+    expect(harness.editor.camera.get()).toEqual({ x: 120, y: -40, z: 1.5 });
+    expect(harness.timers.pendingCount).toBe(0);
+    expect(harness.session.state().outsideChange).toEqual({
+      added: 1,
+      updated: 0,
+      removed: 0,
+      merged: false,
+    });
+
+    // The note is about the last outside change; a local edit retires it.
+    addShape(harness.editor, "the person draws");
+    expect(harness.session.state().outsideChange).toBeNull();
+  });
+
+  test("unsaved local edits merge with a disjoint outside change and autosave the result", async () => {
+    const harness = await opened();
+    addShape(harness.editor, "drawn by the person");
+    writeElsewhere(harness, (editor) => addShape(editor, "drawn by the CLI"));
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    const labels = () =>
+      harness.editor.store
+        .listElements()
+        .map((element) => (element.semantic as { label?: string }).label)
+        .sort();
+    expect(harness.session.state().conflict).toBeNull();
+    expect(labels()).toEqual([
+      "drawn by the CLI",
+      "drawn by the person",
+      "first",
+    ]);
+    expect(harness.session.state().dirty).toBe(true);
+    expect(harness.session.state().outsideChange?.merged).toBe(true);
+
+    harness.timers.fire();
+    await harness.settle();
+    const saved = parseDocument(
+      `${harness.backend.files.get("/docs/live.jsonl")}`,
+    );
+    expect(saved.elements).toHaveLength(3);
+  });
+
+  test("the same field changed on both sides keeps mine and asks", async () => {
+    const harness = await opened();
+    const id = harness.editor.store.listElements()[0]?.id ?? "";
+    harness.editor.apply([
+      { type: "updateSemantic", id, semantic: { geo: "rect", label: "mine" } },
+    ]);
+    const external = writeElsewhere(harness, (editor) =>
+      editor.apply([
+        {
+          type: "updateSemantic",
+          id,
+          semantic: { geo: "rect", label: "theirs" },
+        },
+      ]),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    expect(harness.session.state().conflict?.mergedConflicts).toEqual([id]);
+    expect(
+      (harness.editor.store.get(id)?.semantic as { label?: string }).label,
+    ).toBe("mine");
+    expect(harness.timers.pendingCount).toBe(0);
+    expect(await harness.session.resolveConflict("reload")).toBe(true);
+    expect(serializeDocument(harness.editor.getSnapshot())).toBe(external);
+  });
+
+  test("a move and a rename of the same element both survive", async () => {
+    const harness = await opened();
+    const id = harness.editor.store.listElements()[0]?.id ?? "";
+    harness.editor.moveElements([{ id, x: 300, y: 200 }]);
+    writeElsewhere(harness, (editor) =>
+      editor.apply([
+        {
+          type: "updateSemantic",
+          id,
+          semantic: { geo: "rect", label: "renamed" },
+        },
+      ]),
+    );
+
+    harness.backend.emitFileChanged("/docs/live.jsonl");
+    await harness.settle();
+
+    const element = harness.editor.store.get(id);
+    expect(harness.session.state().conflict).toBeNull();
+    expect(element?.visual.x).toBe(300);
+    expect((element?.semantic as { label?: string }).label).toBe("renamed");
+  });
+});
+
 describe("a write that outlives its document", () => {
   /** A document written by an unrelated session, ready to be opened. */
   async function foreignDocument(label: string): Promise<string> {
@@ -937,6 +1085,7 @@ describe("handing the editor to another document mode", () => {
     harness.session.suspend();
     expect(harness.session.state().filePath).toBeNull();
     expect(harness.session.state().fileName).toBeNull();
+    await harness.settle();
     expect(harness.backend.watched.at(-1)).toBeNull();
 
     // Everything a cloud room writes into the store arrives as an ordinary
@@ -1105,4 +1254,38 @@ describe("overlapping imports", () => {
     expect(editor.getSnapshot().title).toBe("b");
     expect(session.state().filePath).toBe("/docs/b.jsonl");
   });
+});
+
+test("page-only edits autosave their names and order, while changing the active page stays clean", async () => {
+  const h = createHarness({ seeded: false });
+  try {
+    h.backend.saveAnswers.push("/docs/pages.jsonl");
+    await h.session.save();
+    const first = h.editor.currentPageId;
+    const second = h.editor.createPage({ name: "Second" });
+    expect(h.session.state().dirty).toBe(true);
+    expect(h.timers.pendingCount).toBe(1);
+    h.timers.fire();
+    await h.settle();
+    expect(h.session.state().dirty).toBe(false);
+    h.editor.setCurrentPage(first);
+    expect(h.session.state().dirty).toBe(false);
+    expect(h.timers.pendingCount).toBe(0);
+    h.editor.renamePage(first, "Renamed first");
+    h.editor.reorderPageTo(first, 1);
+    h.timers.fire();
+    await h.settle();
+    const reopened = parseDocument(
+      h.backend.files.get("/docs/pages.jsonl") ?? "",
+    );
+    expect(
+      new Editor({ document: reopened }).store.listPages().map((p) => p.id),
+    ).toEqual([second, first]);
+    expect(reopened.pages.find((p) => p.id === first)?.name).toBe(
+      "Renamed first",
+    );
+    expect(h.session.state().dirty).toBe(false);
+  } finally {
+    h.session.dispose();
+  }
 });

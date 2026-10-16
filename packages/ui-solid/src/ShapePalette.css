@@ -12,13 +12,6 @@
   font-weight: 600;
 }
 
-.nodetto-palette-help {
-  margin: 0 0 10px;
-  color: var(--nodetto-muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
 .nodetto-shape-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
