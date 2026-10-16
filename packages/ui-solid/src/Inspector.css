@@ -19,6 +19,7 @@
   background: transparent;
   font: inherit;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 .nodetto-inspector-tabs > button:hover {
@@ -27,7 +28,6 @@
 .nodetto-inspector-tabs > button[aria-selected="true"] {
   color: var(--nodetto-ink);
   background: var(--app-chrome-active, #e5e9eb);
-  font-weight: 600;
 }
 .nodetto-inspector-tabs > button:focus-visible {
   outline: 2px solid var(--nodetto-accent);
