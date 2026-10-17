@@ -6,6 +6,8 @@
 
 import { type JSX, onCleanup, onMount, Show } from "solid-js";
 import { MIN_ZOOM, MAX_ZOOM } from "@nodetto/core";
+import { Icon } from "./Icon.tsx";
+import "./ZoomControls.css";
 import { NumberInput } from "./NumberInput.tsx";
 import { createEditorSignals } from "./adapter.ts";
 import { stepMenuIndex } from "./menu-navigation.ts";
@@ -59,10 +61,15 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
     return getAction(id).enabled(props.context);
   };
 
-  const button = (id: ActionId, label: string): JSX.Element => (
+  const button = (
+    id: ActionId,
+    label: JSX.Element,
+    icon = false,
+  ): JSX.Element => (
     <button
       type="button"
       class="nodetto-zoom-button"
+      classList={{ "nodetto-zoom-icon-button": icon }}
       title={actionTitle(getAction(id))}
       aria-label={actionTitle(getAction(id))}
       disabled={!isEnabled(id)}
@@ -103,7 +110,7 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
   return (
     <div class="nodetto-zoom-controls" role="toolbar" aria-label="Zoom">
       <div class="nodetto-zoom-group">
-        {button("zoomOut", "-")}
+        {button("zoomOut", <Icon name="zoomOut" />, true)}
         <div class="nodetto-zoom-level">
           <NumberInput
             label="Zoom percent"
@@ -120,8 +127,8 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
           />
           <span aria-hidden="true">%</span>
         </div>
-        {button("zoomIn", "+")}
-        {button("zoomFit", "Fit diagram")}
+        {button("zoomIn", <Icon name="zoomIn" />, true)}
+        {button("zoomFit", <Icon name="fit" />, true)}
       </div>
       <Show when={props.onShowRulersChange}>
         <button
@@ -187,11 +194,14 @@ export function ZoomControls(props: ZoomControlsProps): JSX.Element {
         }}
       >
         <summary
+          class="nodetto-zoom-icon-button"
+          aria-label="View options"
+          title="View options"
           onClick={(event) =>
             event.currentTarget.focus({ preventScroll: true })
           }
         >
-          View
+          <Icon name="viewOptions" />
         </summary>
         <div class="nodetto-view-menu-body">
           {button("zoomReset", "Reset to 100%")}
