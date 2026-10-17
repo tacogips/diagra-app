@@ -652,7 +652,23 @@ export function PrototypePreview(props: {
       return;
     }
     if (link.action === "close-overlay") {
-      setOverlays(popPrototypeOverlay(overlays()));
+      const entry = overlays().at(-1);
+      if (!entry) return;
+      const target = [
+        ...(stage?.querySelectorAll<HTMLElement>("[data-prototype-overlay]") ??
+          []),
+      ].find((element) => element.dataset.prototypeOverlay === entry.key);
+      void animation
+        .playExit(
+          target,
+          link.transition,
+          link.duration,
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        )
+        .then(() => {
+          if (overlays().at(-1)?.key === entry.key)
+            setOverlays(popPrototypeOverlay(overlays()));
+        });
       return;
     }
     if (link.action === "open-overlay") {

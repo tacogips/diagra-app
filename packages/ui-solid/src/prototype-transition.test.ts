@@ -439,3 +439,37 @@ test("smart animation fades and cancels the noninteractive outgoing overlay", ()
   controller.playSmart(new Map(), [], 0, false, outgoing);
   expect(frames).toHaveLength(1);
 });
+
+test("vertical screen transitions and overlay exits use the configured duration", async () => {
+  expect(prototypeKeyframes("slide-up")).toEqual([
+    { transform: "translateY(100%)" },
+    { transform: "translateY(0)" },
+  ]);
+  expect(prototypeKeyframes("slide-down")).toEqual([
+    { transform: "translateY(-100%)" },
+    { transform: "translateY(0)" },
+  ]);
+  const calls: unknown[] = [];
+  const target = {
+    animate: (_frames: unknown, options: unknown) => {
+      calls.push(options);
+      return {
+        cancel() {},
+        finished: Promise.resolve(),
+      } as unknown as Animation;
+    },
+  };
+  const controller = new PrototypeAnimation();
+  await controller.playExit(target, "slide-up", 450, false);
+  expect(calls).toEqual([
+    {
+      duration: 450,
+      easing: "ease-in",
+      direction: "reverse",
+      fill: "forwards",
+    },
+  ]);
+  await controller.playExit(target, "fade", 450, true);
+  await controller.playExit(target, "instant", 450, false);
+  expect(calls).toHaveLength(1);
+});

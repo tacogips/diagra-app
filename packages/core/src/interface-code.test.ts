@@ -289,9 +289,10 @@ test("linked output includes portable palette variables and reports omitted conn
   });
   const edge = editor.buildElement("edge.generic", {
     id: "prototype-link",
-    semantic: { from: child.id, to: child.id, prototype: true },
+    semantic: { from: child.id, to: "form-screen", prototype: true },
   });
   const frame = editor.buildElement("frame", {
+    id: "form-screen",
     semantic: {
       name: "Form",
       memberIds: [edge.id, child.id],

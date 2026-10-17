@@ -157,6 +157,11 @@ export function Inspector(props: InspectorProps): JSX.Element {
   const typeLabel = () => {
     const type = single()?.type;
     if (!type) return undefined;
+    if (
+      type === "edge.generic" &&
+      (single()?.semantic as { prototype?: boolean }).prototype === true
+    )
+      return "Transition";
     if (isDatabaseObjectType(type)) return DATABASE_OBJECT_LABELS[type];
     if (Object.values(UmlComponentType).some((candidate) => candidate === type))
       return "Component";

@@ -86,6 +86,8 @@ export {
   type PageGuideSemantic,
   type FrameSemantic,
   type FrameLayout,
+  SCREEN_KINDS,
+  type ScreenKind,
   FRAME_PLATFORMS,
   type FramePlatform,
   type SafeAreaInsets,

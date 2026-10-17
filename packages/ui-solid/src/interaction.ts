@@ -1,3 +1,4 @@
+import { connectScreenTransition, screenFrame } from "@nodetto/core";
 import { isDatabaseObjectType } from "@nodetto/ir";
 import { CONNECTOR_ENDPOINT_TYPES, connectorEndpointIssues } from "@nodetto/ir";
 import { typedConnectorFor } from "./tools.ts";
@@ -49,6 +50,7 @@ import {
   copySelectionStyle,
   pasteSelectionStyle,
   boxCenter,
+  boxContains,
   canResizeSelection,
   canRotateElement,
   canRotateSelection,
@@ -351,6 +353,7 @@ type Gesture =
       readonly from: ElementId;
       readonly componentKind?: UmlComponentRelationshipKind;
       readonly connectorType?: string;
+      readonly screenTransition?: boolean;
     }
   | {
       readonly kind: "reconnecting";
@@ -822,7 +825,19 @@ export function createInteraction(
         box && element.visual.rotation
           ? rotatePoint(point, boxCentre(box), -element.visual.rotation)
           : point;
-      if (editor.getShapeUtil(element.type).hitTest(element, local, context)) {
+      const transition =
+        options.tool() === Tool.ScreenTransition ||
+        (gesture.kind === "reconnecting" &&
+          editor.store.get(gesture.id)?.type === "edge.generic" &&
+          (editor.store.get(gesture.id)?.semantic as { prototype?: boolean })
+            .prototype === true);
+      if (
+        (transition &&
+          element.type === "frame" &&
+          box &&
+          boxContains(box, local)) ||
+        editor.getShapeUtil(element.type).hitTest(element, local, context)
+      ) {
         return element.id;
       }
     }
@@ -1256,6 +1271,8 @@ export function createInteraction(
 
   const beginConnect = (from: ElementId, point: Vec): void => {
     const connectorType = typedConnectorFor(options.tool());
+    const screenTransition = options.tool() === Tool.ScreenTransition;
+    if (screenTransition && !screenFrame(editor, from)) return;
     if (
       connectorType &&
       !CONNECTOR_ENDPOINT_TYPES[connectorType]?.includes(
@@ -1267,6 +1284,7 @@ export function createInteraction(
       kind: "connecting",
       from,
       componentKind: componentRelationshipFor(options.tool()),
+      screenTransition,
       connectorType,
     };
     const bounds = editor.getBounds(from);
@@ -1785,7 +1803,9 @@ export function createInteraction(
         setPending({ from: from ? boxCentre(from) : point, to: point });
         const target = targetUnder(point, [gesture.from]);
         setHoverTarget(
-          target && acceptsEndpoint(gesture.connectorType, target)
+          target &&
+            acceptsEndpoint(gesture.connectorType, target) &&
+            (!gesture.screenTransition || Boolean(screenFrame(editor, target)))
             ? target
             : null,
         );
@@ -1885,6 +1905,7 @@ export function createInteraction(
     end: ConnectorEnd,
     target: ElementId,
   ): void => {
+    let endpoint = target;
     const element = editor.store.get(id);
     if (!element) {
       return;
@@ -1898,8 +1919,17 @@ export function createInteraction(
       editor.reconnectBpmnFlow(id, end, target);
       return;
     }
+    if (
+      element.type === "edge.generic" &&
+      (element.semantic as { prototype?: boolean }).prototype &&
+      end === "to"
+    ) {
+      const frame = screenFrame(editor, target);
+      if (!frame) return;
+      endpoint = frame;
+    }
     const current = endpointReaderFor(element.type)(element.semantic);
-    if (current && current[end] === target) {
+    if (current && current[end] === endpoint) {
       return;
     }
     const base: Record<string, unknown> =
@@ -1908,7 +1938,8 @@ export function createInteraction(
         : {};
     // An ERD relation names a table (and optionally a column); the column
     // belonged to the old table, so the new endpoint carries none.
-    base[end] = element.type === "erd.relation" ? { table: target } : target;
+    base[end] =
+      element.type === "erd.relation" ? { table: endpoint } : endpoint;
     if (
       connectorEndpointIssues(element.type, base, element.page, (id) =>
         editor.store.get(id),
@@ -1969,9 +2000,15 @@ export function createInteraction(
         acceptsEndpoint(gesture.connectorType, gesture.from) &&
         acceptsEndpoint(gesture.connectorType, target)
       ) {
-        const created = gesture.componentKind
-          ? editor.connectComponent(gesture.from, target, gesture.componentKind)
-          : editor.connectSmart(gesture.from, target);
+        const created = gesture.screenTransition
+          ? connectScreenTransition(editor, gesture.from, target)
+          : gesture.componentKind
+            ? editor.connectComponent(
+                gesture.from,
+                target,
+                gesture.componentKind,
+              )
+            : editor.connectSmart(gesture.from, target);
         if (created) {
           editor.selection.set([created]);
         }

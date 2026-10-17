@@ -652,3 +652,5 @@ export {
   createDesignTemplate,
   type DesignTemplateId,
 } from "./templates/design-templates.ts";
+
+export { connectScreenTransition, screenFrame } from "./screen-transition.ts";

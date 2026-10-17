@@ -60,9 +60,14 @@ function controlHtml(element: Element, classes: string): string {
       return `<textarea${attrs} placeholder="${placeholder}">${escapeText(s.value ?? "")}</textarea>`;
     case "select":
       return `<select${attrs}>${(s.options ?? []).map((option) => `<option${option === s.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>`;
+    case "tabs":
+      return `<div${attrs} role="tablist">${(s.options ?? []).map((option) => `<button type="button" role="tab" aria-selected="${option === (s.value ?? s.options?.[0])}"${s.disabled ? " disabled" : ""}>${escapeText(option)}</button>`).join("")}</div>`;
+    case "progress":
+      return `<progress${attrs} max="100" value="${s.progress ?? 0}">${s.progress ?? 0}%</progress>`;
+    case "radio":
     case "checkbox":
     case "switch":
-      return `<label class="${classes}" data-nodetto-type="ui.control" data-control="${s.control}" data-nodetto-id="${escapeAttribute(element.id)}"><input type="checkbox"${s.control === "switch" ? ' role="switch"' : ""} aria-label="${escapeAttribute(s.label)}"${s.checked ? " checked" : ""}${s.disabled ? " disabled" : ""}> ${escapeText(s.label)}</label>`;
+      return `<label class="${classes}" data-nodetto-type="ui.control" data-control="${s.control}" data-nodetto-id="${escapeAttribute(element.id)}"><input type="${s.control === "radio" ? "radio" : "checkbox"}"${s.control === "switch" ? ' role="switch"' : ""} aria-label="${escapeAttribute(s.label)}"${s.checked ? " checked" : ""}${s.disabled ? " disabled" : ""}> ${escapeText(s.label)}</label>`;
   }
 }
 
@@ -130,7 +135,7 @@ function declarationBody(
   ]);
   if (
     element.type === "ui.control" &&
-    ["checkbox", "switch"].includes(
+    ["checkbox", "switch", "radio", "tabs", "progress"].includes(
       (element.semantic as UiControlSemantic).control,
     )
   )
@@ -183,7 +188,7 @@ function declarationBody(
   }
   if (
     element.type === "ui.control" &&
-    !["checkbox", "switch"].includes(
+    !["checkbox", "switch", "radio", "tabs", "progress"].includes(
       (element.semantic as UiControlSemantic).control,
     )
   )
@@ -352,7 +357,10 @@ export function generateInterfaceCode(
     const platform = frameSemantic?.platform
       ? ` data-platform="${frameSemantic.platform}"`
       : "";
-    const open = `<${tag} class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="${escapeAttribute(element.type)}"${platform}${accessibilityHtmlAttributes(element, frameSemantic?.name)}>`;
+    const screenKind = frameSemantic?.screenKind
+      ? ` data-screen-kind="${frameSemantic.screenKind}"`
+      : "";
+    const open = `<${tag} class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="${escapeAttribute(element.type)}"${platform}${screenKind}${accessibilityHtmlAttributes(element, frameSemantic?.name)}>`;
     const text = elementText(editor, element);
     const renderedText =
       element.type === "text.note" ? richTextHtml(element) : escapeText(text);
@@ -444,14 +452,32 @@ export function generateInterfaceCode(
       : []),
   ];
   const controlCss = included.some((element) => element.type === "ui.control")
-    ? `[data-nodetto-type="ui.control"][data-control="checkbox"], [data-nodetto-type="ui.control"][data-control="switch"] { display: flex; align-items: center; gap: 9px; }
-[data-nodetto-type="ui.control"] > input[type="checkbox"] { flex-shrink: 0; margin: 0; width: 18px; height: 18px; accent-color: #137e7e; }
+    ? `[data-nodetto-type="ui.control"][data-control="checkbox"], [data-nodetto-type="ui.control"][data-control="radio"], [data-nodetto-type="ui.control"][data-control="switch"] { display: flex; align-items: center; gap: 9px; }
+[data-nodetto-type="ui.control"] > input[type="checkbox"], [data-nodetto-type="ui.control"] > input[type="radio"] { flex-shrink: 0; margin: 0; width: 18px; height: 18px; accent-color: #137e7e; }
 [data-nodetto-type="ui.control"] > input[role="switch"] { appearance: none; position: relative; width: 34px; height: 20px; border: 0; border-radius: 999px; background: #b5bebc; }
 [data-nodetto-type="ui.control"] > input[role="switch"]:checked { background: #137e7e; }
 [data-nodetto-type="ui.control"] > input[role="switch"]::after { content: ""; position: absolute; width: 16px; height: 16px; top: 2px; left: 2px; border-radius: 50%; background: white; }
 [data-nodetto-type="ui.control"] > input[role="switch"]:checked::after { left: 16px; }`
     : "";
-  const combinedCss = [...css, ...imageCss, ...layoutCss, controlCss]
+  const designControlCss = included.some(
+    (element) => element.type === "ui.control",
+  )
+    ? `
+[data-control="tabs"] { display: flex; overflow: hidden; background: #f1f5f9; }
+[data-control="tabs"] > button { flex: 1; min-width: 0; padding: 6px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: inherit; font: inherit; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+[data-control="tabs"] > button[aria-selected="true"] { border-bottom-color: #137e7e; background: #d6ecef; font-weight: 600; }
+progress[data-control="progress"] { accent-color: #137e7e; appearance: none; border: 0; border-radius: 999px; overflow: hidden; }
+progress[data-control="progress"]::-webkit-progress-bar { background: #e2e8f0; border-radius: 999px; }
+progress[data-control="progress"]::-webkit-progress-value { background: #137e7e; border-radius: 999px; }
+progress[data-control="progress"]::-moz-progress-bar { background: #137e7e; border-radius: 999px; }`
+    : "";
+  const combinedCss = [
+    ...css,
+    ...imageCss,
+    ...layoutCss,
+    controlCss,
+    designControlCss,
+  ]
     .filter(Boolean)
     .join("\n\n");
   const combinedLinkedCss = [
@@ -461,6 +487,7 @@ export function generateInterfaceCode(
     ...imageCss,
     ...linkedLayoutCss,
     controlCss,
+    designControlCss,
   ]
     .filter(Boolean)
     .join("\n\n");

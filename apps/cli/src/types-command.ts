@@ -22,6 +22,7 @@ import { helpFor } from "./help.ts";
 const TYPES_OPTIONS = new Set(["--kind", "--format"]);
 
 const GENERAL = [
+  "ui.control",
   "node.generic",
   "edge.generic",
   "shape.geo",

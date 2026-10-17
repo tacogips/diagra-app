@@ -30,6 +30,9 @@ export function FrameView(props: {
   };
   return (
     <div
+      data-screen-kind={
+        (props.element.semantic as FrameSemantic).screenKind ?? "screen"
+      }
       data-smart-paint="box"
       data-smart-text
       style={{

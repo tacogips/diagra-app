@@ -63,6 +63,8 @@ export async function importHtmlPage(
           "href",
           "aria-label",
           "role",
+          "max",
+          "aria-selected",
         ].includes(attr.name)
       )
         node.removeAttribute(attr.name);
@@ -244,9 +246,45 @@ export async function importHtmlPage(
                   : "fill",
           },
         };
+      if (tag === "progress") {
+        const progress = node as HTMLProgressElement;
+        return {
+          ...base,
+          control: {
+            control: "progress",
+            label: node.getAttribute("aria-label") ?? "Progress",
+            progress: Math.max(
+              0,
+              Math.min(100, (progress.value / progress.max) * 100),
+            ),
+          },
+        };
+      }
+      if (node.getAttribute("role") === "tablist") {
+        const tabs = [...node.querySelectorAll<HTMLElement>('[role="tab"]')];
+        return {
+          ...base,
+          control: {
+            control: "tabs",
+            label: node.getAttribute("aria-label") ?? "Navigation tabs",
+            options: tabs.map((tab) => tab.textContent ?? ""),
+            value:
+              (
+                tabs.find(
+                  (tab) => tab.getAttribute("aria-selected") === "true",
+                ) ?? tabs[0]
+              )?.textContent ?? "",
+            disabled:
+              tabs.length > 0 &&
+              tabs.every((tab) => tab.hasAttribute("disabled")),
+          },
+        };
+      }
       const labelledCheckbox =
         tag === "label"
-          ? node.querySelector<HTMLInputElement>('input[type="checkbox"]')
+          ? node.querySelector<HTMLInputElement>(
+              'input[type="checkbox"], input[type="radio"]',
+            )
           : null;
       if (
         ["button", "input", "textarea", "select"].includes(tag) ||
@@ -259,7 +297,9 @@ export async function importHtmlPage(
               ? input.getAttribute("role") === "switch"
                 ? "switch"
                 : "checkbox"
-              : "input"
+              : input.type === "radio"
+                ? "radio"
+                : "input"
             : (tag as UiControlKind);
         return {
           ...base,

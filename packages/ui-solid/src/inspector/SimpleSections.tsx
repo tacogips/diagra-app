@@ -7,6 +7,7 @@ import {
   addLayoutGrid,
   artboardOrientationIssue,
   swapArtboardOrientation,
+  screenFrame,
   addComponentVariantProperty,
   componentVariantAxes,
   componentVariants,
@@ -39,6 +40,8 @@ import {
   type Element,
   type FrameLayout,
   FRAME_PLATFORMS,
+  SCREEN_KINDS,
+  type ScreenKind,
   type FramePlatform,
   type FrameSemantic,
   type GroupSemantic,
@@ -423,6 +426,29 @@ export function FrameSection(props: ElementSectionProps): JSX.Element {
   };
   return (
     <Section title="Artboard">
+      <Field label="Kind">
+        <SelectInput
+          label="Screen kind"
+          value={semantic().screenKind ?? "screen"}
+          options={SCREEN_KINDS.map((value) => ({
+            value,
+            label:
+              value === "popup"
+                ? "Popup / dialog"
+                : value === "bottom-sheet"
+                  ? "Bottom sheet"
+                  : value === "popover"
+                    ? "Popover"
+                    : "Screen",
+          }))}
+          onCommit={(screenKind) =>
+            writeSemantic(props.editor, props.element.id, {
+              ...semantic(),
+              screenKind: screenKind as ScreenKind,
+            })
+          }
+        />
+      </Field>
       <button
         type="button"
         class="nodetto-tool-button"
@@ -1387,20 +1413,33 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
   };
   return (
     <Section
-      title="Edge"
-      help="Prototype links can navigate to screens, change variants, or open and close overlays."
+      title={
+        semantic()["prototype"] === true ? "Screen transition" : "Connector"
+      }
     >
       <label>
         <Switch
+          aria-label="Screen transition"
           checked={semantic()["prototype"] === true}
+          disabled={
+            semantic()["prototype"] !== true &&
+            !screenFrame(props.editor, stringOf(semantic(), "to"))
+          }
           onChange={(event) =>
             writeSemantic(props.editor, props.element.id, {
               ...semantic(),
+              ...(event.currentTarget.checked
+                ? {
+                    to:
+                      screenFrame(props.editor, stringOf(semantic(), "to")) ??
+                      semantic()["to"],
+                  }
+                : {}),
               prototype: event.currentTarget.checked,
             })
           }
         />
-        Prototype interaction
+        Screen transition
       </label>
       <Show when={semantic()["prototype"] === true}>
         <Field label="Action">
@@ -1431,6 +1470,7 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
               options={[
                 { value: "center", label: "Centered" },
                 { value: "top-left", label: "Top left" },
+                { value: "bottom-center", label: "Bottom center" },
                 { value: "manual", label: "Manual" },
               ]}
               onCommit={(prototypeOverlayPosition) =>
@@ -1541,7 +1581,7 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
             />
           </Field>
         </Show>
-        <Field label="Transition">
+        <Field label="Animation">
           <SelectInput
             label="Prototype transition"
             value={stringOf(semantic(), "prototypeTransition") || "instant"}
@@ -1550,6 +1590,8 @@ export function EdgeSection(props: ElementSectionProps): JSX.Element {
               { value: "fade", label: "Fade in" },
               { value: "slide-left", label: "Slide in from right" },
               { value: "slide-right", label: "Slide in from left" },
+              { value: "slide-up", label: "Slide in from bottom" },
+              { value: "slide-down", label: "Slide in from top" },
               { value: "smart", label: "Smart animate layers" },
             ]}
             onCommit={(prototypeTransition) =>

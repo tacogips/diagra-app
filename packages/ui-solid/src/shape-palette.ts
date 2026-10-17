@@ -33,6 +33,9 @@ export interface ShapePaletteItem {
 }
 
 export const UI_CONTROL_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.Radio, label: "Radio button", icon: "ellipse" },
+  { tool: Tool.Tabs, label: "Navigation tabs", icon: "table" },
+  { tool: Tool.Progress, label: "Progress", icon: "node" },
   { tool: Tool.Button, label: "Button", icon: "node" },
   { tool: Tool.Input, label: "Input", icon: "rect" },
   { tool: Tool.Textarea, label: "Textarea", icon: "note" },
@@ -122,6 +125,13 @@ export const BPMN_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.BpmnGroup, label: "Group", icon: "frame" },
 ];
 
+export const INTERACTION_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.ScreenTransition, label: "Screen transition", icon: "edge" },
+  { tool: Tool.PopupFrame, label: "Popup / dialog", icon: "frame" },
+  { tool: Tool.BottomSheetFrame, label: "Bottom sheet", icon: "frame" },
+  { tool: Tool.PopoverFrame, label: "Popover", icon: "frame" },
+];
+
 export const ARTBOARD_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.WebFrame, label: "Web", icon: "frame" },
   { tool: Tool.IPhoneFrame, label: "iPhone", icon: "frame" },
@@ -188,6 +198,7 @@ const PRIMARY_TOOLS = {
 } as const satisfies Record<WorkspaceId, readonly ToolKind[]>;
 
 const PALETTE_SHAPES = [
+  ...INTERACTION_SHAPES,
   ...UI_CONTROL_SHAPES,
   ...COMMON_SHAPES,
   ...DIAGRAM_SHAPES,
@@ -234,11 +245,14 @@ export function shapePaletteGroups(
     ...additionalShapes(id),
     ...artboardShapes(id),
     ...(workspaceById(id).design ? UI_CONTROL_SHAPES : []),
+    ...(["web", "app", "all", "flow"].includes(id) ? INTERACTION_SHAPES : []),
     ...(workspaceById(id).design
       ? [{ tool: Tool.Freehand, label: "Freehand", icon: "draw" } as const]
       : []),
   ];
   const category = (tool: ToolKind): string => {
+    if (INTERACTION_SHAPES.some((item) => item.tool === tool))
+      return "Screens & transitions";
     if (UI_CONTROL_SHAPES.some((item) => item.tool === tool))
       return "UI controls";
     if (tool === Tool.Connector && id === "bpmn") return "BPMN";
