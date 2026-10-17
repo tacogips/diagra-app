@@ -1,3 +1,8 @@
+import {
+  hydrateDocumentAttachments,
+  prepareDocumentAttachments,
+  type PreparedAttachments,
+} from "./attachments.ts";
 // The document lifecycle: which file is open, whether it has unsaved edits,
 // and what to do when the file changes underneath us.
 //
@@ -29,6 +34,7 @@ import {
   formatIssue,
   getElementTypeDefinition,
   SCHEMA_VERSION,
+  type ImageSemantic,
 } from "@nodetto/ir";
 import { parseDocumentResult, serializeDocument } from "@nodetto/io";
 import type { BpmnImportWarning } from "@nodetto/io";
@@ -363,6 +369,27 @@ export class DocumentSession {
       return false;
     }
 
+    if (/\.html?$/i.test(path)) {
+      try {
+        const { importHtmlPage } = await import("./html-import.ts");
+        const report = await importHtmlPage(diskText, path, this.backend);
+        if (stale()) return false;
+        const imported = await this.importDocument(
+          report.document,
+          baseName(path),
+          report.warnings,
+        );
+        if (imported)
+          for (const [relative, data] of report.assets)
+            this.editor.assets.set(relative, data);
+        return imported;
+      } catch (error) {
+        if (!stale())
+          this.fail(`could not import ${baseName(path)}: ${describe(error)}`);
+        return false;
+      }
+    }
+
     if (isMermaidPath(path)) {
       try {
         const { importMermaid } = await import("@nodetto/io/mermaid/import");
@@ -432,6 +459,7 @@ export class DocumentSession {
       return true;
     }
     await this.startWatching(path);
+    if (!stale()) await this.hydrateAttachments(path);
     return true;
   }
 
@@ -706,8 +734,21 @@ export class DocumentSession {
       ? (this.current.filePath ?? requestedPath)
       : requestedPath;
     let text: string;
+    let attachments: PreparedAttachments;
     try {
-      text = serializeDocument(this.editor.getSnapshot());
+      attachments = await prepareDocumentAttachments(
+        this.editor,
+        this.editor.getSnapshot(),
+        this.backend,
+        path,
+        this.current.filePath,
+      );
+      if (
+        generation !== this.documentGeneration ||
+        (automatic && !this.canAutosave())
+      )
+        return false;
+      text = serializeDocument(attachments.document);
     } catch (error) {
       this.fail(`could not serialize the document: ${describe(error)}`);
       return false;
@@ -729,6 +770,30 @@ export class DocumentSession {
       return false;
     }
 
+    for (const [reference, data] of attachments.resolved)
+      this.editor.assets.set(reference, data);
+    const patches = attachments.changes.flatMap((change) => {
+      const element = this.editor.store.get(change.id);
+      return element?.type === "image.raster" &&
+        (element.semantic as ImageSemantic).src === change.before
+        ? [
+            {
+              type: "updateSemantic" as const,
+              id: change.id,
+              semantic: {
+                ...(element.semantic as ImageSemantic),
+                src: change.after,
+              },
+            },
+          ]
+        : [];
+    });
+    this.loading = true;
+    try {
+      if (patches.length) this.editor.apply(patches, { history: "ignore" });
+    } finally {
+      this.loading = false;
+    }
     this.lastSavedText = text;
     const dirty = serializeDocument(this.editor.getSnapshot()) !== text;
     this.patch({
@@ -839,6 +904,8 @@ export class DocumentSession {
     }
     this.lastSavedText = diskText;
     this.patch({ outsideChange });
+    if (this.current.filePath)
+      void this.hydrateAttachments(this.current.filePath);
     if (conflicts.length > 0) {
       this.cancelAutosave();
       this.patch({ conflict: { diskText, mergedConflicts: conflicts } });
@@ -847,6 +914,23 @@ export class DocumentSession {
       this.markDirty();
     }
     return true;
+  }
+
+  private async hydrateAttachments(path: string): Promise<void> {
+    const generation = this.documentGeneration;
+    const current = () =>
+      generation === this.documentGeneration &&
+      this.current.filePath === path &&
+      !this.disposed &&
+      !this.suspended;
+    const errors = await hydrateDocumentAttachments(
+      this.editor,
+      this.backend,
+      path,
+      current,
+    );
+    if (current() && errors.length)
+      this.fail(`Could not load attachments:\n${errors.join("\n")}`);
   }
 
   private async startWatching(path: string): Promise<void> {

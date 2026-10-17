@@ -3,11 +3,14 @@ import {
   croppedImageBox,
   resolvedCornerRadii,
 } from "@nodetto/core";
-import type { Element, ImageSemantic } from "@nodetto/ir";
+import { isRasterDataUrl, type Element, type ImageSemantic } from "@nodetto/ir";
 import type { JSX } from "solid-js";
 import { strokeBorderStyle } from "./visual.ts";
 
-export function ImageView(props: { element: Element }): JSX.Element {
+export function ImageView(props: {
+  element: Element;
+  resolveAsset?: (source: string) => string | undefined;
+}): JSX.Element {
   const semantic = () => props.element.semantic as ImageSemantic;
   const cropBox = () => {
     const crop = semantic().crop;
@@ -48,7 +51,13 @@ export function ImageView(props: { element: Element }): JSX.Element {
       }}
     >
       <img
-        src={semantic().src}
+        src={
+          props.resolveAsset
+            ? props.resolveAsset(semantic().src)
+            : isRasterDataUrl(semantic().src)
+              ? semantic().src
+              : undefined
+        }
         alt={semantic().alt}
         draggable={false}
         style={imageStyle()}

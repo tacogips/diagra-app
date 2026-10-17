@@ -148,7 +148,7 @@ Example:
 
 ${EXIT_CODES}`,
 
-  export: `Usage: nodetto-cli export <doc.jsonl> --format svg|png|pdf [--page <id|name>]
+  export: `Usage: nodetto-cli export <doc.jsonl> --format svg|png|pdf|html [--page <id|name>]
                           [--element <id>] [--output <file>] [--font-dir <dir>] [--padding <n>]
                           [--background <#rrggbb|transparent>] [--scale <n>]
                           [--pdf-page artwork|a4|letter]
@@ -156,7 +156,7 @@ ${EXIT_CODES}`,
 
 Render one page exactly as the app's page export does.
 
-  --format       svg, png or pdf (required).
+  --format       svg, png, pdf or html (required; html writes a website ZIP).
   --page         Page id or name; required when the document has several pages.
   --element      Render only this element's area (a frame renders everything
                  inside it). Accepts a unique id prefix; implies its page.

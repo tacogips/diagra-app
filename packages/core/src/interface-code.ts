@@ -7,6 +7,7 @@ import type {
   GeoShapeSemantic,
   ImageSemantic,
   TextNoteSemantic,
+  UiControlSemantic,
 } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { inspectDesign } from "./handoff.ts";
@@ -43,6 +44,26 @@ function escapeAttribute(value: string): string {
   return escapeText(value).replace(/["']/g, (char) =>
     char === '"' ? "&quot;" : "&#39;",
   );
+}
+
+function controlHtml(element: Element, classes: string): string {
+  const s = element.semantic as UiControlSemantic;
+  const attrs = ` class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="ui.control" aria-label="${escapeAttribute(s.label)}"${s.disabled ? " disabled" : ""}`;
+  const value = escapeAttribute(s.value ?? "");
+  const placeholder = escapeAttribute(s.placeholder ?? "");
+  switch (s.control) {
+    case "button":
+      return `<button type="button"${attrs}>${escapeText(s.label)}</button>`;
+    case "input":
+      return `<input type="${s.inputType ?? "text"}"${attrs} value="${value}" placeholder="${placeholder}">`;
+    case "textarea":
+      return `<textarea${attrs} placeholder="${placeholder}">${escapeText(s.value ?? "")}</textarea>`;
+    case "select":
+      return `<select${attrs}>${(s.options ?? []).map((option) => `<option${option === s.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>`;
+    case "checkbox":
+    case "switch":
+      return `<label class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}"><input type="checkbox"${s.control === "switch" ? ' role="switch"' : ""} aria-label="${escapeAttribute(s.label)}"${s.checked ? " checked" : ""}${s.disabled ? " disabled" : ""}> ${escapeText(s.label)}</label>`;
+  }
 }
 
 const HTML_ROLES: Readonly<Partial<Record<AccessibilityRole, string>>> = {
@@ -278,6 +299,10 @@ export function generateInterfaceCode(
     const classes = [nodeClass(element.id), layoutClasses.get(element.id)]
       .filter(Boolean)
       .join(" ");
+    if (element.type === "ui.control") {
+      htmlLines.push(`${indent}${controlHtml(element, classes)}`);
+      return;
+    }
     if (element.type === "image.raster") {
       htmlLines.push(`${indent}${imageHtml(element, classes)}`);
       return;

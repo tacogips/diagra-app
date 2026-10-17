@@ -55,6 +55,7 @@ describe("registry contents", () => {
         "erd.function",
         "erd.procedure",
         "image.raster",
+        "ui.control",
         "design.token",
         "design.guide",
         "review.comment",

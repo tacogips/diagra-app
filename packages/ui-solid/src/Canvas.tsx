@@ -768,6 +768,10 @@ export function NodettoCanvas(props: NodettoCanvasProps): JSX.Element {
         }}
       >
         <ShapeView
+          resolveAsset={(source) => {
+            signals.rev();
+            return props.editor.assets.resolve(source);
+          }}
           warnings={shapeAuthoringWarnings(element, context())}
           element={element}
           box={box}

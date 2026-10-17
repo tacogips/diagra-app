@@ -28,6 +28,8 @@ export type RasterMaskSampler = (
 export interface ShapeContext {
   /** Current camera zoom; hit tolerances divide by it to stay screen-sized. */
   readonly zoom: number;
+  /** Host-resolved raster bytes; never reads files or fetches URLs. */
+  resolveAsset?(source: string): string | undefined;
   resolve(id: ElementId): Element | undefined;
   /** Elements on a page, when document-wide geometry such as routing needs it. */
   elementsOnPage?(pageId: PageId): readonly Element[];

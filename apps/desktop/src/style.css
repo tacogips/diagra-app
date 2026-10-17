@@ -2143,3 +2143,14 @@ input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.app-import-notes {
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--nodetto-line);
+  font-size: 0.78rem;
+  max-height: 140px;
+  overflow: auto;
+}
+.app-import-notes summary {
+  cursor: pointer;
+}

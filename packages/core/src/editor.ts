@@ -1,3 +1,4 @@
+import { AssetCache } from "./asset-cache.ts";
 import {
   UmlComponentType,
   UmlComponentRelationship,
@@ -179,6 +180,7 @@ const EDITABLE_FIELDS: Readonly<Record<string, EditableField>> = {
   "text.note": "text",
   frame: "name",
   "erd.table": "tableName",
+  "ui.control": "label",
   "erd.view": "name",
   "erd.materialized-view": "name",
   "erd.function": "name",
@@ -300,6 +302,7 @@ function emptyDocument(id: string, pageId: string): Document {
 }
 
 export class Editor {
+  readonly assets = new AssetCache();
   private readonlyMode = false;
   /** Local authoring policy; remote store updates remain allowed. */
   get readOnly(): boolean {
@@ -345,6 +348,7 @@ export class Editor {
   private silenceHistory = false;
 
   constructor(options: EditorOptions = {}) {
+    this.assets.subscribe(() => this.notify(HISTORY_DIFF));
     this.idSource = options.idSource ?? (() => newElementId());
     this.rng = options.rng ?? Math.random;
     this.registry = options.registry ?? createDefaultRegistry();
@@ -477,6 +481,7 @@ export class Editor {
     this.camera.set(this.pageViews.get(this.pageId) ?? { x: 0, y: 0, z: 1 });
     this.selectionAfterLoad = preserveView ? selected : null;
     this.store.loadDocument(document);
+    if (!preserveView) this.assets.clear();
   }
 
   getSnapshot(): Document {
@@ -1203,6 +1208,7 @@ export class Editor {
       this.registry,
       zoom,
       this.rasterMaskSampler,
+      this.assets.resolve,
     );
   }
 
@@ -1662,9 +1668,21 @@ export class Editor {
     return this.reorderSelection("back", applyOptions);
   }
 
+  private readonly requireAsset = (source: string): string => {
+    const value = this.assets.resolve(source);
+    if (!value)
+      throw new Error(
+        `Missing attachment: ${source}. Restore the file beside the document.`,
+      );
+    return value;
+  };
+
   /** The current page as a standalone SVG, or `null` when it is empty. */
   exportPageSvg(options: SvgExportOptions = {}): string | null {
-    return renderPageSvg(this.store, this.registry, this.pageId, options);
+    return renderPageSvg(this.store, this.registry, this.pageId, {
+      resolveAsset: this.requireAsset,
+      ...options,
+    });
   }
 
   /** Exact artboard envelope, with no editor-title annotation. */
@@ -1672,7 +1690,10 @@ export class Editor {
     id: ElementId,
     options: SvgExportOptions = {},
   ): string | null {
-    return renderArtboardSvg(this.store, this.registry, id, options);
+    return renderArtboardSvg(this.store, this.registry, id, {
+      resolveAsset: this.requireAsset,
+      ...options,
+    });
   }
 
   /** The selection as a standalone SVG, or `null` when nothing is drawable. */
@@ -1682,7 +1703,7 @@ export class Editor {
       this.registry,
       this.pageId,
       this.selection.ids(),
-      options,
+      { resolveAsset: this.requireAsset, ...options },
     );
   }
 

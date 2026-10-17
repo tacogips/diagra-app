@@ -32,6 +32,15 @@ export interface ShapePaletteItem {
   readonly icon: keyof typeof PALETTE_ICONS;
 }
 
+export const UI_CONTROL_SHAPES: readonly ShapePaletteItem[] = [
+  { tool: Tool.Button, label: "Button", icon: "node" },
+  { tool: Tool.Input, label: "Input", icon: "rect" },
+  { tool: Tool.Textarea, label: "Textarea", icon: "note" },
+  { tool: Tool.SelectControl, label: "Select", icon: "rect" },
+  { tool: Tool.Checkbox, label: "Checkbox", icon: "rect" },
+  { tool: Tool.Toggle, label: "Switch", icon: "node" },
+];
+
 export const COMMON_SHAPES: readonly ShapePaletteItem[] = [
   { tool: Tool.Rectangle, label: "Rectangle", icon: "rect" },
   { tool: Tool.Ellipse, label: "Ellipse", icon: "ellipse" },
@@ -179,6 +188,7 @@ const PRIMARY_TOOLS = {
 } as const satisfies Record<WorkspaceId, readonly ToolKind[]>;
 
 const PALETTE_SHAPES = [
+  ...UI_CONTROL_SHAPES,
   ...COMMON_SHAPES,
   ...DIAGRAM_SHAPES,
   ...ARTBOARD_SHAPES,
@@ -223,11 +233,14 @@ export function shapePaletteGroups(
     ...workspaceShapes(id),
     ...additionalShapes(id),
     ...artboardShapes(id),
+    ...(workspaceById(id).design ? UI_CONTROL_SHAPES : []),
     ...(workspaceById(id).design
       ? [{ tool: Tool.Freehand, label: "Freehand", icon: "draw" } as const]
       : []),
   ];
   const category = (tool: ToolKind): string => {
+    if (UI_CONTROL_SHAPES.some((item) => item.tool === tool))
+      return "UI controls";
     if (tool === Tool.Connector && id === "bpmn") return "BPMN";
     if (
       [

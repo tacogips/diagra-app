@@ -11,6 +11,7 @@ import type {
   ImageSemantic,
   PathSemantic,
   VisualStyle,
+  UiControlSemantic,
 } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import type { Box } from "./geometry.ts";
@@ -975,6 +976,40 @@ function swiftCode(
             : [`    .accessibilityLabel(${swiftString(semantic.alt)})`]),
         ];
       }
+    } else if (element.type === "ui.control") {
+      const control = element.semantic as UiControlSemantic;
+      const label = swiftString(control.label);
+      const value = swiftString(control.value ?? "");
+      switch (control.control) {
+        case "button":
+          lines = [`Button(${label}) { }`];
+          break;
+        case "input":
+          lines = [
+            `${control.inputType === "password" ? "SecureField" : "TextField"}(${swiftString(control.placeholder ?? control.label)}, text: .constant(${value}))`,
+          ];
+          break;
+        case "textarea":
+          lines = [`TextEditor(text: .constant(${value}))`];
+          break;
+        case "select":
+          lines = [
+            `Picker(${label}, selection: .constant(${value})) {`,
+            ...(control.options ?? []).map(
+              (option) =>
+                `    Text(${swiftString(option)}).tag(${swiftString(option)})`,
+            ),
+            "}",
+          ];
+          break;
+        case "checkbox":
+        case "switch":
+          lines = [
+            `Toggle(${label}, isOn: .constant(${control.checked === true}))`,
+          ];
+          break;
+      }
+      if (control.disabled) lines.push(".disabled(true)");
     } else if (element.type === "draw.path") {
       lines = [swiftCompoundPath(element, style)];
     } else if (element.type === "shape.geo") {
@@ -1231,6 +1266,41 @@ function composeCode(
       ];
     }
     const text = editableText(editor, element);
+    if (element.type === "ui.control") {
+      const control = element.semantic as UiControlSemantic;
+      const enabled = control.disabled !== true;
+      const label = quoted(control.label);
+      const value = quoted(control.value ?? "");
+      switch (control.control) {
+        case "button":
+          return [
+            `Button(onClick = {}, enabled = ${enabled}, modifier = ${modifier}) { Text(${label}) }`,
+          ];
+        case "input":
+        case "textarea":
+          return [
+            `OutlinedTextField(value = ${value}, onValueChange = {}, label = { Text(${label}) }, enabled = ${enabled}, singleLine = ${control.control === "input"}, visualTransformation = ${control.inputType === "password" ? "PasswordVisualTransformation()" : "VisualTransformation.None"}, modifier = ${modifier})`,
+          ];
+        case "checkbox":
+        case "switch":
+          return [
+            `Row(modifier = ${modifier}, verticalAlignment = Alignment.CenterVertically) {`,
+            `    ${control.control === "switch" ? "Switch" : "Checkbox"}(checked = ${control.checked === true}, onCheckedChange = {}, enabled = ${enabled})`,
+            `    Text(${label})`,
+            "}",
+          ];
+        case "select":
+          return [
+            `Column(modifier = ${modifier}) {`,
+            `    Text(${label})`,
+            ...(control.options ?? []).map(
+              (option) =>
+                `    Row { RadioButton(selected = ${option === control.value}, onClick = {}, enabled = ${enabled}); Text(${quoted(option)}) }`,
+            ),
+            "}",
+          ];
+      }
+    }
     if (element.type === "draw.path") {
       return [
         `Box(modifier = ${modifier}) {`,
@@ -1281,7 +1351,7 @@ function composeCode(
           "import androidx.compose.foundation.shape.CircleShape",
           "import androidx.compose.foundation.shape.GenericShape",
           "import androidx.compose.foundation.shape.RoundedCornerShape",
-          "import androidx.compose.material3.Text",
+          "import androidx.compose.material3.*",
           "import androidx.compose.runtime.Composable",
           "import androidx.compose.ui.Alignment",
           "import androidx.compose.ui.Modifier",
@@ -1306,6 +1376,8 @@ function composeCode(
           "import androidx.compose.ui.layout.ContentScale",
           "import androidx.compose.ui.res.painterResource",
           "import androidx.compose.ui.semantics.*",
+          "import androidx.compose.ui.text.input.PasswordVisualTransformation",
+          "import androidx.compose.ui.text.input.VisualTransformation",
           "import androidx.compose.ui.text.font.FontStyle",
           "import androidx.compose.ui.text.font.FontFamily",
           "import androidx.compose.ui.text.font.FontWeight",
@@ -1359,7 +1431,16 @@ export function generateMobileInterfaceCode(
   const assets = [...assetElements.values()].flatMap((element) => {
     if (element.type !== "image.raster") return [];
     const semantic = element.semantic as ImageSemantic;
-    const mediaType = /^data:([^;,]+)/.exec(semantic.src)?.[1] ?? "image/png";
+    const source = editor.assets.resolve(semantic.src) ?? semantic.src;
+    const mediaType =
+      /^data:([^;,]+)/.exec(source)?.[1] ??
+      (source.endsWith(".jpg") || source.endsWith(".jpeg")
+        ? "image/jpeg"
+        : source.endsWith(".gif")
+          ? "image/gif"
+          : source.endsWith(".webp")
+            ? "image/webp"
+            : "image/png");
     return [
       {
         elementId: element.id,

@@ -62,6 +62,7 @@ export function createShapeContext(
   registry: ShapeUtilRegistry,
   zoom: number,
   rasterMaskSample?: RasterMaskSampler,
+  resolveAsset?: (source: string) => string | undefined,
 ): ShapeContext {
   const cache = new Map<ElementId, Box | null>();
   const resolving = new Set<ElementId>();
@@ -71,6 +72,7 @@ export function createShapeContext(
   let masks: ReadonlySet<ElementId> | undefined;
   const context: ShapeContext = {
     zoom,
+    resolveAsset,
     clipOf: (id) => {
       clips ??= frameClips(store, context);
       return clips(id);

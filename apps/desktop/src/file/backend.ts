@@ -28,6 +28,13 @@ export interface FileBackend {
   readDocument(path: string): Promise<string>;
   /** Writes atomically: readers never observe a partial document. */
   writeDocument(path: string, contents: string): Promise<void>;
+  /** Binary attachments stay beside the JSONL and use relative paths. */
+  readAttachment?(documentPath: string, relative: string): Promise<Uint8Array>;
+  storeAttachment?(
+    documentPath: string,
+    extension: string,
+    contents: Uint8Array,
+  ): Promise<string>;
   listRecent(): Promise<readonly RecentEntry[]>;
   addRecent(path: string): Promise<readonly RecentEntry[]>;
   removeRecent(path: string): Promise<readonly RecentEntry[]>;
@@ -56,6 +63,16 @@ export function createTauriBackend(): FileBackend {
     readDocument: (path: string) => invoke<string>("read_document", { path }),
     writeDocument: (path: string, contents: string) =>
       invoke<void>("write_document_atomic", { path, contents }),
+    readAttachment: async (documentPath, relative) =>
+      new Uint8Array(
+        await invoke<number[]>("read_attachment", { documentPath, relative }),
+      ),
+    storeAttachment: (documentPath, extension, contents) =>
+      invoke<string>("store_attachment", {
+        documentPath,
+        extension,
+        contents: Array.from(contents),
+      }),
     listRecent: () => invoke<RecentEntry[]>("recent_files_list"),
     addRecent: (path: string) =>
       invoke<RecentEntry[]>("recent_files_add", { path }),

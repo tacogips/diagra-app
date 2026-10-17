@@ -1,3 +1,4 @@
+import type { UiControlSemantic } from "./ui-controls.ts";
 import type { DatabaseObjectSemantic } from "./database-objects.ts";
 // Semantic payloads for the v1 element type registry.
 // See the product design (nodetto-cloud repo), section 5.2.
@@ -756,6 +757,7 @@ export function isBpmnElementType(type: string): boolean {
 
 /** Maps every registered element type to its semantic payload type. */
 export interface SemanticByType {
+  readonly "ui.control": UiControlSemantic;
   "design.token": DesignTokenSemantic;
   "design.guide": PageGuideSemantic;
   "image.raster": ImageSemantic;

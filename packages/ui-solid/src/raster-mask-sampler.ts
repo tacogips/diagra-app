@@ -111,8 +111,12 @@ export function installRasterMaskSampler(editor: Editor): () => void {
   ) => {
     const element = editor.store.get(id);
     if (element?.type !== "image.raster") return undefined;
-    const src = (element.semantic as { src?: unknown }).src;
-    if (typeof src !== "string" || !src) return undefined;
+    const reference = (element.semantic as { src?: unknown }).src;
+    const src =
+      typeof reference === "string"
+        ? editor.assets.resolve(reference)
+        : undefined;
+    if (!src) return undefined;
     const entry = cache.get(src);
     if (!entry) {
       if (cache.size >= MAX_ENTRIES) {

@@ -1,3 +1,4 @@
+import { UiControlSection } from "./inspector/UiControlSection.tsx";
 import { DATABASE_OBJECT_LABELS, isDatabaseObjectType } from "@nodetto/ir";
 import { DatabaseObjectSection } from "./inspector/DatabaseObjectSection.tsx";
 import { UmlComponentType } from "@nodetto/ir";
@@ -161,6 +162,7 @@ export function Inspector(props: InspectorProps): JSX.Element {
       return "Component";
     if (type.startsWith("bpmn.")) return "BPMN";
     const labels: Record<string, string> = {
+      "ui.control": "Control",
       "erd.table": "Table",
       "uml.class": "Class",
       "erd.relation": "Foreign key",
@@ -213,6 +215,9 @@ export function Inspector(props: InspectorProps): JSX.Element {
           </Match>
           <Match when={element().type === "sequence.message"}>
             <SequenceMessageSection editor={props.editor} element={element()} />
+          </Match>
+          <Match when={element().type === "ui.control"}>
+            <UiControlSection editor={props.editor} element={element()} />
           </Match>
           <Match when={element().type === "image.raster"}>
             <ImageSection editor={props.editor} element={element()} />
