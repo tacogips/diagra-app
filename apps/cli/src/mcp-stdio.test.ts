@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { parseDocument } from "@nodetto/io";
 import type { CommandResult } from "./commands.ts";
+import { COMMAND_HELP } from "./help.ts";
 
 const launches = [
   {
@@ -48,11 +49,26 @@ for (const launch of launches) {
     const client = new Client({ name: "stdio-test", version: "1" });
     try {
       await client.connect(transport);
-      expect(
-        (await client.listTools()).tools.some(
-          (tool) => tool.name === "nodetto_open",
-        ),
-      ).toBe(true);
+      const tools = (await client.listTools()).tools;
+      expect(tools.map((tool) => tool.name).sort()).toEqual(
+        [
+          "nodetto_cli",
+          "nodetto_help",
+          ...Object.keys(COMMAND_HELP)
+            .filter((name) => name !== "mcp")
+            .map((name) => `nodetto_${name}`),
+        ].sort(),
+      );
+      for (const [command, description] of Object.entries(COMMAND_HELP)) {
+        if (command === "mcp") continue;
+        const help = await client.callTool({
+          name: `nodetto_${command}`,
+          arguments: { args: ["--help"] },
+        });
+        expect(
+          (help.structuredContent as unknown as CommandResult).stdout,
+        ).toBe(`${description}\n`);
+      }
       const call = async (name: string, args: string[], stdin?: string) => {
         const result = await client.callTool({
           name,

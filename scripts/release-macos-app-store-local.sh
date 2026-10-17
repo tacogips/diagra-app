@@ -72,7 +72,7 @@ esac
 
 [ "$(uname -s)" = "Darwin" ] || fail "Mac App Store packaging must run on macOS"
 
-for command_name in awk base64 bun cmp codesign date ditto git jq openssl pkgutil plutil productbuild security sed shasum xcrun; do
+for command_name in awk base64 cargo rustc bun cmp codesign date ditto git jq openssl pkgutil plutil productbuild security sed shasum xcrun; do
   require_command "$command_name"
 done
 
@@ -186,6 +186,14 @@ jq -s \
   apps/desktop/src-tauri/tauri.macos.release.conf.json \
   apps/desktop/src-tauri/tauri.appstore.conf.json >"$runtime_config"
 
+# The same Rust executable is shipped in direct and Store builds. Its embedded
+# interpreter requires no executable-memory exceptions.
+env -u APP_STORE_CONNECT_API_PRIVATE_KEY -u APPLE_ID -u APPLE_PASSWORD -u APPLE_API_KEY -u APPLE_API_ISSUER -u APPLE_API_KEY_PATH \
+  -u CARGO_BUILD_TARGET -u CARGO_TARGET_DIR bun apps/cli/scripts/build-sidecar.ts
+host_triple="$(rustc -vV | awk '/^host:/ {print $2}')"
+staged_cli="$repo_root/apps/desktop/src-tauri/binaries/nodetto-cli-$host_triple"
+[ "$("$staged_cli" --version)" = "nodetto-cli $product_version" ] || fail "native CLI version differs"
+
 if [ -n "${NODETTO_APP_STORE_SOURCE_APP:-}" ]; then
   source_app="$NODETTO_APP_STORE_SOURCE_APP"
   [ -d "$source_app" ] || fail "source app is not a directory"
@@ -223,7 +231,22 @@ fi
 [ -d "$app_path" ] || fail "Tauri did not produce the macOS app bundle"
 [ -f "$app_path/Contents/embedded.provisionprofile" ] || fail "built app does not embed the provisioning profile"
 
-[ ! -e "$app_path/Contents/MacOS/nodetto-cli" ] || fail "App Store GUI unexpectedly includes the unsandboxed CLI"
+cli_path="$app_path/Contents/MacOS/nodetto-cli"
+[ -x "$cli_path" ] || fail "App Store bundle is missing the native CLI"
+# This terminal/MCP entrypoint creates its own sandbox. It is never spawned
+# by the sandboxed GUI. Embedded Info.plist provides its standalone identity.
+codesign --force --sign "$app_identity" --identifier "$bundle_id.cli" \
+  --entitlements apps/desktop/src-tauri/Entitlements.cli.appstore.plist "$cli_path"
+codesign --force --sign "$app_identity" --entitlements "$runtime_entitlements" "$app_path"
+cli_entitlements="$work_dir/cli-entitlements.plist"
+codesign -d --entitlements :- "$cli_path" >"$cli_entitlements" 2>/dev/null
+plutil -convert json -o "$work_dir/cli-entitlements.json" "$cli_entitlements"
+jq -e 'length == 3 and .["com.apple.security.app-sandbox"] == true and .["com.apple.security.files.user-selected.read-write"] == true and .["com.apple.security.files.bookmarks.app-scope"] == true' \
+  "$work_dir/cli-entitlements.json" >/dev/null || fail "CLI does not use standalone sandbox entitlements"
+# Signing must not change the executable payload. Launching Distribution-signed
+# test code can require macOS container-migration consent on a developer Mac;
+# version execution is checked before Store signing instead.
+bun apps/cli/scripts/check-signed-payload.ts "$staged_cli" "$cli_path"
 codesign --verify --deep --strict --verbose=2 "$app_path"
 codesign -d --extract-certificates="$work_dir/app-signing-certificate" "$app_path" 2>/dev/null
 app_certificate_sha="$(shasum -a 256 "$work_dir/app-signing-certificate0" | awk '{ print $1 }')"

@@ -44,8 +44,12 @@ description = "Build the app through the Tauri CLI"
 run = "CARGO_TERM_QUIET=true bun --cwd=apps/desktop run tauri build"
 
 [tasks.build-cli]
-description = "Compile the nodetto-cli sidecar into apps/desktop/src-tauri/binaries"
+description = "Build the native Rust nodetto-cli sidecar into apps/desktop/src-tauri/binaries"
 run = "bun apps/cli/scripts/build-sidecar.ts"
+
+[tasks.test-cli]
+description = "Test native CLI, command parity, and MCP stdio"
+run = "CARGO_TERM_QUIET=true cargo build -p nodetto-cli && CARGO_TERM_QUIET=true cargo test -p nodetto-cli && NODETTO_CLI_TEST_BINARY=$PWD/target/debug/nodetto-cli bun test apps/cli/src"
 
 [tasks.bundle-macos]
 description = "Build the macOS .app and .dmg with the bundled nodetto-cli (signs only when APPLE_SIGNING_IDENTITY is set)"
@@ -61,11 +65,11 @@ run = 'bash scripts/release-macos-dmg-local.sh "$@"'
 
 [tasks.test]
 description = "Run frontend and backend tests"
-run = "bun run typecheck && bun test && CARGO_TERM_QUIET=true cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml"
+run = "bun run typecheck && bun test && CARGO_TERM_QUIET=true cargo test --workspace"
 
 [tasks.check]
 description = "Run frontend typecheck and backend cargo check"
-run = "bun run typecheck && CARGO_TERM_QUIET=true cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml"
+run = "bun run typecheck && CARGO_TERM_QUIET=true cargo check --workspace"
 
 [tasks.clippy]
 description = "Run clippy for the Tauri backend"

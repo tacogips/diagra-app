@@ -1,0 +1,27 @@
+[package]
+name = "nodetto-cli"
+version = "0.3.2"
+description = "Native Nodetto CLI and MCP server"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[dependencies]
+unicode-segmentation = "1.13"
+base64 = "0.22"
+miniz_oxide = "0.9"
+pdf-writer = "0.15"
+png = "0.18"
+rand = "0.10"
+resvg = "0.48"
+rmcp = { version = "3.5", features = ["server", "transport-io"] }
+rquickjs = "0.14"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSArray", "NSData", "NSError", "NSString", "NSURL", "NSPathUtilities"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSRunningApplication", "NSOpenPanel", "NSSavePanel", "NSPanel", "NSWindow", "NSResponder"] }

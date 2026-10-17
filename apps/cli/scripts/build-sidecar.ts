@@ -1,50 +1,40 @@
-/**
- * Compile nodetto-cli into a standalone executable that the desktop bundle
- * ships as a Tauri sidecar (`bundle.externalBin`). Tauri expects the file at
- * `binaries/nodetto-cli-<rust target triple>` under src-tauri.
- */
-import { mkdirSync } from "node:fs";
+/** Build the native Rust CLI and stage the target-suffixed Tauri sidecar. */
+import { chmodSync, copyFileSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-const BUN_TARGETS: Readonly<Record<string, string>> = {
-  "aarch64-apple-darwin": "bun-darwin-arm64",
-  "x86_64-apple-darwin": "bun-darwin-x64",
-  "x86_64-unknown-linux-gnu": "bun-linux-x64",
-  "aarch64-unknown-linux-gnu": "bun-linux-arm64",
-  "x86_64-pc-windows-msvc": "bun-windows-x64",
-};
-
-function hostTriple(): string {
-  const rustc = Bun.spawnSync(["rustc", "-vV"], { stdout: "pipe" });
-  const host = /^host: (\S+)$/m.exec(rustc.stdout.toString())?.[1];
-  if (rustc.exitCode !== 0 || !host)
-    throw new Error("Cannot determine the Rust host target triple.");
-  return host;
-}
-
-const triple = process.env.NODETTO_SIDECAR_TARGET ?? hostTriple();
-const bunTarget = BUN_TARGETS[triple];
-if (!bunTarget) throw new Error(`No Bun compile target for ${triple}.`);
-const root = resolve(import.meta.dir, "..");
-const extension = triple.includes("windows") ? ".exe" : "";
-const outfile = resolve(
-  root,
-  "../desktop/src-tauri/binaries",
-  `nodetto-cli-${triple}${extension}`,
-);
-mkdirSync(dirname(outfile), { recursive: true });
+const root = resolve(import.meta.dir, "../../..");
+const rustc = Bun.spawnSync(["rustc", "-vV"], { stdout: "pipe" });
+const host = /^host: (\S+)$/m.exec(rustc.stdout.toString())?.[1];
+if (rustc.exitCode !== 0 || !host)
+  throw new Error("Cannot determine the Rust host target triple.");
+const triple = process.env.NODETTO_SIDECAR_TARGET ?? host;
 const build = Bun.spawnSync(
   [
-    process.execPath,
+    "cargo",
     "build",
-    "--compile",
-    "--minify",
-    `--target=${bunTarget}`,
-    resolve(root, "src/main.ts"),
-    "--outfile",
-    outfile,
+    "--locked",
+    "--release",
+    "-p",
+    "nodetto-cli",
+    "--target",
+    triple,
   ],
-  { stdout: "inherit", stderr: "inherit" },
+  {
+    cwd: root,
+    env: { ...process.env, CARGO_TERM_QUIET: "true" },
+    stdout: "inherit",
+    stderr: "inherit",
+  },
 );
 if (build.exitCode !== 0) process.exit(build.exitCode ?? 1);
-console.log(`Built ${outfile}`);
+const executable = `nodetto-cli${triple.includes("windows") ? ".exe" : ""}`;
+const target = resolve(root, process.env.CARGO_TARGET_DIR ?? "target");
+const outfile = resolve(
+  root,
+  "apps/desktop/src-tauri/binaries",
+  `nodetto-cli-${triple}${triple.includes("windows") ? ".exe" : ""}`,
+);
+mkdirSync(dirname(outfile), { recursive: true });
+copyFileSync(resolve(target, triple, "release", executable), outfile);
+chmodSync(outfile, 0o755);
+console.log(`Built native Rust CLI: ${outfile}`);

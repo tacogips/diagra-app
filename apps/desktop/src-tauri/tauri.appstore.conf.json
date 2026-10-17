@@ -3,7 +3,7 @@
     "active": true,
     "category": "GraphicsAndDesign",
     "targets": ["app"],
-    "externalBin": [],
+    "externalBin": ["binaries/nodetto-cli"],
     "macOS": {
       "bundleVersion": "1",
       "minimumSystemVersion": "12.0",

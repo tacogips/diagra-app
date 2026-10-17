@@ -9,4 +9,4 @@ if [ ! -f "${manifest_path}" ]; then
   exit 0
 fi
 
-CARGO_TERM_QUIET=true cargo clippy --manifest-path "${manifest_path}" --all-targets -- -D warnings
+CARGO_TERM_QUIET=true cargo clippy --workspace --all-targets -- -D warnings

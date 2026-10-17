@@ -96,7 +96,7 @@ bundle locally.
 
 ## Command line (`nodetto-cli`)
 
-`apps/cli` is a headless command line over the same packages the editor
+`nodetto-cli` is a native Rust executable over the same diagram engine the editor
 uses, so repositories can keep a nodetto document as the source of truth and
 check generated artifacts in CI or pre-commit hooks:
 
@@ -115,8 +115,11 @@ nodetto-cli bpmn export process.jsonl --page process --check process.bpmn
 ERD page (`--page <id or name>` when several pages contain tables). `--check`
 exits 1 when the file is out of date, `--strict` exits 3 when the export
 reports warnings, and usage or parse errors exit 2. In a checkout, run it with
-`bun apps/cli/src/main.ts`; `mise run build-cli` compiles the standalone
-sidecar that the macOS bundle ships. `lint` exits 0 when there are no
+`CARGO_TERM_QUIET=true cargo run -p nodetto-cli -- <command>`;
+`mise run build-cli` builds the Rust sidecar that the macOS bundle ships.
+The executable embeds the shared diagram engine in the QuickJS interpreter.
+It needs no Node.js or Bun installation and uses no JIT. Bun bundles the shared
+engine at build time; the TypeScript CLI remains a reference for parity tests. `lint` exits 0 when there are no
 error-level findings (warnings may still be printed), 1 when error-level
 findings exist, and 2 for usage, parse, or config errors; it has no `--strict`
 option. `bpmn import` and `bpmn export` exit 3 with `--strict` when they report
@@ -182,14 +185,14 @@ stdio. Configure your client with:
 }
 ```
 
-For a source checkout, use `bun` as `command` and
-`["/absolute/path/to/nodetto-app/apps/cli/src/main.ts", "mcp"]` as `args`.
-The compiled desktop sidecar supports the same command.
+For a source checkout, build with `CARGO_TERM_QUIET=true cargo build -p nodetto-cli`
+and use `/absolute/path/to/nodetto-app/target/debug/nodetto-cli` as `command`.
+The desktop bundle includes the same native MCP server.
 
 The server exposes `nodetto_inspect`, `nodetto_types`, `nodetto_edit`,
 `nodetto_arrange`, `nodetto_export`, `nodetto_diff`, `nodetto_validate`,
 `nodetto_format`, `nodetto_ddl`, `nodetto_lint`, `nodetto_bpmn`, and
-`nodetto_open`. Each takes an `args` array containing the arguments after its
+`nodetto_open`, and `nodetto_authorize`. Each takes an `args` array containing the arguments after its
 command name. All options work exactly as in the terminal. `nodetto_help`
 accepts `[]` for the overview or `["edit"]` for detailed command help;
 `nodetto_cli` accepts the complete CLI argument array, including a command
@@ -1290,19 +1293,40 @@ a screen transition with destination-aware defaults; add `prototypeAction`,
 `prototypeTransition`, and `prototypeDuration` to override them. Ordinary
 connectors keep their existing behavior.
 
-### Mac App Store packaging
+### Mac App Store installation and packaging
 
-`mise run release-macos-app-store-local build` creates a sandboxed GUI-only
+`mise run release-macos-app-store-local build` creates a sandboxed app and native CLI
 `.pkg` using the local Apple Distribution and Mac Installer Distribution
 identities. Inject `APPLE_TEAM_ID` and `NODETTO_APP_STORE_PROFILE_BASE64` through
 kinko. The profile must match this app and the installed signing certificate.
 Never commit provisioning profiles, API keys, or generated signing material.
 
-The Store configuration excludes the Bun CLI and JIT entitlements. Install
-`nodetto-cli` separately for terminal/AI workflows; direct downloads retain the
-bundled CLI. Document access uses native file selection and persistent
-security-scoped bookmarks. Documents with relative attachments request their
-containing folder when sandbox access is needed.
+Both App Store and direct-download builds include
+`Nodetto.app/Contents/MacOS/nodetto-cli`. Homebrew creates the command link
+automatically. The App Store installs the executable inside the app bundle;
+it does not modify your shell's PATH. Invoke it by its full path, or add:
+
+```bash
+export PATH="/Applications/Nodetto.app/Contents/MacOS:$PATH"
+```
+
+The App Store CLI is an independent sandboxed entrypoint. Before working on a
+project, grant its folder through the native picker:
+
+```bash
+nodetto-cli authorize /path/to/project
+nodetto-cli --cwd /path/to/project mcp
+```
+
+Select the folder containing your JSONL documents, assets and export files.
+`--cwd` selects the working directory explicitly; absolute file paths also work.
+Access persists across CLI runs using security-scoped bookmarks. Restart an
+already-running MCP server after authorizing a folder. MCP clients can also
+request the picker with `nodetto_authorize` and `args: ["/path/to/project"]`.
+The direct-download/Homebrew CLI has ordinary terminal file access and does
+not need this grant. No build uses JIT or executable-memory exceptions.
+The Store CLI is never launched as a child of the sandboxed GUI. The GUI
+continues to use native file selection and its own persistent bookmarks.
 
 The `upload` mode additionally uses the `APP_STORE_CONNECT_API_KEY_ID`,
 `APP_STORE_CONNECT_API_PRIVATE_KEY`, `APP_STORE_CONNECT_ISSUER_ID`, and

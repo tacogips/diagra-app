@@ -28,6 +28,7 @@ Convert and check
 
 MCP server
   nodetto-cli mcp                 Serve all CLI operations over stdio
+  nodetto-cli authorize [folder]  Grant project-folder access for the Store CLI
 
 Run "nodetto-cli help <command>" or "nodetto-cli <command> --help" for details.
 Typical AI drawing loop: inspect -> types -> edit --snapshot -> export (look at
@@ -39,6 +40,15 @@ const EXIT_CODES = `Exit codes: 0 success, 1 out of date (--check), 2 usage or i
 3 warnings with --strict.`;
 
 export const COMMAND_HELP: Readonly<Record<string, string>> = {
+  authorize: `Usage: nodetto-cli authorize [project-folder]
+
+Open the macOS folder picker and remember access to the selected project folder.
+The Mac App Store CLI runs in its own sandbox and needs this explicit grant to
+read/write project files. Select the folder containing your diagrams, assets
+and exports. Restart a running MCP server after granting a new folder.
+
+The native CLI provides this command. Homebrew/direct-download builds have
+normal terminal file access and do not require folder authorization.`,
   mcp: `Usage: nodetto-cli mcp
 
 Start a local Model Context Protocol server over stdio. Stdout is reserved for
@@ -49,6 +59,8 @@ Every document command has a nodetto_<command> tool. nodetto_cli accepts any
 CLI command, including help and --version. Pass argument tokens in args and
 supply stdin for edit --ops -. Results contain exitCode, stdout and stderr.
 Paths resolve from the server's working directory; absolute paths are advised.
+The native CLI accepts --cwd <folder> before any command, including mcp, to
+select the project directory explicitly (useful for the sandboxed Store build).
 The server can read/write files and launch the desktop app like the CLI.
 Stop by disconnecting the client (closing stdin).`,
 
