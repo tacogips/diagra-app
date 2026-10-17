@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "category": "DeveloperTool",
+    "shortDescription": "Diagram, ERD and design editor",
+    "copyright": "Copyright (c) tacogips",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.png"],
+    "externalBin": ["binaries/nodetto-cli"],
+    "fileAssociations": [
+      { "ext": ["jsonl"], "name": "Nodetto document", "role": "Editor", "mimeType": "application/jsonl" },
+      { "ext": ["mmd", "mermaid"], "name": "Mermaid diagram", "role": "Viewer" },
+      { "ext": ["bpmn"], "name": "BPMN diagram", "role": "Viewer" }
+    ]
+  }
+}

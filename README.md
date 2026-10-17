@@ -1339,3 +1339,20 @@ only into a protected temporary directory and removed when the command exits.
 
 Nodetto is released under the [MIT License](LICENSE). The editor packages,
 desktop application and command-line tool use the same license.
+
+
+### Linux builds
+
+The `Linux desktop and CLI` GitHub Actions workflow builds x86_64 Linux `.deb`
+and AppImage packages, each including `nodetto-cli`, plus a standalone CLI tarball.
+It uses Ubuntu 22.04 and WebKitGTK 4.1. The CLI needs no Node.js or Bun runtime.
+Install the Debian package with `sudo apt install ./Nodetto_VERSION_amd64.deb`,
+or run the AppImage after making it executable. For the standalone CLI, extract
+its tarball and place `nodetto-cli` in a directory on your PATH.
+
+Run the workflow manually with an empty `release_tag` for build artifacts only.
+Set `release_tag` to an existing release such as `v0.4.0` to build that exact
+source tag and attach Linux downloads to its release. The workflow also runs on
+future version tags. It preserves existing release notes and macOS assets and
+never overwrites an existing download. CLI unit/parity tests and package-content
+checks run before publication.

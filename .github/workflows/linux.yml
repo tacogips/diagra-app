@@ -1,0 +1,116 @@
+name: Linux desktop and CLI
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to build and attach assets to (empty builds this ref only)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-${{ github.event.inputs.release_tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      CARGO_TERM_QUIET: 'true'
+      CARGO_BUILD_JOBS: '2'
+    outputs:
+      release_tag: ${{ steps.target.outputs.release_tag }}
+    steps:
+      # Keep packaging configuration from the workflow revision while building
+      # application code from the exact release tag, including older tags.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Select source revision
+        id: target
+        env:
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+        run: |
+          cp apps/desktop/src-tauri/tauri.linux.release.conf.json "$RUNNER_TEMP/nodetto-linux.json"
+          tag="$REQUESTED_TAG"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then tag="$GITHUB_REF_NAME"; fi
+          if [[ -n "$tag" && ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Expected a release tag such as v0.4.0' >&2
+            exit 1
+          fi
+          echo "ref=${tag:-$GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$tag" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.target.outputs.ref }}
+      - name: Restore Linux packaging configuration
+        run: cp "$RUNNER_TEMP/nodetto-linux.json" apps/desktop/src-tauri/tauri.linux.release.conf.json
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          install_args: rust bun
+      - name: Install Tauri and rendering dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libfuse2 fonts-dejavu-core
+      - name: Verify release identity
+        env:
+          RELEASE_TAG: ${{ steps.target.outputs.release_tag }}
+        run: |
+          version=$(bun -e 'console.log((await Bun.file("apps/desktop/src-tauri/tauri.conf.json").json()).version)')
+          if [[ -n "$RELEASE_TAG" ]]; then
+            test "$RELEASE_TAG" = "v$version"
+          fi
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+      - name: Install locked frontend dependencies
+        run: bun install --frozen-lockfile
+      - name: Build native Rust CLI
+        run: bun apps/cli/scripts/build-sidecar.ts
+      - name: Verify native engine and document behavior
+        run: |
+          cargo test --locked -p nodetto-cli
+          NODETTO_CLI_TEST_BINARY="$PWD/target/x86_64-unknown-linux-gnu/release/nodetto-cli" bun test apps/cli/src
+      - name: Build Tauri Debian package and AppImage
+        run: bun run tauri build --config src-tauri/tauri.linux.release.conf.json --bundles deb,appimage
+      - name: Verify packaged CLI and collect downloads
+        run: |
+          mkdir -p dist-linux
+          dpkg-deb --extract target/release/bundle/deb/*.deb "$RUNNER_TEMP/nodetto-deb"
+          packaged="$RUNNER_TEMP/nodetto-deb/usr/bin/nodetto-cli"
+          test -x "$packaged"
+          test "$(env PATH=/usr/bin:/bin "$packaged" --version)" = "nodetto-cli $APP_VERSION"
+          "$packaged" validate packages/io/src/__fixtures__/erd.jsonl
+          appimage=$(realpath target/release/bundle/appimage/*.AppImage)
+          (cd "$RUNNER_TEMP" && "$appimage" --appimage-extract > /dev/null)
+          test "$("$RUNNER_TEMP/squashfs-root/usr/bin/nodetto-cli" --version)" = "nodetto-cli $APP_VERSION"
+          cp target/release/bundle/deb/*.deb target/release/bundle/appimage/*.AppImage dist-linux/
+          tar -czf "dist-linux/nodetto-cli_${APP_VERSION}_x86_64-unknown-linux-gnu.tar.gz" \
+            -C target/x86_64-unknown-linux-gnu/release nodetto-cli
+          (cd dist-linux && sha256sum ./*.deb ./*.AppImage ./*.tar.gz > SHA256SUMS-linux-x86_64.txt)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nodetto-linux-x86_64
+          path: dist-linux/*
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: needs.build.outputs.release_tag != ''
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: nodetto-linux-x86_64
+          path: dist-linux
+      - name: Attach Linux downloads to the existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+        run: |
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null
+          gh release upload "$RELEASE_TAG" dist-linux/* --repo "$GITHUB_REPOSITORY"
