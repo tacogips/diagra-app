@@ -33,3 +33,10 @@ Native visual verification is pending: computer-use returns `cgWindowNotFound`
 for both isolated audit apps and `timeoutReached` for Safari. No visual pass
 is claimed. Keep the public PR draft and the private pin unchanged until this
 check can run.
+
+Follow-up audit: local CSS backgrounds now import as editable image layers
+(and survive HTML export) rather than being omitted. CSS dependency paths
+resolve relative to each stylesheet, reject directory escapes/remote URLs, and
+deduplicate with ordinary image elements. The body is captured as a layer so
+page backgrounds and direct body text survive. Native window access remains
+unavailable.

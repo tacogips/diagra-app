@@ -1,9 +1,5 @@
 import { importHtmlLayout, type HtmlLayoutNode } from "@nodetto/core";
-import {
-  encodeRasterDataUrl,
-  isRasterDataUrl,
-  isRelativeAttachmentPath,
-} from "@nodetto/ir";
+import { HtmlImportAssets, htmlDependencyPath } from "./html-assets.ts";
 import type { Document, UiControlKind } from "@nodetto/ir";
 import type { FileBackend } from "./backend.ts";
 
@@ -32,7 +28,12 @@ export async function importHtmlPage(
   template.innerHTML = source;
   const parsed = template.content;
   const warnings = new Set<string>();
-  const assets = new Map<string, string>();
+  const importedAssets = new HtmlImportAssets(async (relative) => {
+    if (!backend.readAttachment)
+      throw new Error("This host cannot read local HTML dependencies");
+    return backend.readAttachment(sourcePath, relative);
+  });
+  const assets = importedAssets.assets;
   for (const node of parsed.querySelectorAll(
     "script,iframe,object,embed,base,meta,video,audio,source,svg,canvas",
   )) {
@@ -70,18 +71,24 @@ export async function importHtmlPage(
     }
   }
   for (const link of parsed.querySelectorAll("link")) {
-    const relative = link.getAttribute("href") ?? "";
-    if (
-      link.getAttribute("rel") === "stylesheet" &&
-      isRelativeAttachmentPath(relative) &&
-      backend.readAttachment
-    ) {
+    let relative: string;
+    try {
+      relative = htmlDependencyPath(link.getAttribute("href") ?? "");
+    } catch {
+      warnings.add("Remote or unsafe stylesheet omitted.");
+      link.remove();
+      continue;
+    }
+    if (link.getAttribute("rel") === "stylesheet" && backend.readAttachment) {
       try {
         const css = new TextDecoder().decode(
           await backend.readAttachment(sourcePath, relative),
         );
         const style = document.createElement("style");
-        style.textContent = css;
+        style.textContent = await importedAssets.css(css, relative, (message) =>
+          warnings.add(message),
+        );
+        style.setAttribute("data-import-css", "resolved");
         link.replaceWith(style);
       } catch {
         warnings.add(`Stylesheet could not be read: ${relative}`);
@@ -95,22 +102,29 @@ export async function importHtmlPage(
   for (const image of parsed.querySelectorAll("img")) {
     const relative = image.getAttribute("src") ?? "";
     try {
-      let data: string;
-      if (isRasterDataUrl(relative)) data = relative;
-      else if (isRelativeAttachmentPath(relative) && backend.readAttachment)
-        data = encodeRasterDataUrl(
-          await backend.readAttachment(sourcePath, relative),
-        );
-      else throw new Error("unsupported image source");
-      const key = `artifacts/imported-image-${assets.size + 1}.${data.startsWith("data:image/jpeg") ? "jpg" : data.slice(11, data.indexOf(";"))}`;
-      assets.set(key, data);
+      const { path, data } = await importedAssets.image(relative);
       image.setAttribute("src", data);
-      image.setAttribute("data-import-asset", key);
+      image.setAttribute("data-import-asset", path);
     } catch {
       warnings.add(`Image omitted: ${relative.slice(0, 120)}`);
       image.remove();
     }
   }
+  for (const style of parsed.querySelectorAll("style:not([data-import-css])"))
+    style.textContent = await importedAssets.css(
+      style.textContent ?? "",
+      "",
+      (message) => warnings.add(message),
+    );
+  for (const node of parsed.querySelectorAll("[style]"))
+    node.setAttribute(
+      "style",
+      await importedAssets.css(
+        node.getAttribute("style") ?? "",
+        "",
+        (message) => warnings.add(message),
+      ),
+    );
   // CSP is the final authority even for escaped CSS URLs or other parser edge cases.
   const frame = document.createElement("iframe");
   frame.setAttribute("sandbox", "allow-same-origin");
@@ -159,9 +173,20 @@ export async function importHtmlPage(
         rect.height <= 0
       )
         return;
-      if (css.backgroundImage !== "none")
+      const backgroundMatch = /^url\(["']?(data:image\/[^"')]+)["']?\)$/.exec(
+        css.backgroundImage,
+      );
+      const backgroundPath = backgroundMatch?.[1]
+        ? importedAssets.pathForData(backgroundMatch[1])
+        : undefined;
+      if (css.backgroundImage !== "none" && !backgroundPath)
+        warnings.add("Unsupported CSS background layers are omitted.");
+      if (
+        backgroundPath &&
+        !["cover", "contain", "100% 100%"].includes(css.backgroundSize)
+      )
         warnings.add(
-          "CSS background images are omitted; use image elements for portable assets.",
+          "Background image tiling, size and offset are approximated by the element bounds.",
         );
       if (css.transform !== "none")
         warnings.add("Transformed elements use their measured bounding boxes.");
@@ -178,6 +203,20 @@ export async function importHtmlPage(
         name: node.id || node.tagName.toLowerCase(),
         box: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
         style,
+        ...(backgroundPath
+          ? {
+              backgroundImage: {
+                src: backgroundPath,
+                alt: "",
+                fit:
+                  css.backgroundSize === "cover"
+                    ? ("cover" as const)
+                    : css.backgroundSize === "contain"
+                      ? ("contain" as const)
+                      : ("fill" as const),
+              },
+            }
+          : {}),
       };
       const tag = node.tagName.toLowerCase();
       if (tag === "img")
@@ -277,15 +316,8 @@ export async function importHtmlPage(
         : (node.textContent?.trim() ?? "");
       return { ...base, text, children, clip: css.overflow === "hidden" };
     };
-    const nodes = [...doc.body.children]
-      .filter(
-        (child): child is HTMLElement =>
-          child.namespaceURI === "http://www.w3.org/1999/xhtml",
-      )
-      .flatMap((child) => {
-        const captured = visit(child, 0);
-        return captured ? [captured] : [];
-      });
+    const body = visit(doc.body, 0);
+    const nodes = body ? [body] : [];
     const imported = importHtmlLayout(nodes, {
       title,
       width: 1440,

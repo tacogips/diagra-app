@@ -16,6 +16,7 @@ export interface HtmlLayoutNode {
   readonly style?: VisualStyle;
   readonly text?: string;
   readonly image?: ImageSemantic;
+  readonly backgroundImage?: ImageSemantic;
   readonly control?: UiControlSemantic;
   readonly children?: readonly HtmlLayoutNode[];
   readonly clip?: boolean;
@@ -33,6 +34,29 @@ export function importHtmlLayout(
   const visit = (node: HtmlLayoutNode, depth: number): ElementId => {
     if (++count > 3000 || depth > 100)
       throw new Error("HTML layout exceeds the layer or nesting limit.");
+    if (node.backgroundImage && (node.control || node.image)) {
+      const { backgroundImage, ...foreground } = node;
+      return visit(
+        {
+          name: node.name,
+          box: node.box,
+          style: node.style,
+          backgroundImage,
+          children: [
+            {
+              ...foreground,
+              style: {
+                ...node.style,
+                fill: "transparent",
+                strokeWidth: 0,
+                opacity: 1,
+              },
+            },
+          ],
+        },
+        depth + 1,
+      );
+    }
     const visual = {
       ...node.box,
       ...(node.style ? { style: node.style } : {}),
@@ -47,7 +71,7 @@ export function importHtmlLayout(
         visual,
         semantic: node.control,
       });
-    if (!node.children?.length)
+    if (!node.children?.length && !node.backgroundImage)
       return editor.createElement("text.note", {
         visual,
         semantic: { text: node.text ?? "" },
@@ -60,7 +84,9 @@ export function importHtmlLayout(
         clipContent: node.clip ?? false,
       },
     });
-    const members = node.children.map((child) => visit(child, depth + 1));
+    const members = (node.children ?? []).map((child) =>
+      visit(child, depth + 1),
+    );
     if (node.text)
       members.unshift(
         editor.createElement("text.note", {
@@ -69,6 +95,13 @@ export function importHtmlLayout(
             style: { ...node.style, fill: "transparent", strokeWidth: 0 },
           },
           semantic: { text: node.text },
+        }),
+      );
+    if (node.backgroundImage)
+      members.unshift(
+        editor.createElement("image.raster", {
+          visual: { ...node.box },
+          semantic: node.backgroundImage,
         }),
       );
     editor.apply([

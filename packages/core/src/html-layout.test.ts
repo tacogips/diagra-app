@@ -83,3 +83,64 @@ test("HTML layout import bounds nesting and rejects invalid control data before 
     ),
   ).toThrow();
 });
+
+test("imported CSS backgrounds remain image layers beneath editable text and export as files", () => {
+  const document = importHtmlLayout(
+    [
+      {
+        name: "hero",
+        box: { x: 0, y: 0, width: 600, height: 400 },
+        text: "Hero title",
+        backgroundImage: { src: "artifacts/hero.png", alt: "", fit: "cover" },
+      },
+    ],
+    { title: "Hero", width: 1440, height: 1000 },
+  );
+  const hero = document.elements.find(
+    (e) => e.type === "frame" && (e.semantic as FrameSemantic).name === "hero",
+  );
+  const ids = (hero?.semantic as FrameSemantic).memberIds ?? [];
+  expect(document.elements.find((e) => e.id === ids[0])?.type).toBe(
+    "image.raster",
+  );
+  expect(document.elements.find((e) => e.id === ids[1])?.type).toBe(
+    "text.note",
+  );
+  const editor = new Editor({ document });
+  editor.assets.set("artifacts/hero.png", "data:image/png;base64,iVBORw0KGgo=");
+  const bundle = exportHtmlBundle(editor);
+  expect(bundle.files.map((f) => f.path)).toContain("artifacts/image-1.png");
+  expect(
+    new TextDecoder().decode(
+      bundle.files.find((f) => f.path === "hero.html")?.contents,
+    ),
+  ).toContain("Hero title");
+});
+
+test("CSS backgrounds on controls retain the editable control above the image", () => {
+  const document = importHtmlLayout(
+    [
+      {
+        name: "button",
+        box,
+        style: { fill: "#fff", opacity: 0.5 },
+        control: { control: "button", label: "Continue" },
+        backgroundImage: { src: "artifacts/button.png", alt: "", fit: "cover" },
+      },
+    ],
+    { title: "Control", width: 1440, height: 1000 },
+  );
+  const wrapper = document.elements.find(
+    (e) =>
+      e.type === "frame" && (e.semantic as FrameSemantic).name === "button",
+  );
+  const ids = (wrapper?.semantic as FrameSemantic).memberIds ?? [];
+  expect(ids).toHaveLength(2);
+  expect(document.elements.find((e) => e.id === ids[0])?.type).toBe(
+    "image.raster",
+  );
+  const control = document.elements.find((e) => e.id === ids[1]);
+  expect(control?.type).toBe("ui.control");
+  expect(control?.visual.style?.fill).toBe("transparent");
+  expect(control?.visual.style?.opacity).toBe(1);
+});

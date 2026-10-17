@@ -1123,7 +1123,9 @@ directory. Text, frames, images, buttons, inputs, textareas, selects, checkboxes
 and switches become editable layers. The source HTML/CSS is never overwritten.
 Import notes identify omitted resources and features. Capture uses a 1440px
 viewport; scripts, remote resources, embedded documents, SVG/canvas/media,
-CSS background images, web fonts and dynamic/responsive behavior are omitted.
+web fonts and dynamic/responsive behavior are omitted. Local CSS background
+images become editable image layers; multiple backgrounds and tiling are
+approximated or reported in import notes.
 
 General, Web and App palettes include UI controls with editable labels, values,
 options, checked and disabled states. The same controls appear in HTML, SVG,

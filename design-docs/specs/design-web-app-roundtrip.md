@@ -84,11 +84,13 @@ isolated test app and disposable files. Preserve unrelated export plans.
 ## Implemented import/export contract
 
 Open `.html` or `.htm` through File/Open. Local stylesheets and raster images
-resolve beneath the HTML file directory. Parent-directory/remote dependencies
-are omitted with warnings. The result is a new unsaved document; source HTML
+resolve beneath the HTML file directory. Dependencies normalize relative to their HTML or CSS source and must stay
+inside the HTML directory; remote or escaping paths are omitted with warnings. The result is a new unsaved document; source HTML
 is never overwritten. Text, frames, colors, borders, controls and image layers
-remain editable. Scripts, active embeds, SVG/canvas/media, CSS background images,
-web fonts and responsive behavior are outside this static import. Source CSS
+remain editable. Local CSS background images become image layers beneath text
+and controls; multiple backgrounds, tiling, sizes and offsets can be approximated
+or omitted with notes. Scripts, active embeds, SVG/canvas/media, web fonts and
+responsive behavior are outside this static import. Source CSS
 selectors cannot affect the editor. Raster files retain the existing 1 MiB limit.
 
 Export/HTML creates a ZIP containing an index, separate HTML/CSS for every
