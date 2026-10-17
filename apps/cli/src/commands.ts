@@ -683,6 +683,10 @@ export function runCli(
   )
     return ok(`${helpFor(command)}\n`);
   switch (command) {
+    case "mcp":
+      return fail(
+        `mcp takes no options. Start the stdio server with nodetto-cli mcp.\n\n${helpFor("mcp")}`,
+      );
     case "ddl":
       return ddlCommand(io, rest);
     case "arrange":

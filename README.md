@@ -166,6 +166,58 @@ same resolved geometry without rewriting the imported document on open.
 
 See [the design](design-docs/specs/design-cli-ai-drawing.md).
 
+## MCP server
+
+Run `nodetto-cli mcp` to expose every CLI operation to an MCP client over
+stdio. Configure your client with:
+
+```json
+{
+  "mcpServers": {
+    "nodetto": {
+      "command": "/absolute/path/to/nodetto-cli",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+For a source checkout, use `bun` as `command` and
+`["/absolute/path/to/nodetto-app/apps/cli/src/main.ts", "mcp"]` as `args`.
+The compiled desktop sidecar supports the same command.
+
+The server exposes `nodetto_inspect`, `nodetto_types`, `nodetto_edit`,
+`nodetto_arrange`, `nodetto_export`, `nodetto_diff`, `nodetto_validate`,
+`nodetto_format`, `nodetto_ddl`, `nodetto_lint`, `nodetto_bpmn`, and
+`nodetto_open`. Each takes an `args` array containing the arguments after its
+command name. All options work exactly as in the terminal. `nodetto_help`
+accepts `[]` for the overview or `["edit"]` for detailed command help;
+`nodetto_cli` accepts the complete CLI argument array, including a command
+name, `--help`, or `--version`.
+
+For example, call `nodetto_edit` with:
+
+```json
+{
+  "args": ["/absolute/path/to/flow.jsonl", "--ops", "-", "--snapshot", "/tmp/baseline.jsonl"],
+  "stdin": "[{\"op\":\"add\",\"page\":\"Flow\",\"type\":\"node.generic\",\"semantic\":{\"label\":\"Hello MCP\"}}]"
+}
+```
+
+The optional `stdin` field supplies the text for `--ops -`; it never reads
+from the protocol stream. Tool results contain `exitCode`, `stdout`, and
+`stderr` in both structured content and a JSON text block. Nonzero CLI exit
+codes set MCP `isError`, including drift (1), invalid input (2), strict
+warnings (3), and edit contention (4). An unsuccessful call leaves the
+server available for further calls.
+
+Paths resolve from the server process's working directory. Use absolute
+paths when the client's working directory is uncertain. Export SVG text or
+write SVG, PNG, PDF, and HTML ZIP output with the same CLI options. Binary
+exports are written to `--output` on the local filesystem. The server has
+the same local file access and desktop launching capability as the CLI.
+Stdout carries only MCP messages; disconnecting the client stops the server.
+
 ## Tidy layout and overlap removal
 
 Arrange > Tidy layout (Cmd/Ctrl+Option+L) re-flows the current page, or the

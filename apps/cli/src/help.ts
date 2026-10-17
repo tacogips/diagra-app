@@ -26,6 +26,9 @@ Convert and check
   nodetto-cli lint <doc|bpmn>     Lint BPMN pages
   nodetto-cli bpmn import|export  BPMN 2.0 XML conversion
 
+MCP server
+  nodetto-cli mcp                 Serve all CLI operations over stdio
+
 Run "nodetto-cli help <command>" or "nodetto-cli <command> --help" for details.
 Typical AI drawing loop: inspect -> types -> edit --snapshot -> export (look at
 the PNG) -> later, diff <snapshot> <doc> to see what the person changed -> repeat.
@@ -36,6 +39,19 @@ const EXIT_CODES = `Exit codes: 0 success, 1 out of date (--check), 2 usage or i
 3 warnings with --strict.`;
 
 export const COMMAND_HELP: Readonly<Record<string, string>> = {
+  mcp: `Usage: nodetto-cli mcp
+
+Start a local Model Context Protocol server over stdio. Stdout is reserved for
+MCP JSON-RPC; diagnostics go to stderr. Connect with an MCP client's command
+configuration: {"command":"nodetto-cli","args":["mcp"]}.
+
+Every document command has a nodetto_<command> tool. nodetto_cli accepts any
+CLI command, including help and --version. Pass argument tokens in args and
+supply stdin for edit --ops -. Results contain exitCode, stdout and stderr.
+Paths resolve from the server's working directory; absolute paths are advised.
+The server can read/write files and launch the desktop app like the CLI.
+Stop by disconnecting the client (closing stdin).`,
+
   open: `Usage: nodetto-cli open <file> [--app <application>]
 
 Open an existing local file in the Nodetto desktop app. Relative paths resolve
