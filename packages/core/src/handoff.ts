@@ -29,7 +29,8 @@ function cssString(value: string): string {
 function cssColor(value: string): string | null {
   // Only literal hex colors and safe keywords are emitted. The full stored
   // value remains in JSON; arbitrary CSS functions/URLs are not executable.
-  return /^(#[\da-f]{3,8}|transparent|currentColor|[a-z]+)$/i.test(value)
+  return /^(#[\da-f]{3,8}|transparent|currentColor|[a-z]+)$/i.test(value) ||
+    /^(?:rgb|rgba|hsl|hsla)\([\d\s.,%/+-]+\)$/i.test(value)
     ? value
     : null;
 }

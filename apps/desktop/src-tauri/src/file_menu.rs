@@ -10,7 +10,7 @@ impl FileMenuState {
     fn push(&self, action: &str) -> bool {
         if !matches!(
             action,
-            "new" | "open" | "save" | "save-as" | "export" | "reload"
+            "new" | "templates" | "open" | "save" | "save-as" | "export" | "reload"
         ) {
             return false;
         }
@@ -51,7 +51,8 @@ mod tests {
         assert!(!state.push("unknown"));
         assert!(state.push("save-as"));
         assert!(state.push("reload"));
-        assert_eq!(state.take(), vec!["open", "save-as", "reload"]);
+        assert!(state.push("templates"));
+        assert_eq!(state.take(), vec!["open", "save-as", "reload", "templates"]);
         assert!(state.take().is_empty());
     }
 }

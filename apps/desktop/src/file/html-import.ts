@@ -197,6 +197,17 @@ export async function importHtmlPage(
         color: css.color,
         fontSize: Number.parseFloat(css.fontSize) || 14,
         fontFamily: css.fontFamily,
+        fontWeight: Number.parseFloat(css.fontWeight) || 400,
+        lineHeight:
+          Number.parseFloat(css.lineHeight) / Number.parseFloat(css.fontSize) ||
+          1.2,
+        letterSpacing: Number.parseFloat(css.letterSpacing) || 0,
+        textAlign:
+          css.textAlign === "center"
+            ? ("middle" as const)
+            : css.textAlign === "right" || css.textAlign === "end"
+              ? ("end" as const)
+              : ("start" as const),
         opacity: Number.parseFloat(css.opacity),
       };
       const base = {

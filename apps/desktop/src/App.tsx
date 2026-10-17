@@ -1,3 +1,5 @@
+import { TemplateDialog } from "./TemplateDialog.tsx";
+import { createDesignTemplate, type DesignTemplateId } from "@nodetto/core";
 import { SettingsDialog } from "./settings/SettingsDialog.tsx";
 import {
   loadEditorPreferences,
@@ -320,6 +322,22 @@ export function App(props: AppProps): JSX.Element {
   /** True when it is safe to throw away what is in the editor. */
   const mayDiscard = (): boolean =>
     !file().dirty || window.confirm(DISCARD_PROMPT);
+
+  const [templatesOpen, setTemplatesOpen] = createSignal(false);
+  const openTemplates = () => setTemplatesOpen(true);
+  const useTemplate = async (id: DesignTemplateId) => {
+    if (isCloud() || !mayDiscard()) return;
+    const document = createDesignTemplate(id);
+    if (await props.session.importDocument(document, document.title)) {
+      changeWorkspace(id === "web-workspace" ? "web" : "app");
+      setTemplatesOpen(false);
+      const first = document.elements.find(
+        (element) => element.type === "frame",
+      );
+      if (first) props.editor.selection.set([first.id]);
+      props.editor.zoomToSelection(viewport());
+    }
+  };
 
   const newDocument = (): void => {
     if (mayDiscard()) {
@@ -652,6 +670,7 @@ export function App(props: AppProps): JSX.Element {
     const stop = watchNativeFileMenu({
       canEdit: () => props.filesAvailable && !isCloud() && !settingsOpen(),
       newDocument,
+      newFromTemplate: openTemplates,
       open,
       save: () => {
         void props.session.save();
@@ -831,6 +850,12 @@ export function App(props: AppProps): JSX.Element {
       data-nodetto-editor=""
       classList={{ "app-cloud-mode": isCloud() }}
     >
+      <Show when={templatesOpen()}>
+        <TemplateDialog
+          onChoose={(id) => void useTemplate(id)}
+          onClose={() => setTemplatesOpen(false)}
+        />
+      </Show>
       <Show when={exportRequest() > 0}>
         <ExportDialog
           editor={props.editor}
@@ -982,6 +1007,16 @@ export function App(props: AppProps): JSX.Element {
                     title="New"
                   >
                     <Icon name="newFile" />
+                  </button>
+                  <button
+                    type="button"
+                    class="app-file-button"
+                    disabled={isCloud()}
+                    onClick={openTemplates}
+                    aria-label="New from template"
+                    title="New from template"
+                  >
+                    <Icon name="frame" />
                   </button>
                   <button
                     type="button"

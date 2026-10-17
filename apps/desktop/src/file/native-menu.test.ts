@@ -11,6 +11,9 @@ test("native file commands route to the matching document operation", () => {
     newDocument: () => {
       calls.push("new");
     },
+    newFromTemplate: () => {
+      calls.push("templates");
+    },
     open: () => {
       calls.push("open");
     },
@@ -29,6 +32,7 @@ test("native file commands route to the matching document operation", () => {
   };
   for (const action of [
     "new",
+    "templates",
     "open",
     "reload",
     "save",
@@ -37,7 +41,15 @@ test("native file commands route to the matching document operation", () => {
     "unknown",
   ])
     dispatchFileMenuAction(action, handlers);
-  expect(calls).toEqual(["new", "open", "reload", "save", "save-as", "export"]);
+  expect(calls).toEqual([
+    "new",
+    "templates",
+    "open",
+    "reload",
+    "save",
+    "save-as",
+    "export",
+  ]);
 });
 
 test("native file commands cannot write to an editor owned by a cloud session", () => {

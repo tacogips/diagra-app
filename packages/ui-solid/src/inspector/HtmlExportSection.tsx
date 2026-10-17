@@ -1,6 +1,8 @@
 import { encodeHtmlBundleZip, exportHtmlBundle } from "@nodetto/core";
+import type { ElementId, FrameSemantic } from "@nodetto/ir";
+import { createEditorSignals } from "../adapter.ts";
 import type { Editor } from "@nodetto/core";
-import { createSignal, Show } from "solid-js";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import type { JSX } from "solid-js";
 
 export type SaveHtmlBundle = (
@@ -11,7 +13,16 @@ export type SaveHtmlBundle = (
 export function HtmlExportSection(props: {
   editor: Editor;
   save?: SaveHtmlBundle;
+  id?: ElementId;
 }): JSX.Element {
+  const signals = createEditorSignals(props.editor);
+  const frames = createMemo(() => {
+    signals.rev();
+    return props.editor.store
+      .getPageElements(props.editor.currentPageId)
+      .filter((e) => e.type === "frame");
+  });
+  const [scope, setScope] = createSignal(props.id ?? "all");
   const [error, setError] = createSignal<string | null>(null);
   const [busy, setBusy] = createSignal(false);
   const [done, setDone] = createSignal(false);
@@ -20,7 +31,10 @@ export function HtmlExportSection(props: {
     setError(null);
     setDone(false);
     try {
-      const bundle = exportHtmlBundle(props.editor);
+      const bundle = exportHtmlBundle(
+        props.editor,
+        scope() === "all" ? undefined : [scope()],
+      );
       const blob = new Blob([encodeHtmlBundleZip(bundle)], {
         type: "application/zip",
       });
@@ -42,9 +56,25 @@ export function HtmlExportSection(props: {
   };
   return (
     <div>
-      <p>Export all artboards on this page as HTML, CSS and image files.</p>
+      <label>
+        Pages{" "}
+        <select
+          aria-label="HTML pages"
+          value={scope()}
+          onChange={(event) => setScope(event.currentTarget.value)}
+        >
+          <option value="all">All artboards</option>
+          <For each={frames()}>
+            {(frame) => (
+              <option value={frame.id}>
+                {(frame.semantic as FrameSemantic).name || frame.id}
+              </option>
+            )}
+          </For>
+        </select>
+      </label>
       <button type="button" disabled={busy()} onClick={() => void run()}>
-        Export website .zip
+        Export HTML .zip
       </button>
       <Show when={error()}>{(message) => <p role="alert">{message()}</p>}</Show>
       <Show when={done()}>

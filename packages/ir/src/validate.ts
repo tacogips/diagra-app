@@ -222,6 +222,10 @@ function validateVisual(
     ["fixed", "auto-width", "auto-height"],
     { optional: true },
   );
+  checkNumber(out, raw["textPadding"], `${path}.textPadding`, {
+    optional: true,
+    min: 0,
+  });
   const colors = raw["colorTokens"];
   const numbers = raw["numberTokens"];
   checkString(out, raw["textStyle"], `${path}.textStyle`, { optional: true });

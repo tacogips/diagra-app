@@ -73,7 +73,7 @@ export function importHtmlLayout(
       });
     if (!node.children?.length && !node.backgroundImage)
       return editor.createElement("text.note", {
-        visual,
+        visual: { ...visual, textPadding: 0 },
         semantic: { text: node.text ?? "" },
       });
     const id = editor.createElement("frame", {
@@ -92,6 +92,7 @@ export function importHtmlLayout(
         editor.createElement("text.note", {
           visual: {
             ...visual,
+            textPadding: 0,
             style: { ...node.style, fill: "transparent", strokeWidth: 0 },
           },
           semantic: { text: node.text },

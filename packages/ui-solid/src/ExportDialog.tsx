@@ -185,6 +185,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
             </Match>
             <Match when={active() === "html"}>
               <HtmlExportSection
+                id={selected()?.type === "frame" ? selected()?.id : undefined}
                 editor={props.editor}
                 save={props.saveHtmlBundle}
               />

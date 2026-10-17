@@ -861,6 +861,22 @@ export function StyleSection(props: StyleSectionProps): JSX.Element {
       <Show
         when={props.leaves.every((element) => element.type === "text.note")}
       >
+        <Field label="Text padding">
+          <NumberInput
+            label="Text padding"
+            value={props.leaves[0]?.visual.textPadding ?? null}
+            min={0}
+            onCommit={(textPadding) =>
+              props.editor.apply(
+                props.leaves.map((element) => ({
+                  type: "updateVisual" as const,
+                  id: element.id,
+                  visual: { textPadding },
+                })),
+              )
+            }
+          />
+        </Field>
         <Field label="Text sizing">
           <select
             aria-label="Text sizing"
