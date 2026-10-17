@@ -3,11 +3,11 @@ use serde_json::{json, Value};
 
 // Engine-independent assertions. Only evaluate() adapts to the interpreter API.
 fn evaluate(source: &str, input: Input, directory: Option<std::path::PathBuf>) -> Value {
-    let (_runtime, context) = context(input, directory).unwrap();
-    context.with(|ctx| {
-        let text: String = ctx.eval(format!("JSON.stringify({source})")).unwrap();
-        serde_json::from_str(&text).unwrap()
-    })
+    let mut ctx = context(input, directory).unwrap();
+    let value = ctx
+        .eval(Source::from_bytes(&format!("JSON.stringify({source})")))
+        .unwrap();
+    serde_json::from_str(&value.as_string().unwrap().to_std_string_lossy()).unwrap()
 }
 
 #[test]
@@ -144,4 +144,55 @@ fn fresh_invocations_do_not_share_global_state_and_help_is_valid() {
     assert_eq!(result.exit_code, 0);
     assert!(result.stdout.contains(env!("CARGO_PKG_VERSION")));
     assert!(result.stderr.is_empty());
+}
+
+#[test]
+fn command_jobs_settle_nested_promises_and_report_rejection_or_pending() {
+    let mut ctx = context(Input::Mcp(None), None).unwrap();
+    ctx.eval(Source::from_bytes(
+        r#"
+      nodettoRun = async () => { await Promise.resolve(); await Promise.resolve();
+        return JSON.stringify({exitCode: 0, stdout: 'nested async result', stderr: ''}); };
+    "#,
+    ))
+    .unwrap();
+    assert_eq!(
+        execute(&mut ctx, vec![]).unwrap().stdout,
+        "nested async result"
+    );
+    ctx.eval(Source::from_bytes("nodettoRun = async () => { await Promise.resolve(); throw Error('async contract failure'); }; ")).unwrap();
+    assert!(execute(&mut ctx, vec![])
+        .unwrap_err()
+        .contains("async contract failure"));
+    ctx.eval(Source::from_bytes(
+        "nodettoRun = () => new Promise(() => {});",
+    ))
+    .unwrap();
+    assert!(execute(&mut ctx, vec![])
+        .unwrap_err()
+        .contains("did not settle"));
+}
+
+#[test]
+fn oversized_buffers_and_runaway_execution_fail_without_aborting_host() {
+    assert_eq!(
+        evaluate(
+            r#"(() => {
+      let buffer = false, random = false;
+      try { new ArrayBuffer(512 * 1024 * 1024 + 1); } catch { buffer = true; }
+      try { crypto.getRandomValues(new Uint8Array(65537)); } catch { random = true; }
+      return [buffer, random];
+    })()"#,
+            Input::Mcp(None),
+            None
+        ),
+        json!([true, true])
+    );
+    let mut ctx = context(Input::Mcp(None), None).unwrap();
+    ctx.runtime_limits_mut().set_loop_iteration_limit(100);
+    assert!(ctx.eval(Source::from_bytes("while (true) {};")).is_err());
+    assert_eq!(
+        ctx.eval(Source::from_bytes("1 + 1")).unwrap().as_number(),
+        Some(2.0)
+    );
 }

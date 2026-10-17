@@ -32,7 +32,7 @@ const io = {
     native.open(native.path(path), app),
 };
 
-// JSON at this boundary keeps QuickJS handles local to each Rust invocation.
+// JSON at this boundary keeps interpreter handles local to each Rust invocation.
 Object.assign(globalThis, {
   nodettoHelp: JSON.stringify({ overview: OVERVIEW, commands: COMMAND_HELP }),
   nodettoRun: async (input: string, version: string) => {

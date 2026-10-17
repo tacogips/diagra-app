@@ -1,6 +1,6 @@
 [package]
 name = "nodetto-cli"
-version = "0.3.2"
+version = "0.4.0"
 description = "Native Nodetto CLI and MCP server"
 edition = "2021"
 license = "MIT"
@@ -15,7 +15,7 @@ png = "0.18"
 rand = "0.10"
 resvg = "0.48"
 rmcp = { version = "3.5", features = ["server", "transport-io"] }
-rquickjs = "0.14"
+boa_engine = { version = "0.22", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tempfile = "3"

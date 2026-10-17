@@ -117,7 +117,8 @@ exits 1 when the file is out of date, `--strict` exits 3 when the export
 reports warnings, and usage or parse errors exit 2. In a checkout, run it with
 `CARGO_TERM_QUIET=true cargo run -p nodetto-cli -- <command>`;
 `mise run build-cli` builds the Rust sidecar that the macOS bundle ships.
-The executable embeds the shared diagram engine in the QuickJS interpreter.
+The executable embeds the shared diagram engine in Boa, a JavaScript interpreter written in Rust.
+The JS interpreter uses no QuickJS C runtime or FFI bindings.
 It needs no Node.js or Bun installation and uses no JIT. Bun bundles the shared
 engine at build time; the TypeScript CLI remains a reference for parity tests. `lint` exits 0 when there are no
 error-level findings (warnings may still be printed), 1 when error-level

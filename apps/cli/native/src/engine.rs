@@ -1,10 +1,15 @@
 use crate::{files, render};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use rquickjs::{Context, Ctx, Exception, Function, Object, Promise, Runtime, TypedArray};
+use boa_engine::{
+    builtins::promise::PromiseState,
+    context::HostHooks,
+    js_string,
+    object::builtins::{JsArray, JsPromise, JsUint8Array},
+    Context, JsArgs, JsNativeError, JsResult, JsValue, NativeFunction, Source,
+};
 use serde::{Deserialize, Serialize};
-use std::io::Read;
+use std::{io::Read, path::PathBuf, rc::Rc};
 use unicode_segmentation::UnicodeSegmentation;
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandResult {
@@ -26,113 +31,201 @@ pub enum Input {
     Terminal,
     Mcp(Option<String>),
 }
-fn js_error<'js, T>(
-    ctx: &Ctx<'js>,
-    value: Result<T, impl std::fmt::Display>,
-) -> rquickjs::Result<T> {
-    value.map_err(|e| {
-        let message = e.to_string();
-        let hint = if message.contains("Operation not permitted")
-            || message.contains("Permission denied")
-        {
+
+struct HostState {
+    input: Input,
+    directory: PathBuf,
+}
+
+fn host_error(error: impl std::fmt::Display) -> boa_engine::JsError {
+    let message = error.to_string();
+    let hint =
+        if message.contains("Operation not permitted") || message.contains("Permission denied") {
             " Run nodetto-cli authorize <project-folder> to grant Store CLI access."
         } else {
             ""
         };
-        Exception::throw_message(ctx, &format!("{message}{hint}"))
-    })
+    JsNativeError::error()
+        .with_message(format!("{message}{hint}"))
+        .into()
 }
 
-fn png_host<'js>(
-    ctx: Ctx<'js>,
-    svg: String,
-    scale: f32,
-    font_dir: Option<String>,
-) -> rquickjs::Result<TypedArray<'js, u8>> {
-    let bytes = js_error(&ctx, render::png(svg, scale, font_dir))?;
-    TypedArray::new(ctx, bytes)
+fn string(args: &[JsValue], index: usize, ctx: &mut Context) -> JsResult<String> {
+    Ok(args
+        .get_or_undefined(index)
+        .to_string(ctx)?
+        .to_std_string_lossy())
 }
-fn pdf_host<'js>(
-    ctx: Ctx<'js>,
-    png: TypedArray<'js, u8>,
-    layout: String,
-) -> rquickjs::Result<TypedArray<'js, u8>> {
-    // SAFETY: No JS runs while this host callback borrows the typed array.
-    // Copy it before allocating another JS object, so it cannot be detached.
-    let bytes = unsafe { png.as_bytes() }
-        .ok_or_else(|| Exception::throw_message(&ctx, "Detached PNG buffer"))?
-        .to_vec();
-    let bytes = js_error(&ctx, render::pdf(bytes, layout))?;
-    TypedArray::new(ctx, bytes)
+fn optional_string(args: &[JsValue], index: usize, ctx: &mut Context) -> JsResult<Option<String>> {
+    if args.get_or_undefined(index).is_undefined() {
+        Ok(None)
+    } else {
+        string(args, index, ctx).map(Some)
+    }
 }
-fn utf8_host<'js>(ctx: Ctx<'js>, text: String) -> rquickjs::Result<TypedArray<'js, u8>> {
-    TypedArray::new(ctx, text.into_bytes())
+fn bytes(value: &JsValue, ctx: &mut Context) -> JsResult<Vec<u8>> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| JsNativeError::typ().with_message("Expected Uint8Array"))?;
+    JsUint8Array::from_object(object)?.to_vec(ctx)
 }
-fn attachment_host<'js>(
-    ctx: Ctx<'js>,
-    document: String,
-    path: String,
-) -> rquickjs::Result<TypedArray<'js, u8>> {
-    let bytes = js_error(&ctx, files::attachment(&document, &path))?;
-    TypedArray::new(ctx, bytes)
-}
-fn write_host<'js>(
-    ctx: Ctx<'js>,
-    path: String,
-    bytes: TypedArray<'js, u8>,
-) -> rquickjs::Result<()> {
-    // SAFETY: Filesystem I/O does not re-enter JS or detach this array.
-    let bytes = unsafe { bytes.as_bytes() }
-        .ok_or_else(|| Exception::throw_message(&ctx, "Detached write buffer"))?;
-    js_error(&ctx, files::write_atomic(&path, bytes))
+fn byte_value(bytes: Vec<u8>, ctx: &mut Context) -> JsResult<JsValue> {
+    Ok(JsUint8Array::from_iter(bytes, ctx)?.into())
 }
 
-pub fn context(
-    input: Input,
-    directory: Option<std::path::PathBuf>,
-) -> Result<(Runtime, Context), String> {
-    let runtime = Runtime::new().map_err(|e| e.to_string())?;
-    runtime.set_memory_limit(512 * 1024 * 1024);
-    runtime.set_max_stack_size(8 * 1024 * 1024);
-    let context = Context::full(&runtime).map_err(|e| e.to_string())?;
-    context.with(|ctx| -> rquickjs::Result<()> {
-        let native = Object::new(ctx.clone())?;
-        let directory = directory.unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| ".".into()));
-        native.set("path", Function::new(ctx.clone(), move |path: String| directory.join(path).to_string_lossy().into_owned())?)?;
-        native.set("readText", Function::new(ctx.clone(), |ctx: Ctx<'_>, path: String| js_error(&ctx, std::fs::read_to_string(path)))?)?;
-        native.set("exists", Function::new(ctx.clone(), |path: String| std::path::Path::new(&path).exists())?)?;
-        native.set("writeBytes", Function::new(ctx.clone(), write_host)?)?;
-        native.set("attachment", Function::new(ctx.clone(), attachment_host)?)?;
-        native.set("open", Function::new(ctx.clone(), |ctx: Ctx<'_>, path: String, app: Option<String>| js_error(&ctx, files::open_document(&path, app)))?)?;
-        native.set("png", Function::new(ctx.clone(), png_host)?)?;
-        native.set("pdf", Function::new(ctx.clone(), pdf_host)?)?;
-        native.set("readStdin", Function::new(ctx.clone(), move |ctx: Ctx<'_>| {
-            match &input {
-                Input::Mcp(Some(text)) => Ok(text.clone()),
-                Input::Mcp(None) => Err(Exception::throw_message(&ctx, "Supply the MCP tool's stdin field when using --ops -.")),
-                Input::Terminal => { let mut text = String::new(); js_error(&ctx, std::io::stdin().read_to_string(&mut text))?; Ok(text) }
+// Context-owned Rust data avoids unsafe native closures or global mutable state.
+// No JavaScript object is retained outside Boa's garbage-collected handles.
+fn host(_this: &JsValue, args: &[JsValue], ctx: &mut Context) -> JsResult<JsValue> {
+    let operation = string(args, 0, ctx)?;
+    let args = args.get(1..).unwrap_or_default();
+    match operation.as_str() {
+        "path" => {
+            let path = string(args, 0, ctx)?;
+            let directory = &ctx
+                .get_data::<HostState>()
+                .expect("host state installed")
+                .directory;
+            Ok(js_string!(directory.join(path).to_string_lossy().as_ref()).into())
+        }
+        "readText" => Ok(js_string!(
+            std::fs::read_to_string(string(args, 0, ctx)?).map_err(host_error)?
+        )
+        .into()),
+        "exists" => Ok(std::path::Path::new(&string(args, 0, ctx)?).exists().into()),
+        "writeBytes" => {
+            let path = string(args, 0, ctx)?;
+            let data = bytes(args.get_or_undefined(1), ctx)?;
+            files::write_atomic(&path, &data).map_err(host_error)?;
+            Ok(JsValue::undefined())
+        }
+        "attachment" => {
+            let document = string(args, 0, ctx)?;
+            let path = string(args, 1, ctx)?;
+            byte_value(
+                files::attachment(&document, &path).map_err(host_error)?,
+                ctx,
+            )
+        }
+        "open" => {
+            let path = string(args, 0, ctx)?;
+            let app = optional_string(args, 1, ctx)?;
+            files::open_document(&path, app).map_err(host_error)?;
+            Ok(JsValue::undefined())
+        }
+        "png" => {
+            let svg = string(args, 0, ctx)?;
+            let scale = args.get_or_undefined(1).to_number(ctx)? as f32;
+            let fonts = optional_string(args, 2, ctx)?;
+            byte_value(render::png(svg, scale, fonts).map_err(host_error)?, ctx)
+        }
+        "pdf" => {
+            let png = bytes(args.get_or_undefined(0), ctx)?;
+            let layout = string(args, 1, ctx)?;
+            byte_value(render::pdf(png, layout).map_err(host_error)?, ctx)
+        }
+        "readStdin" => {
+            let text = match &ctx
+                .get_data::<HostState>()
+                .expect("host state installed")
+                .input
+            {
+                Input::Mcp(Some(text)) => text.clone(),
+                Input::Mcp(None) => {
+                    return Err(host_error(
+                        "Supply the MCP tool's stdin field when using --ops -.",
+                    ))
+                }
+                Input::Terminal => {
+                    let mut text = String::new();
+                    std::io::stdin()
+                        .read_to_string(&mut text)
+                        .map_err(host_error)?;
+                    text
+                }
+            };
+            Ok(js_string!(text).into())
+        }
+        "graphemes" => {
+            let text = string(args, 0, ctx)?;
+            Ok(JsArray::from_iter(
+                text.graphemes(true).map(|s| JsValue::from(js_string!(s))),
+                ctx,
+            )
+            .into())
+        }
+        "utf8" => byte_value(string(args, 0, ctx)?.into_bytes(), ctx),
+        "decodeUtf8" => Ok(js_string!(String::from_utf8_lossy(&bytes(
+            args.get_or_undefined(0),
+            ctx
+        )?)
+        .as_ref())
+        .into()),
+        "base64" => Ok(js_string!(STANDARD.encode(bytes(args.get_or_undefined(0), ctx)?)).into()),
+        "unbase64" => byte_value(
+            STANDARD.decode(string(args, 0, ctx)?).map_err(host_error)?,
+            ctx,
+        ),
+        "random" => {
+            let length = args.get_or_undefined(0).to_index(ctx)?;
+            if length > 65536 {
+                return Err(JsNativeError::range()
+                    .with_message("Random request exceeds 65536 bytes")
+                    .into());
             }
-        })?)?;
-        native.set("graphemes", Function::new(ctx.clone(), |text: String| text.graphemes(true).map(str::to_owned).collect::<Vec<_>>())?)?;
-        native.set("utf8", Function::new(ctx.clone(), utf8_host)?)?;
-        native.set("decodeUtf8", Function::new(ctx.clone(), |bytes: Vec<u8>| String::from_utf8_lossy(&bytes).into_owned())?)?;
-        native.set("base64", Function::new(ctx.clone(), |bytes: Vec<u8>| STANDARD.encode(bytes))?)?;
-        native.set("unbase64", Function::new(ctx.clone(), |ctx: Ctx<'_>, text: String| js_error(&ctx, STANDARD.decode(text)))?)?;
-        native.set("random", Function::new(ctx.clone(), |length: usize| (0..length).map(|_| rand::random::<u8>()).collect::<Vec<_>>())?)?;
-        ctx.globals().set("native", native)?;
-        ctx.eval::<(), _>(r#"
-            globalThis.TextEncoder = class { encode(text = "") { return new Uint8Array(native.utf8(String(text))); } };
-            globalThis.TextDecoder = class { decode(bytes = []) { return native.decodeUtf8(Array.from(bytes)); } };
-            globalThis.btoa = text => native.base64(Array.from(text, c => c.charCodeAt(0)));
-            globalThis.atob = text => { const bytes = native.unbase64(text); const chunks = []; for (let i = 0; i < bytes.length; i += 8192) chunks.push(String.fromCharCode(...bytes.slice(i, i + 8192))); return chunks.join(""); };
-            globalThis.Intl = { Segmenter: class { segment(text) { return native.graphemes(text).map(segment => ({ segment })); } } };
-            globalThis.crypto = { getRandomValues: bytes => { bytes.set(native.random(bytes.byteLength)); return bytes; } };
-            globalThis.structuredClone = value => JSON.parse(JSON.stringify(value));
-        "#)?;
-        ctx.eval::<(), _>(include_str!(concat!(env!("OUT_DIR"), "/diagram.js")))?;
-        Ok(())
-    }).map_err(|e| context.with(|ctx| format!("{e}: {:?}", ctx.catch())))?;
-    Ok((runtime, context))
+            byte_value((0..length).map(|_| rand::random::<u8>()).collect(), ctx)
+        }
+        _ => Err(host_error("Unknown native operation")),
+    }
+}
+
+// Boa exposes buffer and execution limits, but no QuickJS-style total heap quota.
+// Bound individual binary allocations as well as recursion and loop execution.
+#[derive(Debug)]
+struct EngineHooks;
+impl HostHooks for EngineHooks {
+    fn max_buffer_size(&self, _context: &mut Context) -> u64 {
+        512 * 1024 * 1024
+    }
+}
+
+pub fn context(input: Input, directory: Option<PathBuf>) -> Result<Context, String> {
+    let mut ctx = Context::builder()
+        .host_hooks(Rc::new(EngineHooks))
+        .build()
+        .map_err(|e| e.to_string())?;
+    ctx.runtime_limits_mut().set_recursion_limit(512);
+    ctx.runtime_limits_mut()
+        .set_loop_iteration_limit(100_000_000);
+    ctx.insert_data(HostState {
+        input,
+        directory: directory
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| ".".into())),
+    });
+    ctx.register_global_builtin_callable(
+        js_string!("__nodettoHost"),
+        1,
+        NativeFunction::from_fn_ptr(host),
+    )
+    .map_err(|e| e.to_string())?;
+    ctx.eval(Source::from_bytes(r#"
+        globalThis.native = Object.fromEntries([
+          'path','readText','exists','writeBytes','attachment','open','png','pdf',
+          'readStdin','graphemes','utf8','decodeUtf8','base64','unbase64','random'
+        ].map(name => [name, (...args) => __nodettoHost(name, ...args)]));
+        globalThis.TextEncoder = class { encode(text = "") { return native.utf8(String(text)); } };
+        globalThis.TextDecoder = class { decode(bytes = []) { return native.decodeUtf8(new Uint8Array(bytes)); } };
+        globalThis.btoa = text => native.base64(Uint8Array.from(text, c => c.charCodeAt(0)));
+        globalThis.atob = text => { const bytes = native.unbase64(text); const chunks = []; for (let i = 0; i < bytes.length; i += 8192) chunks.push(String.fromCharCode(...bytes.slice(i, i + 8192))); return chunks.join(""); };
+        globalThis.Intl = { Segmenter: class { segment(text) { return native.graphemes(text).map(segment => ({ segment })); } } };
+        globalThis.crypto = { getRandomValues: bytes => { bytes.set(native.random(bytes.byteLength)); return bytes; } };
+        globalThis.structuredClone = value => JSON.parse(JSON.stringify(value));
+    "#)).map_err(|e| e.to_string())?;
+    ctx.eval(Source::from_bytes(include_str!(concat!(
+        env!("OUT_DIR"),
+        "/diagram.js"
+    ))))
+    .map_err(|e| e.to_string())?;
+    Ok(ctx)
 }
 
 pub fn run(mut args: Vec<String>, input: Input) -> CommandResult {
@@ -140,41 +233,66 @@ pub fn run(mut args: Vec<String>, input: Input) -> CommandResult {
         if args.len() < 3 {
             return CommandResult::error("--cwd requires a project directory and a command");
         }
-        let folder = std::path::PathBuf::from(args.remove(1));
+        let folder = PathBuf::from(args.remove(1));
         args.remove(0);
         Some(folder)
     } else {
         None
     };
-    let (_runtime, context) = match context(input, directory) {
-        Ok(value) => value,
+    let mut ctx = match context(input, directory) {
+        Ok(ctx) => ctx,
         Err(error) => return CommandResult::error(error),
     };
-    let result = context.with(|ctx| -> Result<CommandResult, String> {
-        let call: Function = ctx.globals().get("nodettoRun").map_err(|e| e.to_string())?;
-        let promise: Promise = call
-            .call((
-                serde_json::to_string(&args).unwrap(),
-                env!("CARGO_PKG_VERSION"),
-            ))
-            .map_err(|e| format!("{e}: {:?}", ctx.catch()))?;
-        let text: String = promise
-            .finish()
-            .map_err(|e| format!("{e}: {:?}", ctx.catch()))?;
-        serde_json::from_str(&text).map_err(|e| e.to_string())
-    });
-    result.unwrap_or_else(CommandResult::error)
+    execute(&mut ctx, args).unwrap_or_else(CommandResult::error)
+}
+
+fn execute(ctx: &mut Context, args: Vec<String>) -> Result<CommandResult, String> {
+    let call = ctx
+        .global_object()
+        .get(js_string!("nodettoRun"), ctx)
+        .map_err(|e| e.to_string())?
+        .as_callable()
+        .ok_or("Missing diagram entrypoint")?;
+    let value = call
+        .call(
+            &JsValue::undefined(),
+            &[
+                js_string!(serde_json::to_string(&args).unwrap()).into(),
+                js_string!(env!("CARGO_PKG_VERSION")).into(),
+            ],
+            ctx,
+        )
+        .map_err(|e| e.to_string())?;
+    let promise = JsPromise::from_object(value.as_object().ok_or("Expected command promise")?)
+        .map_err(|e| e.to_string())?;
+    ctx.run_jobs().map_err(|e| e.to_string())?;
+    match promise.state() {
+        PromiseState::Fulfilled(value) => {
+            let text = value
+                .as_string()
+                .ok_or("Expected command result JSON")?
+                .to_std_string_lossy();
+            serde_json::from_str(&text).map_err(|e| e.to_string())
+        }
+        PromiseState::Rejected(error) => Err(error
+            .to_string(ctx)
+            .map_err(|e| e.to_string())?
+            .to_std_string_lossy()),
+        PromiseState::Pending => Err("Command promise did not settle".into()),
+    }
 }
 
 pub fn help() -> Result<serde_json::Value, String> {
-    let (_runtime, context) = context(Input::Mcp(None), None)?;
-    context.with(|ctx| {
-        let text: String = ctx
-            .globals()
-            .get("nodettoHelp")
-            .map_err(|e| e.to_string())?;
-        serde_json::from_str(&text).map_err(|e| e.to_string())
-    })
+    let mut ctx = context(Input::Mcp(None), None)?;
+    let value = ctx
+        .global_object()
+        .get(js_string!("nodettoHelp"), &mut ctx)
+        .map_err(|e| e.to_string())?;
+    let text = value
+        .as_string()
+        .ok_or("Missing diagram help")?
+        .to_std_string_lossy();
+    serde_json::from_str(&text).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
