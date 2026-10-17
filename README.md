@@ -158,6 +158,12 @@ nodetto-cli export flow.jsonl --format pdf --pdf-page a4 --output flow.pdf
   autosaves the result; only the same field changed on both sides, or a file that
   now holds a different document, raises the "File changed on disk" banner.
 
+Sequence documents can omit optional geometry: participant order determines
+default columns, and message order determines spaced timeline rows. Lifelines
+and activation bars extend to the messages. Explicit saved positions remain
+authoritative, and adding messages or reordering participants works with the
+same resolved geometry without rewriting the imported document on open.
+
 See [the design](design-docs/specs/design-cli-ai-drawing.md).
 
 ## Tidy layout and overlap removal

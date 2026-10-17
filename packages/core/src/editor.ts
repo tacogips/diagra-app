@@ -1,3 +1,4 @@
+import { sequenceMessageY } from "./sequence-layout.ts";
 import { AssetCache } from "./asset-cache.ts";
 import {
   UmlComponentType,
@@ -2494,8 +2495,12 @@ export class Editor {
       order,
     };
     const axis = element.type === "sequence.participant" ? "x" : "y";
-    const currentPosition = element.visual[axis];
-    const targetPosition = target.visual[axis];
+    const position = (peer: Element) =>
+      peer.type === "sequence.message"
+        ? sequenceMessageY(peer, context)
+        : context.boundsOf(peer.id)?.x;
+    const currentPosition = position(element);
+    const targetPosition = position(target);
     const commands: Command[] = [
       { type: "updateSemantic", id, semantic },
       ...(currentPosition !== undefined && targetPosition !== undefined
@@ -2537,9 +2542,10 @@ export class Editor {
       db: "Database",
     };
     let bottom = centre.y + 110;
+    const context = this.createShapeContext();
     for (const element of this.store.getPageElements(page)) {
-      if (element.type === "sequence.message" && element.visual.y !== undefined)
-        bottom = Math.max(bottom, element.visual.y + 60);
+      if (element.type === "sequence.message")
+        bottom = Math.max(bottom, sequenceMessageY(element, context) + 60);
     }
     const element = this.buildElement("sequence.participant", {
       page,
@@ -2592,8 +2598,11 @@ export class Editor {
       last && last !== first
         ? (last.semantic as SequenceMessageSemantic).order
         : keyAfter(fromOrder, this.rng);
-    const startY = first?.visual.y ?? (participant.visual.y ?? 0) + 104;
-    const endY = last?.visual.y ?? startY + 52;
+    const context = this.createShapeContext();
+    const startY = first
+      ? sequenceMessageY(first, context)
+      : (participant.visual.y ?? 0) + 104;
+    const endY = last ? sequenceMessageY(last, context) : startY + 52;
     const activation = this.buildElement("sequence.activation", {
       page: participant.page,
       semantic: { participant: participantId, fromOrder, toOrder },
@@ -2646,7 +2655,8 @@ export class Editor {
         .getPageElements(source.page)
         .filter((element) => element.type === "sequence.message")
         .reduce(
-          (bottom, element) => Math.max(bottom, element.visual.y ?? bottom),
+          (bottom, element) =>
+            Math.max(bottom, sequenceMessageY(element, context)),
           Math.max((source.visual.y ?? 0) + 112, (target.visual.y ?? 0) + 112),
         );
       const y = existingY + 52;

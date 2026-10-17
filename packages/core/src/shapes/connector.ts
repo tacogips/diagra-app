@@ -1,3 +1,4 @@
+import { sequenceMessageY } from "../sequence-layout.ts";
 import { UmlComponentType, UmlComponentRelationship } from "@nodetto/ir";
 // Shared geometry for every edge-like element type.
 //
@@ -477,8 +478,8 @@ export function resolveConnector(
   const relationAnchors = erdRelationAnchors(element, from, to, fromBox, toBox);
   const fromAnchor = relationAnchors?.[0] ?? fromCenter;
   const toAnchor = relationAnchors?.[1] ?? toCenter;
-  if (element.type === "sequence.message" && element.visual.y !== undefined) {
-    const y = element.visual.y;
+  if (element.type === "sequence.message") {
+    const y = sequenceMessageY(element, context);
     if (fromCenter.x === toCenter.x) {
       return withRoute(
         { x: fromCenter.x, y },
