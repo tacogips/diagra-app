@@ -10,5 +10,6 @@
   },
   "dependencies": {
     "@nodetto/ir": "workspace:*"
-  }
+  },
+  "license": "MIT"
 }

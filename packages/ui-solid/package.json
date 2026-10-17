@@ -12,5 +12,6 @@
     "@nodetto/ir": "workspace:*",
     "pdf-lib": "1.17.1",
     "solid-js": "^1.9.0"
-  }
+  },
+  "license": "MIT"
 }

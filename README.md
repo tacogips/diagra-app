@@ -1257,3 +1257,8 @@ The `upload` mode additionally uses the `APP_STORE_CONNECT_API_KEY_ID`,
 `APP_STORE_CONNECT_API_KEY_TYPE` kinko entries. It validates the signed package
 before uploading through Apple's API authentication. Private keys are decoded
 only into a protected temporary directory and removed when the command exits.
+
+## License
+
+Nodetto is released under the [MIT License](LICENSE). The editor packages,
+desktop application and command-line tool use the same license.
