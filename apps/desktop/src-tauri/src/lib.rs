@@ -5,6 +5,7 @@
 // structure lives in the TypeScript packages, so nothing in this crate
 // parses or interprets JSONL.
 
+mod attachments;
 mod close;
 mod dialogs;
 mod file_menu;
@@ -39,6 +40,8 @@ pub fn run() {
             dialogs::pick_save_path,
             dialogs::pick_export_path,
             fs::autosave_document_path,
+            attachments::read_attachment,
+            attachments::store_attachment,
             fs::read_document,
             fs::write_document_atomic,
             fs::write_export_atomic,

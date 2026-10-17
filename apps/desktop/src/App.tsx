@@ -835,6 +835,9 @@ export function App(props: AppProps): JSX.Element {
         <ExportDialog
           editor={props.editor}
           saveArtwork={props.exportBackend.available ? saveArtwork : undefined}
+          saveHtmlBundle={
+            props.exportBackend.available ? saveArtwork : undefined
+          }
           exportBpmn={exportBpmn}
           error={exportError()}
           onClose={() => setExportRequest(0)}
@@ -868,6 +871,16 @@ export function App(props: AppProps): JSX.Element {
       </Show>
       {/* A cloud failure is reported wherever it happens: a refused connect
           leaves the app in file mode, and its message still has to be read. */}
+      <Show when={!isBpmnPage() && file().importWarnings.length > 0}>
+        <details class="app-import-notes">
+          <summary>Import notes ({file().importWarnings.length})</summary>
+          <ul>
+            <For each={file().importWarnings}>
+              {(warning) => <li>{warning.message}</li>}
+            </For>
+          </ul>
+        </details>
+      </Show>
       <Show when={cloud()?.error ?? file().error ?? exportError()}>
         {(message) => <pre class="app-error">{message()}</pre>}
       </Show>

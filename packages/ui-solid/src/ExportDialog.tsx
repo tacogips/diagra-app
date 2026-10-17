@@ -1,3 +1,7 @@
+import {
+  HtmlExportSection,
+  type SaveHtmlBundle,
+} from "./inspector/HtmlExportSection.tsx";
 import { isDatabaseObjectType } from "@nodetto/ir";
 import type { Editor } from "@nodetto/core";
 import { availableMermaidKinds } from "@nodetto/io";
@@ -34,11 +38,12 @@ const Code = lazy(() =>
     default: m.HandoffSection,
   })),
 );
-type Tab = ExportFormat | "mermaid" | "d2" | "sql" | "bpmn" | "code";
+type Tab = ExportFormat | "mermaid" | "d2" | "sql" | "bpmn" | "code" | "html";
 
 export interface ExportDialogProps {
   readonly editor: Editor;
   readonly saveArtwork?: SaveArtwork;
+  readonly saveHtmlBundle?: SaveHtmlBundle;
   readonly exportBpmn: () => Promise<void>;
   readonly error?: string | null;
   readonly onClose: () => void;
@@ -73,6 +78,7 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
             props.editor.currentPageId,
           ).length > 0,
       },
+      { id: "html", label: "HTML", enabled: true },
       { id: "d2", label: "D2", enabled: true },
       {
         id: "sql",
@@ -176,6 +182,12 @@ export function ExportDialog(props: ExportDialogProps): JSX.Element {
                   id={selected()?.type === "frame" ? selected()?.id : undefined}
                 />
               )}
+            </Match>
+            <Match when={active() === "html"}>
+              <HtmlExportSection
+                editor={props.editor}
+                save={props.saveHtmlBundle}
+              />
             </Match>
             <Match when={active() === "mermaid"}>
               <Mermaid

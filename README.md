@@ -779,8 +779,10 @@ geometry and local layers, and reflowing new layers through constraints or
 auto layout. Field overrides can be restored individually from Source
 overrides. Refresh and structure reconciliation each form one undoable,
 collaborative transaction.
-The Image toolbar button embeds PNG, JPEG, WebP or GIF assets (up to 1 MiB
-each). The same formats can be dragged directly onto the canvas, with up to
+The Image importer accepts PNG, JPEG, WebP or GIF assets (up to 1 MiB
+each). Desktop saving stores their bytes in a sibling `artifacts/` directory
+and references them by relative paths in JSONL. Legacy embedded images remain
+readable and are externalized on the next desktop save. The same formats can be dragged directly onto the canvas, with up to
 16 files decoded before one atomic insertion. Multi-image drops begin at the
 exact pointer location in page coordinates, retain aspect ratio within a
 480-pixel edge and flow into deterministic rows. A failed file or a document
@@ -1113,13 +1115,42 @@ The circular handle above a selected leaf rotates it directly; hold Shift for
 discards it. Marquee selection tests oriented layer bounds after frame clipping,
 including group members, instead of the empty corners of their envelopes.
 
+## HTML import and website export
+
+Open an `.html` or `.htm` file to import its static layout into an editable web
+artboard. Local stylesheets and raster images resolve beneath that HTML file's
+directory. Text, frames, images, buttons, inputs, textareas, selects, checkboxes
+and switches become editable layers. The source HTML/CSS is never overwritten.
+Import notes identify omitted resources and features. Capture uses a 1440px
+viewport; scripts, remote resources, embedded documents, SVG/canvas/media,
+CSS background images, web fonts and dynamic/responsive behavior are omitted.
+
+General, Web and App palettes include UI controls with editable labels, values,
+options, checked and disabled states. The same controls appear in HTML, SVG,
+prototype previews and native code handoff.
+
+Export > HTML packages every top-level artboard on the current page as separate
+HTML/CSS files, plus an index and shared image files in a ZIP. Unzip and open
+`index.html`. The CLI supports the same export:
+
+```sh
+nodetto-cli export design.jsonl --format html --output website.zip
+```
+
+Use `--element <frame-id>` for one artboard. These are static pages; application
+logic and prototype navigation are not generated. Missing images stop export
+with an error.
+
 ## File saving
 
 Settings > Files > File saving switches between Automatic (the default) and Manual.
 The preference is remembered across launches. Automatic saving creates a JSONL
 file in the app data directory's `documents` folder after the first shape is
 created; an empty document creates no file. These documents appear in File >
-Recent. File > Save as chooses a different location.
+Recent. File > Save as chooses a different location and copies referenced
+images into its `artifacts/` directory before saving JSONL. Move or share both
+the JSONL file and this directory together. Missing attachments are reported;
+saving never deletes files needed by undo or other documents.
 
 Manual saving writes only with File > Save or Cmd/Ctrl+S. Switching back to
 Automatic saves pending edits after the usual quiet period. Quitting waits for

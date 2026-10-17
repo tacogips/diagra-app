@@ -1,3 +1,4 @@
+import { encodeRasterDataUrl, isRasterAttachmentPath } from "@nodetto/ir";
 // `nodetto-cli export`: render one page to SVG, PNG or PDF.
 //
 // SVG is the core serializer's page export, byte for byte what the app's page
@@ -7,6 +8,8 @@
 import { existsSync } from "node:fs";
 import {
   Editor,
+  exportHtmlBundle,
+  encodeHtmlBundleZip,
   PDF_PAGE_SIZES,
   type PdfOptions,
   type PdfOrientation,
@@ -43,7 +46,7 @@ const EXPORT_OPTIONS = new Set([
   "--font-dir",
 ]);
 
-type ExportFormat = "svg" | "png" | "pdf";
+type ExportFormat = "svg" | "png" | "pdf" | "html";
 
 function isPdfPageSize(value: string): value is PdfPageSize {
   return Object.hasOwn(PDF_PAGE_SIZES, value);
@@ -146,11 +149,16 @@ export async function exportCommand(
     );
   const path = parsed.positional[0] as string;
   const format = parsed.options.get("--format");
-  if (format !== "svg" && format !== "png" && format !== "pdf")
+  if (
+    format !== "svg" &&
+    format !== "png" &&
+    format !== "pdf" &&
+    format !== "html"
+  )
     return fail(
       format === undefined
-        ? `export requires --format svg, png or pdf.\n\n${helpFor("export")}`
-        : `Unsupported format "${format}". Choose svg, png or pdf.`,
+        ? `export requires --format svg, png, pdf or html.\n\n${helpFor("export")}`
+        : `Unsupported format "${format}". Choose svg, png, pdf or html.`,
     );
   const exportFormat: ExportFormat = format;
   const outputPath = parsed.options.get("--output");
@@ -211,20 +219,53 @@ export async function exportCommand(
   if (typeof page === "string") return fail(page);
   const editor = new Editor({ document: loaded.document });
   editor.setCurrentPage(page.id);
-  let svg: string | null;
-  if (elementId !== undefined) {
-    // A frame exports as its artboard; anything else as a one-element
-    // selection. (A page export clipped to a viewport can make resvg panic.)
-    const target = editor.store.get(elementId);
-    if (target?.type === "frame")
-      svg = editor.exportArtboardSvg(elementId, { background });
-    else {
-      editor.selection.set([elementId]);
-      svg = editor.exportSelectionSvg({ padding, background });
+  const resolveAsset = (source: string): string => {
+    const cached = editor.assets.resolve(source);
+    if (cached) return cached;
+    if (!isRasterAttachmentPath(source) || !io.readAttachment)
+      throw new Error(`Missing attachment: ${source}`);
+    const data = encodeRasterDataUrl(io.readAttachment(path, source));
+    editor.assets.set(source, data);
+    return data;
+  };
+  if (exportFormat === "html") {
+    try {
+      const bundle = exportHtmlBundle(
+        editor,
+        elementId ? [elementId] : undefined,
+        resolveAsset,
+      );
+      if (!io.writeBytes)
+        return fail("This environment cannot write binary files.");
+      io.writeBytes(outputPath as string, encodeHtmlBundleZip(bundle));
+      return ok(
+        "",
+        `Wrote ${outputPath} (${bundle.files.length} HTML/CSS and asset files).\n`,
+      );
+    } catch (error) {
+      return fail(`Cannot export HTML: ${describe(error)}`);
     }
-    if (svg === null)
-      return fail(`Element ${elementId} has nothing visible to export.`);
-  } else svg = editor.exportPageSvg({ padding, background });
+  }
+  let svg: string | null;
+  try {
+    if (elementId !== undefined) {
+      // A frame exports as its artboard; anything else as a one-element
+      // selection. (A page export clipped to a viewport can make resvg panic.)
+      const target = editor.store.get(elementId);
+      if (target?.type === "frame")
+        svg = editor.exportArtboardSvg(elementId, { background, resolveAsset });
+      else {
+        editor.selection.set([elementId]);
+        svg = editor.exportSelectionSvg({ padding, background, resolveAsset });
+      }
+      if (svg === null)
+        return fail(`Element ${elementId} has nothing visible to export.`);
+    } else svg = editor.exportPageSvg({ padding, background, resolveAsset });
+  } catch (error) {
+    return fail(
+      `Could not resolve export attachments: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
   if (svg === null)
     return fail(`Page "${page.name}" has no visible content to export.`);
 

@@ -1,3 +1,4 @@
+import { UiControlView } from "./UiControlView.tsx";
 import { isDatabaseObjectType } from "@nodetto/ir";
 import { DatabaseObjectView } from "./DatabaseObjectView.tsx";
 import "../ShapeWarnings.css";
@@ -34,6 +35,7 @@ export interface ShapeViewProps {
   readonly box: Box;
   readonly selected: boolean;
   readonly warnings?: readonly string[];
+  readonly resolveAsset?: (source: string) => string | undefined;
   /** Construction guides are canvas-only and excluded from preview/export. */
   readonly showLayoutGrids?: boolean;
   /** Expose authored semantics in interactive prototype DOM, not editor chrome. */
@@ -185,8 +187,17 @@ export function ShapeView(props: ShapeViewProps): JSX.Element {
           <Match when={props.element.type === "draw.path"}>
             <CompoundPathView element={props.element} />
           </Match>
+          <Match when={props.element.type === "ui.control"}>
+            <UiControlView
+              element={props.element}
+              interactive={props.exposeAccessibility}
+            />
+          </Match>
           <Match when={props.element.type === "image.raster"}>
-            <ImageView element={props.element} />
+            <ImageView
+              element={props.element}
+              resolveAsset={props.resolveAsset}
+            />
           </Match>
           <Match when={props.element.type === "node.generic"}>
             <NodeView element={props.element} />

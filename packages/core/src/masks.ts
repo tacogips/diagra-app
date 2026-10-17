@@ -143,7 +143,7 @@ export function rasterGroupMaskCss(
   const transform = rotation
     ? ` transform="rotate(${number(rotation)} ${number(sourceBox.x + sourceBox.width / 2)} ${number(sourceBox.y + sourceBox.height / 2)})"`
     : "";
-  const media = `<image x="${number(imageBox.x)}" y="${number(imageBox.y)}" width="${number(imageBox.width)}" height="${number(imageBox.height)}" href="${attribute(image.src)}" preserveAspectRatio="none"/>`;
+  const media = `<image x="${number(imageBox.x)}" y="${number(imageBox.y)}" width="${number(imageBox.width)}" height="${number(imageBox.height)}" href="${attribute(editor.assets.resolve(image.src) ?? "")}" preserveAspectRatio="none"/>`;
   const clipped = image.crop
     ? `<svg x="${number(sourceBox.x)}" y="${number(sourceBox.y)}" width="${number(sourceBox.width)}" height="${number(sourceBox.height)}" overflow="hidden">${media}</svg>`
     : media;

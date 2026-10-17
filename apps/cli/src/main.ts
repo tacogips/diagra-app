@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import packageJson from "../package.json" with { type: "json" };
 import { runCliAsync } from "./cli.ts";
 import { type CommandResult, EXIT_ERROR } from "./commands.ts";
+import { readLocalAttachment } from "./attachments.ts";
 import { writeFileAtomic } from "./write-atomic.ts";
 
 // A reader that stops early (`| head`) is not an error worth a stack trace.
@@ -17,6 +18,7 @@ try {
     process.argv.slice(2),
     {
       readText: (path) => readFileSync(path, "utf8"),
+      readAttachment: readLocalAttachment,
       readStdin: () => readFileSync(0, "utf8"),
       writeText: writeFileAtomic,
       writeBytes: writeFileAtomic,

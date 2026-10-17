@@ -635,3 +635,14 @@ export {
   databaseObjectRows,
   databaseObjectBounds,
 } from "./shapes/databaseObject.ts";
+
+export { AssetCache } from "./asset-cache.ts";
+
+export {
+  exportHtmlBundle,
+  encodeHtmlBundleZip,
+  type HtmlBundle,
+  type HtmlBundleFile,
+} from "./html-bundle.ts";
+
+export { importHtmlLayout, type HtmlLayoutNode } from "./html-layout.ts";

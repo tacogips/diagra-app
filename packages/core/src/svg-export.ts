@@ -1,3 +1,4 @@
+import type { UiControlSemantic } from "@nodetto/ir";
 import {
   DATABASE_OBJECT_LABELS,
   type DatabaseObjectSemantic,
@@ -124,6 +125,7 @@ export const DEFAULT_SVG_THEME: SvgTheme = {
 };
 
 export interface SvgExportOptions {
+  readonly resolveAsset?: (source: string) => string;
   /** Page units of empty space around the content. Defaults to 16. */
   readonly padding?: number;
   /** Paint behind the diagram. `null` (the default) leaves it transparent. */
@@ -1206,7 +1208,12 @@ function renderBpmnShape(element: Element, box: Box): string {
   );
 }
 
-function renderShape(element: Element, box: Box, theme: SvgTheme): string {
+function renderShape(
+  element: Element,
+  box: Box,
+  theme: SvgTheme,
+  resolveAsset?: (source: string) => string,
+): string {
   if (isBpmnShapeType(element.type)) return renderBpmnShape(element, box);
   switch (element.type) {
     case "draw.path": {
@@ -1309,7 +1316,7 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
         : box;
       const image = tag("image", {
         ...imageBox,
-        href: semantic.src,
+        href: resolveAsset ? resolveAsset(semantic.src) : semantic.src,
         "aria-label": semantic.alt,
         opacity: element.visual.style?.opacity ?? 1,
         preserveAspectRatio: semantic.crop
@@ -1408,6 +1415,74 @@ function renderShape(element: Element, box: Box, theme: SvgTheme): string {
       return renderUmlComponent(element, box, theme);
     case "uml.class":
       return renderUmlClass(element, box, theme);
+    case "ui.control": {
+      const s = element.semantic as UiControlSemantic;
+      const toggle = s.control === "checkbox" || s.control === "switch";
+      const width = toggle ? (s.control === "switch" ? 36 : 18) : box.width;
+      const height = toggle ? 18 : box.height;
+      const x = box.x;
+      const y = toggle ? box.y + (box.height - height) / 2 : box.y;
+      const fill = s.checked && toggle ? "#2563eb" : theme.surface;
+      const parts = [
+        tag(
+          "rect",
+          styled(
+            {
+              x,
+              y,
+              width,
+              height,
+              rx: s.control === "switch" ? 9 : 4,
+              fill,
+              stroke: theme.ink,
+            },
+            element.visual,
+            element.id,
+          ),
+        ),
+      ];
+      if (s.control === "switch")
+        parts.push(
+          tag("circle", {
+            cx: x + (s.checked ? 27 : 9),
+            cy: y + 9,
+            r: 6,
+            fill: s.checked ? "white" : theme.ink,
+          }),
+        );
+      if (s.control === "checkbox" && s.checked)
+        parts.push(
+          tag("path", {
+            d: `M ${x + 4} ${y + 9} l 3 3 l 7 -7`,
+            fill: "none",
+            stroke: "white",
+            "stroke-width": 2,
+          }),
+        );
+      const label =
+        s.inputType === "password" && s.value
+          ? "•".repeat(s.value.length)
+          : toggle || s.control === "button"
+            ? s.label
+            : s.value || s.placeholder || s.label;
+      parts.push(
+        text(
+          {
+            x: toggle ? x + width + 8 : x + 10,
+            y: box.y + box.height / 2,
+            "dominant-baseline": "middle",
+            fill: element.visual.style?.color ?? theme.ink,
+            "font-size": element.visual.style?.fontSize ?? 14,
+          },
+          label,
+        ),
+      );
+      return wrap(
+        "g",
+        { opacity: s.disabled ? 0.5 : undefined },
+        parts.join(""),
+      );
+    }
     case "text.note":
       return renderTextNote(element, box, theme);
     default:
@@ -1727,7 +1802,12 @@ export function renderElementsSvg(
       rendered.set(
         element.id,
         clipped(
-          elementGroup(element, box, renderShape(element, box, theme), filter),
+          elementGroup(
+            element,
+            box,
+            renderShape(element, box, theme, options.resolveAsset),
+            filter,
+          ),
         ),
       );
       renderedKinds.set(element.id, "shape");
@@ -1825,7 +1905,9 @@ export function renderElementsSvg(
           : sourceBox;
         const media = tag("image", {
           ...imageBox,
-          href: image.src,
+          href: options.resolveAsset
+            ? options.resolveAsset(image.src)
+            : image.src,
           preserveAspectRatio: "none",
         });
         const clipped = image.crop

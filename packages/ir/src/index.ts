@@ -261,3 +261,15 @@ export {
   type DatabaseObjectSemantic,
   type DatabaseParameter,
 } from "./database-objects.ts";
+
+export {
+  isRelativeAttachmentPath,
+  isRasterAttachmentPath,
+} from "./attachments.ts";
+export { decodeRasterDataUrl, encodeRasterDataUrl } from "./image.ts";
+
+export {
+  UI_CONTROL_KINDS,
+  type UiControlKind,
+  type UiControlSemantic,
+} from "./ui-controls.ts";

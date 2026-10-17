@@ -53,6 +53,7 @@ export const USAGE = OVERVIEW;
 /** Reads and writes go through this seam so commands stay testable. */
 export interface CommandIo {
   readText(path: string): string;
+  readAttachment?(documentPath: string, relative: string): Uint8Array;
   writeText(path: string, text: string): void;
   /** Standard input, for `--ops -`. */
   readStdin?(): string;

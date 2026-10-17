@@ -12,6 +12,7 @@ import {
   CONNECTOR_ENDPOINT_TYPES,
   isDatabaseObjectType,
   type DatabaseObjectSemantic,
+  isRasterAttachmentPath,
 } from "@nodetto/ir";
 import { erdForeignKeyWarning } from "./erd-foreign-key.ts";
 import type { ShapeContext } from "./shape-util.ts";
@@ -19,7 +20,7 @@ import type { ShapeContext } from "./shape-util.ts";
 /** Incomplete authoring states are warnings, never assertions or saved styles. */
 export function shapeAuthoringWarnings(
   element: Element,
-  context: Pick<ShapeContext, "resolve">,
+  context: Pick<ShapeContext, "resolve" | "resolveAsset">,
 ): readonly string[] {
   const warnings: string[] = [];
   const semantic = element.semantic as Record<string, unknown>;
@@ -183,6 +184,13 @@ export function shapeAuthoringWarnings(
     !(element.semantic as ImageSemantic).src.trim()
   )
     warnings.push("Image source is not assigned.");
+  if (element.type === "image.raster" && context.resolveAsset) {
+    const source = (element.semantic as ImageSemantic).src;
+    if (isRasterAttachmentPath(source) && !context.resolveAsset(source))
+      warnings.push(
+        `Attachment is unavailable: ${source}. Keep the artifacts directory beside the JSONL file.`,
+      );
+  }
   if (element.type === "frame") {
     const frame = element.semantic as FrameSemantic;
     const source = frame.instanceOf

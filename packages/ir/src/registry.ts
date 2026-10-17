@@ -1,3 +1,4 @@
+import { uiControlDefinition } from "./ui-controls.ts";
 import { databaseObjectDefinitions } from "./database-objects.ts";
 // Element type registry (v1). See the product design, section 5.2.
 //
@@ -21,6 +22,7 @@ import {
 } from "./checks.ts";
 import { error, type ValidationIssue } from "./issues.ts";
 import { isRasterDataUrl } from "./image.ts";
+import { isRasterAttachmentPath } from "./attachments.ts";
 import type { KeyOrder } from "./keyOrder.ts";
 import {
   ARROWHEADS,
@@ -2398,12 +2400,15 @@ const DEFINITIONS: readonly ElementTypeDefinition[] = [
     validateSemantic(semantic, path) {
       const out: ValidationIssue[] = [];
       if (checkObject(out, semantic, path)) {
-        if (!isRasterDataUrl(semantic["src"]))
+        if (
+          !isRasterDataUrl(semantic["src"]) &&
+          !isRasterAttachmentPath(semantic["src"])
+        )
           out.push(
             error(
               "image.source",
               `${path}.src`,
-              "expected an embedded PNG, JPEG, WebP or GIF up to 1 MiB",
+              "expected a relative PNG, JPEG, WebP or GIF attachment path, or a legacy embedded image up to 1 MiB",
             ),
           );
         checkString(out, semantic["alt"], `${path}.alt`, { allowEmpty: true });
@@ -2451,6 +2456,7 @@ const DEFINITIONS: readonly ElementTypeDefinition[] = [
   GENERIC_NODE,
   GENERIC_EDGE,
   ERD_TABLE,
+  uiControlDefinition,
   ...databaseObjectDefinitions,
   ERD_RELATION,
   UML_CLASS,

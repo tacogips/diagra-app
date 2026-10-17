@@ -25,6 +25,7 @@ const GOLDEN = [
   "sequence",
   "freeform",
   "image",
+  "ui-controls",
   "tokens",
   "comments",
   "forward-compat",

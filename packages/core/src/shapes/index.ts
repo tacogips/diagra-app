@@ -1,3 +1,4 @@
+import { uiControlShapeUtil } from "./uiControl.ts";
 import { databaseObjectShapeUtils } from "./databaseObject.ts";
 // The default ShapeUtil registry: every element type this build renders.
 //
@@ -97,6 +98,7 @@ export function createDefaultRegistry(): ShapeUtilRegistry {
     .register(freehandShapeUtil)
     .register(compoundPathShapeUtil)
     .register(frameShapeUtil)
+    .register(uiControlShapeUtil)
     .register(nodeShapeUtil)
     .register({
       ...nodeShapeUtil,

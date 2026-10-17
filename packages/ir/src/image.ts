@@ -49,3 +49,42 @@ export function isRasterDataUrl(value: unknown): value is string {
     starts([82, 73, 70, 70]) && header.slice(8, 12).join(",") === "87,69,66,80"
   );
 }
+
+export function decodeRasterDataUrl(source: string): {
+  readonly extension: string;
+  readonly bytes: Uint8Array;
+} {
+  if (!isRasterDataUrl(source))
+    throw new Error("Invalid raster image or image exceeds 1 MiB.");
+  const comma = source.indexOf(",");
+  const mime = source.slice(11, source.indexOf(";"));
+  const binary = atob(source.slice(comma + 1));
+  return {
+    extension: mime === "jpeg" ? "jpg" : mime,
+    bytes: Uint8Array.from(binary, (c) => c.charCodeAt(0)),
+  };
+}
+
+export function encodeRasterDataUrl(bytes: Uint8Array): string {
+  if (bytes.length > MAX_IMAGE_BYTES)
+    throw new Error("Raster attachment exceeds the 1 MiB image limit.");
+  const starts = (signature: readonly number[]) =>
+    signature.every((byte, index) => bytes[index] === byte);
+  const mime = starts([137, 80, 78, 71, 13, 10, 26, 10])
+    ? "png"
+    : starts([255, 216, 255])
+      ? "jpeg"
+      : starts([71, 73, 70, 56, 55, 97]) || starts([71, 73, 70, 56, 57, 97])
+        ? "gif"
+        : starts([82, 73, 70, 70]) &&
+            bytes.slice(8, 12).join(",") === "87,69,66,80"
+          ? "webp"
+          : null;
+  if (!mime) throw new Error("Attachment is not a supported raster image.");
+  const chunks: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += 8192)
+    chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 8192)));
+  const result = `data:image/${mime};base64,${btoa(chunks.join(""))}`;
+  if (!isRasterDataUrl(result)) throw new Error("Invalid raster attachment.");
+  return result;
+}

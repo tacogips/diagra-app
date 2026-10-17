@@ -43,6 +43,12 @@ export const Tool = {
   ForeignKey: "erd.foreign-key",
   Association: "uml.association",
   SequenceMessage: "sequence.message",
+  Button: "ui:button",
+  Input: "ui:input",
+  Textarea: "ui:textarea",
+  SelectControl: "ui:select",
+  Checkbox: "ui:checkbox",
+  Toggle: "ui:switch",
   Node: "node.generic",
   Text: "text.note",
   Note: "text.note:note",
@@ -353,6 +359,36 @@ export function creationFor(tool: ToolKind): CreationTool | null {
         // Sequence-aware creation supplies the participant's order and name.
         semantic: { kind: PARTICIPANT_KINDS[tool] },
       };
+    case Tool.Button:
+    case Tool.Input:
+    case Tool.Textarea:
+    case Tool.SelectControl:
+    case Tool.Checkbox:
+    case Tool.Toggle: {
+      const control = tool.slice(3);
+      return {
+        type: "ui.control",
+        semantic: {
+          control,
+          label:
+            control === "button"
+              ? "Button"
+              : control === "checkbox" || control === "switch"
+                ? "Label"
+                : control,
+          ...(control === "select"
+            ? { options: ["Option 1", "Option 2"], value: "Option 1" }
+            : {}),
+          ...(control === "input" || control === "textarea"
+            ? { placeholder: "Enter text" }
+            : {}),
+        },
+        visual: {
+          width: control === "textarea" ? 240 : 180,
+          height: control === "textarea" ? 110 : 44,
+        },
+      };
+    }
     case Tool.Note:
       return {
         type: "text.note",

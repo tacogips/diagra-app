@@ -71,6 +71,10 @@ function PrototypeLayer(props: {
   readonly context?: ShapeContext;
   readonly ancestors?: ReadonlySet<string>;
 }): JSX.Element {
+  const imageSignals =
+    props.element.type === "image.raster"
+      ? createEditorSignals(props.editor)
+      : undefined;
   const context = props.context ?? props.editor.createShapeContext();
   if (props.element.type === "group") {
     if (props.ancestors?.has(props.element.id)) return null;
@@ -198,6 +202,10 @@ function PrototypeLayer(props: {
       }}
     >
       <ShapeView
+        resolveAsset={(source) => {
+          imageSignals?.rev();
+          return props.editor.assets.resolve(source);
+        }}
         element={props.element}
         box={box}
         selected={false}
@@ -235,6 +243,12 @@ export function PrototypePreview(props: {
     document: props.editor.getSnapshot(),
     registry: props.editor.registry,
   });
+  runtime.assets.copyFrom(props.editor.assets);
+  onCleanup(
+    props.editor.assets.subscribe(() =>
+      runtime.assets.copyFrom(props.editor.assets),
+    ),
+  );
   const variantState = new PrototypeVariantState();
   const delayedFired = new Set<string>();
   const pressCleanups = new Set<() => void>();
@@ -293,6 +307,7 @@ export function PrototypePreview(props: {
   createEffect(() => {
     sourceSignals.rev();
     runtime.loadDocument(props.editor.getSnapshot());
+    runtime.assets.copyFrom(props.editor.assets);
     variantState.clear();
     delayedFired.clear();
     setOverlays([]);
