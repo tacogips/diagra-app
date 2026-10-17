@@ -63,6 +63,7 @@ pub fn menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wr
             }
             for (position, (id, label, shortcut)) in [
                 ("file-new", "New", "CmdOrCtrl+N"),
+                ("file-templates", "New from Template…", "CmdOrCtrl+Alt+N"),
                 ("file-open", "Open…", "CmdOrCtrl+O"),
                 ("file-save", "Save", "CmdOrCtrl+S"),
                 ("file-reload", "Reload from Disk", "CmdOrCtrl+R"),

@@ -48,7 +48,7 @@ function escapeAttribute(value: string): string {
 
 function controlHtml(element: Element, classes: string): string {
   const s = element.semantic as UiControlSemantic;
-  const attrs = ` class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="ui.control" aria-label="${escapeAttribute(s.label)}"${s.disabled ? " disabled" : ""}`;
+  const attrs = ` class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}" data-nodetto-type="ui.control" data-control="${s.control}" aria-label="${escapeAttribute(s.label)}"${s.disabled ? " disabled" : ""}`;
   const value = escapeAttribute(s.value ?? "");
   const placeholder = escapeAttribute(s.placeholder ?? "");
   switch (s.control) {
@@ -62,7 +62,7 @@ function controlHtml(element: Element, classes: string): string {
       return `<select${attrs}>${(s.options ?? []).map((option) => `<option${option === s.value ? " selected" : ""}>${escapeText(option)}</option>`).join("")}</select>`;
     case "checkbox":
     case "switch":
-      return `<label class="${classes}" data-nodetto-id="${escapeAttribute(element.id)}"><input type="checkbox"${s.control === "switch" ? ' role="switch"' : ""} aria-label="${escapeAttribute(s.label)}"${s.checked ? " checked" : ""}${s.disabled ? " disabled" : ""}> ${escapeText(s.label)}</label>`;
+      return `<label class="${classes}" data-nodetto-type="ui.control" data-control="${s.control}" data-nodetto-id="${escapeAttribute(element.id)}"><input type="checkbox"${s.control === "switch" ? ' role="switch"' : ""} aria-label="${escapeAttribute(s.label)}"${s.checked ? " checked" : ""}${s.disabled ? " disabled" : ""}> ${escapeText(s.label)}</label>`;
   }
 }
 
@@ -128,6 +128,22 @@ function declarationBody(
     "width",
     "height",
   ]);
+  if (
+    element.type === "ui.control" &&
+    ["checkbox", "switch"].includes(
+      (element.semantic as UiControlSemantic).control,
+    )
+  )
+    for (const property of [
+      "background",
+      "background-color",
+      "border",
+      "border-color",
+      "border-width",
+      "border-style",
+      "border-radius",
+    ])
+      omitted.add(property);
   const declarations = source
     .split("\n")
     .filter(Boolean)
@@ -165,8 +181,21 @@ function declarationBody(
       );
     }
   }
+  if (
+    element.type === "ui.control" &&
+    !["checkbox", "switch"].includes(
+      (element.semantic as UiControlSemantic).control,
+    )
+  )
+    geometry.push("padding: 8px 12px;");
   if (element.type === "image.raster") geometry.push("overflow: hidden;");
-  if (element.type === "text.note") geometry.push("margin: 0;");
+  if (element.type === "text.note")
+    geometry.push(
+      "margin: 0;",
+      `padding: ${element.visual.textPadding === undefined ? "6px 8px" : px(element.visual.textPadding)};`,
+      "white-space: pre-wrap;",
+      `line-height: ${element.visual.style?.lineHeight ?? 1.2};`,
+    );
   if (element.type === "shape.geo") {
     const geo = (element.semantic as GeoShapeSemantic).geo;
     const shape =
@@ -414,13 +443,24 @@ export function generateInterfaceCode(
       ? ["Unsafe rich-text link protocols are omitted from generated HTML."]
       : []),
   ];
-  const combinedCss = [...css, ...imageCss, ...layoutCss].join("\n\n");
+  const controlCss = included.some((element) => element.type === "ui.control")
+    ? `[data-nodetto-type="ui.control"][data-control="checkbox"], [data-nodetto-type="ui.control"][data-control="switch"] { display: flex; align-items: center; gap: 9px; }
+[data-nodetto-type="ui.control"] > input[type="checkbox"] { flex-shrink: 0; margin: 0; width: 18px; height: 18px; accent-color: #137e7e; }
+[data-nodetto-type="ui.control"] > input[role="switch"] { appearance: none; position: relative; width: 34px; height: 20px; border: 0; border-radius: 999px; background: #b5bebc; }
+[data-nodetto-type="ui.control"] > input[role="switch"]:checked { background: #137e7e; }
+[data-nodetto-type="ui.control"] > input[role="switch"]::after { content: ""; position: absolute; width: 16px; height: 16px; top: 2px; left: 2px; border-radius: 50%; background: white; }
+[data-nodetto-type="ui.control"] > input[role="switch"]:checked::after { left: 16px; }`
+    : "";
+  const combinedCss = [...css, ...imageCss, ...layoutCss, controlCss]
+    .filter(Boolean)
+    .join("\n\n");
   const combinedLinkedCss = [
     palette,
     typography,
     ...linkedCss,
     ...imageCss,
     ...linkedLayoutCss,
+    controlCss,
   ]
     .filter(Boolean)
     .join("\n\n");

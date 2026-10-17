@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 export interface FileMenuHandlers {
   readonly canEdit: () => boolean;
   readonly newDocument: () => void;
+  readonly newFromTemplate?: () => void;
   readonly open: () => void;
   readonly save: () => void;
   readonly reload: () => void;
@@ -23,6 +24,9 @@ export function dispatchFileMenuAction(
   switch (action) {
     case "new":
       handlers.newDocument();
+      break;
+    case "templates":
+      handlers.newFromTemplate?.();
       break;
     case "open":
       handlers.open();

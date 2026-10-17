@@ -294,6 +294,8 @@ export interface Visual {
   readonly aspectRatio?: number;
   /** Text-note box sizing; omitted keeps the legacy fixed box. */
   readonly textResize?: TextResizeMode;
+  /** Uniform text-note inset; omitted retains the legacy 8x6 inset. */
+  readonly textPadding?: number;
   /**
    * Clockwise rotation in **degrees**, about the element's own centre.
    *

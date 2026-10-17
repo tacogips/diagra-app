@@ -1115,6 +1115,17 @@ The circular handle above a selected leaf rotates it directly; hold Shift for
 discards it. Marquee selection tests oriented layer bounds after frame clipping,
 including group members, instead of the empty corners of their envelopes.
 
+## Web and iPhone design templates
+
+File > New from template creates an editable web app or iPhone UI design,
+with three screens each. The same command is in the macOS File menu
+(Cmd+Alt+N). Each screen is a parent artboard containing editable text,
+controls, cards and other parts; it exports as one HTML page. Selecting an
+artboard opens HTML export with that screen selected. All artboards exports
+multiple HTML/CSS pages. Normal startup still begins with an empty document.
+
+See [editable examples and rendered previews](examples/design/README.md).
+
 ## HTML import and website export
 
 Open an `.html` or `.htm` file to import its static layout into an editable web

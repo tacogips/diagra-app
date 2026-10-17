@@ -93,6 +93,8 @@ export function measureTextNote(
   element: Element,
   mode: Exclude<TextResizeMode, "fixed">,
 ): { readonly width: number; readonly height: number } {
+  const paddingX = element.visual.textPadding ?? TEXT_NOTE_PADDING_X;
+  const paddingY = element.visual.textPadding ?? TEXT_NOTE_PADDING_Y;
   const text = textNoteText(element.semantic);
   const style = element.visual.style;
   const fontSize = Math.max(0.1, style?.fontSize ?? TEXT_NOTE_FONT_SIZE);
@@ -106,27 +108,23 @@ export function measureTextNote(
     );
     return {
       width: safeSize(
-        characters * glyphAdvance(fontSize, letterSpacing) +
-          TEXT_NOTE_PADDING_X * 2,
+        characters * glyphAdvance(fontSize, letterSpacing) + paddingX * 2,
       ),
       height: safeSize(
-        Math.max(1, explicitLines.length) * lineHeight +
-          TEXT_NOTE_PADDING_Y * 2,
+        Math.max(1, explicitLines.length) * lineHeight + paddingY * 2,
       ),
     };
   }
   const width = Math.max(1, element.visual.width ?? 200);
   const lines = wrapTextLines(
     text,
-    Math.max(1, width - TEXT_NOTE_PADDING_X * 2),
+    Math.max(1, width - paddingX * 2),
     fontSize,
     letterSpacing,
   );
   return {
     width,
-    height: safeSize(
-      Math.max(1, lines.length) * lineHeight + TEXT_NOTE_PADDING_Y * 2,
-    ),
+    height: safeSize(Math.max(1, lines.length) * lineHeight + paddingY * 2),
   };
 }
 

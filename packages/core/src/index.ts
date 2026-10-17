@@ -646,3 +646,9 @@ export {
 } from "./html-bundle.ts";
 
 export { importHtmlLayout, type HtmlLayoutNode } from "./html-layout.ts";
+
+export {
+  DESIGN_TEMPLATES,
+  createDesignTemplate,
+  type DesignTemplateId,
+} from "./templates/design-templates.ts";

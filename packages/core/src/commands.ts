@@ -253,6 +253,19 @@ function validateVisualFields(visual: Visual): ValidationIssue[] {
         ),
       ];
   }
+  if (
+    visual.textPadding !== undefined &&
+    (typeof visual.textPadding !== "number" ||
+      !Number.isFinite(visual.textPadding) ||
+      visual.textPadding < 0)
+  )
+    return [
+      error(
+        "value.range",
+        "visual.textPadding",
+        "text padding must be finite and non-negative",
+      ),
+    ];
   const textResize = visual.textResize;
   if (
     textResize !== undefined &&

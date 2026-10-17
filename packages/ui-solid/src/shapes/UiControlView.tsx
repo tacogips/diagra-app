@@ -12,6 +12,9 @@ export function UiControlView(props: {
     ...fillPaintStyle(props.element.visual),
     ...strokeBorderStyle(props.element.visual),
     color: props.element.visual.style?.color,
+    "font-family": props.element.visual.style?.fontFamily,
+    "font-weight": props.element.visual.style?.fontWeight,
+    "border-radius": `${props.element.visual.style?.cornerRadius ?? 6}px`,
     "font-size": `${props.element.visual.style?.fontSize ?? 14}px`,
   });
   return (
@@ -69,6 +72,8 @@ export function UiControlView(props: {
           <label
             style={{
               color: props.element.visual.style?.color,
+              "font-family": props.element.visual.style?.fontFamily,
+              "font-weight": props.element.visual.style?.fontWeight,
               "font-size": `${props.element.visual.style?.fontSize ?? 14}px`,
             }}
           >

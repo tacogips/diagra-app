@@ -965,6 +965,8 @@ const NOTE_PADDING_Y = TEXT_NOTE_PADDING_Y;
  * box, clipped to the lines that fit entirely, the way the canvas clips.
  */
 function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
+  const paddingX = element.visual.textPadding ?? TEXT_PADDING;
+  const paddingY = element.visual.textPadding ?? NOTE_PADDING_Y;
   const style = element.visual.style;
   const parts: string[] = [];
   if (style?.fill !== undefined || style?.fillGradient !== undefined) {
@@ -991,19 +993,19 @@ function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
   const anchor = style?.textAlign ?? "start";
   const x =
     anchor === "start"
-      ? box.x + TEXT_PADDING
+      ? box.x + paddingX
       : anchor === "end"
-        ? box.x + box.width - TEXT_PADDING
+        ? box.x + box.width - paddingX
         : box.x + box.width / 2;
   const lines = wrapTextLines(
     textNoteText(element.semantic),
-    Math.max(1, box.width - TEXT_PADDING * 2),
+    Math.max(1, box.width - paddingX * 2),
     fontSize,
     style?.letterSpacing ?? 0,
   );
   const freeHeight = Math.max(
     0,
-    box.height - NOTE_PADDING_Y * 2 - lines.length * lineHeight,
+    box.height - paddingY * 2 - lines.length * lineHeight,
   );
   const verticalOffset =
     style?.verticalAlign === "bottom"
@@ -1063,7 +1065,7 @@ function renderTextNote(element: Element, box: Box, theme: SvgTheme): string {
     return hasRichText && content ? content : escapeXml(line);
   };
   for (const [at, line] of lines.entries()) {
-    const top = box.y + NOTE_PADDING_Y + verticalOffset + at * lineHeight;
+    const top = box.y + paddingY + verticalOffset + at * lineHeight;
     if (top + lineHeight > box.y + box.height + 0.01) {
       break;
     }
@@ -1423,24 +1425,24 @@ function renderShape(
       const x = box.x;
       const y = toggle ? box.y + (box.height - height) / 2 : box.y;
       const fill = s.checked && toggle ? "#2563eb" : theme.surface;
-      const parts = [
-        tag(
-          "rect",
-          styled(
-            {
-              x,
-              y,
-              width,
-              height,
-              rx: s.control === "switch" ? 9 : 4,
-              fill,
-              stroke: theme.ink,
-            },
-            element.visual,
-            element.id,
-          ),
-        ),
-      ];
+      const attrs = styled(
+        {
+          x,
+          y,
+          width,
+          height,
+          rx:
+            s.control === "switch"
+              ? 9
+              : (element.visual.style?.cornerRadius ?? 4),
+          fill,
+          stroke: theme.ink,
+        },
+        element.visual,
+        element.id,
+      );
+      if (toggle) attrs.fill = s.checked ? "#137e7e" : theme.surface;
+      const parts = [tag("rect", attrs)];
       if (s.control === "switch")
         parts.push(
           tag("circle", {
@@ -1468,7 +1470,14 @@ function renderShape(
       parts.push(
         text(
           {
-            x: toggle ? x + width + 8 : x + 10,
+            x: toggle
+              ? x + width + 8
+              : s.control === "button"
+                ? x + width / 2
+                : x + 10,
+            "text-anchor": s.control === "button" ? "middle" : "start",
+            "font-family": element.visual.style?.fontFamily ?? theme.fontFamily,
+            "font-weight": element.visual.style?.fontWeight,
             y: box.y + box.height / 2,
             "dominant-baseline": "middle",
             fill: element.visual.style?.color ?? theme.ink,

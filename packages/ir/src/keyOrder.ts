@@ -92,6 +92,7 @@ export const VISUAL_KEY_ORDER: KeyOrder = {
     "maxHeight",
     "aspectRatio",
     "textResize",
+    "textPadding",
     "rotation",
     "hidden",
     "locked",

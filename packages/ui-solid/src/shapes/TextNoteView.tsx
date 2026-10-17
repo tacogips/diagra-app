@@ -55,11 +55,19 @@ export function textMarkStyle(marks: readonly TextMark[]): JSX.CSSProperties {
 }
 
 export function textNoteStyle(element: Element): JSX.CSSProperties {
+  const padding =
+    element.visual.textPadding === undefined
+      ? {}
+      : { padding: `${element.visual.textPadding}px` };
   const style = element.visual.style;
   if (!style) {
-    return { "white-space": textNoteWhiteSpace(element.visual.textResize) };
+    return {
+      ...padding,
+      "white-space": textNoteWhiteSpace(element.visual.textResize),
+    };
   }
   return {
+    ...padding,
     display: "flex",
     "flex-direction": "column",
     ...typographyStyle(element.visual),

@@ -1,0 +1,728 @@
+body { margin: 0; }
+button, input, textarea, select { font: inherit; }
+:root {
+
+}
+
+:root {
+
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-33 {
+  position: relative;
+  box-sizing: border-box;
+  width: 390px;
+  height: 844px;
+  overflow: hidden;
+  --nodetto-safe-area-top: 47px;
+  --nodetto-safe-area-right: 0px;
+  --nodetto-safe-area-bottom: 34px;
+  --nodetto-safe-area-left: 0px;
+  background-color: #f5f4ef;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 32px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-34 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 28px;
+  top: 17px;
+  width: 90px;
+  height: 22px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-28px 15px, -27.3851px 8.7571px, -25.5641px 2.7541px, -22.607px -2.7782px, -18.6274px -7.6274px, -13.7782px -11.607px, -8.2459px -14.5641px, -2.2429px -16.3851px, 4px -17px, 330px -17px, 336.2429px -16.3851px, 342.2459px -14.5641px, 347.7782px -11.607px, 352.6274px -7.6274px, 356.607px -2.7782px, 359.5641px 2.7541px, 361.3851px 8.7571px, 362px 15px, 362px 795px, 361.3851px 801.2429px, 359.5641px 807.2459px, 356.607px 812.7782px, 352.6274px 817.6274px, 347.7782px 821.607px, 342.2459px 824.5641px, 336.2429px 826.3851px, 330px 827px, 4px 827px, -2.2429px 826.3851px, -8.2459px 824.5641px, -13.7782px 821.607px, -18.6274px 817.6274px, -22.607px 812.7782px, -25.5641px 807.2459px, -27.3851px 801.2429px, -28px 795px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 13px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-35 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 284px;
+  top: 21px;
+  width: 4px;
+  height: 7px;
+  clip-path: polygon(-284px 11px, -283.3851px 4.7571px, -281.5641px -1.2459px, -278.607px -6.7782px, -274.6274px -11.6274px, -269.7782px -15.607px, -264.2459px -18.5641px, -258.2429px -20.3851px, -252px -21px, 74px -21px, 80.2429px -20.3851px, 86.2459px -18.5641px, 91.7782px -15.607px, 96.6274px -11.6274px, 100.607px -6.7782px, 103.5641px -1.2459px, 105.3851px 4.7571px, 106px 11px, 106px 791px, 105.3851px 797.2429px, 103.5641px 803.2459px, 100.607px 808.7782px, 96.6274px 813.6274px, 91.7782px 817.607px, 86.2459px 820.5641px, 80.2429px 822.3851px, 74px 823px, -252px 823px, -258.2429px 822.3851px, -264.2459px 820.5641px, -269.7782px 817.607px, -274.6274px 813.6274px, -278.607px 808.7782px, -281.5641px 803.2459px, -283.3851px 797.2429px, -284px 791px);
+  background-color: #172c28;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 1px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-36 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 291px;
+  top: 18px;
+  width: 4px;
+  height: 10px;
+  clip-path: polygon(-291px 14px, -290.3851px 7.7571px, -288.5641px 1.7541px, -285.607px -3.7782px, -281.6274px -8.6274px, -276.7782px -12.607px, -271.2459px -15.5641px, -265.2429px -17.3851px, -259px -18px, 67px -18px, 73.2429px -17.3851px, 79.2459px -15.5641px, 84.7782px -12.607px, 89.6274px -8.6274px, 93.607px -3.7782px, 96.5641px 1.7541px, 98.3851px 7.7571px, 99px 14px, 99px 794px, 98.3851px 800.2429px, 96.5641px 806.2459px, 93.607px 811.7782px, 89.6274px 816.6274px, 84.7782px 820.607px, 79.2459px 823.5641px, 73.2429px 825.3851px, 67px 826px, -259px 826px, -265.2429px 825.3851px, -271.2459px 823.5641px, -276.7782px 820.607px, -281.6274px 816.6274px, -285.607px 811.7782px, -288.5641px 806.2459px, -290.3851px 800.2429px, -291px 794px);
+  background-color: #172c28;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 1px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-37 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 298px;
+  top: 15px;
+  width: 4px;
+  height: 13px;
+  clip-path: polygon(-298px 17px, -297.3851px 10.7571px, -295.5641px 4.7541px, -292.607px -0.7782px, -288.6274px -5.6274px, -283.7782px -9.607px, -278.2459px -12.5641px, -272.2429px -14.3851px, -266px -15px, 60px -15px, 66.2429px -14.3851px, 72.2459px -12.5641px, 77.7782px -9.607px, 82.6274px -5.6274px, 86.607px -0.7782px, 89.5641px 4.7541px, 91.3851px 10.7571px, 92px 17px, 92px 797px, 91.3851px 803.2429px, 89.5641px 809.2459px, 86.607px 814.7782px, 82.6274px 819.6274px, 77.7782px 823.607px, 72.2459px 826.5641px, 66.2429px 828.3851px, 60px 829px, -266px 829px, -272.2429px 828.3851px, -278.2459px 826.5641px, -283.7782px 823.607px, -288.6274px 819.6274px, -292.607px 814.7782px, -295.5641px 809.2459px, -297.3851px 803.2429px, -298px 797px);
+  background-color: #172c28;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 1px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-38 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 320px;
+  top: 17px;
+  width: 28px;
+  height: 12px;
+  clip-path: polygon(-320px 15px, -319.3851px 8.7571px, -317.5641px 2.7541px, -314.607px -2.7782px, -310.6274px -7.6274px, -305.7782px -11.607px, -300.2459px -14.5641px, -294.2429px -16.3851px, -288px -17px, 38px -17px, 44.2429px -16.3851px, 50.2459px -14.5641px, 55.7782px -11.607px, 60.6274px -7.6274px, 64.607px -2.7782px, 67.5641px 2.7541px, 69.3851px 8.7571px, 70px 15px, 70px 795px, 69.3851px 801.2429px, 67.5641px 807.2459px, 64.607px 812.7782px, 60.6274px 817.6274px, 55.7782px 821.607px, 50.2459px 824.5641px, 44.2429px 826.3851px, 38px 827px, -288px 827px, -294.2429px 826.3851px, -300.2459px 824.5641px, -305.7782px 821.607px, -310.6274px 817.6274px, -314.607px 812.7782px, -317.5641px 807.2459px, -319.3851px 801.2429px, -320px 795px);
+  background-color: #172c28;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 3px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-30-39 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 71px;
+  width: 290px;
+  height: 22px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-24px -39px, -23.3851px -45.2429px, -21.5641px -51.2459px, -18.607px -56.7782px, -14.6274px -61.6274px, -9.7782px -65.607px, -4.2459px -68.5641px, 1.7571px -70.3851px, 8px -71px, 334px -71px, 340.2429px -70.3851px, 346.2459px -68.5641px, 351.7782px -65.607px, 356.6274px -61.6274px, 360.607px -56.7782px, 363.5641px -51.2459px, 365.3851px -45.2429px, 366px -39px, 366px 741px, 365.3851px 747.2429px, 363.5641px 753.2459px, 360.607px 758.7782px, 356.6274px 763.6274px, 351.7782px 767.607px, 346.2459px 770.5641px, 340.2429px 772.3851px, 334px 773px, 8px 773px, 1.7571px 772.3851px, -4.2459px 770.5641px, -9.7782px 767.607px, -14.6274px 763.6274px, -18.607px 758.7782px, -21.5641px 753.2459px, -23.3851px 747.2429px, -24px 741px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-30 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 104px;
+  width: 340px;
+  height: 42px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-24px -72px, -23.3851px -78.2429px, -21.5641px -84.2459px, -18.607px -89.7782px, -14.6274px -94.6274px, -9.7782px -98.607px, -4.2459px -101.5641px, 1.7571px -103.3851px, 8px -104px, 334px -104px, 340.2429px -103.3851px, 346.2459px -101.5641px, 351.7782px -98.607px, 356.6274px -94.6274px, 360.607px -89.7782px, 363.5641px -84.2459px, 365.3851px -78.2429px, 366px -72px, 366px 708px, 365.3851px 714.2429px, 363.5641px 720.2459px, 360.607px 725.7782px, 356.6274px 730.6274px, 351.7782px 734.607px, 346.2459px 737.5641px, 340.2429px 739.3851px, 334px 740px, 8px 740px, 1.7571px 739.3851px, -4.2459px 737.5641px, -9.7782px 734.607px, -14.6274px 730.6274px, -18.607px 725.7782px, -21.5641px 720.2459px, -23.3851px 714.2429px, -24px 708px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 28px;
+  font-family: "Arial";
+  font-weight: 700;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-31 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 330px;
+  top: 65px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  clip-path: polygon(-330px -33px, -329.3851px -39.2429px, -327.5641px -45.2459px, -324.607px -50.7782px, -320.6274px -55.6274px, -315.7782px -59.607px, -310.2459px -62.5641px, -304.2429px -64.3851px, -298px -65px, 28px -65px, 34.2429px -64.3851px, 40.2459px -62.5641px, 45.7782px -59.607px, 50.6274px -55.6274px, 54.607px -50.7782px, 57.5641px -45.2459px, 59.3851px -39.2429px, 60px -33px, 60px 747px, 59.3851px 753.2429px, 57.5641px 759.2459px, 54.607px 764.7782px, 50.6274px 769.6274px, 45.7782px 773.607px, 40.2459px 776.5641px, 34.2429px 778.3851px, 28px 779px, -298px 779px, -304.2429px 778.3851px, -310.2459px 776.5641px, -315.7782px 773.607px, -320.6274px 769.6274px, -324.607px 764.7782px, -327.5641px 759.2459px, -329.3851px 753.2429px, -330px 747px);
+  background-color: #e9d384;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-32 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 338px;
+  top: 73px;
+  width: 24px;
+  height: 20px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-338px -41px, -337.3851px -47.2429px, -335.5641px -53.2459px, -332.607px -58.7782px, -328.6274px -63.6274px, -323.7782px -67.607px, -318.2459px -70.5641px, -312.2429px -72.3851px, -306px -73px, 20px -73px, 26.2429px -72.3851px, 32.2459px -70.5641px, 37.7782px -67.607px, 42.6274px -63.6274px, 46.607px -58.7782px, 49.5641px -53.2459px, 51.3851px -47.2429px, 52px -41px, 52px 739px, 51.3851px 745.2429px, 49.5641px 751.2459px, 46.607px 756.7782px, 42.6274px 761.6274px, 37.7782px 765.607px, 32.2459px 768.5641px, 26.2429px 770.3851px, 20px 771px, -306px 771px, -312.2429px 770.3851px, -318.2459px 768.5641px, -323.7782px 765.607px, -328.6274px 761.6274px, -332.607px 756.7782px, -335.5641px 751.2459px, -337.3851px 745.2429px, -338px 739px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 11px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-33 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 155px;
+  width: 340px;
+  height: 28px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-24px -123px, -23.3851px -129.2429px, -21.5641px -135.2459px, -18.607px -140.7782px, -14.6274px -145.6274px, -9.7782px -149.607px, -4.2459px -152.5641px, 1.7571px -154.3851px, 8px -155px, 334px -155px, 340.2429px -154.3851px, 346.2459px -152.5641px, 351.7782px -149.607px, 356.6274px -145.6274px, 360.607px -140.7782px, 363.5641px -135.2459px, 365.3851px -129.2429px, 366px -123px, 366px 657px, 365.3851px 663.2429px, 363.5641px 669.2459px, 360.607px 674.7782px, 356.6274px 679.6274px, 351.7782px 683.607px, 346.2459px 686.5641px, 340.2429px 688.3851px, 334px 689px, 8px 689px, 1.7571px 688.3851px, -4.2459px 686.5641px, -9.7782px 683.607px, -14.6274px 679.6274px, -18.607px 674.7782px, -21.5641px 669.2459px, -23.3851px 663.2429px, -24px 657px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 14px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-34 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 211px;
+  width: 342px;
+  height: 167px;
+  clip-path: polygon(-24px -179px, -23.3851px -185.2429px, -21.5641px -191.2459px, -18.607px -196.7782px, -14.6274px -201.6274px, -9.7782px -205.607px, -4.2459px -208.5641px, 1.7571px -210.3851px, 8px -211px, 334px -211px, 340.2429px -210.3851px, 346.2459px -208.5641px, 351.7782px -205.607px, 356.6274px -201.6274px, 360.607px -196.7782px, 363.5641px -191.2459px, 365.3851px -185.2429px, 366px -179px, 366px 601px, 365.3851px 607.2429px, 363.5641px 613.2459px, 360.607px 618.7782px, 356.6274px 623.6274px, 351.7782px 627.607px, 346.2459px 630.5641px, 340.2429px 632.3851px, 334px 633px, 8px 633px, 1.7571px 632.3851px, -4.2459px 630.5641px, -9.7782px 627.607px, -14.6274px 623.6274px, -18.607px 618.7782px, -21.5641px 613.2459px, -23.3851px 607.2429px, -24px 601px);
+  background-color: #285b49;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 20px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-35 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 44px;
+  top: 232px;
+  width: 270px;
+  height: 20px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-44px -200px, -43.3851px -206.2429px, -41.5641px -212.2459px, -38.607px -217.7782px, -34.6274px -222.6274px, -29.7782px -226.607px, -24.2459px -229.5641px, -18.2429px -231.3851px, -12px -232px, 314px -232px, 320.2429px -231.3851px, 326.2459px -229.5641px, 331.7782px -226.607px, 336.6274px -222.6274px, 340.607px -217.7782px, 343.5641px -212.2459px, 345.3851px -206.2429px, 346px -200px, 346px 580px, 345.3851px 586.2429px, 343.5641px 592.2459px, 340.607px 597.7782px, 336.6274px 602.6274px, 331.7782px 606.607px, 326.2459px 609.5641px, 320.2429px 611.3851px, 314px 612px, -12px 612px, -18.2429px 611.3851px, -24.2459px 609.5641px, -29.7782px 606.607px, -34.6274px 602.6274px, -38.607px 597.7782px, -41.5641px 592.2459px, -43.3851px 586.2429px, -44px 580px);
+  background-color: transparent;
+  border-color: none;
+  color: #cadbd0;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-36 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 44px;
+  top: 263px;
+  width: 290px;
+  height: 62px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-44px -231px, -43.3851px -237.2429px, -41.5641px -243.2459px, -38.607px -248.7782px, -34.6274px -253.6274px, -29.7782px -257.607px, -24.2459px -260.5641px, -18.2429px -262.3851px, -12px -263px, 314px -263px, 320.2429px -262.3851px, 326.2459px -260.5641px, 331.7782px -257.607px, 336.6274px -253.6274px, 340.607px -248.7782px, 343.5641px -243.2459px, 345.3851px -237.2429px, 346px -231px, 346px 549px, 345.3851px 555.2429px, 343.5641px 561.2459px, 340.607px 566.7782px, 336.6274px 571.6274px, 331.7782px 575.607px, 326.2459px 578.5641px, 320.2429px 580.3851px, 314px 581px, -12px 581px, -18.2429px 580.3851px, -24.2459px 578.5641px, -29.7782px 575.607px, -34.6274px 571.6274px, -38.607px 566.7782px, -41.5641px 561.2459px, -43.3851px 555.2429px, -44px 549px);
+  background-color: transparent;
+  border-color: none;
+  color: #ffffff;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 23px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-37 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 44px;
+  top: 343px;
+  width: 256px;
+  height: 5px;
+  clip-path: polygon(-44px -311px, -43.3851px -317.2429px, -41.5641px -323.2459px, -38.607px -328.7782px, -34.6274px -333.6274px, -29.7782px -337.607px, -24.2459px -340.5641px, -18.2429px -342.3851px, -12px -343px, 314px -343px, 320.2429px -342.3851px, 326.2459px -340.5641px, 331.7782px -337.607px, 336.6274px -333.6274px, 340.607px -328.7782px, 343.5641px -323.2459px, 345.3851px -317.2429px, 346px -311px, 346px 469px, 345.3851px 475.2429px, 343.5641px 481.2459px, 340.607px 486.7782px, 336.6274px 491.6274px, 331.7782px 495.607px, 326.2459px 498.5641px, 320.2429px 500.3851px, 314px 501px, -12px 501px, -18.2429px 500.3851px, -24.2459px 498.5641px, -29.7782px 495.607px, -34.6274px 491.6274px, -38.607px 486.7782px, -41.5641px 481.2459px, -43.3851px 475.2429px, -44px 469px);
+  background-color: #628673;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 2px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-38 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 44px;
+  top: 343px;
+  width: 184px;
+  height: 5px;
+  clip-path: polygon(-44px -311px, -43.3851px -317.2429px, -41.5641px -323.2459px, -38.607px -328.7782px, -34.6274px -333.6274px, -29.7782px -337.607px, -24.2459px -340.5641px, -18.2429px -342.3851px, -12px -343px, 314px -343px, 320.2429px -342.3851px, 326.2459px -340.5641px, 331.7782px -337.607px, 336.6274px -333.6274px, 340.607px -328.7782px, 343.5641px -323.2459px, 345.3851px -317.2429px, 346px -311px, 346px 469px, 345.3851px 475.2429px, 343.5641px 481.2459px, 340.607px 486.7782px, 336.6274px 491.6274px, 331.7782px 495.607px, 326.2459px 498.5641px, 320.2429px 500.3851px, 314px 501px, -12px 501px, -18.2429px 500.3851px, -24.2459px 498.5641px, -29.7782px 495.607px, -34.6274px 491.6274px, -38.607px 486.7782px, -41.5641px 481.2459px, -43.3851px 475.2429px, -44px 469px);
+  background-color: #e9d384;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 2px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-31-39 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 44px;
+  top: 357px;
+  width: 270px;
+  height: 18px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-44px -325px, -43.3851px -331.2429px, -41.5641px -337.2459px, -38.607px -342.7782px, -34.6274px -347.6274px, -29.7782px -351.607px, -24.2459px -354.5641px, -18.2429px -356.3851px, -12px -357px, 314px -357px, 320.2429px -356.3851px, 326.2459px -354.5641px, 331.7782px -351.607px, 336.6274px -347.6274px, 340.607px -342.7782px, 343.5641px -337.2459px, 345.3851px -331.2429px, 346px -325px, 346px 455px, 345.3851px 461.2429px, 343.5641px 467.2459px, 340.607px 472.7782px, 336.6274px 477.6274px, 331.7782px 481.607px, 326.2459px 484.5641px, 320.2429px 486.3851px, 314px 487px, -12px 487px, -18.2429px 486.3851px, -24.2459px 484.5641px, -29.7782px 481.607px, -34.6274px 477.6274px, -38.607px 472.7782px, -41.5641px 467.2459px, -43.3851px 461.2429px, -44px 455px);
+  background-color: transparent;
+  border-color: none;
+  color: #dae6dc;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-30 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 413px;
+  width: 330px;
+  height: 30px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-24px -381px, -23.3851px -387.2429px, -21.5641px -393.2459px, -18.607px -398.7782px, -14.6274px -403.6274px, -9.7782px -407.607px, -4.2459px -410.5641px, 1.7571px -412.3851px, 8px -413px, 334px -413px, 340.2429px -412.3851px, 346.2459px -410.5641px, 351.7782px -407.607px, 356.6274px -403.6274px, 360.607px -398.7782px, 363.5641px -393.2459px, 365.3851px -387.2429px, 366px -381px, 366px 399px, 365.3851px 405.2429px, 363.5641px 411.2459px, 360.607px 416.7782px, 356.6274px 421.6274px, 351.7782px 425.607px, 346.2459px 428.5641px, 340.2429px 430.3851px, 334px 431px, 8px 431px, 1.7571px 430.3851px, -4.2459px 428.5641px, -9.7782px 425.607px, -14.6274px 421.6274px, -18.607px 416.7782px, -21.5641px 411.2459px, -23.3851px 405.2429px, -24px 399px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 21px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-31 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 451px;
+  width: 342px;
+  height: 72px;
+  clip-path: polygon(-24px -419px, -23.3851px -425.2429px, -21.5641px -431.2459px, -18.607px -436.7782px, -14.6274px -441.6274px, -9.7782px -445.607px, -4.2459px -448.5641px, 1.7571px -450.3851px, 8px -451px, 334px -451px, 340.2429px -450.3851px, 346.2459px -448.5641px, 351.7782px -445.607px, 356.6274px -441.6274px, 360.607px -436.7782px, 363.5641px -431.2459px, 365.3851px -425.2429px, 366px -419px, 366px 361px, 365.3851px 367.2429px, 363.5641px 373.2459px, 360.607px 378.7782px, 356.6274px 383.6274px, 351.7782px 387.607px, 346.2459px 390.5641px, 340.2429px 392.3851px, 334px 393px, 8px 393px, 1.7571px 392.3851px, -4.2459px 390.5641px, -9.7782px 387.607px, -14.6274px 383.6274px, -18.607px 378.7782px, -21.5641px 373.2459px, -23.3851px 367.2429px, -24px 361px);
+  background-color: #ffffff;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 12px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-32 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 39px;
+  top: 469px;
+  width: 26px;
+  height: 32px;
+  clip-path: polygon(-39px -437px, -38.3851px -443.2429px, -36.5641px -449.2459px, -33.607px -454.7782px, -29.6274px -459.6274px, -24.7782px -463.607px, -19.2459px -466.5641px, -13.2429px -468.3851px, -7px -469px, 319px -469px, 325.2429px -468.3851px, 331.2459px -466.5641px, 336.7782px -463.607px, 341.6274px -459.6274px, 345.607px -454.7782px, 348.5641px -449.2459px, 350.3851px -443.2429px, 351px -437px, 351px 343px, 350.3851px 349.2429px, 348.5641px 355.2459px, 345.607px 360.7782px, 341.6274px 365.6274px, 336.7782px 369.607px, 331.2459px 372.5641px, 325.2429px 374.3851px, 319px 375px, -7px 375px, -13.2429px 374.3851px, -19.2459px 372.5641px, -24.7782px 369.607px, -29.6274px 365.6274px, -33.607px 360.7782px, -36.5641px 355.2459px, -38.3851px 349.2429px, -39px 343px);
+  color: #172c28;
+  font-size: 14px;
+  font-family: "Arial";
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-33 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 465px;
+  width: 258px;
+  height: 26px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -433px, -79.3851px -439.2429px, -77.5641px -445.2459px, -74.607px -450.7782px, -70.6274px -455.6274px, -65.7782px -459.607px, -60.2459px -462.5641px, -54.2429px -464.3851px, -48px -465px, 278px -465px, 284.2429px -464.3851px, 290.2459px -462.5641px, 295.7782px -459.607px, 300.6274px -455.6274px, 304.607px -450.7782px, 307.5641px -445.2459px, 309.3851px -439.2429px, 310px -433px, 310px 347px, 309.3851px 353.2429px, 307.5641px 359.2459px, 304.607px 364.7782px, 300.6274px 369.6274px, 295.7782px 373.607px, 290.2459px 376.5641px, 284.2429px 378.3851px, 278px 379px, -48px 379px, -54.2429px 378.3851px, -60.2459px 376.5641px, -65.7782px 373.607px, -70.6274px 369.6274px, -74.607px 364.7782px, -77.5641px 359.2459px, -79.3851px 353.2429px, -80px 347px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 14px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-34 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 494px;
+  width: 260px;
+  height: 19px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -462px, -79.3851px -468.2429px, -77.5641px -474.2459px, -74.607px -479.7782px, -70.6274px -484.6274px, -65.7782px -488.607px, -60.2459px -491.5641px, -54.2429px -493.3851px, -48px -494px, 278px -494px, 284.2429px -493.3851px, 290.2459px -491.5641px, 295.7782px -488.607px, 300.6274px -484.6274px, 304.607px -479.7782px, 307.5641px -474.2459px, 309.3851px -468.2429px, 310px -462px, 310px 318px, 309.3851px 324.2429px, 307.5641px 330.2459px, 304.607px 335.7782px, 300.6274px 340.6274px, 295.7782px 344.607px, 290.2459px 347.5641px, 284.2429px 349.3851px, 278px 350px, -48px 350px, -54.2429px 349.3851px, -60.2459px 347.5641px, -65.7782px 344.607px, -70.6274px 340.6274px, -74.607px 335.7782px, -77.5641px 330.2459px, -79.3851px 324.2429px, -80px 318px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 11px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-35 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 529px;
+  width: 342px;
+  height: 72px;
+  clip-path: polygon(-24px -497px, -23.3851px -503.2429px, -21.5641px -509.2459px, -18.607px -514.7782px, -14.6274px -519.6274px, -9.7782px -523.607px, -4.2459px -526.5641px, 1.7571px -528.3851px, 8px -529px, 334px -529px, 340.2429px -528.3851px, 346.2459px -526.5641px, 351.7782px -523.607px, 356.6274px -519.6274px, 360.607px -514.7782px, 363.5641px -509.2459px, 365.3851px -503.2429px, 366px -497px, 366px 283px, 365.3851px 289.2429px, 363.5641px 295.2459px, 360.607px 300.7782px, 356.6274px 305.6274px, 351.7782px 309.607px, 346.2459px 312.5641px, 340.2429px 314.3851px, 334px 315px, 8px 315px, 1.7571px 314.3851px, -4.2459px 312.5641px, -9.7782px 309.607px, -14.6274px 305.6274px, -18.607px 300.7782px, -21.5641px 295.2459px, -23.3851px 289.2429px, -24px 283px);
+  background-color: #ffffff;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 12px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-36 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 39px;
+  top: 547px;
+  width: 26px;
+  height: 32px;
+  clip-path: polygon(-39px -515px, -38.3851px -521.2429px, -36.5641px -527.2459px, -33.607px -532.7782px, -29.6274px -537.6274px, -24.7782px -541.607px, -19.2459px -544.5641px, -13.2429px -546.3851px, -7px -547px, 319px -547px, 325.2429px -546.3851px, 331.2459px -544.5641px, 336.7782px -541.607px, 341.6274px -537.6274px, 345.607px -532.7782px, 348.5641px -527.2459px, 350.3851px -521.2429px, 351px -515px, 351px 265px, 350.3851px 271.2429px, 348.5641px 277.2459px, 345.607px 282.7782px, 341.6274px 287.6274px, 336.7782px 291.607px, 331.2459px 294.5641px, 325.2429px 296.3851px, 319px 297px, -7px 297px, -13.2429px 296.3851px, -19.2459px 294.5641px, -24.7782px 291.607px, -29.6274px 287.6274px, -33.607px 282.7782px, -36.5641px 277.2459px, -38.3851px 271.2429px, -39px 265px);
+  color: #172c28;
+  font-size: 14px;
+  font-family: "Arial";
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-37 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 543px;
+  width: 258px;
+  height: 26px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -511px, -79.3851px -517.2429px, -77.5641px -523.2459px, -74.607px -528.7782px, -70.6274px -533.6274px, -65.7782px -537.607px, -60.2459px -540.5641px, -54.2429px -542.3851px, -48px -543px, 278px -543px, 284.2429px -542.3851px, 290.2459px -540.5641px, 295.7782px -537.607px, 300.6274px -533.6274px, 304.607px -528.7782px, 307.5641px -523.2459px, 309.3851px -517.2429px, 310px -511px, 310px 269px, 309.3851px 275.2429px, 307.5641px 281.2459px, 304.607px 286.7782px, 300.6274px 291.6274px, 295.7782px 295.607px, 290.2459px 298.5641px, 284.2429px 300.3851px, 278px 301px, -48px 301px, -54.2429px 300.3851px, -60.2459px 298.5641px, -65.7782px 295.607px, -70.6274px 291.6274px, -74.607px 286.7782px, -77.5641px 281.2459px, -79.3851px 275.2429px, -80px 269px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 14px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-38 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 572px;
+  width: 260px;
+  height: 19px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -540px, -79.3851px -546.2429px, -77.5641px -552.2459px, -74.607px -557.7782px, -70.6274px -562.6274px, -65.7782px -566.607px, -60.2459px -569.5641px, -54.2429px -571.3851px, -48px -572px, 278px -572px, 284.2429px -571.3851px, 290.2459px -569.5641px, 295.7782px -566.607px, 300.6274px -562.6274px, 304.607px -557.7782px, 307.5641px -552.2459px, 309.3851px -546.2429px, 310px -540px, 310px 240px, 309.3851px 246.2429px, 307.5641px 252.2459px, 304.607px 257.7782px, 300.6274px 262.6274px, 295.7782px 266.607px, 290.2459px 269.5641px, 284.2429px 271.3851px, 278px 272px, -48px 272px, -54.2429px 271.3851px, -60.2459px 269.5641px, -65.7782px 266.607px, -70.6274px 262.6274px, -74.607px 257.7782px, -77.5641px 252.2459px, -79.3851px 246.2429px, -80px 240px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 11px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-32-39 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 607px;
+  width: 342px;
+  height: 72px;
+  clip-path: polygon(-24px -575px, -23.3851px -581.2429px, -21.5641px -587.2459px, -18.607px -592.7782px, -14.6274px -597.6274px, -9.7782px -601.607px, -4.2459px -604.5641px, 1.7571px -606.3851px, 8px -607px, 334px -607px, 340.2429px -606.3851px, 346.2459px -604.5641px, 351.7782px -601.607px, 356.6274px -597.6274px, 360.607px -592.7782px, 363.5641px -587.2459px, 365.3851px -581.2429px, 366px -575px, 366px 205px, 365.3851px 211.2429px, 363.5641px 217.2459px, 360.607px 222.7782px, 356.6274px 227.6274px, 351.7782px 231.607px, 346.2459px 234.5641px, 340.2429px 236.3851px, 334px 237px, 8px 237px, 1.7571px 236.3851px, -4.2459px 234.5641px, -9.7782px 231.607px, -14.6274px 227.6274px, -18.607px 222.7782px, -21.5641px 217.2459px, -23.3851px 211.2429px, -24px 205px);
+  background-color: #ffffff;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 12px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-30 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 39px;
+  top: 625px;
+  width: 26px;
+  height: 32px;
+  clip-path: polygon(-39px -593px, -38.3851px -599.2429px, -36.5641px -605.2459px, -33.607px -610.7782px, -29.6274px -615.6274px, -24.7782px -619.607px, -19.2459px -622.5641px, -13.2429px -624.3851px, -7px -625px, 319px -625px, 325.2429px -624.3851px, 331.2459px -622.5641px, 336.7782px -619.607px, 341.6274px -615.6274px, 345.607px -610.7782px, 348.5641px -605.2459px, 350.3851px -599.2429px, 351px -593px, 351px 187px, 350.3851px 193.2429px, 348.5641px 199.2459px, 345.607px 204.7782px, 341.6274px 209.6274px, 336.7782px 213.607px, 331.2459px 216.5641px, 325.2429px 218.3851px, 319px 219px, -7px 219px, -13.2429px 218.3851px, -19.2459px 216.5641px, -24.7782px 213.607px, -29.6274px 209.6274px, -33.607px 204.7782px, -36.5641px 199.2459px, -38.3851px 193.2429px, -39px 187px);
+  color: #172c28;
+  font-size: 14px;
+  font-family: "Arial";
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-31 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 621px;
+  width: 258px;
+  height: 26px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -589px, -79.3851px -595.2429px, -77.5641px -601.2459px, -74.607px -606.7782px, -70.6274px -611.6274px, -65.7782px -615.607px, -60.2459px -618.5641px, -54.2429px -620.3851px, -48px -621px, 278px -621px, 284.2429px -620.3851px, 290.2459px -618.5641px, 295.7782px -615.607px, 300.6274px -611.6274px, 304.607px -606.7782px, 307.5641px -601.2459px, 309.3851px -595.2429px, 310px -589px, 310px 191px, 309.3851px 197.2429px, 307.5641px 203.2459px, 304.607px 208.7782px, 300.6274px 213.6274px, 295.7782px 217.607px, 290.2459px 220.5641px, 284.2429px 222.3851px, 278px 223px, -48px 223px, -54.2429px 222.3851px, -60.2459px 220.5641px, -65.7782px 217.607px, -70.6274px 213.6274px, -74.607px 208.7782px, -77.5641px 203.2459px, -79.3851px 197.2429px, -80px 191px);
+  background-color: transparent;
+  border-color: none;
+  color: #172c28;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 14px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-32 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 80px;
+  top: 650px;
+  width: 260px;
+  height: 19px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-80px -618px, -79.3851px -624.2429px, -77.5641px -630.2459px, -74.607px -635.7782px, -70.6274px -640.6274px, -65.7782px -644.607px, -60.2459px -647.5641px, -54.2429px -649.3851px, -48px -650px, 278px -650px, 284.2429px -649.3851px, 290.2459px -647.5641px, 295.7782px -644.607px, 300.6274px -640.6274px, 304.607px -635.7782px, 307.5641px -630.2459px, 309.3851px -624.2429px, 310px -618px, 310px 162px, 309.3851px 168.2429px, 307.5641px 174.2459px, 304.607px 179.7782px, 300.6274px 184.6274px, 295.7782px 188.607px, 290.2459px 191.5641px, 284.2429px 193.3851px, 278px 194px, -48px 194px, -54.2429px 193.3851px, -60.2459px 191.5641px, -65.7782px 188.607px, -70.6274px 184.6274px, -74.607px 179.7782px, -77.5641px 174.2459px, -79.3851px 168.2429px, -80px 162px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 11px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-33 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 24px;
+  top: 699px;
+  width: 342px;
+  height: 40px;
+  padding: 8px 12px;
+  clip-path: polygon(-24px -667px, -23.3851px -673.2429px, -21.5641px -679.2459px, -18.607px -684.7782px, -14.6274px -689.6274px, -9.7782px -693.607px, -4.2459px -696.5641px, 1.7571px -698.3851px, 8px -699px, 334px -699px, 340.2429px -698.3851px, 346.2459px -696.5641px, 351.7782px -693.607px, 356.6274px -689.6274px, 360.607px -684.7782px, 363.5641px -679.2459px, 365.3851px -673.2429px, 366px -667px, 366px 113px, 365.3851px 119.2429px, 363.5641px 125.2459px, 360.607px 130.7782px, 356.6274px 135.6274px, 351.7782px 139.607px, 346.2459px 142.5641px, 340.2429px 144.3851px, 334px 145px, 8px 145px, 1.7571px 144.3851px, -4.2459px 142.5641px, -9.7782px 139.607px, -14.6274px 135.6274px, -18.607px 130.7782px, -21.5641px 125.2459px, -23.3851px 119.2429px, -24px 113px);
+  background-color: #285b49;
+  border-color: none;
+  color: #ffffff;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 9px;
+  font-size: 14px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-34 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 0px;
+  top: 750px;
+  width: 390px;
+  height: 94px;
+  clip-path: polygon(0px -718px, 0.6149px -724.2429px, 2.4359px -730.2459px, 5.393px -735.7782px, 9.3726px -740.6274px, 14.2218px -744.607px, 19.7541px -747.5641px, 25.7571px -749.3851px, 32px -750px, 358px -750px, 364.2429px -749.3851px, 370.2459px -747.5641px, 375.7782px -744.607px, 380.6274px -740.6274px, 384.607px -735.7782px, 387.5641px -730.2459px, 389.3851px -724.2429px, 390px -718px, 390px 62px, 389.3851px 68.2429px, 387.5641px 74.2459px, 384.607px 79.7782px, 380.6274px 84.6274px, 375.7782px 88.607px, 370.2459px 91.5641px, 364.2429px 93.3851px, 358px 94px, 32px 94px, 25.7571px 93.3851px, 19.7541px 91.5641px, 14.2218px 88.607px, 9.3726px 84.6274px, 5.393px 79.7782px, 2.4359px 74.2459px, 0.6149px 68.2429px, 0px 62px);
+  background-color: #ffffff;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 0px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-35 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 48px;
+  top: 769px;
+  width: 20px;
+  height: 18px;
+  clip-path: polygon(-48px -737px, -47.3851px -743.2429px, -45.5641px -749.2459px, -42.607px -754.7782px, -38.6274px -759.6274px, -33.7782px -763.607px, -28.2459px -766.5641px, -22.2429px -768.3851px, -16px -769px, 310px -769px, 316.2429px -768.3851px, 322.2459px -766.5641px, 327.7782px -763.607px, 332.6274px -759.6274px, 336.607px -754.7782px, 339.5641px -749.2459px, 341.3851px -743.2429px, 342px -737px, 342px 43px, 341.3851px 49.2429px, 339.5641px 55.2459px, 336.607px 60.7782px, 332.6274px 65.6274px, 327.7782px 69.607px, 322.2459px 72.5641px, 316.2429px 74.3851px, 310px 75px, -16px 75px, -22.2429px 74.3851px, -28.2459px 72.5641px, -33.7782px 69.607px, -38.6274px 65.6274px, -42.607px 60.7782px, -45.5641px 55.2459px, -47.3851px 49.2429px, -48px 43px);
+  background-color: #285b49;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 5px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-36 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 29px;
+  top: 797px;
+  width: 80px;
+  height: 18px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-29px -765px, -28.3851px -771.2429px, -26.5641px -777.2459px, -23.607px -782.7782px, -19.6274px -787.6274px, -14.7782px -791.607px, -9.2459px -794.5641px, -3.2429px -796.3851px, 3px -797px, 329px -797px, 335.2429px -796.3851px, 341.2459px -794.5641px, 346.7782px -791.607px, 351.6274px -787.6274px, 355.607px -782.7782px, 358.5641px -777.2459px, 360.3851px -771.2429px, 361px -765px, 361px 15px, 360.3851px 21.2429px, 358.5641px 27.2459px, 355.607px 32.7782px, 351.6274px 37.6274px, 346.7782px 41.607px, 341.2459px 44.5641px, 335.2429px 46.3851px, 329px 47px, 3px 47px, -3.2429px 46.3851px, -9.2459px 44.5641px, -14.7782px 41.607px, -19.6274px 37.6274px, -23.607px 32.7782px, -26.5641px 27.2459px, -28.3851px 21.2429px, -29px 15px);
+  background-color: transparent;
+  border-color: none;
+  color: #285b49;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 600;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-37 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 176px;
+  top: 769px;
+  width: 20px;
+  height: 18px;
+  clip-path: polygon(-176px -737px, -175.3851px -743.2429px, -173.5641px -749.2459px, -170.607px -754.7782px, -166.6274px -759.6274px, -161.7782px -763.607px, -156.2459px -766.5641px, -150.2429px -768.3851px, -144px -769px, 182px -769px, 188.2429px -768.3851px, 194.2459px -766.5641px, 199.7782px -763.607px, 204.6274px -759.6274px, 208.607px -754.7782px, 211.5641px -749.2459px, 213.3851px -743.2429px, 214px -737px, 214px 43px, 213.3851px 49.2429px, 211.5641px 55.2459px, 208.607px 60.7782px, 204.6274px 65.6274px, 199.7782px 69.607px, 194.2459px 72.5641px, 188.2429px 74.3851px, 182px 75px, -144px 75px, -150.2429px 74.3851px, -156.2459px 72.5641px, -161.7782px 69.607px, -166.6274px 65.6274px, -170.607px 60.7782px, -173.5641px 55.2459px, -175.3851px 49.2429px, -176px 43px);
+  background-color: #c1cbc4;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 5px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-38 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 157px;
+  top: 797px;
+  width: 80px;
+  height: 18px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-157px -765px, -156.3851px -771.2429px, -154.5641px -777.2459px, -151.607px -782.7782px, -147.6274px -787.6274px, -142.7782px -791.607px, -137.2459px -794.5641px, -131.2429px -796.3851px, -125px -797px, 201px -797px, 207.2429px -796.3851px, 213.2459px -794.5641px, 218.7782px -791.607px, 223.6274px -787.6274px, 227.607px -782.7782px, 230.5641px -777.2459px, 232.3851px -771.2429px, 233px -765px, 233px 15px, 232.3851px 21.2429px, 230.5641px 27.2459px, 227.607px 32.7782px, 223.6274px 37.6274px, 218.7782px 41.607px, 213.2459px 44.5641px, 207.2429px 46.3851px, 201px 47px, -125px 47px, -131.2429px 46.3851px, -137.2459px 44.5641px, -142.7782px 41.607px, -147.6274px 37.6274px, -151.607px 32.7782px, -154.5641px 27.2459px, -156.3851px 21.2429px, -157px 15px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-33-39 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 304px;
+  top: 769px;
+  width: 20px;
+  height: 18px;
+  clip-path: polygon(-304px -737px, -303.3851px -743.2429px, -301.5641px -749.2459px, -298.607px -754.7782px, -294.6274px -759.6274px, -289.7782px -763.607px, -284.2459px -766.5641px, -278.2429px -768.3851px, -272px -769px, 54px -769px, 60.2429px -768.3851px, 66.2459px -766.5641px, 71.7782px -763.607px, 76.6274px -759.6274px, 80.607px -754.7782px, 83.5641px -749.2459px, 85.3851px -743.2429px, 86px -737px, 86px 43px, 85.3851px 49.2429px, 83.5641px 55.2459px, 80.607px 60.7782px, 76.6274px 65.6274px, 71.7782px 69.607px, 66.2459px 72.5641px, 60.2429px 74.3851px, 54px 75px, -272px 75px, -278.2429px 74.3851px, -284.2459px 72.5641px, -289.7782px 69.607px, -294.6274px 65.6274px, -298.607px 60.7782px, -301.5641px 55.2459px, -303.3851px 49.2429px, -304px 43px);
+  background-color: #c1cbc4;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 5px;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-34-30 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 285px;
+  top: 797px;
+  width: 80px;
+  height: 18px;
+  margin: 0;
+  padding: 0px;
+  white-space: pre-wrap;
+  line-height: 1.2;
+  clip-path: polygon(-285px -765px, -284.3851px -771.2429px, -282.5641px -777.2459px, -279.607px -782.7782px, -275.6274px -787.6274px, -270.7782px -791.607px, -265.2459px -794.5641px, -259.2429px -796.3851px, -253px -797px, 73px -797px, 79.2429px -796.3851px, 85.2459px -794.5641px, 90.7782px -791.607px, 95.6274px -787.6274px, 99.607px -782.7782px, 102.5641px -777.2459px, 104.3851px -771.2429px, 105px -765px, 105px 15px, 104.3851px 21.2429px, 102.5641px 27.2459px, 99.607px 32.7782px, 95.6274px 37.6274px, 90.7782px 41.607px, 85.2459px 44.5641px, 79.2429px 46.3851px, 73px 47px, -253px 47px, -259.2429px 46.3851px, -265.2459px 44.5641px, -270.7782px 41.607px, -275.6274px 37.6274px, -279.607px 32.7782px, -282.5641px 27.2459px, -284.3851px 21.2429px, -285px 15px);
+  background-color: transparent;
+  border-color: none;
+  color: #6c7973;
+  border-width: 0px;
+  border-style: solid;
+  font-size: 10px;
+  font-family: "Arial";
+  font-weight: 400;
+}
+
+.nodetto-node-69-70-68-6f-6e-65-2d-70-6c-61-6e-6e-65-72-2d-30-30-34-31 {
+  position: absolute;
+  box-sizing: border-box;
+  left: 131px;
+  top: 831px;
+  width: 128px;
+  height: 4px;
+  clip-path: polygon(-131px -799px, -130.3851px -805.2429px, -128.5641px -811.2459px, -125.607px -816.7782px, -121.6274px -821.6274px, -116.7782px -825.607px, -111.2459px -828.5641px, -105.2429px -830.3851px, -99px -831px, 227px -831px, 233.2429px -830.3851px, 239.2459px -828.5641px, 244.7782px -825.607px, 249.6274px -821.6274px, 253.607px -816.7782px, 256.5641px -811.2459px, 258.3851px -805.2429px, 259px -799px, 259px -19px, 258.3851px -12.7571px, 256.5641px -6.7541px, 253.607px -1.2218px, 249.6274px 3.6274px, 244.7782px 7.607px, 239.2459px 10.5641px, 233.2429px 12.3851px, 227px 13px, -99px 13px, -105.2429px 12.3851px, -111.2459px 10.5641px, -116.7782px 7.607px, -121.6274px 3.6274px, -125.607px -1.2218px, -128.5641px -6.7541px, -130.3851px -12.7571px, -131px -19px);
+  background-color: #172c28;
+  border-color: none;
+  border-width: 0px;
+  border-style: solid;
+  border-radius: 2px;
+}
+
+[data-nodetto-type="ui.control"][data-control="checkbox"], [data-nodetto-type="ui.control"][data-control="switch"] { display: flex; align-items: center; gap: 9px; }
+[data-nodetto-type="ui.control"] > input[type="checkbox"] { flex-shrink: 0; margin: 0; width: 18px; height: 18px; accent-color: #137e7e; }
+[data-nodetto-type="ui.control"] > input[role="switch"] { appearance: none; position: relative; width: 34px; height: 20px; border: 0; border-radius: 999px; background: #b5bebc; }
+[data-nodetto-type="ui.control"] > input[role="switch"]:checked { background: #137e7e; }
+[data-nodetto-type="ui.control"] > input[role="switch"]::after { content: ""; position: absolute; width: 16px; height: 16px; top: 2px; left: 2px; border-radius: 50%; background: white; }
+[data-nodetto-type="ui.control"] > input[role="switch"]:checked::after { left: 16px; }
