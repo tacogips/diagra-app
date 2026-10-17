@@ -1,0 +1,35 @@
+.nodetto-zoom-button.nodetto-zoom-icon-button,
+.nodetto-view-menu > summary.nodetto-zoom-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 32px;
+  min-width: 32px;
+  min-height: 28px;
+  padding: 4px 6px;
+}
+
+.nodetto-zoom-icon-button svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.nodetto-view-menu > summary.nodetto-zoom-icon-button {
+  list-style: none;
+}
+
+.nodetto-view-menu > summary.nodetto-zoom-icon-button::-webkit-details-marker {
+  display: none;
+}
+
+.nodetto-view-menu > summary.nodetto-zoom-icon-button:hover,
+.nodetto-view-menu[open] > summary.nodetto-zoom-icon-button {
+  background: var(--nodetto-accent-soft);
+}
+
+.nodetto-zoom-icon-button:focus-visible {
+  outline: 2px solid var(--nodetto-accent);
+  outline-offset: -2px;
+}
