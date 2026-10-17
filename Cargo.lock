@@ -66,9 +66,8 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 name = "app"
 version = "0.4.0"
 dependencies = [
+ "nodetto-native",
  "notify",
- "objc2",
- "objc2-foundation",
  "serde",
  "serde_json",
  "sha2",
@@ -2512,6 +2511,7 @@ dependencies = [
  "base64 0.22.1",
  "boa_engine",
  "miniz_oxide 0.9.1",
+ "nodetto-native",
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
@@ -2525,6 +2525,16 @@ dependencies = [
  "tempfile",
  "tokio",
  "unicode-segmentation",
+]
+
+[[package]]
+name = "nodetto-native"
+version = "0.1.0"
+dependencies = [
+ "objc2",
+ "objc2-foundation",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]

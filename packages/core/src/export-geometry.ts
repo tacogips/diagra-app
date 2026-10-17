@@ -1,6 +1,8 @@
 // Framework-free export geometry shared by the desktop exporter and nodetto-cli:
 // supported raster densities, pixel limits and PDF page layout.
 
+export const RASTER_LIMITS = { maxSide: 8192, maxPixels: 32_000_000 } as const;
+
 export const RASTER_SCALES = [0.5, 0.75, 1, 1.5, 2, 3, 4] as const;
 
 /** Read only the root viewport of an SVG produced by our deterministic serializer.
@@ -38,12 +40,12 @@ export function rasterDimensions(width: number, height: number, scale: number) {
     height: Math.ceil(height * scale),
   };
   if (
-    pixels.width > 8192 ||
-    pixels.height > 8192 ||
-    pixels.width * pixels.height > 32_000_000
+    pixels.width > RASTER_LIMITS.maxSide ||
+    pixels.height > RASTER_LIMITS.maxSide ||
+    pixels.width * pixels.height > RASTER_LIMITS.maxPixels
   )
     throw new Error(
-      "PNG export is limited to 8192 pixels per side and 32 megapixels. Choose a smaller scale or use SVG.",
+      `PNG export is limited to ${RASTER_LIMITS.maxSide} pixels per side and ${RASTER_LIMITS.maxPixels / 1_000_000} megapixels. Choose a smaller scale or use SVG.`,
     );
   return pixels;
 }

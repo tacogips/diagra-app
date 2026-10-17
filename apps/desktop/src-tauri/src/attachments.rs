@@ -1,75 +1,17 @@
 //! Document-relative, content-addressed attachments. No network access.
+use nodetto_native::attachments::MAX_ATTACHMENT_BYTES;
 use std::fs;
-use std::io::Read;
-use std::path::{Component, Path, PathBuf};
+use std::path::PathBuf;
 
 use sha2::{Digest, Sha256};
 
-const MAX_ATTACHMENT_BYTES: u64 = 32 * 1024 * 1024;
-
 fn document_directory(document_path: &str) -> Result<PathBuf, String> {
-    let document = Path::new(document_path);
-    let parent = document
-        .parent()
-        .filter(|path| !path.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    parent
-        .canonicalize()
+    nodetto_native::attachments::document_directory(document_path)
         .map_err(|error| format!("could not open document directory: {error}"))
 }
 
-fn relative_path(value: &str) -> Result<&Path, String> {
-    if value.is_empty()
-        || value.len() > 1024
-        || value
-            .chars()
-            .any(|c| c.is_control() || "\\:%?#".contains(c))
-        || value
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == ".." || part.trim() != part)
-    {
-        return Err("attachment path must be a normalized document-relative path".into());
-    }
-    let path = Path::new(value);
-    if path
-        .components()
-        .any(|part| !matches!(part, Component::Normal(_)))
-    {
-        return Err("attachment path must stay inside the document directory".into());
-    }
-    Ok(path)
-}
-
-fn resolve_existing(document_path: &str, relative: &str) -> Result<PathBuf, String> {
-    let root = document_directory(document_path)?;
-    let path = root
-        .join(relative_path(relative)?)
-        .canonicalize()
-        .map_err(|error| format!("could not read attachment {relative}: {error}"))?;
-    if !path.starts_with(&root) || !path.is_file() {
-        return Err("attachment must be a file inside the document directory".into());
-    }
-    Ok(path)
-}
-
 fn read_attachment_bytes(document_path: String, relative: String) -> Result<Vec<u8>, String> {
-    let path = resolve_existing(&document_path, &relative)?;
-    let size = fs::metadata(&path)
-        .map_err(|error| error.to_string())?
-        .len();
-    if size > MAX_ATTACHMENT_BYTES {
-        return Err("attachment exceeds the 32 MiB limit".into());
-    }
-    let mut bytes = Vec::new();
-    fs::File::open(&path)
-        .map_err(|error| error.to_string())?
-        .take(MAX_ATTACHMENT_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("could not read attachment: {error}"))?;
-    if bytes.len() as u64 > MAX_ATTACHMENT_BYTES {
-        return Err("attachment exceeds the 32 MiB limit".into());
-    }
-    Ok(bytes)
+    nodetto_native::attachments::read(document_path, &relative).map_err(|error| error.to_string())
 }
 
 fn store_attachment_bytes(
@@ -101,7 +43,15 @@ fn store_attachment_bytes(
     let digest = format!("{:x}", Sha256::digest(&contents));
     let name = format!("{digest}.{extension}");
     let target = canonical.join(&name);
-    if target.exists() {
+    // Inspect the directory entry, including dangling symlinks. The directory
+    // writer follows links, so treating a dangling target as absent could write
+    // outside the document directory.
+    let exists = match fs::symlink_metadata(&target) {
+        Ok(_) => true,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) => return Err(error.to_string()),
+    };
+    if exists {
         let existing = target.canonicalize().map_err(|error| error.to_string())?;
         if !existing.starts_with(&root) || !existing.is_file() {
             return Err("existing attachment escapes the document directory".into());
@@ -215,6 +165,32 @@ mod tests {
             fs::read(directory.path().join(name)).expect("read"),
             b"edited"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dangling_attachment_symlinks_never_create_files_outside_the_document() {
+        let directory = tempdir().expect("tempdir");
+        let outside = tempdir().expect("outside");
+        let document = directory
+            .path()
+            .join("design.jsonl")
+            .to_string_lossy()
+            .into_owned();
+        let bytes = b"attachment".to_vec();
+        let digest = format!("{:x}", Sha256::digest(&bytes));
+        let artifacts = directory.path().join("artifacts");
+        fs::create_dir(&artifacts).expect("artifacts");
+        let target = artifacts.join(format!("{digest}.png"));
+        let escaped = outside.path().join("image.png");
+        std::os::unix::fs::symlink(&escaped, &target).expect("symlink");
+
+        assert!(store_attachment_bytes(document, "png".into(), bytes).is_err());
+        assert!(!escaped.exists());
+        assert!(fs::symlink_metadata(target)
+            .expect("link preserved")
+            .file_type()
+            .is_symlink());
     }
 
     #[cfg(unix)]

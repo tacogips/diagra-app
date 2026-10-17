@@ -1,10 +1,20 @@
+const encoder = new TextEncoder();
+
 /** Portable attachment paths are relative to the document, never process cwd. */
 export function isRelativeAttachmentPath(value: unknown): value is string {
-  if (typeof value !== "string" || !value || value.length > 1024) return false;
+  if (
+    typeof value !== "string" ||
+    !value ||
+    value.length > 1024 ||
+    encoder.encode(value).byteLength > 1024
+  )
+    return false;
   if (
     /[\\:%?#]/.test(value) ||
     [...value].some(
-      (char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127,
+      (char) =>
+        char.charCodeAt(0) < 32 ||
+        (char.charCodeAt(0) >= 127 && char.charCodeAt(0) <= 159),
     ) ||
     value.startsWith("/")
   )

@@ -1,5 +1,7 @@
 // Only the shared editor engine is bundled. Native CLI releases embed this
 // portable JS as data and interpret it without JIT or external JS runtimes.
+import { RASTER_LIMITS } from "@nodetto/core";
+import { FONT_FILES } from "../src/render-profile.ts";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 const root = resolve(import.meta.dir, "..");
@@ -34,3 +36,12 @@ const build = await Bun.build({
 });
 if (!build.success)
   throw new AggregateError(build.logs, "Cannot bundle native diagram engine");
+
+// Native allocation guards use the same policy as the browser and reference CLI.
+await Bun.write(
+  resolve(output, "render-profile.json"),
+  JSON.stringify({
+    fonts: FONT_FILES,
+    limits: RASTER_LIMITS,
+  }),
+);

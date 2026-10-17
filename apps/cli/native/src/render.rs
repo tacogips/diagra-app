@@ -3,26 +3,28 @@ use resvg::{tiny_skia, usvg};
 use serde::Deserialize;
 use std::{io::Cursor, path::Path};
 
-const FONT_FILES: &[&str] = &[
-    "/System/Library/Fonts/Helvetica.ttc",
-    "/System/Library/Fonts/HelveticaNeue.ttc",
-    "/System/Library/Fonts/SFNS.ttf",
-    "/System/Library/Fonts/Menlo.ttc",
-    "/System/Library/Fonts/Hiragino Sans GB.ttc",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-    "C:\\Windows\\Fonts\\arial.ttf",
-    "C:\\Windows\\Fonts\\consola.ttf",
-    "C:\\Windows\\Fonts\\YuGothR.ttc",
-];
+#[derive(Deserialize)]
+struct RenderProfile {
+    fonts: Vec<String>,
+    limits: RasterLimits,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RasterLimits {
+    max_side: u32,
+    max_pixels: u64,
+}
 
 pub fn png(svg: String, scale: f32, font_dir: Option<String>) -> Result<Vec<u8>, String> {
+    let profile: RenderProfile = serde_json::from_str(include_str!(concat!(
+        env!("OUT_DIR"),
+        "/render-profile.json"
+    )))
+    .map_err(|error| format!("Invalid embedded render profile: {error}"))?;
     let mut options = usvg::Options::default();
     let fonts = options.fontdb_mut();
-    let files: Vec<_> = FONT_FILES
+    let files: Vec<_> = profile
+        .fonts
         .iter()
         .filter(|p| Path::new(p).is_file())
         .collect();
@@ -56,9 +58,9 @@ pub fn png(svg: String, scale: f32, font_dir: Option<String>) -> Result<Vec<u8>,
     let height = (tree.size().height() * scale).ceil() as u32;
     if width == 0
         || height == 0
-        || width > 8192
-        || height > 8192
-        || u64::from(width) * u64::from(height) > 32_000_000
+        || width > profile.limits.max_side
+        || height > profile.limits.max_side
+        || u64::from(width) * u64::from(height) > profile.limits.max_pixels
     {
         return Err("Raster dimensions exceed the pixel limit".into());
     }
@@ -136,4 +138,24 @@ pub fn pdf(png: Vec<u8>, layout: String) -> Result<Vec<u8>, String> {
     pdf.document_info(Ref::new(7))
         .creator(pdf_writer::TextStr("Nodetto"));
     Ok(pdf.finish())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_raster_limits_reject_oversized_surfaces_before_allocation() {
+        // Exercise native guards directly: the shared TS command layer normally
+        // rejects these dimensions before calling the renderer.
+        for (width, height) in [(8193, 1), (1, 8193), (6000, 6000)] {
+            let svg = format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"/>"#
+            );
+            assert_eq!(
+                png(svg, 1.0, None).unwrap_err(),
+                "Raster dimensions exceed the pixel limit"
+            );
+        }
+    }
 }

@@ -5,11 +5,7 @@
 // handed, so the file format can change without a Rust release.
 
 use std::fs;
-#[cfg(not(target_os = "macos"))]
-use std::fs::File;
 use std::io;
-#[cfg(not(target_os = "macos"))]
-use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -18,76 +14,12 @@ use tauri::Manager;
 /// Distinguishes concurrent writes to the same target within one process.
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-#[cfg(any(not(target_os = "macos"), test))]
-fn missing_file_name(path: &Path) -> io::Error {
-    io::Error::new(
-        io::ErrorKind::InvalidInput,
-        format!("{} has no file name", path.display()),
-    )
-}
-
-/// The temp file a write goes through: hidden, in the target's own
-/// directory so the final rename stays on one filesystem and is atomic.
-#[cfg(any(not(target_os = "macos"), test))]
-fn temp_sibling(path: &Path) -> io::Result<PathBuf> {
-    let name = path.file_name().ok_or_else(|| missing_file_name(path))?;
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|elapsed| elapsed.as_nanos())
-        .unwrap_or(0);
-    let counter = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let temp_name = format!(".{}.{nanos}-{counter}.tmp", name.to_string_lossy());
-    let directory = path.parent().unwrap_or_else(|| Path::new("."));
-    Ok(directory.join(temp_name))
-}
-
-#[cfg(not(target_os = "macos"))]
-fn write_then_rename(temp: &Path, target: &Path, contents: &[u8]) -> io::Result<()> {
-    let mut file = File::create(temp)?;
-    file.write_all(contents)?;
-    // Durability before visibility: the rename must never publish a name
-    // that points at a half-written file.
-    file.sync_all()?;
-    drop(file);
-    fs::rename(temp, target)
-}
-
-/// Replace `path` with `contents` atomically: write a sibling temp file,
-/// flush it to disk, then rename over the target. A reader either sees the
-/// previous file or the complete new one, never a partial write.
+/// Persist document text using the platform's selected-file grant mechanism.
 pub fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
     write_bytes_atomic(path, contents.as_bytes())
 }
 
-// Foundation's atomic writer uses the system's replacement-file mechanism.
-// A sandbox grant for an individual document does not permit us to create
-// an arbitrary sibling in its parent directory.
-#[cfg(target_os = "macos")]
-pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
-    use objc2_foundation::{NSData, NSDataWritingOptions, NSString, NSURL};
-
-    let path = path.to_str().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidInput, "file path is not valid UTF-8")
-    })?;
-    let url = NSURL::fileURLWithPath(&NSString::from_str(path));
-    NSData::with_bytes(contents)
-        .writeToURL_options_error(&url, NSDataWritingOptions::Atomic)
-        .map_err(|error| io::Error::other(error.to_string()))
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
-    let temp = temp_sibling(path)?;
-    match write_then_rename(&temp, path, contents) {
-        Ok(()) => Ok(()),
-        Err(error) => {
-            // Best effort: a failed write must not leave litter next to the
-            // user's document, but the original error is what matters.
-            let _ = fs::remove_file(&temp);
-            Err(error)
-        }
-    }
-}
+pub use nodetto_native::fs::write_selected_file_atomic as write_bytes_atomic;
 
 /// Marks "this file is not there" in a read error, so the frontend can drop
 /// a dead recent-files entry without also dropping one that merely lives on
@@ -143,14 +75,6 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    fn temp_siblings(directory: &Path) -> Vec<PathBuf> {
-        fs::read_dir(directory)
-            .expect("directory is readable")
-            .filter_map(|entry| entry.ok().map(|entry| entry.path()))
-            .filter(|path| path.extension().is_some_and(|extension| extension == "tmp"))
-            .collect()
-    }
-
     #[test]
     fn autosave_names_are_unique_and_do_not_create_empty_files() {
         let directory = tempdir().expect("temp dir");
@@ -172,7 +96,7 @@ mod tests {
         let bytes = [0, 255, 128, 37, 80, 68, 70, 10];
         write_export_atomic(target.to_string_lossy().into_owned(), bytes.to_vec()).expect("export");
         assert_eq!(fs::read(&target).expect("read"), bytes);
-        assert!(temp_siblings(directory.path()).is_empty());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
     }
 
     #[test]
@@ -207,7 +131,7 @@ mod tests {
         write_atomic(&target, "one\n").expect("first write");
         write_atomic(&target, "two\n").expect("second write");
 
-        assert_eq!(temp_siblings(directory.path()), Vec::<PathBuf>::new());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 1);
     }
 
     #[test]
@@ -226,29 +150,7 @@ mod tests {
             !missing_parent.exists(),
             "the write must not create the directory"
         );
-        assert_eq!(temp_siblings(directory.path()), Vec::<PathBuf>::new());
-    }
-
-    #[test]
-    fn temp_sibling_lives_next_to_the_target() {
-        let target = Path::new("/tmp/nodetto/document.jsonl");
-
-        let temp = temp_sibling(target).expect("target has a file name");
-
-        assert_eq!(temp.parent(), target.parent());
-        assert!(
-            temp.file_name()
-                .expect("temp has a file name")
-                .to_string_lossy()
-                .starts_with(".document.jsonl."),
-            "unexpected temp name: {}",
-            temp.display()
-        );
-    }
-
-    #[test]
-    fn temp_sibling_rejects_a_path_without_a_file_name() {
-        assert!(temp_sibling(Path::new("/")).is_err());
+        assert_eq!(fs::read_dir(directory.path()).unwrap().count(), 0);
     }
 
     #[test]

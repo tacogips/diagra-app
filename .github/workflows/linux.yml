@@ -71,7 +71,12 @@ jobs:
         run: bun apps/cli/scripts/build-sidecar.ts
       - name: Verify native engine and document behavior
         run: |
-          cargo test --locked -p nodetto-cli
+          # Older release tags predate the shared crate. Test it independently
+          # when present so host dependencies cannot hide missing features.
+          if [[ -f crates/native/Cargo.toml ]]; then
+            cargo test --locked -p nodetto-native
+          fi
+          cargo test --locked --workspace
           NODETTO_CLI_TEST_BINARY="$PWD/target/x86_64-unknown-linux-gnu/release/nodetto-cli" bun test apps/cli/src
       - name: Build Tauri Debian package and AppImage
         run: bun run tauri build --config src-tauri/tauri.linux.release.conf.json --bundles deb,appimage

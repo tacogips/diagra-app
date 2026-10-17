@@ -3,39 +3,18 @@
 //! for authorization and can request the same picker through nodetto_authorize.
 #[cfg(target_os = "macos")]
 mod mac {
-    use objc2::{rc::Retained, MainThreadMarker};
+    use nodetto_native::bookmarks::{self, SecurityScope};
+    use objc2::MainThreadMarker;
     use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy, NSOpenPanel};
-    use objc2_foundation::{
-        NSData, NSHomeDirectory, NSString, NSURLBookmarkCreationOptions,
-        NSURLBookmarkResolutionOptions, NSURL,
-    };
-    use std::{collections::BTreeMap, path::PathBuf};
+    use objc2_foundation::{NSHomeDirectory, NSString, NSURL};
+    use std::path::PathBuf;
 
-    pub struct Access(Retained<NSURL>);
-    impl Drop for Access {
-        fn drop(&mut self) {
-            unsafe { self.0.stopAccessingSecurityScopedResource() };
-        }
-    }
     fn store() -> PathBuf {
         PathBuf::from(NSHomeDirectory().to_string())
             .join("Library/Application Support/me.tacogips.nodetto.cli/security-bookmarks.json")
     }
-    fn load() -> BTreeMap<String, Vec<u8>> {
-        std::fs::read(store())
-            .ok()
-            .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-            .unwrap_or_default()
-    }
-    pub fn restore() -> Vec<Access> {
-        load().into_values().filter_map(|bytes| {
-            // Foundation validates the stored opaque bookmark. Resolving never
-            // displays UI; missing grants produce ordinary permission errors.
-            let url = unsafe { NSURL::URLByResolvingBookmarkData_options_relativeToURL_bookmarkDataIsStale_error(
-                &NSData::with_bytes(&bytes), NSURLBookmarkResolutionOptions::WithSecurityScope | NSURLBookmarkResolutionOptions::WithoutUI, None, std::ptr::null_mut(),
-            ) }.ok()?;
-            if unsafe { url.startAccessingSecurityScopedResource() } { Some(Access(url)) } else { None }
-        }).collect()
+    pub fn restore() -> Vec<SecurityScope> {
+        bookmarks::restore(&store()).into_values().collect()
     }
     pub fn authorize(folder: Option<&str>) -> Result<String, String> {
         let mtm =
@@ -63,30 +42,8 @@ mod mac {
             return Err("Folder authorization cancelled; no access was changed.".into());
         }
         let url = panel.URL().ok_or("No folder was selected")?;
-        let path = url
-            .path()
-            .ok_or("Selected folder has no filesystem path")?
-            .to_string();
-        let data = url
-            .bookmarkDataWithOptions_includingResourceValuesForKeys_relativeToURL_error(
-                NSURLBookmarkCreationOptions::WithSecurityScope,
-                None,
-                None,
-            )
+        let path = bookmarks::remember_url(&store(), &url)
             .map_err(|e| format!("Cannot remember folder access: {e}"))?;
-        let mut bookmarks = load();
-        bookmarks.insert(path.clone(), data.to_vec());
-        let store = store();
-        std::fs::create_dir_all(store.parent().ok_or("Missing bookmark directory")?)
-            .map_err(|e| e.to_string())?;
-        crate::files::write_atomic(
-            store.to_str().ok_or("Invalid bookmark path")?,
-            &serde_json::to_vec(&bookmarks).map_err(|e| e.to_string())?,
-        )
-        .map_err(|e| e.to_string())?;
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(store, std::fs::Permissions::from_mode(0o600))
-            .map_err(|e| e.to_string())?;
         Ok(format!("Authorized project folder: {path}\nRestart any running MCP server to use this new grant.\n"))
     }
 }

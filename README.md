@@ -1356,3 +1356,10 @@ source tag and attach Linux downloads to its release. The workflow also runs on
 future version tags. It preserves existing release notes and macOS assets and
 never overwrites an existing download. CLI unit/parity tests and package-content
 checks run before publication.
+
+### Shared native services
+
+`crates/native` contains file-write, attachment and security-bookmark mechanisms
+used by both desktop and CLI. Host adapters own dialogs, transport and sandbox
+identity. Diagram behavior stays in the shared TypeScript packages; Boa hosts
+that code for the CLI. See [native host boundaries](design-docs/specs/native-hosts.md).

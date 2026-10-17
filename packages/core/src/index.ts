@@ -607,6 +607,7 @@ export {
   type PdfOptions,
   type PdfOrientation,
   type PdfPageSize,
+  RASTER_LIMITS,
   RASTER_SCALES,
   pdfLayout,
   rasterDimensions,

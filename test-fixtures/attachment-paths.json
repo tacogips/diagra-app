@@ -1,0 +1,31 @@
+{
+  "valid": [
+    "image.png",
+    "artifacts/image.png",
+    "assets/nested/image 1.png",
+    "画像/図.png",
+    ".assets/image.png"
+  ],
+  "invalid": [
+    "",
+    ".",
+    "..",
+    "../image.png",
+    "/image.png",
+    "C:\\image.png",
+    "https://example.com/a.png",
+    "assets//image.png",
+    "assets/./image.png",
+    "assets/../image.png",
+    " assets/image.png",
+    "assets/image.png ",
+    "assets/a%20b.png",
+    "assets/a?b.png",
+    "assets/a#b.png",
+    "assets/a\u0000b.png",
+    "assets/ab.png",
+    "assets/ab.png",
+    "assets/﻿image.png",
+    "assets/image.png﻿"
+  ]
+}
