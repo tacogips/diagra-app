@@ -71,3 +71,13 @@ test("overlay nesting is capped", () => {
     stack = pushPrototypeOverlay(stack, entry(`overlay-${index}`));
   expect(stack).toHaveLength(8);
 });
+
+test("bottom sheets align to the bottom center of the base screen", () => {
+  expect(
+    prototypeOverlayPlacement(
+      { x: 100, y: 200, width: 390, height: 844 },
+      { x: 800, y: 0, width: 390, height: 300 },
+      entry("sheet", { position: "bottom-center" }),
+    ),
+  ).toEqual({ x: 100, y: 744 });
+});

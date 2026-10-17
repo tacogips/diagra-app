@@ -1,3 +1,4 @@
+import { connectScreenTransition } from "@nodetto/core";
 // `nodetto-cli edit`: apply a batch of drawing operations through the editor's
 // command layer, so validation, reference cascades and derived state are the
 // same as when a person edits in the app.
@@ -413,7 +414,11 @@ class Batch {
         index,
       );
     this.editor.setCurrentPage(from.page);
-    const id = this.editor.connectSmart(from.id, to.id);
+    const id =
+      isPlainObject(operation["semantic"]) &&
+      operation["semantic"]["prototype"] === true
+        ? connectScreenTransition(this.editor, from.id, to.id)
+        : this.editor.connectSmart(from.id, to.id);
     if (id === null)
       throw new OperationError(
         index,

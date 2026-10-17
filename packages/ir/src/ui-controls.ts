@@ -3,6 +3,7 @@ import {
   checkBoolean,
   checkEnum,
   checkObject,
+  checkNumber,
   checkString,
 } from "./checks.ts";
 import type { ElementTypeDefinition } from "./registry.ts";
@@ -14,10 +15,15 @@ export const UI_CONTROL_KINDS = [
   "select",
   "checkbox",
   "switch",
+  "radio",
+  "tabs",
+  "progress",
 ] as const;
 export type UiControlKind = (typeof UI_CONTROL_KINDS)[number];
 export interface UiControlSemantic {
   readonly control: UiControlKind;
+  /** Determinate progress, from 0 through 100. */
+  readonly progress?: number;
   readonly label: string;
   readonly inputType?:
     | "text"
@@ -42,6 +48,7 @@ export const uiControlDefinition: ElementTypeDefinition = {
   keyOrder: {
     keys: [
       "control",
+      "progress",
       "label",
       "inputType",
       "value",
@@ -55,6 +62,17 @@ export const uiControlDefinition: ElementTypeDefinition = {
     const out: ValidationIssue[] = [];
     if (!checkObject(out, semantic, path)) return out;
     checkEnum(out, semantic.control, `${path}.control`, UI_CONTROL_KINDS);
+    checkNumber(out, semantic.progress, `${path}.progress`, {
+      optional: true,
+      min: 0,
+    });
+    if (typeof semantic.progress === "number" && semantic.progress > 100)
+      out.push({
+        severity: "error",
+        code: "value.max",
+        path: `${path}.progress`,
+        message: "Progress must be at most 100.",
+      });
     if (semantic.inputType !== undefined)
       checkEnum(out, semantic.inputType, `${path}.inputType`, [
         "text",

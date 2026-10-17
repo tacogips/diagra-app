@@ -470,9 +470,10 @@ test("shares hidden and connector exclusions with web code generation", () => {
   });
   const connector = editor.buildElement("edge.generic", {
     id: "prototype-link",
-    semantic: { from: visible.id, to: visible.id, prototype: true },
+    semantic: { from: visible.id, to: "filtered-screen", prototype: true },
   });
   const frame = editor.buildElement("frame", {
+    id: "filtered-screen",
     semantic: {
       name: "Filtered",
       memberIds: [visible.id, connector.id, hidden.id],

@@ -812,6 +812,24 @@ export function connectorDecoration(element: Element): ConnectorDecoration {
       label: readString(semantic, "label") ?? "",
     };
   }
+  if (
+    element.type === "edge.generic" &&
+    readField(semantic, "prototype") === true
+  ) {
+    const action = readString(semantic, "prototypeAction") ?? "navigate";
+    const trigger = readString(semantic, "prototypeTrigger") ?? "click";
+    const animation = readString(semantic, "prototypeTransition") ?? "instant";
+    return {
+      start: "dot",
+      end: "arrow",
+      label: [
+        readString(semantic, "label"),
+        `${trigger} → ${action} · ${animation}`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    };
+  }
   const arrowheads = readField(semantic, "arrowheads");
   return {
     start: arrowheadMarker(readField(arrowheads, "start")),

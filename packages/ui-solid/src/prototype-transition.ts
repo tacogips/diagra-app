@@ -31,6 +31,16 @@ export function prototypeKeyframes(
         { transform: "translateX(-100%)" },
         { transform: "translateX(0)" },
       ];
+    case "slide-up":
+      return [
+        { transform: "translateY(100%)" },
+        { transform: "translateY(0)" },
+      ];
+    case "slide-down":
+      return [
+        { transform: "translateY(-100%)" },
+        { transform: "translateY(0)" },
+      ];
     default:
       return [];
   }
@@ -38,6 +48,38 @@ export function prototypeKeyframes(
 
 export class PrototypeAnimation {
   private animations: ActiveAnimation[] = [];
+
+  async playExit(
+    target: AnimationTarget | undefined,
+    transition: PrototypeTransition,
+    duration: number,
+    reducedMotion: boolean,
+  ): Promise<void> {
+    this.cancel();
+    const frames = prototypeKeyframes(
+      transition === "smart" ? "fade" : transition,
+    );
+    if (
+      !target?.animate ||
+      reducedMotion ||
+      !frames.length ||
+      !Number.isFinite(duration) ||
+      duration <= 0
+    )
+      return;
+    const animation = target.animate(frames, {
+      duration: Math.min(5000, duration),
+      easing: "ease-in",
+      direction: "reverse",
+      fill: "forwards",
+    });
+    this.animations = [animation];
+    try {
+      await animation.finished;
+    } catch {
+      /* A later interaction may cancel this animation. */
+    }
+  }
 
   cancel(): void {
     for (const animation of this.animations) animation.cancel();

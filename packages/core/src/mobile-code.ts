@@ -1002,6 +1002,26 @@ function swiftCode(
             "}",
           ];
           break;
+        case "progress":
+          lines = [
+            `ProgressView(value: ${control.progress ?? 0}, total: 100).accessibilityLabel(${label})`,
+          ];
+          break;
+        case "tabs":
+          lines = [
+            `Picker(${label}, selection: .constant(${swiftString(control.value ?? control.options?.[0] ?? "")})) {`,
+            ...(control.options ?? []).map(
+              (option) =>
+                `    Text(${swiftString(option)}).tag(${swiftString(option)})`,
+            ),
+            "}.pickerStyle(.segmented)",
+          ];
+          break;
+        case "radio":
+          lines = [
+            `HStack { Image(systemName: ${swiftString(control.checked ? "largecircle.fill.circle" : "circle")}); Text(${label}) }`,
+          ];
+          break;
         case "checkbox":
         case "switch":
           lines = [
@@ -1281,11 +1301,25 @@ function composeCode(
           return [
             `OutlinedTextField(value = ${value}, onValueChange = {}, label = { Text(${label}) }, enabled = ${enabled}, singleLine = ${control.control === "input"}, visualTransformation = ${control.inputType === "password" ? "PasswordVisualTransformation()" : "VisualTransformation.None"}, modifier = ${modifier})`,
           ];
+        case "progress":
+          return [
+            `LinearProgressIndicator(progress = { ${(control.progress ?? 0) / 100}f }, modifier = ${modifier})`,
+          ];
+        case "tabs":
+          return [
+            `Row(modifier = ${modifier}) {`,
+            ...(control.options ?? []).map(
+              (option) =>
+                `    Tab(selected = ${option === (control.value ?? control.options?.[0])}, onClick = {}, enabled = ${enabled}, text = { Text(${quoted(option)}) })`,
+            ),
+            "}",
+          ];
+        case "radio":
         case "checkbox":
         case "switch":
           return [
             `Row(modifier = ${modifier}, verticalAlignment = Alignment.CenterVertically) {`,
-            `    ${control.control === "switch" ? "Switch" : "Checkbox"}(checked = ${control.checked === true}, onCheckedChange = {}, enabled = ${enabled})`,
+            `    ${control.control === "switch" ? "Switch" : control.control === "radio" ? "RadioButton" : "Checkbox"}(${control.control === "radio" ? "selected" : "checked"} = ${control.checked === true}, ${control.control === "radio" ? "onClick" : "onCheckedChange"} = {}, enabled = ${enabled})`,
             `    Text(${label})`,
             "}",
           ];

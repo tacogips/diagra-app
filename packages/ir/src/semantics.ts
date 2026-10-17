@@ -98,6 +98,8 @@ export const PROTOTYPE_TRANSITIONS = [
   "fade",
   "slide-left",
   "slide-right",
+  "slide-up",
+  "slide-down",
   "smart",
 ] as const;
 export type PrototypeTransition = (typeof PROTOTYPE_TRANSITIONS)[number];
@@ -121,6 +123,7 @@ export type PrototypeAction = (typeof PROTOTYPE_ACTIONS)[number];
 export const PROTOTYPE_OVERLAY_POSITIONS = [
   "center",
   "top-left",
+  "bottom-center",
   "manual",
 ] as const;
 export type PrototypeOverlayPosition =
@@ -509,7 +512,16 @@ export interface ComponentVariantProperty {
   readonly value: string;
 }
 
+export const SCREEN_KINDS = [
+  "screen",
+  "popup",
+  "bottom-sheet",
+  "popover",
+] as const;
+export type ScreenKind = (typeof SCREEN_KINDS)[number];
+
 export interface FrameSemantic {
+  readonly screenKind?: ScreenKind;
   readonly name: string;
   /** Target platform informs presets and generated implementation handoff. */
   readonly platform?: FramePlatform;

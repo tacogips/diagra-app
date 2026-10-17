@@ -1101,6 +1101,7 @@ describe("creationFor", () => {
       "hand",
       "comment",
       "edge",
+      Tool.ScreenTransition,
       "draw.freehand",
       "edit.points",
       "edit.paint",

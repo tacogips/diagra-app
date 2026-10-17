@@ -40,6 +40,10 @@ export const Tool = {
   EditStroke: "edit.stroke-paint",
   Crop: "crop",
   Connector: "edge",
+  ScreenTransition: "prototype:transition",
+  PopupFrame: "frame:popup",
+  BottomSheetFrame: "frame:bottom-sheet",
+  PopoverFrame: "frame:popover",
   ForeignKey: "erd.foreign-key",
   Association: "uml.association",
   SequenceMessage: "sequence.message",
@@ -49,6 +53,9 @@ export const Tool = {
   SelectControl: "ui:select",
   Checkbox: "ui:checkbox",
   Toggle: "ui:switch",
+  Radio: "ui:radio",
+  Tabs: "ui:tabs",
+  Progress: "ui:progress",
   Node: "node.generic",
   Text: "text.note",
   Note: "text.note:note",
@@ -250,7 +257,10 @@ const FRAME_KINDS = {
   [Tool.TabletFrame]: "tablet",
   [Tool.PaperFrame]: "paper",
 } as const satisfies Record<
-  Extract<ToolKind, `frame:${string}`>,
+  Exclude<
+    Extract<ToolKind, `frame:${string}`>,
+    "frame:popup" | "frame:bottom-sheet" | "frame:popover"
+  >,
   keyof typeof FRAME_PRESETS
 >;
 
@@ -322,6 +332,29 @@ export function creationFor(tool: ToolKind): CreationTool | null {
           style: { fill: "none", stroke: "#64748b", strokeWidth: 1.5 },
         },
       };
+    case Tool.PopupFrame:
+    case Tool.BottomSheetFrame:
+    case Tool.PopoverFrame: {
+      const screenKind = tool.slice(6);
+      return {
+        type: "frame",
+        semantic: {
+          name:
+            screenKind === "popup"
+              ? "Popup"
+              : screenKind === "bottom-sheet"
+                ? "Bottom sheet"
+                : "Popover",
+          screenKind,
+          showTitle: false,
+        },
+        visual: {
+          width: screenKind === "bottom-sheet" ? 390 : 320,
+          height: screenKind === "popover" ? 180 : 300,
+          style: { fill: "#ffffff", stroke: "#cbd5e1", cornerRadius: 16 },
+        },
+      };
+    }
     case Tool.WebFrame:
     case Tool.IPhoneFrame:
     case Tool.AndroidFrame:
@@ -333,6 +366,7 @@ export function creationFor(tool: ToolKind): CreationTool | null {
         type: "frame",
         semantic: {
           name: preset.name,
+          screenKind: "screen",
           platform: preset.platform,
           ...(safeArea ? { safeArea } : {}),
         },
@@ -364,6 +398,9 @@ export function creationFor(tool: ToolKind): CreationTool | null {
     case Tool.Textarea:
     case Tool.SelectControl:
     case Tool.Checkbox:
+    case Tool.Radio:
+    case Tool.Tabs:
+    case Tool.Progress:
     case Tool.Toggle: {
       const control = tool.slice(3);
       return {
@@ -376,7 +413,8 @@ export function creationFor(tool: ToolKind): CreationTool | null {
               : control === "checkbox" || control === "switch"
                 ? "Label"
                 : control,
-          ...(control === "select"
+          ...(control === "progress" ? { progress: 60 } : {}),
+          ...(control === "select" || control === "tabs"
             ? { options: ["Option 1", "Option 2"], value: "Option 1" }
             : {}),
           ...(control === "input" || control === "textarea"
@@ -384,8 +422,9 @@ export function creationFor(tool: ToolKind): CreationTool | null {
             : {}),
         },
         visual: {
-          width: control === "textarea" ? 240 : 180,
-          height: control === "textarea" ? 110 : 44,
+          width: control === "tabs" ? 320 : control === "textarea" ? 240 : 180,
+          height:
+            control === "progress" ? 12 : control === "textarea" ? 110 : 44,
         },
       };
     }
@@ -408,6 +447,7 @@ export function creationFor(tool: ToolKind): CreationTool | null {
     case Tool.Hand:
     case Tool.Comment:
     case Tool.Connector:
+    case Tool.ScreenTransition:
     case Tool.ForeignKey:
     case Tool.Association:
     case Tool.SequenceMessage:
@@ -444,6 +484,7 @@ export function componentRelationshipFor(
 export function isConnectorTool(tool: ToolKind): boolean {
   return (
     tool === Tool.Connector ||
+    tool === Tool.ScreenTransition ||
     typedConnectorFor(tool) !== undefined ||
     componentRelationshipFor(tool) !== undefined
   );

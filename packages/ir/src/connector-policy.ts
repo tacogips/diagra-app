@@ -28,7 +28,9 @@ export function connectorEndpointIssues(
   const allowed = Object.hasOwn(CONNECTOR_ENDPOINT_TYPES, type)
     ? CONNECTOR_ENDPOINT_TYPES[type]
     : undefined;
-  if (!allowed || !isPlainObject(semantic)) return [];
+  if (!isPlainObject(semantic)) return [];
+  const transition = type === "edge.generic" && semantic.prototype === true;
+  if (!allowed && !transition) return [];
   const issues: ConnectorEndpointIssue[] = [];
   for (const end of ["from", "to"] as const) {
     const raw = semantic[end];
@@ -39,13 +41,18 @@ export function connectorEndpointIssues(
     if (!target) continue;
     const field = type === "erd.relation" ? `${end}.table` : end;
     const label = end === "from" ? "Source endpoint" : "Target endpoint";
-    if (!allowed.includes(target.type))
+    if (
+      transition
+        ? end === "to" && target.type !== "frame"
+        : !allowed?.includes(target.type)
+    )
       issues.push({
         code: "connector.endpointType",
         field,
-        message: `${label} must connect to ${type === "erd.relation" ? "a table" : type === "uml.association" ? "a UML class" : type === "sequence.message" ? "a sequence participant" : "a UML component, interface, or port"}.`,
+        message: `${label} must connect to ${transition ? "a screen or popup frame" : type === "erd.relation" ? "a table" : type === "uml.association" ? "a UML class" : type === "sequence.message" ? "a sequence participant" : "a UML component, interface, or port"}.`,
       });
-    if (target.page !== page)
+    // Prototype destinations may be screens on another document page.
+    if (target.page !== page && (!transition || end === "from"))
       issues.push({
         code: "connector.endpointPage",
         field,

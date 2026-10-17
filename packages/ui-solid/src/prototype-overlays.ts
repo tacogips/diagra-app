@@ -58,6 +58,9 @@ export function prototypeOverlayPlacement(
   if (entry.position === "top-left") return { x: base.x, y: base.y };
   return {
     x: base.x + (base.width - overlay.width) / 2,
-    y: base.y + (base.height - overlay.height) / 2,
+    y:
+      entry.position === "bottom-center"
+        ? base.y + base.height - overlay.height
+        : base.y + (base.height - overlay.height) / 2,
   };
 }

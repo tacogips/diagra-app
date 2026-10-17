@@ -9,6 +9,7 @@ import { Show, type JSX } from "solid-js";
 import { Switch } from "../Switch.tsx";
 import {
   Field,
+  NumberInput,
   Section,
   SelectInput,
   TextArea,
@@ -63,7 +64,11 @@ export function UiControlSection(props: {
           onCommit={(label) => write({ label })}
         />
       </Field>
-      <Show when={["input", "textarea", "select"].includes(semantic().control)}>
+      <Show
+        when={["input", "textarea", "select", "tabs"].includes(
+          semantic().control,
+        )}
+      >
         <Field label="Value">
           <TextInput
             label="Control value"
@@ -85,7 +90,9 @@ export function UiControlSection(props: {
           />
         </Field>
       </Show>
-      <Show when={semantic().control === "select"}>
+      <Show
+        when={semantic().control === "select" || semantic().control === "tabs"}
+      >
         <Field label="Options">
           <TextArea
             label="Select options, one per line"
@@ -95,11 +102,7 @@ export function UiControlSection(props: {
           />
         </Field>
       </Show>
-      <Show
-        when={
-          semantic().control === "checkbox" || semantic().control === "switch"
-        }
-      >
+      <Show when={["checkbox", "switch", "radio"].includes(semantic().control)}>
         <Field label="Checked">
           <Switch
             aria-label="Control checked"
@@ -107,6 +110,17 @@ export function UiControlSection(props: {
             onChange={(event) =>
               write({ checked: event.currentTarget.checked })
             }
+          />
+        </Field>
+      </Show>
+      <Show when={semantic().control === "progress"}>
+        <Field label="Progress (%)">
+          <NumberInput
+            label="Progress percent"
+            min={0}
+            max={100}
+            value={semantic().progress ?? 0}
+            onCommit={(progress) => write({ progress })}
           />
         </Field>
       </Show>

@@ -490,3 +490,48 @@ test("export --element renders one frame or element; large pages scale down auto
   expect(fitted.exitCode).toBe(EXIT_OK);
   expect(fitted.stderr).toContain("scaled to");
 });
+
+test("AI connect creates destination-aware popup transitions and preserves animation overrides", () => {
+  const { document } = edit("freeform", [
+    {
+      op: "add",
+      page: "p1",
+      type: "frame",
+      ref: "screen",
+      semantic: { name: "Home", screenKind: "screen" },
+      visual: { x: 0, y: 0, width: 400, height: 600 },
+    },
+    {
+      op: "add",
+      page: "p1",
+      type: "ui.control",
+      ref: "button",
+      semantic: { control: "button", label: "Show details" },
+      visual: { x: 20, y: 60, width: 180, height: 44 },
+    },
+    {
+      op: "add",
+      page: "p1",
+      type: "frame",
+      ref: "sheet",
+      semantic: { name: "Details", screenKind: "bottom-sheet" },
+      visual: { x: 600, y: 0, width: 390, height: 300 },
+    },
+    {
+      op: "connect",
+      from: "@button",
+      to: "@sheet",
+      semantic: { prototype: true, prototypeDuration: 400 },
+    },
+  ]);
+  const edge = document.elements.find(
+    (element) => element.type === "edge.generic",
+  );
+  expect(edge?.semantic).toMatchObject({
+    prototype: true,
+    prototypeAction: "open-overlay",
+    prototypeTransition: "slide-up",
+    prototypeOverlayPosition: "bottom-center",
+    prototypeDuration: 400,
+  });
+});

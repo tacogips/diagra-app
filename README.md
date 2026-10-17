@@ -79,7 +79,8 @@ brew install --cask tacogips/tap/nodetto
 The cask installs the local-only `Nodetto.app` and links the bundled
 `nodetto-cli` command. The desktop client does not create a cloud session or
 show cloud/account controls; cloud workspaces belong to the hosted web edition.
-Open a document from a terminal with `open -a nodetto path/to/file.jsonl`;
+Open a document from a terminal with `nodetto-cli open path/to/file.jsonl`
+(or `open -a nodetto path/to/file.jsonl` on macOS);
 Finder "Open With" also lists nodetto for `.jsonl`, `.mmd` and `.mermaid`
 files without becoming their default application. A path passed while the app
 is running opens in the existing window (after the usual unsaved-changes
@@ -1195,3 +1196,38 @@ Snapping, Files and Shortcuts, plus Collaboration when cloud features are
 available. Grid/rulers, snapping, pane visibility and autosave delay are remembered
 across launches. The same view preferences stay synchronized with the canvas
 controls.
+
+### Screens, popups and transitions
+
+In Web design and App design, the **Screens & transitions** palette offers a
+**Screen transition**, **Popup / dialog**, **Bottom sheet**, and **Popover**.
+Web, iPhone, Android and tablet artboards start as screens. Change an existing
+frame's **Artboard → Kind** without replacing its editable child shapes.
+
+Choose **Screen transition**, then drag from a screen or one of its parts to a
+destination screen or popup. Purple connectors show the trigger, action, and
+animation. Dropping on a child part resolves to its screen, including when the
+part is nested inside a layout frame. A popup opens as an overlay; a bottom
+sheet opens at the bottom with a slide-up animation. These links are omitted
+from the rendered screen artwork and run in **Preview**.
+
+Select a transition to change its action (navigate, open/close overlay, or
+change component variant), trigger (click, hover, press, or delay), animation
+(instant, fade, slide from any of four sides, or smart animate), and duration.
+Overlay placement, backdrop, and outside-click dismissal are configurable.
+Preview respects reduced-motion preferences; close-overlay actions play the
+selected animation in reverse before dismissing the overlay.
+
+The UI controls palette also includes **Radio button**, **Navigation tabs**,
+and **Progress**. Their checked state, options/selected value, and progress
+percentage are editable in the inspector and retained by JSONL, HTML/CSS,
+SVG/PNG/PDF, and native-code handoff. Generated HTML and native code remain
+implementation starting points; application logic and tab content are supplied
+by the app developer.
+
+AI authors can use `frame.semantic.screenKind` (`screen`, `popup`,
+`bottom-sheet`, `popover`) and `ui.control.semantic.control` (`radio`, `tabs`,
+`progress`). For example, `connect` with `semantic: {"prototype": true}` creates
+a screen transition with destination-aware defaults; add `prototypeAction`,
+`prototypeTransition`, and `prototypeDuration` to override them. Ordinary
+connectors keep their existing behavior.

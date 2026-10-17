@@ -2,6 +2,7 @@
 // need to await (rendering), behind one dispatcher.
 
 import { type CommandIo, type CommandResult, runCli } from "./commands.ts";
+import { openCommand } from "./open-command.ts";
 import { exportCommand } from "./export-command.ts";
 
 const ASYNC_COMMANDS: Readonly<
@@ -11,6 +12,7 @@ const ASYNC_COMMANDS: Readonly<
   >
 > = {
   export: exportCommand,
+  open: openCommand,
 };
 
 export async function runCliAsync(

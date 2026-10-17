@@ -40,6 +40,7 @@ import {
   type ElementType,
   GEO_KINDS,
   FRAME_PLATFORMS,
+  SCREEN_KINDS,
   FOREIGN_KEY_DEFERRABILITIES,
   MESSAGE_KINDS,
   PATH_FILL_RULES,
@@ -1384,6 +1385,7 @@ const FRAME: ElementTypeDefinition = {
     keys: [
       "name",
       "platform",
+      "screenKind",
       "safeArea",
       "responsiveSource",
       "memberIds",
@@ -1481,6 +1483,13 @@ const FRAME: ElementTypeDefinition = {
         semantic["platform"],
         `${path}.platform`,
         FRAME_PLATFORMS,
+        { optional: true },
+      );
+      checkEnum(
+        out,
+        semantic["screenKind"],
+        `${path}.screenKind`,
+        SCREEN_KINDS,
         { optional: true },
       );
       const safeArea = semantic["safeArea"];
