@@ -53,6 +53,8 @@ export const USAGE = OVERVIEW;
 /** Reads and writes go through this seam so commands stay testable. */
 export interface CommandIo {
   readText(path: string): string;
+  /** Launch the desktop editor with an existing local file. */
+  openDocument?(path: string, app?: string): Promise<void>;
   readAttachment?(documentPath: string, relative: string): Uint8Array;
   writeText(path: string, text: string): void;
   /** Standard input, for `--ops -`. */
@@ -701,8 +703,9 @@ export function runCli(
       return typesCommand(io, rest);
     case "inspect":
       return inspectCommand(io, rest);
+    case "open":
     case "export":
-      return fail("export is asynchronous; call runCliAsync from cli.ts.");
+      return fail(`${command} is asynchronous; call runCliAsync from cli.ts.`);
     case "--version":
     case "-V":
       return ok(`nodetto-cli ${version}\n`);

@@ -7,6 +7,7 @@ export const OVERVIEW = `nodetto-cli - read, draw, check and convert nodetto doc
 Usage: nodetto-cli <command> [options]
 
 Look at a document
+  nodetto-cli open <file>         Open a file in the desktop app
   nodetto-cli inspect <doc>       Compact outline (or JSON) of pages and elements
   nodetto-cli types [<type>]      Element types and the fields each one takes
   nodetto-cli validate <doc>      Check that a document parses and is valid
@@ -35,6 +36,21 @@ const EXIT_CODES = `Exit codes: 0 success, 1 out of date (--check), 2 usage or i
 3 warnings with --strict.`;
 
 export const COMMAND_HELP: Readonly<Record<string, string>> = {
+  open: `Usage: nodetto-cli open <file> [--app <application>]
+
+Open an existing local file in the Nodetto desktop app. Relative paths resolve
+from the current directory. On macOS this also opens files in a running app.
+The command returns after the OS accepts the request; it does not wait for edits.
+
+  --app  macOS app name or .app path (default: nodetto). On Linux and Windows,
+         the Nodetto executable name or path (default: nodetto / nodetto.exe).
+
+Example:
+  nodetto-cli open design.jsonl
+  nodetto-cli open design.jsonl --app "/Applications/Nodetto.app"
+
+${EXIT_CODES}`,
+
   inspect: `Usage: nodetto-cli inspect <doc.jsonl> [--page <id|name>] [--format outline|json]
                            [--type <prefix>] [--ids short|full]
 
