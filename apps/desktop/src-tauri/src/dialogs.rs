@@ -8,12 +8,21 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 
 use tauri::AppHandle;
+#[cfg(target_os = "macos")]
+use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, FilePath};
 
 const FILTER_NAME: &str = "nodetto document";
 const OPEN_FILTER_EXTENSIONS: &[&str] = &["jsonl", "mmd", "mermaid", "bpmn", "html", "htm"];
 const SAVE_FILTER_EXTENSIONS: &[&str] = &["jsonl"];
 const DEFAULT_FILE_NAME: &str = "untitled.jsonl";
+
+#[cfg(target_os = "macos")]
+#[derive(Default)]
+pub struct AttachmentDialog {
+    generation: std::sync::atomic::AtomicU64,
+    last: tauri::async_runtime::Mutex<Option<(PathBuf, Result<(), String>)>>,
+}
 
 /// Save dialogs on some platforms return the typed name without the filter's
 /// extension. Only a name with no extension at all gets one appended: a user
@@ -67,6 +76,57 @@ async fn receive(receiver: mpsc::Receiver<Option<FilePath>>) -> Result<Option<Pa
             .map(Some)
             .map_err(|error| format!("unsupported file location: {error}")),
     }
+}
+
+#[cfg(target_os = "macos")]
+pub async fn allow_attachment_directory(
+    app: &AppHandle,
+    directory: &std::path::Path,
+) -> Result<(), String> {
+    use std::sync::atomic::Ordering;
+    let state = app.state::<AttachmentDialog>();
+    let generation = state.generation.load(Ordering::Relaxed);
+    let mut last = state.last.lock().await;
+    if generation != state.generation.load(Ordering::Relaxed) {
+        if let Some((path, result)) = last.as_ref() {
+            if path == directory {
+                return result.clone();
+            }
+        }
+    }
+    match std::fs::read_dir(directory) {
+        Ok(_) => return Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
+        Err(error) => return Err(format!("could not open document directory: {error}")),
+    }
+    let result = request_attachment_directory(app, directory).await;
+    *last = Some((directory.to_path_buf(), result.clone()));
+    state.generation.fetch_add(1, Ordering::Relaxed);
+    result
+}
+
+#[cfg(target_os = "macos")]
+async fn request_attachment_directory(
+    app: &AppHandle,
+    directory: &std::path::Path,
+) -> Result<(), String> {
+    let (sender, receiver) = mpsc::channel();
+    app.dialog()
+        .file()
+        .set_title("Allow attachments in this document's folder")
+        .set_directory(directory)
+        .pick_folder(move |picked| {
+            let _ = sender.send(picked);
+        });
+    let selected = receive(receiver)
+        .await?
+        .ok_or("attachment folder access cancelled")?;
+    let selected = selected.canonicalize().map_err(|e| e.to_string())?;
+    let expected = directory.canonicalize().map_err(|e| e.to_string())?;
+    if selected != expected {
+        return Err("Select the folder containing this document to access its attachments".into());
+    }
+    crate::file_access::remember(app, &selected.to_string_lossy())
 }
 
 fn to_string(path: PathBuf) -> String {

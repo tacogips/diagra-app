@@ -4,8 +4,12 @@
 // serialization (`@nodetto/io`); Rust only moves the exact bytes it is
 // handed, so the file format can change without a Rust release.
 
-use std::fs::{self, File};
-use std::io::{self, Write};
+use std::fs;
+#[cfg(not(target_os = "macos"))]
+use std::fs::File;
+use std::io;
+#[cfg(not(target_os = "macos"))]
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,6 +18,7 @@ use tauri::Manager;
 /// Distinguishes concurrent writes to the same target within one process.
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+#[cfg(any(not(target_os = "macos"), test))]
 fn missing_file_name(path: &Path) -> io::Error {
     io::Error::new(
         io::ErrorKind::InvalidInput,
@@ -23,6 +28,7 @@ fn missing_file_name(path: &Path) -> io::Error {
 
 /// The temp file a write goes through: hidden, in the target's own
 /// directory so the final rename stays on one filesystem and is atomic.
+#[cfg(any(not(target_os = "macos"), test))]
 fn temp_sibling(path: &Path) -> io::Result<PathBuf> {
     let name = path.file_name().ok_or_else(|| missing_file_name(path))?;
     let nanos = SystemTime::now()
@@ -35,6 +41,7 @@ fn temp_sibling(path: &Path) -> io::Result<PathBuf> {
     Ok(directory.join(temp_name))
 }
 
+#[cfg(not(target_os = "macos"))]
 fn write_then_rename(temp: &Path, target: &Path, contents: &[u8]) -> io::Result<()> {
     let mut file = File::create(temp)?;
     file.write_all(contents)?;
@@ -52,6 +59,23 @@ pub fn write_atomic(path: &Path, contents: &str) -> io::Result<()> {
     write_bytes_atomic(path, contents.as_bytes())
 }
 
+// Foundation's atomic writer uses the system's replacement-file mechanism.
+// A sandbox grant for an individual document does not permit us to create
+// an arbitrary sibling in its parent directory.
+#[cfg(target_os = "macos")]
+pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
+    use objc2_foundation::{NSData, NSDataWritingOptions, NSString, NSURL};
+
+    let path = path.to_str().ok_or_else(|| {
+        io::Error::new(io::ErrorKind::InvalidInput, "file path is not valid UTF-8")
+    })?;
+    let url = NSURL::fileURLWithPath(&NSString::from_str(path));
+    NSData::with_bytes(contents)
+        .writeToURL_options_error(&url, NSDataWritingOptions::Atomic)
+        .map_err(|error| io::Error::other(error.to_string()))
+}
+
+#[cfg(not(target_os = "macos"))]
 pub fn write_bytes_atomic(path: &Path, contents: &[u8]) -> io::Result<()> {
     let temp = temp_sibling(path)?;
     match write_then_rename(&temp, path, contents) {

@@ -1237,3 +1237,23 @@ AI authors can use `frame.semantic.screenKind` (`screen`, `popup`,
 a screen transition with destination-aware defaults; add `prototypeAction`,
 `prototypeTransition`, and `prototypeDuration` to override them. Ordinary
 connectors keep their existing behavior.
+
+### Mac App Store packaging
+
+`mise run release-macos-app-store-local build` creates a sandboxed GUI-only
+`.pkg` using the local Apple Distribution and Mac Installer Distribution
+identities. Inject `APPLE_TEAM_ID` and `NODETTO_APP_STORE_PROFILE_BASE64` through
+kinko. The profile must match this app and the installed signing certificate.
+Never commit provisioning profiles, API keys, or generated signing material.
+
+The Store configuration excludes the Bun CLI and JIT entitlements. Install
+`nodetto-cli` separately for terminal/AI workflows; direct downloads retain the
+bundled CLI. Document access uses native file selection and persistent
+security-scoped bookmarks. Documents with relative attachments request their
+containing folder when sandbox access is needed.
+
+The `upload` mode additionally uses the `APP_STORE_CONNECT_API_KEY_ID`,
+`APP_STORE_CONNECT_API_PRIVATE_KEY`, `APP_STORE_CONNECT_ISSUER_ID`, and
+`APP_STORE_CONNECT_API_KEY_TYPE` kinko entries. It validates the signed package
+before uploading through Apple's API authentication. Private keys are decoded
+only into a protected temporary directory and removed when the command exits.

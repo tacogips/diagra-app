@@ -8,6 +8,8 @@
 mod attachments;
 mod close;
 mod dialogs;
+#[cfg(target_os = "macos")]
+mod file_access;
 mod file_menu;
 mod fs;
 mod launch;
@@ -16,6 +18,14 @@ mod watch;
 
 pub fn run() {
     let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder
+        .manage(dialogs::AttachmentDialog::default())
+        .manage(file_access::FileAccess::default())
+        .setup(|app| {
+            file_access::restore(app.handle());
+            Ok(())
+        });
     #[cfg(target_os = "macos")]
     let builder = builder.menu(close::menu).on_menu_event(|app, event| {
         let id = event.id().as_ref();

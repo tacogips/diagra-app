@@ -1,0 +1,13 @@
+{
+  "bundle": {
+    "active": true,
+    "category": "GraphicsAndDesign",
+    "targets": ["app"],
+    "externalBin": [],
+    "macOS": {
+      "bundleVersion": "1",
+      "minimumSystemVersion": "12.0",
+      "hardenedRuntime": false
+    }
+  }
+}

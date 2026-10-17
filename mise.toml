@@ -121,3 +121,9 @@ else
   echo "Using existing custom Git hooks path: $hooks_path"
 fi
 '''
+
+[tasks.release-macos-app-store-local]
+description = "Build or upload the sandboxed Mac App Store GUI package"
+run = '''
+bash scripts/release-macos-app-store-local.sh "$@"
+'''

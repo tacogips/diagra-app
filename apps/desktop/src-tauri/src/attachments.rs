@@ -52,8 +52,7 @@ fn resolve_existing(document_path: &str, relative: &str) -> Result<PathBuf, Stri
     Ok(path)
 }
 
-#[tauri::command]
-pub fn read_attachment(document_path: String, relative: String) -> Result<Vec<u8>, String> {
+fn read_attachment_bytes(document_path: String, relative: String) -> Result<Vec<u8>, String> {
     let path = resolve_existing(&document_path, &relative)?;
     let size = fs::metadata(&path)
         .map_err(|error| error.to_string())?
@@ -73,8 +72,7 @@ pub fn read_attachment(document_path: String, relative: String) -> Result<Vec<u8
     Ok(bytes)
 }
 
-#[tauri::command]
-pub fn store_attachment(
+fn store_attachment_bytes(
     document_path: String,
     extension: String,
     contents: Vec<u8>,
@@ -126,6 +124,33 @@ pub fn store_attachment(
     Ok(format!("artifacts/{name}"))
 }
 
+#[tauri::command]
+pub async fn read_attachment(
+    app: tauri::AppHandle,
+    document_path: String,
+    relative: String,
+) -> Result<Vec<u8>, String> {
+    #[cfg(target_os = "macos")]
+    crate::dialogs::allow_attachment_directory(&app, &document_directory(&document_path)?).await?;
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+    read_attachment_bytes(document_path, relative)
+}
+
+#[tauri::command]
+pub async fn store_attachment(
+    app: tauri::AppHandle,
+    document_path: String,
+    extension: String,
+    contents: Vec<u8>,
+) -> Result<String, String> {
+    #[cfg(target_os = "macos")]
+    crate::dialogs::allow_attachment_directory(&app, &document_directory(&document_path)?).await?;
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+    store_attachment_bytes(document_path, extension, contents)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -141,12 +166,12 @@ mod tests {
             .into_owned();
         let bytes = b"example attachment".to_vec();
         let first =
-            store_attachment(document.clone(), "html".into(), bytes.clone()).expect("store");
-        let second =
-            store_attachment(document.clone(), "html".into(), bytes.clone()).expect("deduplicate");
+            store_attachment_bytes(document.clone(), "html".into(), bytes.clone()).expect("store");
+        let second = store_attachment_bytes(document.clone(), "html".into(), bytes.clone())
+            .expect("deduplicate");
         assert_eq!(first, second);
         assert!(first.starts_with("artifacts/"));
-        assert_eq!(read_attachment(document, first).expect("read"), bytes);
+        assert_eq!(read_attachment_bytes(document, first).expect("read"), bytes);
     }
 
     #[test]
@@ -167,11 +192,11 @@ mod tests {
             "artifacts//x.png",
         ] {
             assert!(
-                read_attachment(document.clone(), path.into()).is_err(),
+                read_attachment_bytes(document.clone(), path.into()).is_err(),
                 "{path}"
             );
         }
-        assert!(store_attachment(document, "../html".into(), vec![1]).is_err());
+        assert!(store_attachment_bytes(document, "../html".into(), vec![1]).is_err());
     }
 
     #[test]
@@ -182,10 +207,10 @@ mod tests {
             .join("design.jsonl")
             .to_string_lossy()
             .into_owned();
-        let name =
-            store_attachment(document.clone(), "css".into(), b"body{}".to_vec()).expect("store");
+        let name = store_attachment_bytes(document.clone(), "css".into(), b"body{}".to_vec())
+            .expect("store");
         fs::write(directory.path().join(&name), b"edited").expect("edit");
-        assert!(store_attachment(document, "css".into(), b"body{}".to_vec()).is_err());
+        assert!(store_attachment_bytes(document, "css".into(), b"body{}".to_vec()).is_err());
         assert_eq!(
             fs::read(directory.path().join(name)).expect("read"),
             b"edited"
@@ -205,7 +230,7 @@ mod tests {
             .join("design.jsonl")
             .to_string_lossy()
             .into_owned();
-        assert!(read_attachment(document.clone(), "artifacts/image.png".into()).is_err());
-        assert!(store_attachment(document, "png".into(), vec![1]).is_err());
+        assert!(read_attachment_bytes(document.clone(), "artifacts/image.png".into()).is_err());
+        assert!(store_attachment_bytes(document, "png".into(), vec![1]).is_err());
     }
 }

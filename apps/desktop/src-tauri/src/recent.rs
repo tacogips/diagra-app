@@ -118,6 +118,8 @@ pub fn recent_files_add(
 ) -> Result<Vec<RecentEntry>, String> {
     let _guard = state.0.lock().map_err(|_| "recent files lock poisoned")?;
     let directory = config_directory(&app)?;
+    #[cfg(target_os = "macos")]
+    crate::file_access::remember(&app, &path)?;
     let entries = add(load(&directory), &path, now_ms());
     save(&directory, &entries)?;
     Ok(entries)
