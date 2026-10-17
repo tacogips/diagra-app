@@ -176,3 +176,7 @@ pub fn help() -> Result<serde_json::Value, String> {
         serde_json::from_str(&text).map_err(|e| e.to_string())
     })
 }
+
+#[cfg(test)]
+#[path = "engine_tests.rs"]
+mod tests;
