@@ -1,3 +1,4 @@
+import { fontFamilyCss } from "./css-font-family.ts";
 import type { TypographyStyleValue } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { colorTokens } from "./color-tokens.ts";
@@ -25,8 +26,7 @@ export function typographyCssValue(
   field: keyof TypographyStyleValue,
   value: TypographyStyleValue[keyof TypographyStyleValue],
 ): string {
-  if (field === "fontFamily")
-    return `"${String(value).replace(/[\"\n\r\f<>]/g, (char) => `\\${char.charCodeAt(0).toString(16)} `)}"`;
+  if (field === "fontFamily") return fontFamilyCss(String(value));
   if (field === "fontSize" || field === "letterSpacing") return `${value}px`;
   if (field === "fontVariations" || field === "fontFeatures")
     return Array.isArray(value)

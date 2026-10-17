@@ -1,3 +1,4 @@
+import { fontFamilyCss } from "./css-font-family.ts";
 import type { ElementId, GroupSemantic } from "@nodetto/ir";
 import type { Editor } from "./editor.ts";
 import { frameParents } from "./frame-tree.ts";
@@ -20,11 +21,6 @@ import { groupOf } from "./group.ts";
 import { fontFeatureCss, fontVariationCss } from "./font-settings.ts";
 import { compoundPathMaskCss } from "./shapes/compound-path.ts";
 import { rasterGroupMaskCss } from "./masks.ts";
-
-/** CSS strings cannot terminate their declaration or introduce new rules. */
-function cssString(value: string): string {
-  return `"${value.replace(/[\\"\n\r\f<>]/g, (char) => `\\${char.charCodeAt(0).toString(16)} `)}"`;
-}
 
 function cssColor(value: string): string | null {
   // Only literal hex colors and safe keywords are emitted. The full stored
@@ -229,7 +225,7 @@ export function inspectDesign(editor: Editor, id: ElementId) {
   if (style?.fontFamily !== undefined)
     add(
       "font-family",
-      cssString(style.fontFamily),
+      fontFamilyCss(style.fontFamily),
       linkedType("fontFamily", style.fontFamily),
     );
   if (style?.fontWeight !== undefined)
